@@ -62,7 +62,7 @@ export const useGameStore = create<GameStore>()(
           state.gameState = {
             characters: characters.map((char, index) => ({
               ...char,
-              slot: index, // Assign slot based on order
+              slotPosition: index, // Assign slot position based on order
             })),
             tick: 0,
             phase: 'decision',

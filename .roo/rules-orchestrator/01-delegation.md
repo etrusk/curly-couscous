@@ -13,6 +13,12 @@ Every subtask MUST use this format:
 **Success Criteria**: [Specific, testable conditions for completion]
 
 **Budget**: Complete within ~20 exchanges. Report degradation if hit.
+
+**Handback**: When complete, use `attempt_completion` with:
+- **Done**: [One sentence summary]
+- **Files**: [List of files read/modified]
+- **Health**: ✅ Clean | ⚠️ Degraded — [reason if applicable]
+- **Next**: [Suggested next step for Orchestrator]
 ```
 
 ## DO NOT Include in Subtasks

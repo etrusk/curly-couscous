@@ -1,5 +1,7 @@
 # Project Context
 
+> **Authoritative Spec**: See `auto-battler-spec-v0.3-llm.md` for complete design details.
+
 ## Project Overview
 Tick-based auto battler with priority-based skill system (gambit system like FFXII).
 12×12 grid with character tokens, intent lines, damage overlays.
@@ -13,11 +15,14 @@ Client-side only for v0.3 (foundation for future roguelike meta-progression).
 5. Foundation for future complexity (equipment, more skills, speed stats, roguelike meta-progression)
 
 ## Core Game Mechanics
-- **Tick-based Combat**: Battle progresses in discrete ticks with simultaneous decision and resolution phases
+- **Tick-based Combat**: Battle progresses in discrete ticks with `decision` and `resolution` phases (no separate visualization phase)
+- **Distance Metric**: Chebyshev distance (8-directional; diagonals cost 1)
 - **Priority-Based AI**: Characters evaluate skill lists top-to-bottom, executing first valid skill
 - **Intent Visualization**: All pending actions shown via colored lines and damage numbers before execution
 - **Dodge Mechanics**: Multi-tick skills create reaction windows—faster 1-tick skills cannot be dodged
-- **Collision System**: Stationary characters block movement; collisions resolved by slot position (order added)
+- **Tie-breaking Rules**:
+  - Selector ties (multiple valid targets): Lower Y → Lower X coordinate
+  - Movement collision (two movers, same destination): Lower slot position wins
 
 ## Tech Stack
 - Language: TypeScript 5.x (strict mode)
@@ -29,7 +34,7 @@ Client-side only for v0.3 (foundation for future roguelike meta-progression).
 
 ## Key Patterns
 - **Pure Game Engine**: Core game logic in `/src/engine/` with no React dependencies
-- **Strategy Pattern**: Selectors and triggers as composable strategy functions
+- **Data-Driven Targeting**: Selectors and triggers as declarative data interfaces (not functions)
 - **Command Pattern**: State mutations via named actions for history/undo support
 - **CSS Custom Property Theming**: Theme switching via `:root` data attributes
 - **Functional Components with Hooks**: Custom hooks for shared logic
@@ -75,7 +80,6 @@ src/
 - Test accessibility settings via class/attribute assertions
 
 ## Accessibility Requirements
-- Colorblind presets: Normal, Deuteranopia, Protanopia, Tritanopia
 - Shape redundancy: Circle (friendly), Diamond (enemy)
 - Pattern fills: Solid (friendly), Diagonal stripes (enemy)
 - High contrast mode option

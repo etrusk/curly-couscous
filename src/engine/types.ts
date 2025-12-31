@@ -1,6 +1,8 @@
 /**
  * Core type definitions for the auto-battler game engine.
  * Pure TypeScript - no React dependencies.
+ * 
+ * This file matches the authoritative spec v0.3 Section 13 (Data Model).
  */
 
 // ============================================================================
@@ -26,35 +28,18 @@ export type Faction = 'friendly' | 'enemy';
 
 /**
  * Character represents a combatant on the battlefield.
+ * Matches spec Section 13.1.
  */
 export interface Character {
   id: string;
   name: string;
   faction: Faction;
-  position: Position;
-  
-  // Combat stats
+  slotPosition: number; // Order added to battle, used for tiebreaking
   hp: number;
   maxHp: number;
-  
-  // AI behavior - priority-based skill list (evaluated top-to-bottom)
-  skillList: Skill[];
-  
-  // Current state
-  pendingAction?: PendingAction;
-  
-  // Visual metadata
-  slot: number; // Order character was added (for collision resolution)
-}
-
-/**
- * Pending action represents a skill execution in progress.
- * Actions are decided in the decision phase, visualized, then executed.
- */
-export interface PendingAction {
-  skill: Skill;
-  targets: Character[]; // Selected targets
-  ticksRemaining: number; // Countdown until execution
+  position: Position;
+  skills: Skill[]; // Ordered by priority (index 0 = highest)
+  currentAction: Action | null;
 }
 
 // ============================================================================
@@ -63,70 +48,52 @@ export interface PendingAction {
 
 /**
  * Skill represents an ability that can be executed by a character.
- * Skills are evaluated in priority order (top-to-bottom in skillList).
+ * Matches spec Section 13.2.
  */
 export interface Skill {
   id: string;
   name: string;
-  
-  // Execution timing
-  ticksToExecute: number; // Multi-tick skills create dodge windows
-  
-  // Behavior definition
-  trigger: Trigger; // When should this skill be used?
-  selector: Selector; // Who should be targeted?
-  action: ActionType; // What effect occurs?
+  tickCost: number;
+  range: number;
+  damage?: number;
+  mode?: 'towards' | 'away' | 'hold'; // for Move skill
+  enabled: boolean;
+  triggers: Trigger[];
+  selectorOverride?: Selector;
 }
 
 /**
- * Trigger evaluates whether a skill should be used.
- * Strategy pattern - composable condition functions.
+ * Trigger defines a condition that must be met for a skill to activate.
+ * Matches spec Section 13.3.
  */
-export type Trigger = (character: Character, gameState: GameState) => boolean;
+export interface Trigger {
+  type: 'enemy_in_range' | 'ally_in_range' | 'hp_below' | 'my_cell_targeted_by_enemy';
+  value?: number; // for range X or X%
+}
 
 /**
- * Selector chooses target(s) for a skill.
- * Strategy pattern - composable selection functions.
+ * Selector determines which character to target.
+ * Matches spec Section 13.4.
  */
-export type Selector = (character: Character, gameState: GameState) => Character[];
+export interface Selector {
+  type: 'nearest_enemy' | 'nearest_ally' | 'lowest_hp_enemy' | 'lowest_hp_ally' | 'self';
+}
 
 // ============================================================================
 // Action Types
 // ============================================================================
 
 /**
- * ActionType defines the effect that occurs when a skill executes.
+ * Action represents a committed skill execution.
+ * Matches spec Section 13.5.
  */
-export type ActionType = AttackAction | MoveAction | WaitAction;
-
-/**
- * Attack action deals damage to target(s).
- */
-export interface AttackAction {
-  type: 'attack';
-  damage: number;
+export interface Action {
+  type: 'attack' | 'move' | 'idle';
+  skill: Skill;
+  targetCell: Position;
+  targetCharacter: Character | null; // null for Move
+  ticksRemaining: number;
 }
-
-/**
- * Move action changes character position.
- */
-export interface MoveAction {
-  type: 'move';
-  direction: Direction;
-  distance: number;
-}
-
-/**
- * Wait action does nothing (placeholder/defensive).
- */
-export interface WaitAction {
-  type: 'wait';
-}
-
-/**
- * Cardinal directions for movement.
- */
-export type Direction = 'north' | 'south' | 'east' | 'west';
 
 // ============================================================================
 // Game State Types
@@ -153,8 +120,9 @@ export interface GameState {
 
 /**
  * Battle progresses through discrete phases each tick.
+ * Spec Section 4: Decision phase and Resolution phase only.
  */
-export type BattlePhase = 'decision' | 'visualization' | 'execution';
+export type BattlePhase = 'decision' | 'resolution';
 
 /**
  * Battle status indicates whether combat is ongoing or finished.
@@ -228,6 +196,12 @@ export interface TickEvent {
 // ============================================================================
 
 /**
+ * Cardinal directions for movement.
+ * Note: Movement uses single-cell moves in 4 directions.
+ */
+export type Direction = 'north' | 'south' | 'east' | 'west';
+
+/**
  * Helper to check if two positions are equal.
  */
 export const positionsEqual = (a: Position, b: Position): boolean =>
@@ -240,10 +214,12 @@ export const isValidPosition = (pos: Position): boolean =>
   pos.x >= 0 && pos.x < 12 && pos.y >= 0 && pos.y < 12;
 
 /**
- * Helper to calculate Manhattan distance between positions.
+ * Helper to calculate Chebyshev distance between positions.
+ * Chebyshev distance: 8-directional movement where diagonals cost 1.
+ * Used by the game for range calculations per spec Section 2.1.
  */
-export const manhattanDistance = (a: Position, b: Position): number =>
-  Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+export const chebyshevDistance = (a: Position, b: Position): number =>
+  Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
 /**
  * Helper to get adjacent position in a direction.

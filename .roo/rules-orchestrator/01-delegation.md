@@ -49,7 +49,7 @@ When a subtask reports "⚠️ Degraded":
 → Do NOT extend that subtask
 → Create NEW subtask with the summary as starting context
 
-## Final Step: Spec/Code Synchronization
+## Final Step: Spec/Code Synchronization & Commit
 Before completing ANY task, verify:
 
 1. **Spec Review**: Does the specification/design documentation need updates based on:
@@ -64,7 +64,17 @@ Before completing ANY task, verify:
    - Is there technical debt or cleanup needed
    - Should code be refactored for clarity
 
+3. **Commit and Push**: After spec/code synchronization is complete:
+   - Commit all changes with clear, descriptive message following conventional commit format
+   - Examples: `feat(combat): add dodge mechanics`, `fix(ui): resolve grid alignment`
+   - Push all commits to remote repository
+   - Verify push succeeded with no conflicts
+
 **Action Required**:
 - If spec is outdated → Delegate update to Architect mode
 - If code needs cleanup after spec sync → Delegate to Code mode
-- Only mark task complete when spec and code are synchronized
+- After synchronization → Commit and push all changes
+- Only use `attempt_completion` after successful commit and push
+- Include commit hash(es) in handback message
+
+**Exception**: If explicitly instructed not to commit/push, note this in handback with reason

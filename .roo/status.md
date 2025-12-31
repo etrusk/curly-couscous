@@ -4,19 +4,18 @@
      This is a breadcrumb trail, not documentation. Prune aggressively. -->
 
 ## Current Focus
-Spec alignment complete. Ready for selector/trigger evaluation implementation (data-driven).
+Selector evaluation complete. Ready for trigger evaluation implementation.
 
 ## Recent Completions
 <!-- Prune when >3 items. Older completions live in git history. -->
-- 2025-12-31: Handback protocol - Added return instructions to delegation template
-- 2025-12-31: Spec alignment - types.ts aligned with spec v0.3 §13 (Chebyshev distance, data interfaces, field renames)
-- 2025-12-31: gameStore.ts updated for field renames (slotPosition, skills, tickCost)
+- 2025-12-31: Selector evaluation - evaluateSelector() with 5 selector types, 26 tests
+- 2025-12-31: Spec alignment - types.ts aligned with spec v0.3 §13
+- 2025-12-31: gameStore.ts updated for field renames
 
 ## Open Questions
 - None currently
 
 ## Next Steps
-- Implement selector evaluation (data-driven: nearestEnemy, lowestHp, self, etc.)
 - Implement trigger evaluation (data-driven: always, healthBelow, enemyInRange, etc.)
 - Implement combat system (attack resolution, damage calculation)
 - Implement movement system (collision detection, Chebyshev distance)

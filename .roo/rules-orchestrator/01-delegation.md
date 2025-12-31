@@ -42,3 +42,23 @@ Every `attempt_completion` MUST include:
 When a subtask reports "⚠️ Degraded":
 → Do NOT extend that subtask
 → Create NEW subtask with the summary as starting context
+
+## Final Step: Spec/Code Synchronization
+Before completing ANY task, verify:
+
+1. **Spec Review**: Does the specification/design documentation need updates based on:
+   - Features implemented differently than originally designed
+   - Requirements changed during implementation
+   - Human feedback that modified behavior
+   - Architectural decisions that deviated from spec
+
+2. **Code Alignment**: If spec needs updates, verify code alignment:
+   - Does implementation match the updated spec
+   - Are tests consistent with actual behavior
+   - Is there technical debt or cleanup needed
+   - Should code be refactored for clarity
+
+**Action Required**:
+- If spec is outdated → Delegate update to Architect mode
+- If code needs cleanup after spec sync → Delegate to Code mode
+- Only mark task complete when spec and code are synchronized

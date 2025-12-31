@@ -4,14 +4,20 @@
      This is a breadcrumb trail, not documentation. Prune aggressively. -->
 
 ## Current Focus
-[What's being worked on right now]
+Foundation complete. Ready for game logic implementation (selectors, triggers, combat).
 
 ## Recent Completions
 <!-- Prune when >3 items. Older completions live in git history. -->
-- [Date]: [What was done]
+- 2025-12-31: Project scaffolding - Vite + React + TypeScript + dependencies (commit 538898b)
+- 2025-12-31: Core engine types - Character, Skill, Trigger, Selector, Action (commit 47eb525)
+- 2025-12-31: Zustand game store with Immer middleware (commit cf3d589)
 
 ## Open Questions
-- [Decisions pending or blockers]
+- None currently
 
 ## Next Steps
-- [Planned work]
+- Implement selector strategies (nearestEnemy, lowestHp, etc.)
+- Implement trigger conditions (always, healthBelow, enemyInRange, etc.)
+- Implement combat system (attack resolution, damage calculation)
+- Implement movement system (collision detection, position updates)
+- Implement core game loop (tick processing, phase transitions)

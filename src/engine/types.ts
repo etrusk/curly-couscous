@@ -67,8 +67,8 @@ export interface Skill {
  * Matches spec Section 13.3.
  */
 export interface Trigger {
-  type: 'enemy_in_range' | 'ally_in_range' | 'hp_below' | 'my_cell_targeted_by_enemy';
-  value?: number; // for range X or X%
+  type: 'always' | 'enemy_in_range' | 'ally_in_range' | 'hp_below' | 'my_cell_targeted_by_enemy';
+  value?: number; // for range X or X% (undefined for 'always' and 'my_cell_targeted_by_enemy')
 }
 
 /**

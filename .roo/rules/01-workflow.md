@@ -49,14 +49,15 @@ Use Orchestrator mode. It will:
    - If update would exceed: prune old items first, then add new
 
 12. **COMMIT & PUSH**: Git operations are MANDATORY before completion
-    - Stage all changes: `git add -A`
-    - Commit with conventional format: `type(scope): description`
+    - Stage all changes: `git add -A && echo "DONE"`
+    - Commit with conventional format: `git commit -m "type(scope): description" && echo "DONE"`
       - Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`
-      - Example: `feat(combat): add dodge mechanics`
-    - Push to remote: `git push`
+      - Example: `git commit -m "feat(combat): add dodge mechanics" && echo "DONE"`
+    - Push to remote: `git push && echo "DONE"`
     - Verify push succeeded (no conflicts or errors)
     - 🛑 **Do NOT use `attempt_completion` until changes are committed and pushed**
     - Include commit hash in completion message
+    - **Note**: The `&& echo "DONE"` suffix ensures terminal completion detection in VS Code
 
 ## For Simple Fixes
 Typos, obvious bugs, small tweaks — proceed directly in Code mode.

@@ -8,9 +8,9 @@ Selector evaluation complete. Ready for trigger evaluation implementation.
 
 ## Recent Completions
 <!-- Prune when >3 items. Older completions live in git history. -->
+- 2025-12-31: Spec consolidation into 00-project.md - 6 CRITICAL + 4 IMPORTANT sections, spec deleted (6956a78)
 - 2025-12-31: Selector evaluation - evaluateSelector() with 5 selector types, 26 tests
 - 2025-12-31: Spec alignment - types.ts aligned with spec v0.3 §13
-- 2025-12-31: gameStore.ts updated for field renames
 
 ## Open Questions
 - None currently

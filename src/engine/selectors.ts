@@ -102,8 +102,9 @@ export function evaluateSelector(
         (a, b) => compareByHpThenPosition(a, b)
       );
     
-    default:
+    default: {
       const _exhaustive: never = selector.type;
       return _exhaustive; // Compile-time error if case missing
+    }
   }
 }

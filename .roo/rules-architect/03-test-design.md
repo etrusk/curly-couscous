@@ -14,6 +14,12 @@ Present ALL proposed tests in this format:
 
 ## Proposed Tests for [Feature/Component Name]
 
+### Context for Reviewer
+- **Feature being tested**: [Brief description of what functionality is being tested]
+- **Related spec sections**: [e.g., "spec v0.3 §5.2"]
+- **Current state**: [What exists now that this builds on or changes]
+- **Key constraints**: [Relevant architectural/design constraints]
+
 ### Test File: `[path/to/test/file.test.ts]`
 
 | # | Test Name | Description | Justification |
@@ -33,7 +39,19 @@ Present ALL proposed tests in this format:
 
 ---
 
-**Awaiting your approval to proceed with test implementation.**
+## Approval Protocol
+
+After presenting the test design above, you MUST:
+
+1. Use `ask_followup_question` to request explicit approval
+2. Include these follow-up options:
+   - "Approved - proceed with test implementation"
+   - "Request modifications - [specify what to change]"
+   - "Rejected - needs complete redesign"
+3. Wait for human response before signaling completion
+4. Only signal completion after receiving explicit approval
+
+Do NOT proceed to signal completion until approval is received.
 
 ---
 
@@ -62,6 +80,7 @@ If human requests modifications:
 1. Acknowledge the feedback
 2. Present REVISED complete test list (not just changes)
 3. Highlight what changed: [Added], [Modified], [Removed]
-4. Re-request approval
+4. Use `ask_followup_question` to re-request approval with same options
+5. Wait for explicit approval before signaling completion
 
-Do not proceed to Code mode until explicit approval is received.
+Do not signal completion until explicit approval is received.

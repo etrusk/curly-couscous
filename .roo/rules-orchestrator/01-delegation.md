@@ -50,31 +50,30 @@ When a subtask reports "⚠️ Degraded":
 → Create NEW subtask with the summary as starting context
 
 ## Final Step: Spec/Code Synchronization & Commit
-Before completing ANY task, verify:
+Before completing ANY task, verify spec/code alignment, then execute **Workflow Step 12** (see `01-workflow.md`).
 
-1. **Spec Review**: Does the specification/design documentation need updates based on:
-   - Features implemented differently than originally designed
-   - Requirements changed during implementation
-   - Human feedback that modified behavior
-   - Architectural decisions that deviated from spec
+### 1. Spec Review
+Does the specification/design documentation need updates based on:
+- Features implemented differently than originally designed
+- Requirements changed during implementation
+- Human feedback that modified behavior
+- Architectural decisions that deviated from spec
 
-2. **Code Alignment**: If spec needs updates, verify code alignment:
-   - Does implementation match the updated spec
-   - Are tests consistent with actual behavior
-   - Is there technical debt or cleanup needed
-   - Should code be refactored for clarity
+### 2. Code Alignment
+If spec needs updates, verify code alignment:
+- Does implementation match the updated spec
+- Are tests consistent with actual behavior
+- Is there technical debt or cleanup needed
 
-3. **Commit and Push**: After spec/code synchronization is complete:
-   - Commit all changes with clear, descriptive message following conventional commit format
-   - Examples: `feat(combat): add dodge mechanics`, `fix(ui): resolve grid alignment`
-   - Push all commits to remote repository
-   - Verify push succeeded with no conflicts
+### 3. Commit & Push (Workflow Step 12)
+🛑 **MANDATORY**: Execute git commit and push per Workflow Step 12:
+- `git add -A` → `git commit` (conventional format) → `git push`
+- **Do NOT use `attempt_completion` until changes are committed and pushed**
+- Include commit hash in handback message
 
-**Action Required**:
-- If spec is outdated → Delegate update to Architect mode
-- If code needs cleanup after spec sync → Delegate to Code mode
-- After synchronization → Commit and push all changes
-- Only use `attempt_completion` after successful commit and push
-- Include commit hash(es) in handback message
+### Action Required
+- If spec is outdated → Delegate update to Architect mode first
+- If code needs cleanup → Delegate to Code mode first
+- After all sync complete → Execute commit/push (Step 12)
 
 **Exception**: If explicitly instructed not to commit/push, note this in handback with reason

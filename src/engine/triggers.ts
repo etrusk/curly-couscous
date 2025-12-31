@@ -29,7 +29,7 @@ export function evaluateTrigger(
       return true;
     
     case 'enemy_in_range': {
-      const range = trigger.value!;
+      const range = trigger.value ?? 0;
       return allCharacters.some(c =>
         c.faction !== evaluator.faction &&
         c.hp > 0 &&
@@ -38,7 +38,7 @@ export function evaluateTrigger(
     }
     
     case 'ally_in_range': {
-      const range = trigger.value!;
+      const range = trigger.value ?? 0;
       return allCharacters.some(c =>
         c.faction === evaluator.faction &&
         c.id !== evaluator.id &&
@@ -48,7 +48,7 @@ export function evaluateTrigger(
     }
     
     case 'hp_below': {
-      const thresholdPercent = trigger.value!;
+      const thresholdPercent = trigger.value ?? 0;
       const currentPercent = (evaluator.hp / evaluator.maxHp) * 100;
       return currentPercent < thresholdPercent;
     }

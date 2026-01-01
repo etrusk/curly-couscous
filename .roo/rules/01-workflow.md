@@ -15,7 +15,7 @@ Use Orchestrator mode. It will:
    - Apply file hygiene rules (see below)
 
 3. **DESIGN TESTS** via Architect: Propose test cases for the planned behavior
-   - Output complete list of tests with justifications
+   - Output UNABRIDGED complete list of tests with justifications (no summaries or ellipses)
    - See rules-architect/03-test-design.md for format
    - Architect uses `ask_followup_question` to present tests and request approval
    - 🛑 STOP and wait for explicit human approval before signaling completion

@@ -10,6 +10,10 @@ You design tests. Code mode implements them. This separation ensures:
 
 Present ALL proposed tests in this format:
 
+> ⚠️ **UNABRIDGED OUTPUT REQUIRED**: List every test individually with full details.
+> Never summarize, abbreviate, use ellipses, or group as counts (e.g., "plus 5 more").
+> Human review requires seeing every test to make informed approval decisions.
+
 ---
 
 ## Proposed Tests for [Feature/Component Name]

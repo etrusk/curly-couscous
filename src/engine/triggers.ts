@@ -54,11 +54,12 @@ export function evaluateTrigger(
     }
     
     case 'my_cell_targeted_by_enemy': {
+      // TODO: With absolute timing, this needs current tick to check if action is pending
+      // For now, check if action exists and targets this cell
       return allCharacters.some(c =>
         c.faction !== evaluator.faction &&
         c.hp > 0 &&
         c.currentAction !== null &&
-        c.currentAction.ticksRemaining > 0 &&
         positionsEqual(c.currentAction.targetCell, evaluator.position)
       );
     }

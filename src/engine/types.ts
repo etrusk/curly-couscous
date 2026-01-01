@@ -85,14 +85,15 @@ export interface Selector {
 
 /**
  * Action represents a committed skill execution.
- * Matches spec Section 13.5.
+ * Uses absolute timing for deterministic replay.
  */
 export interface Action {
   type: 'attack' | 'move' | 'idle';
   skill: Skill;
   targetCell: Position;
   targetCharacter: Character | null; // null for Move
-  ticksRemaining: number;
+  startedAtTick: number;     // When action was committed
+  resolvesAtTick: number;    // Absolute tick when action fires
 }
 
 // ============================================================================

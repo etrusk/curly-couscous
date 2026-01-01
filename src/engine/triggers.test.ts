@@ -50,7 +50,8 @@ function createAction(overrides: Partial<Action>): Action {
     skill: overrides.skill ?? createSkill({ id: 'test-skill' }),
     targetCell: overrides.targetCell ?? { x: 0, y: 0 },
     targetCharacter: overrides.targetCharacter ?? null,
-    ticksRemaining: overrides.ticksRemaining ?? 1,
+    startedAtTick: overrides.startedAtTick ?? 0,
+    resolvesAtTick: overrides.resolvesAtTick ?? 1,
   };
 }
 
@@ -566,7 +567,7 @@ describe('evaluateTrigger', () => {
         currentAction: createAction({
           type: 'attack',
           targetCell: { x: 5, y: 5 },
-          ticksRemaining: 1,
+          resolvesAtTick: 1,
         }),
       });
       const trigger: Trigger = { type: 'my_cell_targeted_by_enemy' };
@@ -589,7 +590,7 @@ describe('evaluateTrigger', () => {
         currentAction: createAction({
           type: 'attack',
           targetCell: { x: 6, y: 6 },
-          ticksRemaining: 1,
+          resolvesAtTick: 1,
         }),
       });
       const trigger: Trigger = { type: 'my_cell_targeted_by_enemy' };
@@ -631,7 +632,7 @@ describe('evaluateTrigger', () => {
         currentAction: createAction({
           type: 'attack',
           targetCell: { x: 5, y: 5 },
-          ticksRemaining: 1,
+          resolvesAtTick: 1,
         }),
       });
       const trigger: Trigger = { type: 'my_cell_targeted_by_enemy' };
@@ -654,7 +655,7 @@ describe('evaluateTrigger', () => {
         currentAction: createAction({
           type: 'attack',
           targetCell: { x: 6, y: 6 },
-          ticksRemaining: 1,
+          resolvesAtTick: 1,
         }),
       });
       const enemyB = createCharacter({
@@ -664,7 +665,7 @@ describe('evaluateTrigger', () => {
         currentAction: createAction({
           type: 'attack',
           targetCell: { x: 5, y: 5 },
-          ticksRemaining: 1,
+          resolvesAtTick: 1,
         }),
       });
       const trigger: Trigger = { type: 'my_cell_targeted_by_enemy' };
@@ -688,7 +689,7 @@ describe('evaluateTrigger', () => {
           type: 'attack',
           skill: createSkill({ id: 'heavy-punch', tickCost: 2 }),
           targetCell: { x: 5, y: 5 },
-          ticksRemaining: 1,
+          resolvesAtTick: 1,
         }),
       });
       const trigger: Trigger = { type: 'my_cell_targeted_by_enemy' };
@@ -712,7 +713,7 @@ describe('evaluateTrigger', () => {
           type: 'attack',
           skill: createSkill({ id: 'heavy-punch', tickCost: 2 }),
           targetCell: { x: 5, y: 5 },
-          ticksRemaining: 2,
+          resolvesAtTick: 2,
         }),
       });
       const trigger: Trigger = { type: 'my_cell_targeted_by_enemy' };
@@ -735,7 +736,7 @@ describe('evaluateTrigger', () => {
         currentAction: createAction({
           type: 'attack',
           targetCell: { x: 5, y: 5 },
-          ticksRemaining: 1,
+          resolvesAtTick: 1,
         }),
       });
       const enemyB = createCharacter({
@@ -745,7 +746,7 @@ describe('evaluateTrigger', () => {
         currentAction: createAction({
           type: 'attack',
           targetCell: { x: 5, y: 5 },
-          ticksRemaining: 1,
+          resolvesAtTick: 1,
         }),
       });
       const trigger: Trigger = { type: 'my_cell_targeted_by_enemy' };
@@ -868,7 +869,7 @@ describe('evaluateTrigger', () => {
         currentAction: createAction({
           type: 'attack',
           targetCell: { x: 5, y: 5 },
-          ticksRemaining: 1,
+          resolvesAtTick: 1,
         }),
       });
       const trigger: Trigger = { type: 'my_cell_targeted_by_enemy' };

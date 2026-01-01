@@ -28,17 +28,19 @@ function createCharacter(overrides: Partial<Character> & { id: string }): Charac
 
 /**
  * Test helper to create move actions.
+ * Uses absolute timing: resolvesAtTick matches the tick parameter.
  */
 function createMoveAction(
   targetCell: Position,
-  ticksRemaining: number = 1
+  resolveTick: number = 1
 ): Action {
+  const tickCost = 1;
   return {
     type: 'move',
     skill: {
       id: 'test-move',
       name: 'Move',
-      tickCost: 1,
+      tickCost,
       range: 1,
       mode: 'towards',
       enabled: true,
@@ -46,23 +48,26 @@ function createMoveAction(
     },
     targetCell,
     targetCharacter: null,
-    ticksRemaining,
+    startedAtTick: resolveTick - (tickCost - 1),
+    resolvesAtTick: resolveTick,
   };
 }
 
 /**
  * Test helper to create attack actions.
+ * Uses absolute timing: resolvesAtTick matches the tick parameter.
  */
 function createAttackAction(
   targetCell: Position,
-  ticksRemaining: number = 1
+  resolveTick: number = 1
 ): Action {
+  const tickCost = 1;
   return {
     type: 'attack',
     skill: {
       id: 'test-attack',
       name: 'Attack',
-      tickCost: 1,
+      tickCost,
       range: 1,
       damage: 10,
       enabled: true,
@@ -70,7 +75,8 @@ function createAttackAction(
     },
     targetCell,
     targetCharacter: null,
-    ticksRemaining,
+    startedAtTick: resolveTick - (tickCost - 1),
+    resolvesAtTick: resolveTick,
   };
 }
 
@@ -136,7 +142,7 @@ describe('Movement Collision System', () => {
         id: 'mover',
         position: { x: 5, y: 5 },
         slotPosition: 0,
-        currentAction: createMoveAction({ x: 6, y: 5 }, 1),
+        currentAction: createMoveAction({ x: 6, y: 5 }, 3),
       });
 
       const result = resolveMovement([mover], 3, initRNG(1000));
@@ -1035,21 +1041,36 @@ describe('Movement Collision System', () => {
     });
 
     it('should allow chaining rngState across multiple ticks', () => {
-      const moverA = createCharacter({
+      const moverA1 = createCharacter({
         id: 'moverA',
         position: { x: 4, y: 5 },
         slotPosition: 0,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
-      const moverB = createCharacter({
+      const moverB1 = createCharacter({
         id: 'moverB',
         position: { x: 5, y: 4 },
         slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
-      const tick1Result = resolveMovement([moverA, moverB], 1, initRNG(1000));
-      const tick2Result = resolveMovement([moverA, moverB], 2, tick1Result.rngState);
+      const tick1Result = resolveMovement([moverA1, moverB1], 1, initRNG(1000));
+      
+      // Create new characters with actions resolving at tick 2
+      const moverA2 = createCharacter({
+        id: 'moverA',
+        position: { x: 4, y: 5 },
+        slotPosition: 0,
+        currentAction: createMoveAction({ x: 5, y: 5 }, 2),
+      });
+      const moverB2 = createCharacter({
+        id: 'moverB',
+        position: { x: 5, y: 4 },
+        slotPosition: 1,
+        currentAction: createMoveAction({ x: 5, y: 5 }, 2),
+      });
+      
+      const tick2Result = resolveMovement([moverA2, moverB2], 2, tick1Result.rngState);
 
       expect(tick2Result.rngState).not.toBe(tick1Result.rngState);
     });

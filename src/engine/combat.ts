@@ -17,17 +17,17 @@ export interface CombatResult {
 
 /**
  * Resolves all attack actions for the current tick.
- * 
+ *
  * Handles the attack portion of Resolution Phase:
- * 1. For each attack action ready to resolve (ticksRemaining === 1)
+ * 1. For each attack action ready to resolve (resolvesAtTick === tick)
  * 2. Check if target is still in locked cell (hit/miss)
  * 3. Apply damage simultaneously
  * 4. Generate damage events and death events
- * 
+ *
  * @param characters - All characters in the battle
  * @param tick - Current game tick (for event timestamps)
  * @returns CombatResult with updated characters and events
- * 
+ *
  * @preconditions
  * - All characters have valid positions
  * - Attack actions have valid targetCell and targetCharacter
@@ -44,7 +44,7 @@ export function resolveCombat(
   
   // 1. Find all resolving attacks, sorted by attacker slotPosition for determinism
   const resolvingAttacks = characters
-    .filter(c => c.currentAction?.type === 'attack' && c.currentAction.ticksRemaining === 1)
+    .filter(c => c.currentAction?.type === 'attack' && c.currentAction.resolvesAtTick === tick)
     .map(c => ({ attacker: c, action: c.currentAction! }))
     .sort((a, b) => a.attacker.slotPosition - b.attacker.slotPosition);
   

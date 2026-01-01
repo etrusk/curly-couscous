@@ -71,16 +71,16 @@ function isBlocker(character: Character, position: Position): boolean {
 
 /**
  * Resolves all movement actions for the current tick.
- * 
+ *
  * Handles the movement portion of Resolution Phase:
- * 1. Find all move actions ready to resolve (ticksRemaining === 1)
+ * 1. Find all move actions ready to resolve (resolvesAtTick === tick)
  * 2. Group movers by target cell
  * 3. Resolve each collision group:
  *    - Blocker present: all movers blocked
  *    - Single mover: move succeeds
  *    - Multiple movers: random winner selected
  * 4. Generate MovementEvent for each mover
- * 
+ *
  * @param characters - All characters in the battle
  * @param tick - Current game tick (for event timestamps)
  * @param rngState - Current RNG state for deterministic collision resolution
@@ -94,7 +94,7 @@ export function resolveMovement(
   // 1. Find all resolving movers (excluding hold actions)
   const movers = characters.filter(c => {
     if (c.currentAction?.type !== 'move') return false;
-    if (c.currentAction.ticksRemaining !== 1) return false;
+    if (c.currentAction.resolvesAtTick !== tick) return false;
     // Exclude hold actions (moving to current cell)
     if (positionsEqual(c.currentAction.targetCell, c.position)) return false;
     return true;

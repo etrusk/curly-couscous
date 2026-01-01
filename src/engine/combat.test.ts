@@ -43,48 +43,57 @@ function createSkill(overrides: Partial<Skill> & { id: string }): Skill {
 
 /**
  * Test helper to create attack actions with minimal boilerplate.
+ * Uses absolute timing: resolvesAtTick matches the tick parameter.
  */
 function createAttackAction(
   targetCell: Position,
   targetCharacter: Character | null = null,
   damage: number | undefined,
-  ticksRemaining: number = 1
+  resolveTick: number = 1
 ): Action {
+  const tickCost = 1; // Default for test attacks
   return {
     type: 'attack',
-    skill: createSkill({ id: 'test-attack', damage }),
+    skill: createSkill({ id: 'test-attack', damage, tickCost }),
     targetCell,
     targetCharacter,
-    ticksRemaining,
+    startedAtTick: resolveTick - (tickCost - 1),
+    resolvesAtTick: resolveTick,
   };
 }
 
 /**
  * Test helper to create move actions.
+ * Uses absolute timing: resolvesAtTick matches the tick parameter.
  */
 function createMoveAction(
   targetCell: Position,
-  ticksRemaining: number = 1
+  resolveTick: number = 1
 ): Action {
+  const tickCost = 1; // Default for test moves
   return {
     type: 'move',
-    skill: createSkill({ id: 'test-move', mode: 'towards' }),
+    skill: createSkill({ id: 'test-move', mode: 'towards', tickCost }),
     targetCell,
     targetCharacter: null,
-    ticksRemaining,
+    startedAtTick: resolveTick - (tickCost - 1),
+    resolvesAtTick: resolveTick,
   };
 }
 
 /**
  * Test helper to create idle actions.
+ * Uses absolute timing: resolvesAtTick matches the tick parameter.
  */
-function createIdleAction(): Action {
+function createIdleAction(resolveTick: number = 1): Action {
+  const tickCost = 1;
   return {
     type: 'idle',
-    skill: createSkill({ id: 'idle' }),
+    skill: createSkill({ id: 'idle', tickCost }),
     targetCell: { x: 0, y: 0 },
     targetCharacter: null,
-    ticksRemaining: 1,
+    startedAtTick: resolveTick - (tickCost - 1),
+    resolvesAtTick: resolveTick,
   };
 }
 
@@ -165,7 +174,7 @@ describe('resolveCombat', () => {
         id: 'attacker',
         position: { x: 0, y: 0 },
         slotPosition: 0,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 5),
       });
       const target = createCharacter({
         id: 'target',
@@ -549,7 +558,7 @@ describe('resolveCombat', () => {
         id: 'attacker',
         position: { x: 0, y: 0 },
         slotPosition: 0,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 100, 1),
+        currentAction: createAttackAction({ x: 1, y: 0 }, null, 100, 3),
       });
       const target = createCharacter({
         id: 'target',

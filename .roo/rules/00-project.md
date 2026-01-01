@@ -97,7 +97,7 @@ When multiple cells are equidistant to target:
 
 ### Collision Resolution
 - **Blocker wins:** Stationary character holds ground; movers cannot displace
-- **Two movers, same destination:** Lower slot position wins; loser stays in original cell
+- **Two movers, same destination:** Random winner (seeded for replay consistency); losers stay in original cells
 
 ## Intent Lines
 Intent lines visualize pending actions, enabling at-a-glance battlefield reading.

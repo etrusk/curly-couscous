@@ -116,6 +116,10 @@ export interface GameState {
   
   // Event history (for undo/replay and event log)
   history: GameEvent[];
+  
+  // RNG for deterministic randomness
+  seed: number;      // Battle seed (immutable after init)
+  rngState: number;  // Current RNG state (mutates each use)
 }
 
 /**
@@ -189,6 +193,25 @@ export interface TickEvent {
   type: 'tick';
   tick: number;
   phase: BattlePhase;
+}
+
+// ============================================================================
+// Movement System Types
+// ============================================================================
+
+/**
+ * Result of movement collision resolution.
+ * Returned by resolveMovement() to update game state.
+ */
+export interface MovementResult {
+  /** Characters with updated positions after movement */
+  updatedCharacters: Character[];
+  
+  /** Movement events generated during resolution */
+  events: MovementEvent[];
+  
+  /** Updated RNG state after collision resolutions */
+  rngState: number;
 }
 
 // ============================================================================

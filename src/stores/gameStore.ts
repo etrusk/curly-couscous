@@ -44,6 +44,8 @@ const initialGameState: GameState = {
   phase: 'decision',
   battleStatus: 'active',
   history: [],
+  seed: 0,
+  rngState: 0,
 };
 
 // ============================================================================
@@ -59,6 +61,7 @@ export const useGameStore = create<GameStore>()(
     actions: {
       initBattle: (characters) =>
         set((state) => {
+          const seed = Date.now(); // Use timestamp as seed
           state.gameState = {
             characters: characters.map((char, index) => ({
               ...char,
@@ -68,6 +71,8 @@ export const useGameStore = create<GameStore>()(
             phase: 'decision',
             battleStatus: 'active',
             history: [],
+            seed,
+            rngState: seed, // Initialize RNG state with seed
           };
         }),
       

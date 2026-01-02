@@ -11,6 +11,7 @@ import type {
   GameEvent,
   Position,
   Faction,
+  Action,
 } from "../engine/types";
 
 // ============================================================================
@@ -202,3 +203,31 @@ export const selectTokenData = (state: GameStore): TokenData[] =>
     hp: c.hp,
     maxHp: c.maxHp,
   }));
+
+/**
+ * Pending actions for intent line rendering.
+ */
+export interface IntentData {
+  characterId: string;
+  characterPosition: Position;
+  faction: Faction;
+  action: Action;
+  ticksRemaining: number;
+}
+
+/**
+ * Select pending actions for intent line visualization.
+ * Used by IntentOverlay to render lines from characters to their targets.
+ */
+export const selectIntentData = (state: GameStore): IntentData[] => {
+  const { tick, characters } = state.gameState;
+  return characters
+    .filter((c) => c.currentAction !== null)
+    .map((c) => ({
+      characterId: c.id,
+      characterPosition: c.position,
+      faction: c.faction,
+      action: c.currentAction!,
+      ticksRemaining: c.currentAction!.resolvesAtTick - tick,
+    }));
+};

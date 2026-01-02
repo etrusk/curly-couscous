@@ -31,6 +31,12 @@
   box-sizing: border-box;
 }
 
+/* Grid container - enables absolute positioning of overlays */
+.gridContainer {
+  position: relative;
+  display: inline-block;
+}
+
 /* High contrast theme */
 :root[data-theme="high-contrast"] .battleViewer {
   --color-friendly: #0000ff;

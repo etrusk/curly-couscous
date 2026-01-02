@@ -10,3 +10,7 @@ export { Cell } from "./Cell";
 export type { CellProps } from "./Cell";
 export { Token } from "./Token";
 export type { TokenProps } from "./Token";
+export { IntentOverlay } from "./IntentOverlay";
+export type { IntentOverlayProps } from "./IntentOverlay";
+export { IntentLine } from "./IntentLine";
+export type { IntentLineProps } from "./IntentLine";

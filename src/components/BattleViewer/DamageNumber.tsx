@@ -21,7 +21,11 @@ export function DamageNumber({
   y,
   offsetIndex,
 }: DamageNumberProps) {
-  const color = attackerFaction === "friendly" ? "#0072B2" : "#E69F00";
+  const color =
+    attackerFaction === "friendly"
+      ? "var(--faction-friendly)"
+      : "var(--faction-enemy)";
+  const bgColor = "var(--surface-elevated)";
   const offsetY = offsetIndex * 20; // 20px vertical offset per damage
 
   return (
@@ -32,7 +36,7 @@ export function DamageNumber({
         y={y + offsetY - 10}
         width="40"
         height="20"
-        fill="white"
+        fill={bgColor}
         stroke={color}
         strokeWidth="2"
         rx="3"

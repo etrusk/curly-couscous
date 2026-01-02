@@ -31,7 +31,7 @@ describe("IntentLine", () => {
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1]; // Second line is the colored main line
       expect(mainLine).toBeInTheDocument();
-      expect(mainLine).toHaveAttribute("stroke", "#0072B2"); // Friendly blue
+      expect(mainLine).toHaveAttribute("stroke", "var(--faction-friendly)");
       expect(mainLine).not.toHaveAttribute("stroke-dasharray"); // Solid line
     });
 
@@ -50,7 +50,7 @@ describe("IntentLine", () => {
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1]; // Second line is the colored main line
       expect(mainLine).toBeInTheDocument();
-      expect(mainLine).toHaveAttribute("stroke", "#E69F00"); // Enemy orange
+      expect(mainLine).toHaveAttribute("stroke", "var(--faction-enemy)");
       expect(mainLine).not.toHaveAttribute("stroke-dasharray"); // Solid line
     });
 
@@ -91,7 +91,7 @@ describe("IntentLine", () => {
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1]; // Second line is the colored main line
       expect(mainLine).toBeInTheDocument();
-      expect(mainLine).toHaveAttribute("stroke", "#0072B2"); // Friendly blue
+      expect(mainLine).toHaveAttribute("stroke", "var(--faction-friendly)");
       expect(mainLine).toHaveAttribute("stroke-dasharray"); // Dashed line
     });
 
@@ -110,7 +110,7 @@ describe("IntentLine", () => {
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1]; // Second line is the colored main line
       expect(mainLine).toBeInTheDocument();
-      expect(mainLine).toHaveAttribute("stroke", "#E69F00"); // Enemy orange
+      expect(mainLine).toHaveAttribute("stroke", "var(--faction-enemy)");
       expect(mainLine).toHaveAttribute("stroke-dasharray"); // Dashed line
     });
 
@@ -309,9 +309,9 @@ describe("IntentLine", () => {
       const mainLine = lines[1];
 
       // Outline should be white
-      expect(outlineLine).toHaveAttribute("stroke", "white");
+      expect(outlineLine).toHaveAttribute("stroke", "var(--contrast-line)");
       // Main should be colored
-      expect(mainLine).toHaveAttribute("stroke", "#0072B2");
+      expect(mainLine).toHaveAttribute("stroke", "var(--faction-friendly)");
     });
 
     it("should use white stroke for outline", () => {
@@ -328,7 +328,7 @@ describe("IntentLine", () => {
 
       const lines = container.querySelectorAll("line");
       const outlineLine = lines[0];
-      expect(outlineLine).toHaveAttribute("stroke", "white");
+      expect(outlineLine).toHaveAttribute("stroke", "var(--contrast-line)");
     });
 
     it("should use 5px outline stroke for confirmed actions (3px main + 2)", () => {

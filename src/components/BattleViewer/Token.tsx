@@ -20,17 +20,17 @@ const HP_BAR_WIDTH = TOKEN_SIZE;
 const HP_BAR_HEIGHT = 4;
 const HP_BAR_Y = TOKEN_SIZE + 2; // Below the token
 
-// Okabe-Ito colorblind-safe palette
-const COLORS = {
-  friendly: "#0072B2", // Blue
-  enemy: "#E69F00", // Orange
-} as const;
-
 /**
  * Token component renders character as faction-specific shape with HP bar.
  */
 export function Token({ id, faction, hp, maxHp }: TokenProps) {
-  const color = COLORS[faction];
+  // Use CSS variables for faction colors (theme-aware)
+  const factionColorVar =
+    faction === "friendly" ? "var(--faction-friendly)" : "var(--faction-enemy)";
+  const strokeColor = "var(--contrast-line)";
+  const hpBarBgColor = "var(--surface-secondary)";
+  const hpBarFillColor =
+    hp > maxHp * 0.3 ? "var(--health-high)" : "var(--health-low)";
   const hpPercent =
     maxHp > 0 ? Math.max(0, Math.min(100, (hp / maxHp) * 100)) : 0;
   const hpBarFillWidth = (hpPercent / 100) * HP_BAR_WIDTH;
@@ -59,7 +59,14 @@ export function Token({ id, faction, hp, maxHp }: TokenProps) {
             height="4"
             patternTransform="rotate(45)"
           >
-            <line x1="0" y1="0" x2="0" y2="4" stroke={color} strokeWidth="2" />
+            <line
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="4"
+              stroke={factionColorVar}
+              strokeWidth="2"
+            />
           </pattern>
         </defs>
       )}
@@ -70,16 +77,16 @@ export function Token({ id, faction, hp, maxHp }: TokenProps) {
           cx={TOKEN_RADIUS}
           cy={TOKEN_RADIUS}
           r={TOKEN_RADIUS - 2}
-          fill={color}
-          stroke="#000"
+          fill={factionColorVar}
+          stroke={strokeColor}
           strokeWidth="1.5"
           className={styles.shape}
         />
       ) : (
         <polygon
           points={`${TOKEN_RADIUS},2 ${TOKEN_SIZE - 2},${TOKEN_RADIUS} ${TOKEN_RADIUS},${TOKEN_SIZE - 2} 2,${TOKEN_RADIUS}`}
-          fill={color}
-          stroke="#000"
+          fill={factionColorVar}
+          stroke={strokeColor}
           strokeWidth="1.5"
           className={styles.shape}
         />
@@ -91,8 +98,8 @@ export function Token({ id, faction, hp, maxHp }: TokenProps) {
         y={HP_BAR_Y}
         width={HP_BAR_WIDTH}
         height={HP_BAR_HEIGHT}
-        fill="#333"
-        stroke="#000"
+        fill={hpBarBgColor}
+        stroke={strokeColor}
         strokeWidth="0.5"
         className={styles.hpBarBackground}
       />
@@ -103,7 +110,7 @@ export function Token({ id, faction, hp, maxHp }: TokenProps) {
         y={HP_BAR_Y}
         width={hpBarFillWidth}
         height={HP_BAR_HEIGHT}
-        fill={hp > maxHp * 0.3 ? "#4CAF50" : "#F44336"}
+        fill={hpBarFillColor}
         className={styles.hpBarFill}
         data-testid={`health-bar-${id}`}
       />

@@ -45,9 +45,13 @@ export function IntentOverlay({
           overflow="visible"
         >
           {/* White outline polygon (rendered first - behind) */}
-          <polygon points="0,0 10,5 0,10" fill="white" stroke="white" />
+          <polygon
+            points="0,0 10,5 0,10"
+            fill="var(--contrast-line)"
+            stroke="var(--contrast-line)"
+          />
           {/* Colored main polygon (rendered second - on top) */}
-          <polygon points="0,0 10,5 0,10" fill="#0072B2" />
+          <polygon points="0,0 10,5 0,10" fill="var(--faction-friendly)" />
         </marker>
         <marker
           id="arrowhead-enemy"
@@ -60,9 +64,13 @@ export function IntentOverlay({
           overflow="visible"
         >
           {/* White outline polygon (rendered first - behind) */}
-          <polygon points="0,0 10,5 0,10" fill="white" stroke="white" />
+          <polygon
+            points="0,0 10,5 0,10"
+            fill="var(--contrast-line)"
+            stroke="var(--contrast-line)"
+          />
           {/* Colored main polygon (rendered second - on top) */}
-          <polygon points="0,0 10,5 0,10" fill="#E69F00" />
+          <polygon points="0,0 10,5 0,10" fill="var(--faction-enemy)" />
         </marker>
 
         {/* Movement endpoints - hollow */}
@@ -82,7 +90,7 @@ export function IntentOverlay({
             cy="5"
             r="4"
             fill="none"
-            stroke="white"
+            stroke="var(--contrast-line)"
             strokeWidth="4"
           />
           {/* Colored main circle (rendered second - on top) */}
@@ -91,7 +99,7 @@ export function IntentOverlay({
             cy="5"
             r="4"
             fill="none"
-            stroke="#0072B2"
+            stroke="var(--faction-friendly)"
             strokeWidth="2"
           />
         </marker>

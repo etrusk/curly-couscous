@@ -29,20 +29,20 @@ describe("Token", () => {
   });
 
   describe("Faction Colors", () => {
-    it("uses blue (#0072B2) for friendly faction", () => {
+    it("uses blue (--faction-friendly) for friendly faction", () => {
       render(<Token id="char-1" faction="friendly" hp={100} maxHp={100} />);
 
       const circle = screen.getByTestId("token-char-1").querySelector("circle");
-      expect(circle).toHaveAttribute("fill", "#0072B2");
+      expect(circle).toHaveAttribute("fill", "var(--faction-friendly)");
     });
 
-    it("uses orange (#E69F00) for enemy faction", () => {
+    it("uses orange (--faction-enemy) for enemy faction", () => {
       render(<Token id="char-2" faction="enemy" hp={100} maxHp={100} />);
 
       const polygon = screen
         .getByTestId("token-char-2")
         .querySelector("polygon");
-      expect(polygon).toHaveAttribute("fill", "#E69F00");
+      expect(polygon).toHaveAttribute("fill", "var(--faction-enemy)");
     });
   });
 
@@ -111,7 +111,7 @@ describe("Token", () => {
 
       const circle = screen.getByTestId("token-char-1").querySelector("circle");
       // Friendly uses solid color fill directly (no pattern reference)
-      expect(circle).toHaveAttribute("fill", "#0072B2");
+      expect(circle).toHaveAttribute("fill", "var(--faction-friendly)");
     });
 
     it("applies diagonal stripe pattern for enemy faction", () => {

@@ -124,7 +124,7 @@ describe("DamageOverlay", () => {
 
     const rectElement = container.querySelector("rect");
     expect(rectElement).toBeInTheDocument();
-    expect(rectElement).toHaveAttribute("stroke", "#0072B2");
+    expect(rectElement).toHaveAttribute("stroke", "var(--faction-friendly)");
   });
 
   it("applies orange stroke for enemy attacker", () => {
@@ -149,7 +149,7 @@ describe("DamageOverlay", () => {
 
     const rectElement = container.querySelector("rect");
     expect(rectElement).toBeInTheDocument();
-    expect(rectElement).toHaveAttribute("stroke", "#E69F00");
+    expect(rectElement).toHaveAttribute("stroke", "var(--faction-enemy)");
   });
 
   it("stacks multiple damages vertically with dy offset", () => {

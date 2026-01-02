@@ -9,8 +9,8 @@
   height: var(--cell-size, 50px);
 
   /* Visual styling */
-  background-color: var(--cell-bg, #f5f5f5);
-  border: 1px solid var(--cell-border, #ddd);
+  background-color: var(--cell-bg);
+  border: 1px solid var(--cell-border);
 
   /* Layout */
   position: relative;
@@ -23,12 +23,12 @@
 }
 
 .cell:hover {
-  background-color: var(--cell-hover-bg, #e8e8e8);
+  background-color: var(--cell-hover-bg);
   cursor: pointer;
 }
 
 /* High contrast mode support */
 :root[data-theme="high-contrast"] .cell {
-  border-color: var(--cell-border, #000);
+  border-color: var(--cell-border);
   border-width: 2px;
 }

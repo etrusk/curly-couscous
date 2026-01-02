@@ -23,14 +23,14 @@ describe("IntentOverlay", () => {
       const polygons = marker?.querySelectorAll("polygon");
       expect(polygons).toHaveLength(2);
 
-      // First polygon is white outline
+      // First polygon is contrast-line outline
       const outlinePolygon = polygons?.[0];
-      expect(outlinePolygon).toHaveAttribute("fill", "white");
-      expect(outlinePolygon).toHaveAttribute("stroke", "white");
+      expect(outlinePolygon).toHaveAttribute("fill", "var(--contrast-line)");
+      expect(outlinePolygon).toHaveAttribute("stroke", "var(--contrast-line)");
 
       // Second polygon is colored main
       const mainPolygon = polygons?.[1];
-      expect(mainPolygon).toHaveAttribute("fill", "#0072B2");
+      expect(mainPolygon).toHaveAttribute("fill", "var(--faction-friendly)");
     });
 
     it("should render arrowhead-enemy marker with outline polygon first", () => {
@@ -42,14 +42,14 @@ describe("IntentOverlay", () => {
       const polygons = marker?.querySelectorAll("polygon");
       expect(polygons).toHaveLength(2);
 
-      // First polygon is white outline
+      // First polygon is contrast-line outline
       const outlinePolygon = polygons?.[0];
-      expect(outlinePolygon).toHaveAttribute("fill", "white");
-      expect(outlinePolygon).toHaveAttribute("stroke", "white");
+      expect(outlinePolygon).toHaveAttribute("fill", "var(--contrast-line)");
+      expect(outlinePolygon).toHaveAttribute("stroke", "var(--contrast-line)");
 
       // Second polygon is colored main
       const mainPolygon = polygons?.[1];
-      expect(mainPolygon).toHaveAttribute("fill", "#E69F00");
+      expect(mainPolygon).toHaveAttribute("fill", "var(--faction-enemy)");
     });
 
     it("should render circle-friendly marker with outline stroke behind", () => {
@@ -61,15 +61,15 @@ describe("IntentOverlay", () => {
       const circles = marker?.querySelectorAll("circle");
       expect(circles).toHaveLength(2);
 
-      // First circle is white outline (thicker)
+      // First circle is contrast-line outline (thicker)
       const outlineCircle = circles?.[0];
-      expect(outlineCircle).toHaveAttribute("stroke", "white");
+      expect(outlineCircle).toHaveAttribute("stroke", "var(--contrast-line)");
       expect(outlineCircle).toHaveAttribute("stroke-width", "4");
       expect(outlineCircle).toHaveAttribute("fill", "none");
 
       // Second circle is colored main
       const mainCircle = circles?.[1];
-      expect(mainCircle).toHaveAttribute("stroke", "#0072B2");
+      expect(mainCircle).toHaveAttribute("stroke", "var(--faction-friendly)");
       expect(mainCircle).toHaveAttribute("stroke-width", "2");
     });
 

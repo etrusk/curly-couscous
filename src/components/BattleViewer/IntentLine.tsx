@@ -29,8 +29,10 @@ export function IntentLine({
   const x2 = to.x * cellSize + cellSize / 2;
   const y2 = to.y * cellSize + cellSize / 2;
 
-  // Determine line color based on faction
-  const color = faction === "friendly" ? "#0072B2" : "#E69F00";
+  // Determine line color based on faction (using CSS variables)
+  const color =
+    faction === "friendly" ? "var(--faction-friendly)" : "var(--faction-enemy)";
+  const outlineColor = "var(--contrast-line)";
 
   // Determine stroke width based on ticks remaining
   // Confirmed (1 tick): 3px, Locked-in (2+ ticks): 4px
@@ -56,7 +58,7 @@ export function IntentLine({
         y1={y1}
         x2={x2}
         y2={y2}
-        stroke="white"
+        stroke={outlineColor}
         strokeWidth={outlineStrokeWidth}
         strokeDasharray={strokeDasharray}
       />

@@ -33,6 +33,6 @@
 }
 
 :root[data-theme="high-contrast"] .hpBarBackground {
-  fill: #000;
+  fill: var(--surface-ground);
   stroke-width: 1;
 }

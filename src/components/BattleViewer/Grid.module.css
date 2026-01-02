@@ -13,8 +13,8 @@
   max-width: 100%;
 
   /* Visual */
-  background-color: var(--grid-bg, #f5f5f5);
-  border: 2px solid var(--grid-border, #333);
+  background-color: var(--grid-bg);
+  border: 2px solid var(--grid-border);
 
   /* Ensure crisp rendering */
   box-sizing: border-box;
@@ -26,6 +26,6 @@
 
 /* High contrast mode support */
 :root[data-theme="high-contrast"] .grid {
-  border-color: var(--grid-border, #000);
+  border-color: var(--grid-border);
   border-width: 3px;
 }

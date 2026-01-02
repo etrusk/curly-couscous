@@ -13,17 +13,6 @@
   /* Default cell size - can be overridden for responsive sizing */
   --cell-size: 50px;
 
-  /* Color palette - Okabe-Ito colorblind-safe colors */
-  --color-friendly: #0072b2;
-  --color-enemy: #e69f00;
-
-  /* Grid styling */
-  --grid-bg: #f5f5f5;
-  --grid-border: #333;
-  --cell-bg: #ffffff;
-  --cell-border: #ddd;
-  --cell-hover-bg: #e8e8e8;
-
   /* Padding for visual breathing room */
   padding: 20px;
 
@@ -35,16 +24,6 @@
 .gridContainer {
   position: relative;
   display: inline-block;
-}
-
-/* High contrast theme */
-:root[data-theme="high-contrast"] .battleViewer {
-  --color-friendly: #0000ff;
-  --color-enemy: #ff6600;
-  --grid-bg: #ffffff;
-  --grid-border: #000000;
-  --cell-bg: #ffffff;
-  --cell-border: #000000;
 }
 
 /* UI scaling support (75% to 150%) */

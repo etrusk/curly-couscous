@@ -34,33 +34,33 @@
 
 /* Status-specific styles */
 .statusActive {
-  background-color: #e6f2ff;
-  border-color: #0072b2;
-  color: #004d7a;
+  background-color: var(--faction-friendly-bg);
+  border-color: var(--faction-friendly);
+  color: var(--faction-friendly-text);
 }
 
 .statusVictory {
-  background-color: #e6ffe6;
-  border-color: #009e73;
-  color: #006b4d;
+  background-color: var(--status-success-bg);
+  border-color: var(--status-success);
+  color: var(--status-success-text);
 }
 
 .statusDefeat {
-  background-color: #ffe6e6;
-  border-color: #d55e00;
-  color: #8f3e00;
+  background-color: var(--status-error-bg);
+  border-color: var(--status-error);
+  color: var(--status-error-text);
 }
 
 .statusDraw {
-  background-color: #f0f0f0;
-  border-color: #999;
-  color: #666;
+  background-color: var(--status-neutral-bg);
+  border-color: var(--status-neutral);
+  color: var(--status-neutral-text);
 }
 
 .statusUnknown {
-  background-color: #fff3cd;
-  border-color: #cc9a06;
-  color: #664d03;
+  background-color: var(--status-warning-bg);
+  border-color: var(--status-warning);
+  color: var(--status-warning-text);
 }
 
 /* High contrast mode support (planned for Phase 5) */

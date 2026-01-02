@@ -3,8 +3,11 @@ import { BattleViewer } from "./components/BattleViewer";
 import { PlayControls } from "./components/PlayControls";
 import { BattleStatusBadge } from "./components/BattleStatus";
 import { EventLog } from "./components/EventLog";
+import { SkillsPanel } from "./components/SkillsPanel";
+import { RuleEvaluations } from "./components/RuleEvaluations";
 import { useGameStore, selectActions } from "./stores/gameStore";
 import type { Character, Skill, Action } from "./engine/types";
+import "./App.css";
 
 function App() {
   const actions = useGameStore(selectActions);
@@ -171,12 +174,28 @@ function App() {
   }, [actions]); // Initialize once on mount
 
   return (
-    <div>
-      <h1>Auto Battler</h1>
-      <BattleStatusBadge />
-      <PlayControls />
-      <BattleViewer />
-      <EventLog />
+    <div className="app">
+      <div className="header">
+        <h1>Auto Battler</h1>
+      </div>
+      <div className="controls">
+        <BattleStatusBadge />
+        <PlayControls />
+      </div>
+      <div className="gridContainer">
+        <div className="battleViewer">
+          <BattleViewer />
+        </div>
+        <div className="skillsPanel">
+          <SkillsPanel />
+        </div>
+        <div className="ruleEvaluations">
+          <RuleEvaluations />
+        </div>
+        <div className="eventLog">
+          <EventLog />
+        </div>
+      </div>
     </div>
   );
 }

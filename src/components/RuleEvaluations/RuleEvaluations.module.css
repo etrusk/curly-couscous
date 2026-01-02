@@ -1,0 +1,38 @@
+/**
+ * Styles for RuleEvaluations component.
+ */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 2px solid #999;
+  border-radius: 4px;
+  padding: 1rem;
+  background-color: #fafafa;
+  height: 100%;
+}
+
+.header {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #333;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.placeholder {
+  padding: 2rem;
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
+/* High contrast mode support (planned for Phase 5) */
+@media (prefers-contrast: high) {
+  .panel {
+    border-width: 3px;
+  }
+}

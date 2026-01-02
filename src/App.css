@@ -1,15 +1,102 @@
-.App {
-  max-width: 1280px;
+.app {
+  max-width: 1600px;
   margin: 0 auto;
   padding: 2rem;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.header {
+  margin-bottom: 1rem;
 }
 
-p {
-  font-size: 1.2em;
-  color: #888;
+.header h1 {
+  font-size: 2.5rem;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.controls {
+  margin-bottom: 1rem;
+}
+
+.gridContainer {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr; /* 50%, 25%, 25% */
+  grid-template-rows: auto auto;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.battleViewer {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.skillsPanel {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.ruleEvaluations {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.eventLog {
+  grid-column: 1 / -1; /* Span all columns */
+  grid-row: 2;
+}
+
+/* Responsive layout for smaller screens */
+@media (max-width: 1200px) {
+  .gridContainer {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .battleViewer {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .skillsPanel {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .ruleEvaluations {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .eventLog {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+}
+
+@media (max-width: 768px) {
+  .gridContainer {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto;
+  }
+
+  .battleViewer {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .skillsPanel {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .ruleEvaluations {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .eventLog {
+    grid-column: 1;
+    grid-row: 4;
+  }
 }

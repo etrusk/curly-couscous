@@ -12,6 +12,7 @@ Feature-Complete Prototype (v0.3) complete. PlayControls, BattleStatusBadge, Eve
 
 <!-- Prune when >10 items or too long. Older completions live in git history. -->
 
+- 2026-01-02: Workflow rules updated - Debug mode escalation at steps 5a/6a/9a/9b, browser tool for GUI testing (381d857)
 - 2026-01-02: EventLog component - Scrollable list, filtering, faction colors, 366 total tests (9a3a611)
 - 2026-01-02: BattleStatusBadge - Victory/Defeat/Draw display, emoji indicators, tick count (751011c)
 - 2026-01-02: PlayControls - Step/Play/Pause/Reset, auto-play with pause on battle end (c7499da)

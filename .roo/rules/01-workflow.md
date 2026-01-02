@@ -36,13 +36,18 @@ Use Orchestrator mode. It will:
 6a. **INVESTIGATE** via Debug: If tests still fail after 2 Code mode attempts - Root cause analysis (15-20 exchange budget) - Handback to Code mode with findings OR escalate to Architect if design flaw detected
 
 7. **REVIEW** via Ask: Critique implementation (read-only — no edits)
-   - If 🔴 CRITICAL issues → proceed to step 8, then return to step 7 (max 2 cycles)
-   - If only 🟡/🟢 issues → proceed to step 8, then skip to step 9
+   - Categorize issues: 🔴 CRITICAL (security, data integrity, major bugs), 🟡 IMPORTANT (performance, maintainability, edge cases), 🟢 MINOR (style, naming, documentation)
+   - **ALL issues are mandatory** — every 🔴, 🟡, and 🟢 must be addressed
+   - If 🔴 CRITICAL issues found → proceed to step 8, then return to step 7 (max 2 cycles)
+   - If only 🟡/🟢 issues found → proceed to step 8, then skip to step 9 (Code self-verifies)
    - If no issues → skip to step 9
 
-8. **FIX** via Code: Address issues found in review
+8. **FIX** via Code: Address ALL issues found in review
+   - **Mandatory implementation**: Fix every 🔴, 🟡, and 🟢 issue — none are optional
+   - Provide checklist confirmation: "✅ Addressed: [list each issue fixed]"
    - After fixing 🔴 CRITICAL: re-review (step 7) scoped to fixed code only
-   - After 2 review cycles without resolution: escalate to human
+   - After fixing only 🟡/🟢: self-verify all items addressed, then proceed to step 9
+   - After 2 review cycles without 🔴 resolution: escalate to human
 
 9. **VERIFY PASS**: Run tests, confirm they pass
    - If unrelated tests fail (regression) → **9a. REGRESSION DEBUG via Debug**: Systematic analysis (15 exchange budget)

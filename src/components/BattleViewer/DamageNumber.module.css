@@ -1,0 +1,18 @@
+/**
+ * DamageNumber styles - SVG text styling.
+ */
+
+.damageRect {
+  /* Background rectangle for damage numbers */
+  fill: white;
+  opacity: 0.95;
+}
+
+.damageText {
+  /* Damage amount text */
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  font-weight: bold;
+  fill: #333;
+  pointer-events: none;
+}

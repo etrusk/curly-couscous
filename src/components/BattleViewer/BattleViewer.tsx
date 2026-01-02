@@ -1,10 +1,11 @@
 /**
  * BattleViewer - main container component for the battle grid visualization.
- * Coordinates grid rendering and will contain overlays for intents/damage in later phases.
+ * Coordinates grid rendering and overlays for intents and damage numbers.
  */
 
 import { Grid } from "./Grid";
 import { IntentOverlay } from "./IntentOverlay";
+import { DamageOverlay } from "./DamageOverlay";
 import { useGameStore, selectTokenData } from "../../stores/gameStore";
 import styles from "./BattleViewer.module.css";
 
@@ -36,6 +37,11 @@ export function BattleViewer({
       <div className={styles.gridContainer}>
         <Grid width={gridWidth} height={gridHeight} characters={characters} />
         <IntentOverlay
+          gridWidth={gridWidth}
+          gridHeight={gridHeight}
+          cellSize={cellSize}
+        />
+        <DamageOverlay
           gridWidth={gridWidth}
           gridHeight={gridHeight}
           cellSize={cellSize}

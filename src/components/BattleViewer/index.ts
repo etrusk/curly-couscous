@@ -14,3 +14,7 @@ export { IntentOverlay } from "./IntentOverlay";
 export type { IntentOverlayProps } from "./IntentOverlay";
 export { IntentLine } from "./IntentLine";
 export type { IntentLineProps } from "./IntentLine";
+export { DamageOverlay } from "./DamageOverlay";
+export type { DamageOverlayProps } from "./DamageOverlay";
+export { DamageNumber } from "./DamageNumber";
+export type { DamageNumberProps } from "./DamageNumber";

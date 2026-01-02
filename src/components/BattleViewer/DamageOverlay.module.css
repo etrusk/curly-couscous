@@ -1,0 +1,11 @@
+/**
+ * DamageOverlay styles - absolute positioning over grid.
+ */
+
+.damageOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none; /* Allow clicks to pass through to grid */
+  z-index: 20; /* Above intent lines (z-index: 10) */
+}

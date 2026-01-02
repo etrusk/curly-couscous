@@ -9,6 +9,7 @@ import type {
   GameState,
   Character,
   GameEvent,
+  DamageEvent,
   Position,
   Faction,
   Action,
@@ -230,4 +231,16 @@ export const selectIntentData = (state: GameStore): IntentData[] => {
       action: c.currentAction!,
       ticksRemaining: c.currentAction!.resolvesAtTick - tick,
     }));
+};
+
+/**
+ * Select damage events from current tick only.
+ * Simple filter - no grouping or enrichment.
+ * Used by useDamageNumbers hook for damage display.
+ */
+export const selectRecentDamageEvents = (state: GameStore): DamageEvent[] => {
+  const { history, tick } = state.gameState;
+  return history.filter(
+    (e): e is DamageEvent => e.type === "damage" && e.tick === tick,
+  );
 };

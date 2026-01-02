@@ -4,8 +4,8 @@
 
 Use Orchestrator mode. It will:
 
-0. **HEALTH CHECK**: Verify `current-task.md` is under 500 tokens
-   - Run: `wc -w current-task.md` (multiply by 1.3 for token estimate)
+0. **HEALTH CHECK**: Verify `.docs/current-task.md` is under 500 tokens
+   - Run: `wc -w .docs/current-task.md` (multiply by 1.3 for token estimate)
    - ✅ Under 500 → proceed to step 1
    - ⚠️ 500-650 → warn user, recommend pruning, may proceed if user confirms
    - 🛑 Over 650 → STOP. Output pruning guidance. Do not proceed until fixed.
@@ -56,7 +56,7 @@ Use Orchestrator mode. It will:
     - 🛑 **Do NOT use `attempt_completion` until changes are committed and pushed**
     - Include commit hash in completion message
 
-12. **FINALIZE**: Update `current-task.md`
+12. **FINALIZE**: Update `.docs/current-task.md`
     - Verify file remains under 500 tokens after update
     - If update would exceed: prune old items first, then add new
 

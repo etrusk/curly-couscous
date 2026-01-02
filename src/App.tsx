@@ -1,12 +1,46 @@
 import { useEffect } from "react";
 import { BattleViewer } from "./components/BattleViewer";
 import { useGameStore, selectActions } from "./stores/gameStore";
-import type { Character } from "./engine/types";
+import type { Character, Skill, Action } from "./engine/types";
 
 function App() {
   const actions = useGameStore(selectActions);
 
   useEffect(() => {
+    // Define test skills for visual verification
+    const lightPunch: Skill = {
+      id: "light-punch",
+      name: "Light Punch",
+      tickCost: 1,
+      range: 1,
+      damage: 10,
+      enabled: true,
+      triggers: [{ type: "always" }],
+      selectorOverride: { type: "nearest_enemy" },
+    };
+
+    const heavyPunch: Skill = {
+      id: "heavy-punch",
+      name: "Heavy Punch",
+      tickCost: 2,
+      range: 1,
+      damage: 25,
+      enabled: true,
+      triggers: [{ type: "always" }],
+      selectorOverride: { type: "nearest_enemy" },
+    };
+
+    const moveTowards: Skill = {
+      id: "move-towards",
+      name: "Move Towards",
+      tickCost: 1,
+      range: 1,
+      mode: "towards",
+      enabled: true,
+      triggers: [{ type: "always" }],
+      selectorOverride: { type: "nearest_enemy" },
+    };
+
     // Create test characters for visual verification
     const testCharacters: Character[] = [
       // Friendly characters (circles)
@@ -18,8 +52,8 @@ function App() {
         hp: 100,
         maxHp: 100,
         position: { x: 2, y: 2 },
-        skills: [],
-        currentAction: null,
+        skills: [lightPunch],
+        currentAction: null, // Will be set manually below
       },
       {
         id: "friendly-2",
@@ -29,8 +63,8 @@ function App() {
         hp: 50,
         maxHp: 100,
         position: { x: 3, y: 5 },
-        skills: [],
-        currentAction: null,
+        skills: [moveTowards],
+        currentAction: null, // Will be set manually below
       },
       {
         id: "friendly-3",
@@ -52,8 +86,8 @@ function App() {
         hp: 100,
         maxHp: 100,
         position: { x: 9, y: 2 },
-        skills: [],
-        currentAction: null,
+        skills: [heavyPunch],
+        currentAction: null, // Will be set manually below
       },
       {
         id: "enemy-2",
@@ -63,8 +97,8 @@ function App() {
         hp: 75,
         maxHp: 100,
         position: { x: 8, y: 6 },
-        skills: [],
-        currentAction: null,
+        skills: [moveTowards],
+        currentAction: null, // Will be set manually below
       },
       {
         id: "enemy-3",
@@ -78,6 +112,57 @@ function App() {
         currentAction: null,
       },
     ];
+
+    // Manually set pending actions for intent line visualization
+    // Get character references for type safety (using non-null assertions since we control the array)
+    const friendly1 = testCharacters[0]!;
+    const friendly2 = testCharacters[1]!;
+    const enemy1 = testCharacters[3]!;
+    const enemy2 = testCharacters[4]!;
+
+    // Friendly-1: Attack action (solid blue line) targeting enemy-1
+    const attackAction1: Action = {
+      type: "attack",
+      skill: lightPunch,
+      targetCell: { x: 9, y: 2 }, // enemy-1 position
+      targetCharacter: enemy1,
+      startedAtTick: 0,
+      resolvesAtTick: 0, // Resolves this tick (1-tick skill)
+    };
+    friendly1.currentAction = attackAction1;
+
+    // Friendly-2: Move action (dashed blue line) towards enemy-2
+    const moveAction1: Action = {
+      type: "move",
+      skill: moveTowards,
+      targetCell: { x: 4, y: 5 }, // One step towards enemy-2
+      targetCharacter: null,
+      startedAtTick: 0,
+      resolvesAtTick: 0, // Resolves this tick
+    };
+    friendly2.currentAction = moveAction1;
+
+    // Enemy-1: Attack action (solid orange line) targeting friendly-1
+    const attackAction2: Action = {
+      type: "attack",
+      skill: heavyPunch,
+      targetCell: { x: 2, y: 2 }, // friendly-1 position
+      targetCharacter: friendly1,
+      startedAtTick: 0,
+      resolvesAtTick: 1, // Resolves next tick (2-tick skill = locked-in with glow)
+    };
+    enemy1.currentAction = attackAction2;
+
+    // Enemy-2: Move action (dashed orange line) towards friendly-2
+    const moveAction2: Action = {
+      type: "move",
+      skill: moveTowards,
+      targetCell: { x: 7, y: 6 }, // One step towards friendly-2
+      targetCharacter: null,
+      startedAtTick: 0,
+      resolvesAtTick: 0, // Resolves this tick
+    };
+    enemy2.currentAction = moveAction2;
 
     actions.initBattle(testCharacters);
   }, [actions]);

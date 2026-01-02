@@ -6,12 +6,15 @@
 
 ## Current Focus
 
-Feature-Complete Prototype (v0.3) complete. PlayControls, BattleStatusBadge, EventLog implemented. 366 tests passing. Ready for Battle Viewer Phase 5 (Accessibility Polish) or new features.
+Battle Viewer Phase 5 (Accessibility Polish - reduced scope) complete. Contrasting white outlines added to intent lines/markers. 381 tests passing. Ready for Skills Panel or new features.
 
 ## Recent Completions
 
 <!-- Prune when >10 items or too long. Older completions live in git history. -->
 
+- 2026-01-02: Battle Viewer Phase 5 (reduced scope) - Contrasting outlines on intent lines/markers, 16 new accessibility tests, 381 total tests (df64f1f)
+  - **Scope decision**: Shipped core accessibility (outlines) immediately. Deferred configurable themes, UI scale, persistence for future theming system.
+  - **Review findings**: No 🔴 issues. 🟡 items noted for future: hardcoded colors, outline scaling consistency.
 - 2026-01-02: Workflow rules updated - Debug mode escalation at steps 5a/6a/9a/9b, browser tool for GUI testing (381d857)
 - 2026-01-02: EventLog component - Scrollable list, filtering, faction colors, 366 total tests (9a3a611)
 - 2026-01-02: BattleStatusBadge - Victory/Defeat/Draw display, emoji indicators, tick count (751011c)
@@ -28,5 +31,5 @@ Feature-Complete Prototype (v0.3) complete. PlayControls, BattleStatusBadge, Eve
 
 ## Next Steps
 
-- Battle Viewer Phase 5: Accessibility Polish (high contrast mode, UI scale, ARIA labels)
 - Skills Panel: Sentence-builder UI for skill configuration
+- Future theming system: Configurable colors, UI scale, high contrast mode, persistence (deferred from Phase 5)

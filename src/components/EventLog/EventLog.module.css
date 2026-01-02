@@ -1,0 +1,122 @@
+/**
+ * Styles for EventLog component.
+ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 2px solid #999;
+  border-radius: 4px;
+  padding: 1rem;
+  background-color: #fafafa;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.filters {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.filterLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filterLabel input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.scrollContainer {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fff;
+}
+
+.eventEntry {
+  padding: 0.5rem;
+  margin-bottom: 0.25rem;
+  border-radius: 3px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  border-left: 3px solid transparent;
+}
+
+.eventEntry:last-child {
+  margin-bottom: 0;
+}
+
+/* Faction color coding */
+.factionFriendly {
+  background-color: #e6f2ff;
+  border-left-color: #0072b2;
+  color: #004d7a;
+}
+
+.factionEnemy {
+  background-color: #fff4e6;
+  border-left-color: #e69f00;
+  color: #8f5a00;
+}
+
+.emptyState {
+  padding: 2rem;
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
+/* Scrollbar styling */
+.scrollContainer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollContainer::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.scrollContainer::-webkit-scrollbar-thumb {
+  background: #999;
+  border-radius: 4px;
+}
+
+.scrollContainer::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* High contrast mode support (planned for Phase 5) */
+@media (prefers-contrast: high) {
+  .container {
+    border-width: 3px;
+  }
+
+  .eventEntry {
+    border-left-width: 4px;
+  }
+}

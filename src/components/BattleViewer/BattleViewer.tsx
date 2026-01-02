@@ -4,6 +4,7 @@
  */
 
 import { Grid } from "./Grid";
+import { useGameStore, selectTokenData } from "../../stores/gameStore";
 import styles from "./BattleViewer.module.css";
 
 export interface BattleViewerProps {
@@ -15,6 +16,9 @@ export function BattleViewer({
   gridWidth = 12,
   gridHeight = 12,
 }: BattleViewerProps) {
+  // Subscribe to token data for character rendering
+  const characters = useGameStore(selectTokenData);
+
   return (
     <div
       className={styles.battleViewer}
@@ -25,7 +29,7 @@ export function BattleViewer({
         } as React.CSSProperties
       }
     >
-      <Grid width={gridWidth} height={gridHeight} />
+      <Grid width={gridWidth} height={gridHeight} characters={characters} />
     </div>
   );
 }

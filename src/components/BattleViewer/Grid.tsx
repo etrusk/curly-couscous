@@ -4,19 +4,29 @@
  */
 
 import { Cell } from "./Cell";
+import type { TokenData } from "../../stores/gameStore";
 import styles from "./Grid.module.css";
 
 export interface GridProps {
   width: number;
   height: number;
+  characters?: TokenData[];
 }
 
-export function Grid({ width, height }: GridProps) {
+export function Grid({ width, height, characters = [] }: GridProps) {
+  // Create a map of position -> character for O(1) lookup
+  const characterMap = new Map<string, TokenData>();
+  for (const char of characters) {
+    const key = `${char.position.x}-${char.position.y}`;
+    characterMap.set(key, char);
+  }
+
   // Generate cells in row-major order (y then x)
   const cells: JSX.Element[] = [];
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      cells.push(<Cell key={`${x}-${y}`} x={x} y={y} />);
+      const character = characterMap.get(`${x}-${y}`);
+      cells.push(<Cell key={`${x}-${y}`} x={x} y={y} character={character} />);
     }
   }
 

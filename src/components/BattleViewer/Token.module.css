@@ -1,0 +1,38 @@
+/**
+ * Token component styles.
+ * SVG-based character visualization with faction-specific shapes.
+ */
+
+.token {
+  display: block;
+  pointer-events: auto;
+}
+
+/* Character shape styling */
+.shape {
+  transition: opacity 0.2s ease-in-out;
+}
+
+.token:hover .shape {
+  opacity: 0.9;
+  filter: brightness(1.1);
+}
+
+/* HP Bar styling */
+.hpBarBackground {
+  opacity: 0.8;
+}
+
+.hpBarFill {
+  transition: width 0.3s ease-out;
+}
+
+/* High contrast mode support */
+:root[data-theme="high-contrast"] .shape {
+  stroke-width: 2;
+}
+
+:root[data-theme="high-contrast"] .hpBarBackground {
+  fill: #000;
+  stroke-width: 1;
+}

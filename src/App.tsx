@@ -1,12 +1,12 @@
-import './App.css'
+import { BattleViewer } from "./components/BattleViewer";
 
 function App() {
   return (
-    <div className="App">
+    <div>
       <h1>Auto Battler</h1>
-      <p>Tick-based auto battler with priority-based skill system</p>
+      <BattleViewer />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

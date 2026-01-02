@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { processTick, checkBattleStatus } from './game';
+import { processTick, checkBattleStatus, computeDecisions } from './game';
 import { GameState, Character, Skill, Action } from './types';
 import { initRNG } from './movement';
 
@@ -492,5 +492,750 @@ describe('checkBattleStatus', () => {
     ];
 
     expect(checkBattleStatus(characters)).toBe('active');
+  });
+});
+
+describe('computeDecisions', () => {
+  // ===========================================================================
+  // Section 1: Mid-Action Skip
+  // ===========================================================================
+  describe('mid-action skip', () => {
+    it('should skip characters with currentAction (mid-action)', () => {
+      const character = createCharacter({
+        id: 'char1',
+        position: { x: 5, y: 5 },
+        currentAction: createAttackAction({ x: 6, y: 5 }, 10, 2),
+        skills: [createSkill({ id: 'skill1', damage: 10, triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions).toHaveLength(0);
+    });
+
+    it('should return decision for idle characters (no currentAction)', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+        currentAction: createAttackAction({ x: 5, y: 5 }, 10, 2),
+      });
+      const character = createCharacter({
+        id: 'char1',
+        position: { x: 5, y: 5 },
+        currentAction: null,
+        skills: [createSkill({ id: 'skill1', damage: 10, triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions).toHaveLength(1);
+      expect(decisions[0].characterId).toBe('char1');
+    });
+
+    it('should handle mix of mid-action and idle characters', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 7, y: 5 },
+        currentAction: createAttackAction({ x: 6, y: 5 }, 10, 2),
+      });
+      const midAction = createCharacter({
+        id: 'mid-action',
+        position: { x: 5, y: 5 },
+        currentAction: createAttackAction({ x: 6, y: 5 }, 10, 2),
+        skills: [createSkill({ id: 'skill1', damage: 10, triggers: [{ type: 'always' }] })],
+      });
+      const idle = createCharacter({
+        id: 'idle',
+        position: { x: 6, y: 5 },
+        currentAction: null,
+        skills: [createSkill({ id: 'skill2', damage: 10, triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [midAction, idle, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions).toHaveLength(1);
+      expect(decisions[0].characterId).toBe('idle');
+    });
+  });
+
+  // ===========================================================================
+  // Section 2: Skill Priority Order
+  // ===========================================================================
+  describe('skill priority order', () => {
+    it('should select first matching skill (priority order)', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({ id: 'skill1', damage: 10, triggers: [{ type: 'always' }] }),
+          createSkill({ id: 'skill2', damage: 20, triggers: [{ type: 'always' }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.skill.id).toBe('skill1');
+    });
+
+    it('should skip to second skill when first trigger fails', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 10, y: 10 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({ id: 'skill1', damage: 10, triggers: [{ type: 'enemy_in_range', value: 1 }] }),
+          createSkill({ id: 'skill2', damage: 20, range: 10, triggers: [{ type: 'always' }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.skill.id).toBe('skill2');
+    });
+
+    it('should skip to third skill when first two fail', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 10, y: 10 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        hp: 100,
+        skills: [
+          createSkill({ id: 'skill1', damage: 10, triggers: [{ type: 'enemy_in_range', value: 1 }] }),
+          createSkill({ id: 'skill2', damage: 20, triggers: [{ type: 'hp_below', value: 50 }] }),
+          createSkill({ id: 'skill3', damage: 30, range: 10, triggers: [{ type: 'always' }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.skill.id).toBe('skill3');
+    });
+  });
+
+  // ===========================================================================
+  // Section 3: Trigger AND Logic
+  // ===========================================================================
+  describe('trigger AND logic', () => {
+    it('should pass when all triggers pass (AND logic)', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        hp: 30,
+        skills: [
+          createSkill({
+            id: 'skill1',
+            damage: 10,
+            triggers: [
+              { type: 'enemy_in_range', value: 3 },
+              { type: 'hp_below', value: 50 },
+            ],
+          }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.skill.id).toBe('skill1');
+    });
+
+    it('should fail when any trigger fails (AND logic)', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 10, y: 10 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        hp: 30,
+        skills: [
+          createSkill({
+            id: 'skill1',
+            damage: 10,
+            triggers: [
+              { type: 'enemy_in_range', value: 3 },
+              { type: 'hp_below', value: 50 },
+            ],
+          }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('idle');
+    });
+
+    it('should pass when triggers array is empty (vacuous truth)', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [createSkill({ id: 'skill1', damage: 10, triggers: [] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.skill.id).toBe('skill1');
+    });
+  });
+
+  // ===========================================================================
+  // Section 4: Disabled Skills
+  // ===========================================================================
+  describe('disabled skills', () => {
+    it('should skip disabled skills (enabled=false)', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({ id: 'skill1', damage: 10, enabled: false, triggers: [{ type: 'always' }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('idle');
+    });
+
+    it('should select enabled skill after disabled one', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({ id: 'skill1', damage: 10, enabled: false, triggers: [{ type: 'always' }] }),
+          createSkill({ id: 'skill2', damage: 20, enabled: true, triggers: [{ type: 'always' }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.skill.id).toBe('skill2');
+    });
+  });
+
+  // ===========================================================================
+  // Section 5: No Match → Idle
+  // ===========================================================================
+  describe('no match to idle', () => {
+    it('should return idle action when no skills match', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 10, y: 10 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({ id: 'skill1', damage: 10, triggers: [{ type: 'enemy_in_range', value: 1 }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('idle');
+    });
+
+    it('should return idle action when character has no skills', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('idle');
+    });
+
+    it('should return idle action when all skills disabled', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({ id: 'skill1', damage: 10, enabled: false, triggers: [{ type: 'always' }] }),
+          createSkill({ id: 'skill2', damage: 20, enabled: false, triggers: [{ type: 'always' }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('idle');
+    });
+
+    it('should return idle action with type=idle', () => {
+      const character = createCharacter({
+        id: 'char1',
+        position: { x: 5, y: 5 },
+        skills: [],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('idle');
+    });
+
+    it('should set idle targetCell to character position', () => {
+      const character = createCharacter({
+        id: 'char1',
+        position: { x: 5, y: 7 },
+        skills: [],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.targetCell).toEqual({ x: 5, y: 7 });
+    });
+  });
+
+  // ===========================================================================
+  // Section 6: Action Type Inference
+  // ===========================================================================
+  describe('action type inference', () => {
+    it('should create attack action for skill with damage', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [createSkill({ id: 'skill1', damage: 10, triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('attack');
+    });
+
+    it('should create move action for skill with mode', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 8, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [createSkill({ id: 'skill1', mode: 'towards', triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('move');
+    });
+
+    it('should throw for skill with both damage and mode', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: 'skill1',
+            damage: 10,
+            mode: 'towards',
+            triggers: [{ type: 'always' }],
+          }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      expect(() => computeDecisions(state)).toThrow(/cannot have both damage and mode/);
+    });
+
+    it('should throw for skill with neither damage nor mode', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({ id: 'skill1', triggers: [{ type: 'always' }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      expect(() => computeDecisions(state)).toThrow(/must have damage or mode/);
+    });
+  });
+
+  // ===========================================================================
+  // Section 7: Attack Targeting
+  // ===========================================================================
+  describe('attack targeting', () => {
+    it('should lock attack targetCell to target\'s position', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 7 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [createSkill({ id: 'skill1', damage: 10, range: 5, triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.targetCell).toEqual({ x: 6, y: 7 });
+    });
+
+    it('should set targetCharacter for attack actions', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [createSkill({ id: 'skill1', damage: 10, triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.targetCharacter).toBeTruthy();
+      expect(decisions[0].action.targetCharacter?.id).toBe('enemy');
+    });
+
+    it('should skip attack skill when target out of range', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 10, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({ id: 'skill1', damage: 10, range: 1, triggers: [{ type: 'always' }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('idle');
+    });
+
+    it('should select attack skill when target exactly at range', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({ id: 'skill1', damage: 10, range: 1, triggers: [{ type: 'always' }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('attack');
+      expect(decisions[0].action.skill.id).toBe('skill1');
+    });
+
+    it('should skip attack skill when no valid target exists', () => {
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({ id: 'skill1', damage: 10, triggers: [{ type: 'always' }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('idle');
+    });
+  });
+
+  // ===========================================================================
+  // Section 8: Move Destination
+  // ===========================================================================
+  describe('move destination', () => {
+    it('should compute move targetCell towards target', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 8, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [createSkill({ id: 'skill1', mode: 'towards', triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('move');
+      expect(decisions[0].action.targetCell.x).toBeGreaterThan(character.position.x);
+    });
+
+    it('should compute move targetCell away from target', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 8, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [createSkill({ id: 'skill1', mode: 'away', triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('move');
+      expect(decisions[0].action.targetCell.x).toBeLessThan(character.position.x);
+    });
+
+    it('should set targetCell to current position for hold mode', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 8, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [createSkill({ id: 'skill1', mode: 'hold', triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('move');
+      expect(decisions[0].action.targetCell).toEqual({ x: 5, y: 5 });
+    });
+
+    it('should set targetCharacter to null for move actions', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 8, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [createSkill({ id: 'skill1', mode: 'towards', triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('move');
+      expect(decisions[0].action.targetCharacter).toBeNull();
+    });
+
+    it('should skip move skill when no valid target exists', () => {
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({ id: 'skill1', mode: 'towards', triggers: [{ type: 'always' }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('idle');
+    });
   });
 });

@@ -3,9 +3,11 @@
  * Implements snapshot→decisions→outcomes→apply flow for deterministic gameplay.
  */
 
-import { GameState, Character, Action, GameEvent, BattleStatus } from './types';
+import { GameState, Character, Action, GameEvent, BattleStatus, Skill, Selector, Position, chebyshevDistance } from './types';
 import { resolveCombat } from './combat';
 import { resolveMovement } from './movement';
+import { evaluateTrigger } from './triggers';
+import { evaluateSelector } from './selectors';
 
 /**
  * Result of processing a single tick.
@@ -91,22 +93,233 @@ export function processTick(state: GameState): TickResult {
 }
 
 /**
+ * Default selector when skill doesn't specify selectorOverride.
+ */
+const DEFAULT_SELECTOR: Selector = { type: 'nearest_enemy' };
+
+/**
+ * Synthetic idle skill for when no valid skill is selected.
+ */
+const IDLE_SKILL: Skill = {
+  id: '__idle__',
+  name: 'Idle',
+  tickCost: 1,
+  range: 0,
+  enabled: true,
+  triggers: [],
+};
+
+/**
+ * Infer action type from skill properties.
+ * 
+ * @param skill - Skill to check
+ * @returns 'attack' if skill has damage, 'move' if skill has mode
+ * @throws Error if skill has both or neither damage and mode
+ */
+function getActionType(skill: Skill): 'attack' | 'move' {
+  const hasDamage = skill.damage !== undefined;
+  const hasMode = skill.mode !== undefined;
+  
+  if (hasDamage && hasMode) {
+    throw new Error(`Skill ${skill.id} cannot have both damage and mode`);
+  }
+  
+  if (!hasDamage && !hasMode) {
+    throw new Error(`Skill ${skill.id} must have damage or mode`);
+  }
+  
+  return hasDamage ? 'attack' : 'move';
+}
+
+/**
+ * Compute move destination with tiebreaking rules.
+ * 
+ * Tiebreaking (when multiple cells equidistant):
+ * 1. Prefer horizontal movement (lower X difference)
+ * 2. Then vertical movement (lower Y difference)
+ * 3. Then lower Y coordinate
+ * 4. Then lower X coordinate
+ * 
+ * @param mover - Character that is moving
+ * @param target - Target character to move towards/away from
+ * @param mode - Movement mode ('towards' or 'away')
+ * @returns Destination position (1 cell away from mover)
+ */
+function computeMoveDestination(
+  mover: Character,
+  target: Character,
+  mode: 'towards' | 'away'
+): Position {
+  const dx = target.position.x - mover.position.x;
+  const dy = target.position.y - mover.position.y;
+  
+  // Calculate step direction based on mode
+  const stepX = mode === 'towards' ? Math.sign(dx) : -Math.sign(dx);
+  const stepY = mode === 'towards' ? Math.sign(dy) : -Math.sign(dy);
+  
+  // Tiebreaking: prefer horizontal movement (lower X difference)
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  
+  if (absDx > absDy) {
+    // Move horizontally
+    return { x: mover.position.x + stepX, y: mover.position.y };
+  } else if (absDy > absDx) {
+    // Move vertically
+    return { x: mover.position.x, y: mover.position.y + stepY };
+  } else if (absDx === absDy && absDx > 0) {
+    // Equal distance: prefer horizontal per tiebreaking rules
+    return { x: mover.position.x + stepX, y: mover.position.y };
+  } else {
+    // Already at target position (dx === dy === 0)
+    return mover.position;
+  }
+}
+
+/**
+ * Create synthetic idle action.
+ * 
+ * @param character - Character that will idle
+ * @param tick - Current tick
+ * @returns Idle action with targetCell set to character's position
+ */
+function createIdleAction(character: Character, tick: number): Action {
+  return {
+    type: 'idle',
+    skill: IDLE_SKILL,
+    targetCell: character.position,
+    targetCharacter: null,
+    startedAtTick: tick,
+    resolvesAtTick: tick + IDLE_SKILL.tickCost - 1,
+  };
+}
+
+/**
+ * Create skill action (attack or move).
+ * 
+ * @param skill - Skill to execute
+ * @param character - Character executing the skill
+ * @param target - Target character (must not be null)
+ * @param tick - Current tick
+ * @returns Action with locked targetCell
+ */
+function createSkillAction(
+  skill: Skill,
+  character: Character,
+  target: Character,
+  tick: number
+): Action {
+  const actionType = getActionType(skill);
+  
+  let targetCell: Position;
+  let targetCharacter: Character | null;
+  
+  if (actionType === 'attack') {
+    // Attack: lock to target's position
+    targetCell = target.position;
+    targetCharacter = target;
+  } else {
+    // Move: compute destination
+    if (skill.mode === 'hold') {
+      targetCell = character.position;
+    } else {
+      targetCell = computeMoveDestination(character, target, skill.mode!);
+    }
+    targetCharacter = null;
+  }
+  
+  return {
+    type: actionType,
+    skill,
+    targetCell,
+    targetCharacter,
+    startedAtTick: tick,
+    resolvesAtTick: tick + skill.tickCost - 1,
+  };
+}
+
+/**
  * Compute decisions for all idle characters.
- *
- * This will be implemented when the decision/AI system is ready.
- * For now, returns empty array as characters keep their existing actions.
- *
- * @param _state - Read-only snapshot of game state
+ * 
+ * Algorithm (per spec Decision Phase):
+ * 1. Skip if character.currentAction !== null (mid-action)
+ * 2. Scan character.skills top-to-bottom
+ * 3. Skip if skill.enabled === false
+ * 4. Check all triggers pass (AND logic: triggers.every(...))
+ * 5. Select first skill where all triggers pass
+ * 6. Use selector (skill.selectorOverride ?? DEFAULT_SELECTOR) to find target
+ * 7. Create Action with locked targetCell
+ * 8. If no skills match → create idle action
+ * 
+ * @param state - Read-only snapshot of game state
  * @returns Array of decisions for idle characters
  */
-export function computeDecisions(_state: Readonly<GameState>): Decision[] {
-  // TODO: Implement decision logic
-  // - Scan each character's skill list top-to-bottom
-  // - Evaluate trigger conditions
-  // - Select first valid skill
-  // - Lock targeting to target's current cell
-  // - Create Action with startedAtTick and resolvesAtTick
-  return [];
+export function computeDecisions(state: Readonly<GameState>): Decision[] {
+  const decisions: Decision[] = [];
+  
+  for (const character of state.characters) {
+    // 1. Skip if mid-action
+    if (character.currentAction !== null) {
+      continue;
+    }
+    
+    // 2. Scan skills top-to-bottom to find a valid executable skill
+    let action: Action | null = null;
+    
+    for (const skill of character.skills) {
+      // 3. Skip disabled skills
+      if (!skill.enabled) {
+        continue;
+      }
+      
+      // 4. Check all triggers (AND logic)
+      const allTriggersPass = skill.triggers.every(trigger =>
+        evaluateTrigger(trigger, character, state.characters)
+      );
+      
+      if (!allTriggersPass) {
+        continue;
+      }
+      
+      // 5. Skill triggers passed - now validate target and range
+      // 6. Use selector to find target
+      const selector = skill.selectorOverride ?? DEFAULT_SELECTOR;
+      const target = evaluateSelector(selector, character, state.characters);
+      
+      // Check if we have a valid target
+      if (!target) {
+        // No valid target → continue to next skill
+        continue;
+      }
+      
+      // Determine action type and validate range for attacks
+      const actionType = getActionType(skill);
+      
+      if (actionType === 'attack') {
+        // Validate range for attack skills
+        if (chebyshevDistance(character.position, target.position) > skill.range) {
+          // Target out of range → continue to next skill
+          continue;
+        }
+      }
+      
+      // 7. Create Action with locked targetCell
+      action = createSkillAction(skill, character, target, state.tick);
+      break;
+    }
+    
+    // 8. If no valid skill found → create idle action
+    if (action === null) {
+      action = createIdleAction(character, state.tick);
+    }
+    
+    decisions.push({
+      characterId: character.id,
+      action,
+    });
+  }
+  
+  return decisions;
 }
 
 /**

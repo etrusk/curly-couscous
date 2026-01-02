@@ -19,6 +19,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
 
     /* CSS Modules */
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]

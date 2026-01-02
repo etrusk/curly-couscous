@@ -1,11 +1,17 @@
 /**
  * Movement collision resolution system.
  * Implements deterministic movement with seeded PRNG for collision resolution.
- * 
+ *
  * Design doc: docs/design-movement-collision.md
  */
 
-import { Character, Position, MovementResult, MovementEvent, positionsEqual } from './types';
+import {
+  Character,
+  Position,
+  MovementResult,
+  MovementEvent,
+  positionsEqual,
+} from "./types";
 
 // ============================================================================
 // RNG Functions
@@ -21,20 +27,23 @@ import { Character, Position, MovementResult, MovementEvent, positionsEqual } fr
 export function initRNG(seed: number): number {
   // Add mixing to improve small seed distribution
   let state = seed >>> 0;
-  state = (state ^ 0x9E3779B9) >>> 0; // Mix with golden ratio bits
-  state = Math.imul(state ^ (state >>> 16), 0x21F0AAAD);
-  state = Math.imul(state ^ (state >>> 15), 0x735A2D97);
+  state = (state ^ 0x9e3779b9) >>> 0; // Mix with golden ratio bits
+  state = Math.imul(state ^ (state >>> 16), 0x21f0aaad);
+  state = Math.imul(state ^ (state >>> 15), 0x735a2d97);
   return (state ^ (state >>> 15)) >>> 0;
 }
 
 /**
  * Pure PRNG using mulberry32 algorithm.
  * Returns next random value in [0, 1) and the updated state.
- * 
+ *
  * @param state - Current RNG state (unsigned 32-bit integer)
  * @returns Object with value in [0, 1) and nextState
  */
-export function nextRandom(state: number): { value: number; nextState: number } {
+export function nextRandom(state: number): {
+  value: number;
+  nextState: number;
+} {
   let t = state >>> 0; // Ensure unsigned 32-bit
   t = Math.imul(t ^ (t >>> 15), t | 1);
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
@@ -89,11 +98,11 @@ function isBlocker(character: Character, position: Position): boolean {
 export function resolveMovement(
   characters: Character[],
   tick: number,
-  rngState: number
+  rngState: number,
 ): MovementResult {
   // 1. Find all resolving movers (excluding hold actions)
-  const movers = characters.filter(c => {
-    if (c.currentAction?.type !== 'move') return false;
+  const movers = characters.filter((c) => {
+    if (c.currentAction?.type !== "move") return false;
     if (c.currentAction.resolvesAtTick !== tick) return false;
     // Exclude hold actions (moving to current cell)
     if (positionsEqual(c.currentAction.targetCell, c.position)) return false;
@@ -123,8 +132,20 @@ export function resolveMovement(
   // 3. Sort groups by target position (Y then X) for determinism
   const sortedGroups = Array.from(groups.entries()).sort((a, b) => {
     const [keyA, keyB] = [a[0], b[0]];
-    const [axStr, ayStr] = keyA.split(',');
-    const [bxStr, byStr] = keyB.split(',');
+    const partsA = keyA.split(",");
+    const partsB = keyB.split(",");
+    const axStr = partsA[0];
+    const ayStr = partsA[1];
+    const bxStr = partsB[0];
+    const byStr = partsB[1];
+
+    if (axStr === undefined || ayStr === undefined) {
+      throw new Error(`Invalid position key format: ${keyA}`);
+    }
+    if (bxStr === undefined || byStr === undefined) {
+      throw new Error(`Invalid position key format: ${keyB}`);
+    }
+
     const ax = parseInt(axStr, 10);
     const ay = parseInt(ayStr, 10);
     const bx = parseInt(bxStr, 10);
@@ -138,16 +159,20 @@ export function resolveMovement(
   const events: MovementEvent[] = [];
 
   for (const [, groupMovers] of sortedGroups) {
-    const targetCell = groupMovers[0].currentAction!.targetCell;
+    const firstMover = groupMovers[0];
+    if (firstMover === undefined) {
+      throw new Error("Movement group has no movers (should never happen)");
+    }
+    const targetCell = firstMover.currentAction!.targetCell;
 
     // Check for blockers at target
-    const blockers = characters.filter(c => isBlocker(c, targetCell));
+    const blockers = characters.filter((c) => isBlocker(c, targetCell));
 
     if (blockers.length > 0) {
       // Blocker wins - all movers stay in place
       for (const mover of groupMovers) {
         events.push({
-          type: 'movement',
+          type: "movement",
           tick,
           characterId: mover.id,
           from: mover.position,
@@ -158,9 +183,14 @@ export function resolveMovement(
     } else if (groupMovers.length === 1) {
       // Single unobstructed mover
       const mover = groupMovers[0];
+      if (mover === undefined) {
+        throw new Error(
+          "Single mover group has no mover (should never happen)",
+        );
+      }
       positionUpdates.set(mover.id, targetCell);
       events.push({
-        type: 'movement',
+        type: "movement",
         tick,
         characterId: mover.id,
         from: mover.position,
@@ -174,11 +204,17 @@ export function resolveMovement(
       const winnerIndex = Math.floor(value * groupMovers.length);
       const winner = groupMovers[winnerIndex];
 
+      if (winner === undefined) {
+        throw new Error(
+          `Winner index ${winnerIndex} out of bounds for ${groupMovers.length} movers`,
+        );
+      }
+
       for (const mover of groupMovers) {
         if (mover.id === winner.id) {
           positionUpdates.set(mover.id, targetCell);
           events.push({
-            type: 'movement',
+            type: "movement",
             tick,
             characterId: mover.id,
             from: mover.position,
@@ -187,7 +223,7 @@ export function resolveMovement(
           });
         } else {
           events.push({
-            type: 'movement',
+            type: "movement",
             tick,
             characterId: mover.id,
             from: mover.position,
@@ -200,7 +236,7 @@ export function resolveMovement(
   }
 
   // 5. Apply position updates to characters
-  const updatedCharacters = characters.map(c => {
+  const updatedCharacters = characters.map((c) => {
     const newPosition = positionUpdates.get(c.id);
     if (newPosition) {
       return { ...c, position: newPosition };

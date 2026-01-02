@@ -145,7 +145,7 @@ describe("processTick", () => {
       const result = processTick(state);
 
       expect(result.state.history.length).toBeGreaterThan(0);
-      expect(result.state.history[0].type).toBe("tick");
+      expect(result.state.history[0]!.type).toBe("tick");
     });
   });
 
@@ -312,7 +312,7 @@ describe("processTick", () => {
       const result = processTick(state);
 
       expect(result.state.characters).toHaveLength(1);
-      expect(result.state.characters[0].id).toBe("attacker");
+      expect(result.state.characters[0]!.id).toBe("attacker");
     });
 
     it("should keep characters with HP > 0", () => {
@@ -568,7 +568,7 @@ describe("computeDecisions", () => {
       const decisions = computeDecisions(state);
 
       expect(decisions).toHaveLength(1);
-      expect(decisions[0].characterId).toBe("char1");
+      expect(decisions[0]!.characterId).toBe("char1");
     });
 
     it("should handle mix of mid-action and idle characters", () => {
@@ -610,7 +610,7 @@ describe("computeDecisions", () => {
       const decisions = computeDecisions(state);
 
       expect(decisions).toHaveLength(1);
-      expect(decisions[0].characterId).toBe("idle");
+      expect(decisions[0]!.characterId).toBe("idle");
     });
   });
 
@@ -648,7 +648,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.skill.id).toBe("skill1");
+      expect(decisions[0]!.action.skill.id).toBe("skill1");
     });
 
     it("should skip to second skill when first trigger fails", () => {
@@ -682,7 +682,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.skill.id).toBe("skill2");
+      expect(decisions[0]!.action.skill.id).toBe("skill2");
     });
 
     it("should skip to third skill when first two fail", () => {
@@ -722,7 +722,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.skill.id).toBe("skill3");
+      expect(decisions[0]!.action.skill.id).toBe("skill3");
     });
   });
 
@@ -759,7 +759,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.skill.id).toBe("skill1");
+      expect(decisions[0]!.action.skill.id).toBe("skill1");
     });
 
     it("should fail when any trigger fails (AND logic)", () => {
@@ -791,7 +791,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("idle");
+      expect(decisions[0]!.action.type).toBe("idle");
     });
 
     it("should pass when triggers array is empty (vacuous truth)", () => {
@@ -813,7 +813,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.skill.id).toBe("skill1");
+      expect(decisions[0]!.action.skill.id).toBe("skill1");
     });
   });
 
@@ -847,7 +847,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("idle");
+      expect(decisions[0]!.action.type).toBe("idle");
     });
 
     it("should select enabled skill after disabled one", () => {
@@ -882,7 +882,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.skill.id).toBe("skill2");
+      expect(decisions[0]!.action.skill.id).toBe("skill2");
     });
   });
 
@@ -915,7 +915,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("idle");
+      expect(decisions[0]!.action.type).toBe("idle");
     });
 
     it("should return idle action when character has no skills", () => {
@@ -937,7 +937,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("idle");
+      expect(decisions[0]!.action.type).toBe("idle");
     });
 
     it("should return idle action when all skills disabled", () => {
@@ -972,7 +972,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("idle");
+      expect(decisions[0]!.action.type).toBe("idle");
     });
 
     it("should return idle action with type=idle", () => {
@@ -988,7 +988,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("idle");
+      expect(decisions[0]!.action.type).toBe("idle");
     });
 
     it("should set idle targetCell to character position", () => {
@@ -1004,7 +1004,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.targetCell).toEqual({ x: 5, y: 7 });
+      expect(decisions[0]!.action.targetCell).toEqual({ x: 5, y: 7 });
     });
   });
 
@@ -1037,7 +1037,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("attack");
+      expect(decisions[0]!.action.type).toBe("attack");
     });
 
     it("should create move action for skill with mode", () => {
@@ -1065,7 +1065,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("move");
+      expect(decisions[0]!.action.type).toBe("move");
     });
 
     it("should throw for skill with both damage and mode", () => {
@@ -1148,7 +1148,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.targetCell).toEqual({ x: 6, y: 7 });
+      expect(decisions[0]!.action.targetCell).toEqual({ x: 6, y: 7 });
     });
 
     it("should set targetCharacter for attack actions", () => {
@@ -1176,8 +1176,8 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.targetCharacter).toBeTruthy();
-      expect(decisions[0].action.targetCharacter?.id).toBe("enemy");
+      expect(decisions[0]!.action.targetCharacter).toBeTruthy();
+      expect(decisions[0]!.action.targetCharacter?.id).toBe("enemy");
     });
 
     it("should skip attack skill when target out of range", () => {
@@ -1206,7 +1206,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("idle");
+      expect(decisions[0]!.action.type).toBe("idle");
     });
 
     it("should select attack skill when target exactly at range", () => {
@@ -1235,8 +1235,8 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("attack");
-      expect(decisions[0].action.skill.id).toBe("skill1");
+      expect(decisions[0]!.action.type).toBe("attack");
+      expect(decisions[0]!.action.skill.id).toBe("skill1");
     });
 
     it("should skip attack skill when no valid target exists", () => {
@@ -1259,7 +1259,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("idle");
+      expect(decisions[0]!.action.type).toBe("idle");
     });
   });
 
@@ -1292,8 +1292,8 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("move");
-      expect(decisions[0].action.targetCell.x).toBeGreaterThan(
+      expect(decisions[0]!.action.type).toBe("move");
+      expect(decisions[0]!.action.targetCell.x).toBeGreaterThan(
         character.position.x,
       );
     });
@@ -1323,8 +1323,8 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("move");
-      expect(decisions[0].action.targetCell.x).toBeLessThan(
+      expect(decisions[0]!.action.type).toBe("move");
+      expect(decisions[0]!.action.targetCell.x).toBeLessThan(
         character.position.x,
       );
     });
@@ -1354,8 +1354,8 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("move");
-      expect(decisions[0].action.targetCell).toEqual({ x: 5, y: 5 });
+      expect(decisions[0]!.action.type).toBe("move");
+      expect(decisions[0]!.action.targetCell).toEqual({ x: 5, y: 5 });
     });
 
     it("should set targetCharacter to null for move actions", () => {
@@ -1383,8 +1383,8 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("move");
-      expect(decisions[0].action.targetCharacter).toBeNull();
+      expect(decisions[0]!.action.type).toBe("move");
+      expect(decisions[0]!.action.targetCharacter).toBeNull();
     });
 
     it("should skip move skill when no valid target exists", () => {
@@ -1407,7 +1407,7 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("idle");
+      expect(decisions[0]!.action.type).toBe("idle");
     });
 
     it("should allow hold mode without valid target", () => {
@@ -1430,8 +1430,8 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      expect(decisions[0].action.type).toBe("move");
-      expect(decisions[0].action.targetCell).toEqual({ x: 5, y: 5 });
+      expect(decisions[0]!.action.type).toBe("move");
+      expect(decisions[0]!.action.targetCell).toEqual({ x: 5, y: 5 });
     });
 
     it("should prefer horizontal movement when dx === dy (diagonal tiebreaking)", () => {
@@ -1460,8 +1460,8 @@ describe("computeDecisions", () => {
       const decisions = computeDecisions(state);
 
       // dx = 3, dy = 3 (equal), should prefer horizontal movement
-      expect(decisions[0].action.type).toBe("move");
-      expect(decisions[0].action.targetCell).toEqual({ x: 6, y: 5 });
+      expect(decisions[0]!.action.type).toBe("move");
+      expect(decisions[0]!.action.targetCell).toEqual({ x: 6, y: 5 });
     });
 
     it("should clamp move destination to grid bounds at x=0 edge", () => {
@@ -1490,8 +1490,8 @@ describe("computeDecisions", () => {
       const decisions = computeDecisions(state);
 
       // Moving away from (5,5) when at (0,5) would try x=-1, should clamp to x=0
-      expect(decisions[0].action.type).toBe("move");
-      expect(decisions[0].action.targetCell).toEqual({ x: 0, y: 5 });
+      expect(decisions[0]!.action.type).toBe("move");
+      expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 5 });
     });
 
     it("should clamp move destination to grid bounds at x=11 edge", () => {
@@ -1520,8 +1520,8 @@ describe("computeDecisions", () => {
       const decisions = computeDecisions(state);
 
       // Moving away from (5,5) when at (11,5) would try x=12, should clamp to x=11
-      expect(decisions[0].action.type).toBe("move");
-      expect(decisions[0].action.targetCell).toEqual({ x: 11, y: 5 });
+      expect(decisions[0]!.action.type).toBe("move");
+      expect(decisions[0]!.action.targetCell).toEqual({ x: 11, y: 5 });
     });
 
     it("should clamp move destination to grid bounds at y=0 edge", () => {
@@ -1550,8 +1550,8 @@ describe("computeDecisions", () => {
       const decisions = computeDecisions(state);
 
       // Moving away from (5,5) when at (5,0) would try y=-1, should clamp to y=0
-      expect(decisions[0].action.type).toBe("move");
-      expect(decisions[0].action.targetCell).toEqual({ x: 5, y: 0 });
+      expect(decisions[0]!.action.type).toBe("move");
+      expect(decisions[0]!.action.targetCell).toEqual({ x: 5, y: 0 });
     });
 
     it("should clamp move destination to grid bounds at y=11 edge", () => {
@@ -1580,8 +1580,8 @@ describe("computeDecisions", () => {
       const decisions = computeDecisions(state);
 
       // Moving away from (5,5) when at (5,11) would try y=12, should clamp to y=11
-      expect(decisions[0].action.type).toBe("move");
-      expect(decisions[0].action.targetCell).toEqual({ x: 5, y: 11 });
+      expect(decisions[0]!.action.type).toBe("move");
+      expect(decisions[0]!.action.targetCell).toEqual({ x: 5, y: 11 });
     });
   });
 });
@@ -1598,7 +1598,7 @@ describe("applyDecisions", () => {
 
     const result = applyDecisions([character], decisions);
 
-    expect(result[0].currentAction).toEqual(action);
+    expect(result[0]!.currentAction).toEqual(action);
   });
 
   it("should preserve characters without decisions", () => {
@@ -1609,8 +1609,8 @@ describe("applyDecisions", () => {
 
     const result = applyDecisions([char1, char2], decisions);
 
-    expect(result[1].currentAction).toBeNull();
-    expect(result[1].id).toBe("char2");
+    expect(result[1]!.currentAction).toBeNull();
+    expect(result[1]!.id).toBe("char2");
   });
 
   it("should handle empty decisions array", () => {
@@ -1622,7 +1622,7 @@ describe("applyDecisions", () => {
     const result = applyDecisions([character], []);
 
     expect(result).toHaveLength(1);
-    expect(result[0].currentAction).toBeNull();
+    expect(result[0]!.currentAction).toBeNull();
   });
 
   it("should handle empty characters array", () => {
@@ -1646,7 +1646,7 @@ describe("applyDecisions", () => {
 
     applyDecisions(originalCharacters, decisions);
 
-    expect(originalCharacters[0].currentAction).toBeNull();
+    expect(originalCharacters[0]!.currentAction).toBeNull();
   });
 
   it("should skip decisions for non-existent character IDs", () => {
@@ -1664,7 +1664,7 @@ describe("applyDecisions", () => {
     const result = applyDecisions([character], decisions);
 
     expect(result).toHaveLength(1);
-    expect(result[0].currentAction).toEqual(action2);
+    expect(result[0]!.currentAction).toEqual(action2);
   });
 });
 
@@ -1678,7 +1678,7 @@ describe("clearResolvedActions", () => {
 
     const result = clearResolvedActions([character], 3);
 
-    expect(result[0].currentAction).toBeNull();
+    expect(result[0]!.currentAction).toBeNull();
   });
 
   it("should preserve action when resolvesAtTick is future tick", () => {
@@ -1691,7 +1691,7 @@ describe("clearResolvedActions", () => {
 
     const result = clearResolvedActions([character], 3);
 
-    expect(result[0].currentAction).toEqual(action);
+    expect(result[0]!.currentAction).toEqual(action);
   });
 
   it("should handle characters with null currentAction", () => {
@@ -1703,7 +1703,7 @@ describe("clearResolvedActions", () => {
 
     const result = clearResolvedActions([character], 1);
 
-    expect(result[0].currentAction).toBeNull();
+    expect(result[0]!.currentAction).toBeNull();
   });
 
   it("should not modify original character array", () => {
@@ -1716,7 +1716,7 @@ describe("clearResolvedActions", () => {
 
     clearResolvedActions(originalCharacters, 1);
 
-    expect(originalCharacters[0].currentAction).not.toBeNull();
+    expect(originalCharacters[0]!.currentAction).not.toBeNull();
   });
 });
 

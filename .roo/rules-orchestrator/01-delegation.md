@@ -49,6 +49,47 @@ When a subtask reports "⚠️ Degraded":
 → Do NOT extend that subtask
 → Create NEW subtask with the summary as starting context
 
+## Human Escalation Protocol
+
+When Code mode returns with `⚠️ Degraded` status:
+
+1. **Do NOT** create another Code subtask for the same problem
+2. **Do NOT** attempt to solve it yourself
+3. **DO** use `ask_followup_question` to present the situation to the human:
+
+```
+Code mode hit a context limit while working on [task].
+
+**Summary from Code mode:**
+[Paste the "What's Failing" and "Current Hypothesis" sections]
+
+**Attempts made:**
+[Paste the attempts list]
+
+**Options:**
+1. Start fresh Code task with this context summary
+2. Reassign to Architect for design review
+3. Provide guidance and retry
+4. Defer this issue
+
+How would you like to proceed?
+```
+
+4. Wait for human response before taking any action
+5. Execute human's chosen option
+
+### Detecting Stuck Subtasks (Proactive)
+If you observe a Code subtask:
+- Reporting "trying another approach" 2+ times in status updates
+- On exchange 15+ without test state improvement
+- Editing same file repeatedly
+
+Use `ask_followup_question` to check in with human:
+```
+Code mode is at [N] exchanges on [task]. Current state: [brief].
+Should it continue, or would you like to intervene?
+```
+
 ## Final Step: Spec/Code Synchronization & Commit
 Before completing ANY task, verify spec/code alignment, then execute **Workflow Step 12** (see `01-workflow.md`).
 

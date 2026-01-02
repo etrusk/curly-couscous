@@ -29,8 +29,11 @@ Use Orchestrator mode. It will:
    - Do not add, remove, or modify test scope without re-approval
 
 5. **VERIFY FAIL**: Run tests, confirm they fail (proves tests are valid)
+   - If tests pass when they should fail → **5a. INVESTIGATE via Debug**: Determine if test is wrong or code already implements behavior (10 exchange budget)
 
 6. **IMPLEMENT** via Code: Write code to make tests pass
+
+6a. **INVESTIGATE** via Debug: If tests still fail after 2 Code mode attempts - Root cause analysis (15-20 exchange budget) - Handback to Code mode with findings OR escalate to Architect if design flaw detected
 
 7. **REVIEW** via Ask: Critique implementation (read-only — no edits)
    - If 🔴 CRITICAL issues → proceed to step 8, then return to step 7 (max 2 cycles)
@@ -42,6 +45,9 @@ Use Orchestrator mode. It will:
    - After 2 review cycles without resolution: escalate to human
 
 9. **VERIFY PASS**: Run tests, confirm they pass
+   - If unrelated tests fail (regression) → **9a. REGRESSION DEBUG via Debug**: Systematic analysis (15 exchange budget)
+
+9b. **VISUAL VERIFY** via Code: For UI-affecting changes, use browser tool to verify (see rules/08-visual-testing.md)
 
 10. **COMMIT**: Git commit operations while files are fresh in context
     - Stage all changes: `git add -A && echo "DONE"`
@@ -102,6 +108,26 @@ See `.roo/rules-code/03-context-health.md` for full protocol.
 When Code hands back with ⚠️ Degraded:
 → Orchestrator asks human for direction via `ask_followup_question`
 → Human decides: fresh task, Architect review, guidance, or defer
+
+## Debug Escalation Protocol
+
+Route to Debug mode (instead of immediate human escalation) when:
+
+- Tests fail after 2+ Code mode implementation attempts
+- Root cause of failure is unclear
+- Regression detected in unrelated tests
+- Visual/UI behavior doesn't match expectations
+
+Debug mode has 20-exchange hard limit. If Debug cannot resolve:
+
+- Handback with findings, hypothesis, and ruled-out causes
+- Orchestrator routes to Architect (if design issue) or human (if needs direction)
+
+**Do NOT route to Debug for:**
+
+- Missing requirements (route to human)
+- Architecture decisions (route to Architect)
+- Simple typos/obvious bugs (Code handles directly)
 
 ## When to Start Fresh (Clean Slate Triggers)
 

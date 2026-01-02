@@ -39,9 +39,12 @@ When subtask A completes and subtask B needs its output:
 ## Mode Selection
 
 - **Architect**: Design decisions, tradeoff analysis, planning docs, **test design**
-- **Code**: Implementation, writing tests from approved designs, fixes
+- **Code**: Implementation, writing tests from approved designs, fixes, **visual verification**
 - **Ask**: Review, explanation, critique (read-only)
-- **Debug**: Root cause analysis, systematic troubleshooting
+- **Debug**: Root cause analysis, systematic troubleshooting, **visual debugging**
+  - Route when tests fail after 2+ Code attempts
+  - Route when root cause is unclear
+  - Route before human escalation for technical issues
   - ⚠️ Debug has strict 20-exchange limit — see rules-debug
 
 ## Completion Requirements

@@ -5,6 +5,7 @@
 
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { processTick as engineProcessTick } from "../engine/game";
 import type {
   GameState,
   Character,
@@ -23,13 +24,21 @@ interface GameStore {
   // Current game state
   gameState: GameState;
 
+  // Initial state for reset
+  initialCharacters: Character[];
+  initialSeed: number;
+  initialRngState: number;
+
   // Actions to mutate state
   actions: {
     // Initialize a new battle
     initBattle: (characters: Character[]) => void;
 
-    // Advance to next tick
+    // Advance to next tick (legacy - increments only)
     nextTick: () => void;
+
+    // Process a full game tick via engine
+    processTick: () => void;
 
     // Update character
     updateCharacter: (id: string, updates: Partial<Character>) => void;
@@ -37,7 +46,7 @@ interface GameStore {
     // Add event to history
     addEvent: (event: GameEvent) => void;
 
-    // Reset battle
+    // Reset battle to initial state
     reset: () => void;
   };
 }
@@ -64,23 +73,37 @@ export const useGameStore = create<GameStore>()(
   immer((set) => ({
     // Initial state
     gameState: initialGameState,
+    initialCharacters: [],
+    initialSeed: 0,
+    initialRngState: 0,
 
     // Actions
     actions: {
       initBattle: (characters) =>
         set((state) => {
           const seed = Date.now(); // Use timestamp as seed
+
+          // Strip transient state before cloning to avoid circular references
+          const sanitized = characters.map((char, index) => ({
+            ...char,
+            slotPosition: index, // Assign slot position based on order
+            currentAction: null, // Strip transient state
+          }));
+
+          // Store deep clone of initial state for reset
+          state.initialCharacters = structuredClone(sanitized);
+          state.initialSeed = seed;
+          state.initialRngState = seed;
+
+          // Set active game state
           state.gameState = {
-            characters: characters.map((char, index) => ({
-              ...char,
-              slotPosition: index, // Assign slot position based on order
-            })),
+            characters: structuredClone(sanitized),
             tick: 0,
             phase: "decision",
-            battleStatus: "active",
+            battleStatus: characters.length === 0 ? "draw" : "active",
             history: [],
             seed,
-            rngState: seed, // Initialize RNG state with seed
+            rngState: seed,
           };
         }),
 
@@ -92,6 +115,17 @@ export const useGameStore = create<GameStore>()(
             tick: state.gameState.tick,
             phase: state.gameState.phase,
           });
+        }),
+
+      processTick: () =>
+        set((state) => {
+          // Guard: don't process if battle is over
+          if (state.gameState.battleStatus !== "active") {
+            return;
+          }
+
+          const result = engineProcessTick(state.gameState);
+          state.gameState = result.state;
         }),
 
       updateCharacter: (id, updates) =>
@@ -109,7 +143,22 @@ export const useGameStore = create<GameStore>()(
 
       reset: () =>
         set((state) => {
-          state.gameState = initialGameState;
+          // Immer handles immutability - just assign from initial state
+          // Deep copy using JSON for characters to avoid shared references
+          const restoredCharacters = JSON.parse(
+            JSON.stringify(state.initialCharacters),
+          ) as Character[];
+
+          state.gameState = {
+            characters: restoredCharacters,
+            tick: 0,
+            phase: "decision",
+            battleStatus:
+              state.initialCharacters.length === 0 ? "draw" : "active",
+            history: [],
+            seed: state.initialSeed,
+            rngState: state.initialRngState,
+          };
         }),
     },
   })),

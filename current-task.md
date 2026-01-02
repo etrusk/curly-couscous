@@ -6,12 +6,13 @@
 
 ## Current Focus
 
-Battle Viewer Phases 1-3 complete (Grid, Tokens, Intent Lines). Ready for Phase 4 (Damage Numbers).
+Battle Viewer Phase 4 complete (Damage Numbers). Ready for Phase 5 (Accessibility Polish).
 
 ## Recent Completions
 
 <!-- Prune when >10 items or too long. Older completions live in git history. -->
 
+- 2026-01-02: Battle Viewer Phase 4 - Damage Numbers overlay, SVG-based, 21 new tests, 294 total tests (9e96722)
 - 2026-01-02: Battle Viewer Phases 1-3 - Grid, Tokens, Intent Lines, 273 tests
 - 2026-01-02: Battle Viewer architecture design - CSS Grid + SVG overlay, 6-phase roadmap (.docs/designs/battle-viewer-architecture.md)
 - 2026-01-02: Decision integration - applyDecisions(), clearResolvedActions(), wired into processTick(), 15 new tests (50374d3)
@@ -27,4 +28,3 @@ Battle Viewer Phases 1-3 complete (Grid, Tokens, Intent Lines). Ready for Phase 
 ## Next Steps
 
 - Battle Viewer Phase 4: Damage Numbers
-- See .docs/designs/battle-viewer-architecture.md for full roadmap

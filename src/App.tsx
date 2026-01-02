@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { BattleViewer } from "./components/BattleViewer";
+import { PlayControls } from "./components/PlayControls";
 import { useGameStore, selectActions } from "./stores/gameStore";
 import type { Character, Skill, Action } from "./engine/types";
 
@@ -170,6 +171,7 @@ function App() {
   return (
     <div>
       <h1>Auto Battler</h1>
+      <PlayControls />
       <BattleViewer />
     </div>
   );

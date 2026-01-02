@@ -165,7 +165,7 @@ function App() {
     enemy2.currentAction = moveAction2;
 
     actions.initBattle(testCharacters);
-  }, []); // Empty deps - initialize once on mount
+  }, [actions]); // Initialize once on mount
 
   return (
     <div>

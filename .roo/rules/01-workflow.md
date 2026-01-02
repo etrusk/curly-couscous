@@ -51,15 +51,12 @@ Use Orchestrator mode. It will:
     - **Husky + lint-staged**: Pre-commit hook automatically runs ESLint + Prettier on staged files
     - **Note**: The `&& echo "DONE"` suffix ensures terminal completion detection in VS Code
 
-11. **MANUAL TEST**: Output verification checklist, wait for human confirmation
-
-12. **PUSH**: Push to remote after manual verification passes
-    - Push to remote: `git push && echo "DONE"`
+11. **PUSH**: Push to remote: `git push && echo "DONE"`
     - Verify push succeeded (no conflicts or errors)
     - 🛑 **Do NOT use `attempt_completion` until changes are committed and pushed**
     - Include commit hash in completion message
 
-13. **FINALIZE**: Update `current-task.md`
+12. **FINALIZE**: Update `current-task.md`
     - Verify file remains under 500 tokens after update
     - If update would exceed: prune old items first, then add new
 

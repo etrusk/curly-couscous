@@ -121,13 +121,12 @@ If spec needs updates, verify code alignment:
 - Are tests consistent with actual behavior
 - Is there technical debt or cleanup needed
 
-### 3. Commit & Push (Workflow Steps 10 & 12)
+### 3. Commit & Push (Workflow Steps 10 & 11)
 
-🛑 **MANDATORY**: Execute git commit and push per Workflow Steps 10 & 12:
+🛑 **MANDATORY**: Execute git commit and push per Workflow Steps 10 & 11:
 
 - Step 10 (COMMIT): `git add -A` → `git commit` (conventional format)
-- Step 11 (MANUAL TEST): Verify implementation manually
-- Step 12 (PUSH): `git push` after verification passes
+- Step 11 (PUSH): `git push`
 - **Do NOT use `attempt_completion` until changes are committed and pushed**
 - Include commit hash in handback message
 

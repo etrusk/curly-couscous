@@ -1,22 +1,35 @@
-# Manual Verification
+# Verification
 
-## After Automated Tests Pass
-Before completing any non-trivial task, provide a manual verification checklist.
+## Implicit Verification via Quality Gates
 
-## Output Format
-"Please verify manually:
-- [ ] [Specific action]: [Expected result]
-- [ ] [Specific action]: [Expected result]
-- [ ] [Specific action]: [Expected result]
+Verification is built into the workflow through mandatory quality gates that run before any commit:
 
-Confirm when verified, or report any issues found."
+```bash
+npm run lint              # ESLint + Prettier (auto-fix)
+npm run type-check        # TypeScript compilation
+npm run test:critical     # Essential tests (< 30 seconds)
+npm run security:scan     # Security vulnerability check
+npm run build:verify      # Build verification
+```
 
-## Examples by Type
-- **UI**: "Open /settings page → Click 'Save' → Should show success toast"
-- **API**: "Run `curl localhost:3000/api/user` → Should return 200 with user object"
-- **CLI**: "Run `npm run build` → Should complete with no warnings"
-- **Data**: "Check database → New record should exist with correct fields"
+## Gate Pass = Verified
 
-## Important
-Wait for human confirmation before marking task complete.
-Do not assume verification passed — require explicit confirmation.
+When all quality gates pass, the implementation is verified. No separate verification step is required.
+
+## Gate Failure Protocol
+
+If any gate fails:
+
+1. Fix the issue before proceeding
+2. Re-run the failing gate
+3. Do not commit until all gates pass
+
+## Scope of Verification
+
+| Gate          | What It Verifies                       |
+| ------------- | -------------------------------------- |
+| lint          | Code style, potential bugs, formatting |
+| type-check    | Type safety, interface contracts       |
+| test:critical | Core functionality, regressions        |
+| security:scan | Known vulnerabilities, unsafe patterns |
+| build:verify  | Compilation, bundle integrity          |

@@ -1,6 +1,7 @@
 # Workflow Rules
 
 ## For Non-Trivial Tasks
+
 Use Orchestrator mode. It will:
 
 0. **HEALTH CHECK**: Verify `current-task.md` is under 500 tokens
@@ -42,48 +43,59 @@ Use Orchestrator mode. It will:
 
 9. **VERIFY PASS**: Run tests, confirm they pass
 
-10. **MANUAL TEST**: Output verification checklist, wait for human confirmation
-
-11. **FINALIZE**: Update `current-task.md`
-   - Verify file remains under 500 tokens after update
-   - If update would exceed: prune old items first, then add new
-
-12. **COMMIT & PUSH**: Git operations are MANDATORY before completion
+10. **COMMIT**: Git commit operations while files are fresh in context
     - Stage all changes: `git add -A && echo "DONE"`
     - Commit with conventional format: `git commit -m "type(scope): description" && echo "DONE"`
       - Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`
       - Example: `git commit -m "feat(combat): add dodge mechanics" && echo "DONE"`
+    - **Husky + lint-staged**: Pre-commit hook automatically runs ESLint + Prettier on staged files
+    - **Note**: The `&& echo "DONE"` suffix ensures terminal completion detection in VS Code
+
+11. **MANUAL TEST**: Output verification checklist, wait for human confirmation
+
+12. **PUSH**: Push to remote after manual verification passes
     - Push to remote: `git push && echo "DONE"`
     - Verify push succeeded (no conflicts or errors)
     - 🛑 **Do NOT use `attempt_completion` until changes are committed and pushed**
     - Include commit hash in completion message
-    - **Note**: The `&& echo "DONE"` suffix ensures terminal completion detection in VS Code
+
+13. **FINALIZE**: Update `current-task.md`
+    - Verify file remains under 500 tokens after update
+    - If update would exceed: prune old items first, then add new
 
 ## For Simple Fixes
+
 Typos, obvious bugs, small tweaks — proceed directly in Code mode.
 
 ## Recognition
+
 "Non-trivial" = new features, refactoring, multi-file changes, unfamiliar code areas.
 
 ## File Hygiene Rules
 
 ### Before Implementation
+
 If planned changes touch more than 5 files:
 → Pause and confirm: "This task touches [N] files. Should I decompose into smaller subtasks?"
 
 ### During Implementation
+
 If adding code to a file that exceeds 300 lines:
 → Flag: "This file is [N] lines. Consider extracting [component] to a new file."
 → Proceed only if user confirms or provides alternative
 
 ### New Features
+
 Default to new files over extending existing ones when:
+
 - The feature is logically independent
 - The existing file already has a single clear responsibility
 - Adding would require imports unrelated to existing functionality
 
 ## Code Mode Exchange Limits
+
 Code mode enforces context health via hard limits:
+
 - **15 exchanges**: Self-assessment checkpoint
 - **20 exchanges**: Soft limit — must hand back unless completion imminent
 - **25 exchanges**: Hard limit — mandatory handback, no exceptions
@@ -95,7 +107,9 @@ When Code hands back with ⚠️ Degraded:
 → Human decides: fresh task, Architect review, guidance, or defer
 
 ## When to Start Fresh (Clean Slate Triggers)
+
 Start a NEW Orchestrator task when:
+
 - Switching to an unrelated area of the codebase
 - A distinct feature or task is complete
 - AI repeats previously rejected solutions
@@ -106,6 +120,7 @@ Start a NEW Orchestrator task when:
 Do NOT try to "fix" a degraded conversation — start fresh with a summary of what was learned.
 
 ## Session Continuity
+
 At task start: Check `current-task.md` for context from prior sessions.
 At task end: Update `current-task.md` with completions and next steps.
 

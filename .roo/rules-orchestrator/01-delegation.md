@@ -1,6 +1,7 @@
 # Delegation Rules
 
 ## Subtask Message Template
+
 Every subtask MUST use this format:
 
 ```
@@ -22,17 +23,21 @@ Every subtask MUST use this format:
 ```
 
 ## DO NOT Include in Subtasks
+
 - Conversation history or reasoning from prior subtasks
 - Alternatives already rejected
 - Background context the subtask doesn't need
 - Speculative "might also need" files
 
 ## Context Transfer Between Subtasks
+
 When subtask A completes and subtask B needs its output:
+
 - Include only the **decision** and **artifact** (file path, function name)
 - Do NOT include A's reasoning or rejected approaches
 
 ## Mode Selection
+
 - **Architect**: Design decisions, tradeoff analysis, planning docs, **test design**
 - **Code**: Implementation, writing tests from approved designs, fixes
 - **Ask**: Review, explanation, critique (read-only)
@@ -40,7 +45,9 @@ When subtask A completes and subtask B needs its output:
   - ⚠️ Debug has strict 20-exchange limit — see rules-debug
 
 ## Completion Requirements
+
 Every `attempt_completion` MUST include:
+
 1. What was done (one sentence)
 2. Files modified (list)
 3. Context health: ✅ Clean | ⚠️ Degraded — [reason]
@@ -79,40 +86,53 @@ How would you like to proceed?
 5. Execute human's chosen option
 
 ### Detecting Stuck Subtasks (Proactive)
+
 If you observe a Code subtask:
+
 - Reporting "trying another approach" 2+ times in status updates
 - On exchange 15+ without test state improvement
 - Editing same file repeatedly
 
 Use `ask_followup_question` to check in with human:
+
 ```
 Code mode is at [N] exchanges on [task]. Current state: [brief].
 Should it continue, or would you like to intervene?
 ```
 
 ## Final Step: Spec/Code Synchronization & Commit
-Before completing ANY task, verify spec/code alignment, then execute **Workflow Step 12** (see `01-workflow.md`).
+
+Before completing ANY task, verify spec/code alignment, then execute **Workflow Steps 10-12** (see `01-workflow.md`).
 
 ### 1. Spec Review
+
 Does the specification/design documentation need updates based on:
+
 - Features implemented differently than originally designed
 - Requirements changed during implementation
 - Human feedback that modified behavior
 - Architectural decisions that deviated from spec
 
 ### 2. Code Alignment
+
 If spec needs updates, verify code alignment:
+
 - Does implementation match the updated spec
 - Are tests consistent with actual behavior
 - Is there technical debt or cleanup needed
 
-### 3. Commit & Push (Workflow Step 12)
-🛑 **MANDATORY**: Execute git commit and push per Workflow Step 12:
-- `git add -A` → `git commit` (conventional format) → `git push`
+### 3. Commit & Push (Workflow Steps 10 & 12)
+
+🛑 **MANDATORY**: Execute git commit and push per Workflow Steps 10 & 12:
+
+- Step 10 (COMMIT): `git add -A` → `git commit` (conventional format)
+- Step 11 (MANUAL TEST): Verify implementation manually
+- Step 12 (PUSH): `git push` after verification passes
 - **Do NOT use `attempt_completion` until changes are committed and pushed**
 - Include commit hash in handback message
 
 ### Action Required
+
 - If spec is outdated → Delegate update to Architect mode first
 - If code needs cleanup → Delegate to Code mode first
 - After all sync complete → Execute commit/push (Step 12)

@@ -5,6 +5,7 @@ import { BattleStatusBadge } from "./components/BattleStatus";
 import { EventLog } from "./components/EventLog";
 import { SkillsPanel } from "./components/SkillsPanel";
 import { RuleEvaluations } from "./components/RuleEvaluations";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { useGameStore, selectActions } from "./stores/gameStore";
 import type { Character, Skill, Action } from "./engine/types";
 import "./App.css";
@@ -177,6 +178,7 @@ function App() {
     <div className="app">
       <div className="header">
         <h1>Auto Battler</h1>
+        <ThemeToggle />
       </div>
       <div className="controls">
         <BattleStatusBadge />

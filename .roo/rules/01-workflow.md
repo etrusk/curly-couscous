@@ -52,7 +52,21 @@ Use Orchestrator mode. It will:
 9. **VERIFY PASS**: Run tests, confirm they pass
    - If unrelated tests fail (regression) → **9a. REGRESSION DEBUG via Debug**: Systematic analysis (15 exchange budget)
 
-10. **COMMIT**: Git commit operations while files are fresh in context
+10. **SYNC DOCS**: Verify and update documentation before commit
+    - **Spec/Doc Alignment Check**:
+      - Did human feedback change requirements or behavior?
+      - Were features implemented differently than originally designed?
+      - Did architectural decisions deviate from spec?
+    - **If updates needed**, update relevant docs:
+      - `.docs/spec.md` — requirement changes
+      - `.docs/architecture.md` — design deviations
+      - `.docs/patterns/` or `.docs/decisions/` — new patterns/decisions
+      - Delegate to Architect if changes are substantial
+    - **Session state** (`.docs/current-task.md`):
+      - Verify file remains under 500 tokens after update
+      - If update would exceed: prune old items first, then add new
+
+11. **COMMIT**: Git commit operations while files are fresh in context
     - Stage all changes: `git add -A && echo "DONE"`
     - Commit with conventional format: `git commit -m "type(scope): description" && echo "DONE"`
       - Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`
@@ -60,14 +74,10 @@ Use Orchestrator mode. It will:
     - **Husky + lint-staged**: Pre-commit hook automatically runs ESLint + Prettier on staged files
     - **Note**: The `&& echo "DONE"` suffix ensures terminal completion detection in VS Code
 
-11. **PUSH**: Push to remote: `git push && echo "DONE"`
+12. **PUSH**: Push to remote: `git push && echo "DONE"`
     - Verify push succeeded (no conflicts or errors)
     - 🛑 **Do NOT use `attempt_completion` until changes are committed and pushed**
     - Include commit hash in completion message
-
-12. **FINALIZE**: Update `.docs/current-task.md`
-    - Verify file remains under 500 tokens after update
-    - If update would exceed: prune old items first, then add new
 
 ## For Simple Fixes
 

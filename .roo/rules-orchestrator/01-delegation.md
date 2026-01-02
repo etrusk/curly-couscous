@@ -103,40 +103,14 @@ Code mode is at [N] exchanges on [task]. Current state: [brief].
 Should it continue, or would you like to intervene?
 ```
 
-## Final Step: Spec/Code Synchronization & Commit
+## Final Step: Workflow Completion
 
-Before completing ANY task, verify spec/code alignment, then execute **Workflow Steps 10-12** (see `01-workflow.md`).
+Before completing ANY task, execute **Workflow Steps 10-12** (see `01-workflow.md`):
 
-### 1. Spec Review
+1. **Step 10 (SYNC DOCS)**: Verify spec/code alignment, update documentation as needed
+2. **Step 11 (COMMIT)**: Stage and commit with conventional format
+3. **Step 12 (PUSH)**: Push to remote
 
-Does the specification/design documentation need updates based on:
-
-- Features implemented differently than originally designed
-- Requirements changed during implementation
-- Human feedback that modified behavior
-- Architectural decisions that deviated from spec
-
-### 2. Code Alignment
-
-If spec needs updates, verify code alignment:
-
-- Does implementation match the updated spec
-- Are tests consistent with actual behavior
-- Is there technical debt or cleanup needed
-
-### 3. Commit & Push (Workflow Steps 10 & 11)
-
-🛑 **MANDATORY**: Execute git commit and push per Workflow Steps 10 & 11:
-
-- Step 10 (COMMIT): `git add -A` → `git commit` (conventional format)
-- Step 11 (PUSH): `git push`
-- **Do NOT use `attempt_completion` until changes are committed and pushed**
-- Include commit hash in handback message
-
-### Action Required
-
-- If spec is outdated → Delegate update to Architect mode first
-- If code needs cleanup → Delegate to Code mode first
-- After all sync complete → Execute commit/push (Step 12)
+🛑 **MANDATORY**: Do NOT use `attempt_completion` until changes are committed and pushed
 
 **Exception**: If explicitly instructed not to commit/push, note this in handback with reason

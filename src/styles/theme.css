@@ -1,0 +1,237 @@
+/**
+ * Theme System - Semantic CSS Custom Properties
+ * 
+ * Theming strategy:
+ * - Default (no data-theme or data-theme="dark"): Dark mode
+ * - data-theme="light": Light mode
+ * - data-theme="high-contrast": High contrast mode (7:1 ratio target)
+ * 
+ * Okabe-Ito colorblind-safe palette preserved across all themes:
+ * - Friendly: #0072B2 (blue)
+ * - Enemy: #E69F00 (orange)
+ */
+
+/* ============================================
+   DARK THEME (DEFAULT)
+   ============================================ */
+
+:root {
+  /* === SURFACES (backgrounds) === */
+  --surface-ground: #242424; /* page background */
+  --surface-primary: #2a2a2a; /* main content areas (panels) */
+  --surface-secondary: #1e1e1e; /* nested elements (scroll containers) */
+  --surface-elevated: #ffffff; /* tooltips, overlays, damage numbers */
+
+  /* === CONTENT (text, icons) === */
+  --content-primary: rgba(255, 255, 255, 0.87); /* main text */
+  --content-secondary: rgba(255, 255, 255, 0.6); /* muted text, placeholders */
+  --content-muted: rgba(255, 255, 255, 0.38); /* disabled, hints */
+
+  /* === BORDERS === */
+  --border-default: #555; /* panel borders */
+  --border-subtle: #444; /* dividers, internal borders */
+
+  /* === INTERACTIVE === */
+  --interactive-hover: #3a3a3a; /* hover backgrounds */
+  --interactive-focus: #0072b2; /* focus ring color (matches friendly) */
+
+  /* === FACTION (Okabe-Ito - preserved across all themes) === */
+  --faction-friendly: #0072b2; /* friendly blue */
+  --faction-enemy: #e69f00; /* enemy orange */
+  --faction-friendly-bg: rgba(0, 114, 178, 0.15); /* tinted background */
+  --faction-enemy-bg: rgba(230, 159, 0, 0.15); /* tinted background */
+  --faction-friendly-text: #4da6ff; /* text on tinted bg (lighter for dark) */
+  --faction-enemy-text: #ffb84d; /* text on tinted bg (lighter for dark) */
+
+  /* === STATUS === */
+  --status-success: #009e73; /* victory (green) */
+  --status-success-bg: rgba(0, 158, 115, 0.15);
+  --status-success-text: #00c48c;
+
+  --status-error: #d55e00; /* defeat (red-orange) */
+  --status-error-bg: rgba(213, 94, 0, 0.15);
+  --status-error-text: #ff7f3d;
+
+  --status-warning: #cc9a06; /* unknown (yellow) */
+  --status-warning-bg: rgba(204, 154, 6, 0.15);
+  --status-warning-text: #e6b800;
+
+  --status-neutral: #999; /* draw (gray) */
+  --status-neutral-bg: rgba(153, 153, 153, 0.15);
+  --status-neutral-text: #bbb;
+
+  /* === HEALTH === */
+  --health-high: #4caf50; /* > 30% HP (green) */
+  --health-low: #f44336; /* ≤ 30% HP (red) */
+
+  /* === CONTRAST (outlines, accessibility) === */
+  --contrast-line: #ffffff; /* intent line outlines */
+
+  /* === GRID (Battle Viewer) === */
+  --grid-bg: #1e1e1e;
+  --grid-border: #666;
+  --cell-bg: #2a2a2a;
+  --cell-border: #444;
+  --cell-hover-bg: #3a3a3a;
+
+  /* === SCROLLBAR === */
+  --scrollbar-track: #2a2a2a;
+  --scrollbar-thumb: #555;
+  --scrollbar-thumb-hover: #666;
+}
+
+/* ============================================
+   LIGHT THEME
+   ============================================ */
+
+:root[data-theme="light"] {
+  /* === SURFACES (backgrounds) === */
+  --surface-ground: #fafafa; /* page background */
+  --surface-primary: #ffffff; /* main content areas (panels) */
+  --surface-secondary: #f5f5f5; /* nested elements (scroll containers) */
+  --surface-elevated: #ffffff; /* tooltips, overlays, damage numbers */
+
+  /* === CONTENT (text, icons) === */
+  --content-primary: #333; /* main text */
+  --content-secondary: #666; /* muted text, placeholders */
+  --content-muted: #999; /* disabled, hints */
+
+  /* === BORDERS === */
+  --border-default: #999; /* panel borders */
+  --border-subtle: #ddd; /* dividers, internal borders */
+
+  /* === INTERACTIVE === */
+  --interactive-hover: #e8e8e8; /* hover backgrounds */
+  --interactive-focus: #0072b2; /* focus ring color (matches friendly) */
+
+  /* === FACTION (Okabe-Ito - preserved) === */
+  /* Base colors unchanged */
+  --faction-friendly: #0072b2;
+  --faction-enemy: #e69f00;
+  --faction-friendly-bg: #e6f2ff; /* tinted background (lighter for light) */
+  --faction-enemy-bg: #fff4e6; /* tinted background (lighter for light) */
+  --faction-friendly-text: #004d7a; /* text on tinted bg (darker for light) */
+  --faction-enemy-text: #8f5a00; /* text on tinted bg (darker for light) */
+
+  /* === STATUS === */
+  --status-success: #009e73;
+  --status-success-bg: #e6ffe6;
+  --status-success-text: #006b4d;
+
+  --status-error: #d55e00;
+  --status-error-bg: #ffe6e6;
+  --status-error-text: #8f3e00;
+
+  --status-warning: #cc9a06;
+  --status-warning-bg: #fff3cd;
+  --status-warning-text: #664d03;
+
+  --status-neutral: #999;
+  --status-neutral-bg: #f0f0f0;
+  --status-neutral-text: #666;
+
+  /* === HEALTH === */
+  --health-high: #4caf50;
+  --health-low: #f44336;
+
+  /* === CONTRAST (outlines, accessibility) === */
+  --contrast-line: #ffffff; /* intent line outlines */
+
+  /* === GRID (Battle Viewer) === */
+  --grid-bg: #f5f5f5;
+  --grid-border: #333;
+  --cell-bg: #ffffff;
+  --cell-border: #ddd;
+  --cell-hover-bg: #e8e8e8;
+
+  /* === SCROLLBAR === */
+  --scrollbar-track: #f1f1f1;
+  --scrollbar-thumb: #999;
+  --scrollbar-thumb-hover: #666;
+}
+
+/* ============================================
+   HIGH CONTRAST THEME
+   ============================================ */
+
+:root[data-theme="high-contrast"] {
+  /* === SURFACES (backgrounds) === */
+  --surface-ground: #000000; /* page background (pure black) */
+  --surface-primary: #000000; /* main content areas */
+  --surface-secondary: #1a1a1a; /* nested elements */
+  --surface-elevated: #ffffff; /* tooltips, overlays */
+
+  /* === CONTENT (text, icons) === */
+  --content-primary: #ffffff; /* main text (pure white) */
+  --content-secondary: #cccccc; /* muted text */
+  --content-muted: #999999; /* disabled, hints */
+
+  /* === BORDERS === */
+  --border-default: #ffffff; /* panel borders (pure white for max contrast) */
+  --border-subtle: #666666; /* dividers */
+
+  /* === INTERACTIVE === */
+  --interactive-hover: #1a1a1a; /* hover backgrounds */
+  --interactive-focus: #00a8ff; /* brighter focus ring */
+
+  /* === FACTION (Okabe-Ito - preserved but enhanced for contrast) === */
+  /* Base colors slightly brightened for better contrast on black */
+  --faction-friendly: #0099ff; /* brighter blue */
+  --faction-enemy: #ff9900; /* brighter orange */
+  --faction-friendly-bg: rgba(0, 153, 255, 0.2);
+  --faction-enemy-bg: rgba(255, 153, 0, 0.2);
+  --faction-friendly-text: #66ccff;
+  --faction-enemy-text: #ffb84d;
+
+  /* === STATUS === */
+  --status-success: #00ff88;
+  --status-success-bg: rgba(0, 255, 136, 0.2);
+  --status-success-text: #00ff88;
+
+  --status-error: #ff6633;
+  --status-error-bg: rgba(255, 102, 51, 0.2);
+  --status-error-text: #ff6633;
+
+  --status-warning: #ffcc00;
+  --status-warning-bg: rgba(255, 204, 0, 0.2);
+  --status-warning-text: #ffcc00;
+
+  --status-neutral: #cccccc;
+  --status-neutral-bg: rgba(204, 204, 204, 0.2);
+  --status-neutral-text: #cccccc;
+
+  /* === HEALTH === */
+  --health-high: #00ff00; /* brighter green */
+  --health-low: #ff0000; /* pure red */
+
+  /* === CONTRAST (outlines, accessibility) === */
+  --contrast-line: #ffffff;
+
+  /* === GRID (Battle Viewer) === */
+  --grid-bg: #000000;
+  --grid-border: #ffffff; /* pure white border */
+  --cell-bg: #000000;
+  --cell-border: #666666;
+  --cell-hover-bg: #1a1a1a;
+
+  /* === SCROLLBAR === */
+  --scrollbar-track: #000000;
+  --scrollbar-thumb: #666666;
+  --scrollbar-thumb-hover: #999999;
+}
+
+/* ============================================
+   HIGH CONTRAST MODE (data-high-contrast)
+   Can be combined with any theme
+   ============================================ */
+
+:root[data-high-contrast="true"] {
+  /* Enhance borders for all themes */
+  --border-default-width: 3px;
+  --border-subtle-width: 2px;
+}
+
+:root[data-high-contrast="true"] * {
+  /* Ensure all borders are visible */
+  border-width: var(--border-default-width, 2px);
+}

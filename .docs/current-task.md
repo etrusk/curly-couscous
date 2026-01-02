@@ -6,15 +6,18 @@
 
 ## Current Focus
 
-Battle Viewer Phase 5 (Accessibility Polish - reduced scope) complete. Contrasting white outlines added to intent lines/markers. 381 tests passing. Ready for Skills Panel or new features.
+Theming system foundation complete. Dark mode (default), light mode, high-contrast mode with localStorage persistence and system preference detection. 411 tests passing. Ready for CSS module migration to theme tokens.
 
 ## Recent Completions
 
 <!-- Prune when >10 items or too long. Older completions live in git history. -->
 
+- 2026-01-02: Theming system foundation - Dark (default), light, high-contrast modes with localStorage + system preference, ThemeToggle component, 30 new tests, 411 total tests
+  - **Files created**: accessibilityStore.ts, theme.css, ThemeToggle component, 4 test files
+  - **Architecture**: Zustand store, CSS custom properties (--surface-_, --content-_), Okabe-Ito colors preserved
+  - **Migration ready**: ~15 CSS modules identified for token migration (BattleViewer, Token, IntentLine, panels)
 - 2026-01-02: Battle Viewer Phase 5 (reduced scope) - Contrasting outlines on intent lines/markers, 16 new accessibility tests, 381 total tests (df64f1f)
   - **Scope decision**: Shipped core accessibility (outlines) immediately. Deferred configurable themes, UI scale, persistence for future theming system.
-  - **Review findings**: No 🔴 issues. 🟡 items noted for future: hardcoded colors, outline scaling consistency.
 - 2026-01-02: Workflow rules updated - Debug mode escalation at steps 5a/6a/9a/9b, browser tool for GUI testing (381d857)
 - 2026-01-02: EventLog component - Scrollable list, filtering, faction colors, 366 total tests (9a3a611)
 - 2026-01-02: BattleStatusBadge - Victory/Defeat/Draw display, emoji indicators, tick count (751011c)

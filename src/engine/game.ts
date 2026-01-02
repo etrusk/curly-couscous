@@ -162,14 +162,23 @@ function computeMoveDestination(
   const absDy = Math.abs(dy);
   
   if (absDx > absDy) {
-    // Move horizontally
-    return { x: mover.position.x + stepX, y: mover.position.y };
+    // Move horizontally - clamp to valid grid bounds [0, 11]
+    return {
+      x: Math.max(0, Math.min(11, mover.position.x + stepX)),
+      y: mover.position.y
+    };
   } else if (absDy > absDx) {
-    // Move vertically
-    return { x: mover.position.x, y: mover.position.y + stepY };
+    // Move vertically - clamp to valid grid bounds [0, 11]
+    return {
+      x: mover.position.x,
+      y: Math.max(0, Math.min(11, mover.position.y + stepY))
+    };
   } else if (absDx === absDy && absDx > 0) {
-    // Equal distance: prefer horizontal per tiebreaking rules
-    return { x: mover.position.x + stepX, y: mover.position.y };
+    // Equal distance: prefer horizontal per tiebreaking rules - clamp to valid grid bounds [0, 11]
+    return {
+      x: Math.max(0, Math.min(11, mover.position.x + stepX)),
+      y: mover.position.y
+    };
   } else {
     // Already at target position (dx === dy === 0)
     return mover.position;
@@ -282,6 +291,20 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
       }
       
       // 5. Skill triggers passed - now validate target and range
+      // Special case: hold mode doesn't need a target
+      if (skill.mode === 'hold') {
+        // Create move action targeting own cell
+        action = {
+          type: 'move',
+          skill,
+          targetCell: character.position,
+          targetCharacter: null,
+          startedAtTick: state.tick,
+          resolvesAtTick: state.tick + skill.tickCost - 1,
+        };
+        break;
+      }
+      
       // 6. Use selector to find target
       const selector = skill.selectorOverride ?? DEFAULT_SELECTOR;
       const target = evaluateSelector(selector, character, state.characters);

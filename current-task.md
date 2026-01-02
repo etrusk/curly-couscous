@@ -4,10 +4,11 @@
      This is a breadcrumb trail, not documentation. Prune aggressively. -->
 
 ## Current Focus
-Game loop implemented, computeDecisions() stub ready for AI implementation.
+computeDecisions() complete. Next: Wire into processTick() or build Battle Viewer UI.
 
 ## Recent Completions
 <!-- Prune when >10 items or too long. Older completions live in git history. -->
+- 2026-01-02: AI decisions - computeDecisions() with skill priority, trigger AND logic, 55 tests
 - 2026-01-01: Game loop - processTick() with absolute timing, 180 tests
 - 2026-01-01: Movement system - resolveMovement() with seeded PRNG, collision resolution, 47 tests
 - 2025-12-31: Combat system - resolveAttack() with damage calculation, range checks, 46 tests

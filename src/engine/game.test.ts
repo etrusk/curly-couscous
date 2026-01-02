@@ -1237,5 +1237,145 @@ describe('computeDecisions', () => {
 
       expect(decisions[0].action.type).toBe('idle');
     });
+
+    it('should allow hold mode without valid target', () => {
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({ id: 'skill1', mode: 'hold', triggers: [{ type: 'always' }] }),
+        ],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character],
+      });
+
+      const decisions = computeDecisions(state);
+
+      expect(decisions[0].action.type).toBe('move');
+      expect(decisions[0].action.targetCell).toEqual({ x: 5, y: 5 });
+    });
+
+    it('should prefer horizontal movement when dx === dy (diagonal tiebreaking)', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 8, y: 8 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 5 },
+        skills: [createSkill({ id: 'skill1', mode: 'towards', triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      // dx = 3, dy = 3 (equal), should prefer horizontal movement
+      expect(decisions[0].action.type).toBe('move');
+      expect(decisions[0].action.targetCell).toEqual({ x: 6, y: 5 });
+    });
+
+    it('should clamp move destination to grid bounds at x=0 edge', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 5, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 0, y: 5 },
+        skills: [createSkill({ id: 'skill1', mode: 'away', triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      // Moving away from (5,5) when at (0,5) would try x=-1, should clamp to x=0
+      expect(decisions[0].action.type).toBe('move');
+      expect(decisions[0].action.targetCell).toEqual({ x: 0, y: 5 });
+    });
+
+    it('should clamp move destination to grid bounds at x=11 edge', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 5, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 11, y: 5 },
+        skills: [createSkill({ id: 'skill1', mode: 'away', triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      // Moving away from (5,5) when at (11,5) would try x=12, should clamp to x=11
+      expect(decisions[0].action.type).toBe('move');
+      expect(decisions[0].action.targetCell).toEqual({ x: 11, y: 5 });
+    });
+
+    it('should clamp move destination to grid bounds at y=0 edge', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 5, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 0 },
+        skills: [createSkill({ id: 'skill1', mode: 'away', triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      // Moving away from (5,5) when at (5,0) would try y=-1, should clamp to y=0
+      expect(decisions[0].action.type).toBe('move');
+      expect(decisions[0].action.targetCell).toEqual({ x: 5, y: 0 });
+    });
+
+    it('should clamp move destination to grid bounds at y=11 edge', () => {
+      const enemy = createCharacter({
+        id: 'enemy',
+        faction: 'enemy',
+        position: { x: 5, y: 5 },
+      });
+      const character = createCharacter({
+        id: 'char1',
+        faction: 'friendly',
+        position: { x: 5, y: 11 },
+        skills: [createSkill({ id: 'skill1', mode: 'away', triggers: [{ type: 'always' }] })],
+      });
+      const state = createGameState({
+        tick: 1,
+        characters: [character, enemy],
+      });
+
+      const decisions = computeDecisions(state);
+
+      // Moving away from (5,5) when at (5,11) would try y=12, should clamp to y=11
+      expect(decisions[0].action.type).toBe('move');
+      expect(decisions[0].action.targetCell).toEqual({ x: 5, y: 11 });
+    });
   });
 });

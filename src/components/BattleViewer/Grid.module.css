@@ -1,0 +1,31 @@
+/**
+ * Grid styles - CSS Grid layout for the battle grid.
+ * Uses CSS custom properties for responsive sizing.
+ */
+
+.grid {
+  /* CSS Grid layout - dimensions set dynamically via inline styles */
+  display: grid;
+  gap: 0;
+
+  /* Size constraints */
+  width: fit-content;
+  max-width: 100%;
+
+  /* Visual */
+  background-color: var(--grid-bg, #f5f5f5);
+  border: 2px solid var(--grid-border, #333);
+
+  /* Ensure crisp rendering */
+  box-sizing: border-box;
+
+  /* Prevent selection during interaction */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* High contrast mode support */
+:root[data-theme="high-contrast"] .grid {
+  border-color: var(--grid-border, #000);
+  border-width: 3px;
+}

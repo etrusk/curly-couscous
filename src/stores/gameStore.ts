@@ -3,9 +3,15 @@
  * Uses Immer middleware for immutable updates.
  */
 
-import { create } from 'zustand';
-import { immer } from 'zustand/middleware/immer';
-import type { GameState, Character, GameEvent } from '../engine/types';
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+import type {
+  GameState,
+  Character,
+  GameEvent,
+  Position,
+  Faction,
+} from "../engine/types";
 
 // ============================================================================
 // Store State Type
@@ -14,21 +20,21 @@ import type { GameState, Character, GameEvent } from '../engine/types';
 interface GameStore {
   // Current game state
   gameState: GameState;
-  
+
   // Actions to mutate state
   actions: {
     // Initialize a new battle
     initBattle: (characters: Character[]) => void;
-    
+
     // Advance to next tick
     nextTick: () => void;
-    
+
     // Update character
     updateCharacter: (id: string, updates: Partial<Character>) => void;
-    
+
     // Add event to history
     addEvent: (event: GameEvent) => void;
-    
+
     // Reset battle
     reset: () => void;
   };
@@ -41,8 +47,8 @@ interface GameStore {
 const initialGameState: GameState = {
   characters: [],
   tick: 0,
-  phase: 'decision',
-  battleStatus: 'active',
+  phase: "decision",
+  battleStatus: "active",
   history: [],
   seed: 0,
   rngState: 0,
@@ -56,7 +62,7 @@ export const useGameStore = create<GameStore>()(
   immer((set) => ({
     // Initial state
     gameState: initialGameState,
-    
+
     // Actions
     actions: {
       initBattle: (characters) =>
@@ -68,24 +74,24 @@ export const useGameStore = create<GameStore>()(
               slotPosition: index, // Assign slot position based on order
             })),
             tick: 0,
-            phase: 'decision',
-            battleStatus: 'active',
+            phase: "decision",
+            battleStatus: "active",
             history: [],
             seed,
             rngState: seed, // Initialize RNG state with seed
           };
         }),
-      
+
       nextTick: () =>
         set((state) => {
           state.gameState.tick += 1;
           state.gameState.history.push({
-            type: 'tick',
+            type: "tick",
             tick: state.gameState.tick,
             phase: state.gameState.phase,
           });
         }),
-      
+
       updateCharacter: (id, updates) =>
         set((state) => {
           const character = state.gameState.characters.find((c) => c.id === id);
@@ -93,18 +99,18 @@ export const useGameStore = create<GameStore>()(
             Object.assign(character, updates);
           }
         }),
-      
+
       addEvent: (event) =>
         set((state) => {
           state.gameState.history.push(event);
         }),
-      
+
       reset: () =>
         set((state) => {
           state.gameState = initialGameState;
         }),
     },
-  }))
+  })),
 );
 
 // ============================================================================
@@ -114,7 +120,8 @@ export const useGameStore = create<GameStore>()(
 /**
  * Select all characters.
  */
-export const selectCharacters = (state: GameStore) => state.gameState.characters;
+export const selectCharacters = (state: GameStore) =>
+  state.gameState.characters;
 
 /**
  * Select current tick.
@@ -129,7 +136,8 @@ export const selectPhase = (state: GameStore) => state.gameState.phase;
 /**
  * Select battle status.
  */
-export const selectBattleStatus = (state: GameStore) => state.gameState.battleStatus;
+export const selectBattleStatus = (state: GameStore) =>
+  state.gameState.battleStatus;
 
 /**
  * Select event history.
@@ -150,8 +158,9 @@ export const selectCharacterById = (id: string) => (state: GameStore) =>
 /**
  * Select characters by faction.
  */
-export const selectCharactersByFaction = (faction: 'friendly' | 'enemy') => (state: GameStore) =>
-  state.gameState.characters.filter((c) => c.faction === faction);
+export const selectCharactersByFaction =
+  (faction: "friendly" | "enemy") => (state: GameStore) =>
+    state.gameState.characters.filter((c) => c.faction === faction);
 
 /**
  * Select living characters.
@@ -164,3 +173,32 @@ export const selectLivingCharacters = (state: GameStore) =>
  */
 export const selectDeadCharacters = (state: GameStore) =>
   state.gameState.characters.filter((c) => c.hp <= 0);
+
+// ============================================================================
+// BattleViewer Selectors
+// ============================================================================
+
+/**
+ * Minimal data needed for token rendering.
+ * Extracted shape prevents re-renders when other character props change.
+ */
+export interface TokenData {
+  id: string;
+  position: Position;
+  faction: Faction;
+  hp: number;
+  maxHp: number;
+}
+
+/**
+ * Select minimal token data for rendering.
+ * Used by BattleViewer to render character tokens.
+ */
+export const selectTokenData = (state: GameStore): TokenData[] =>
+  state.gameState.characters.map((c) => ({
+    id: c.id,
+    position: c.position,
+    faction: c.faction,
+    hp: c.hp,
+    maxHp: c.maxHp,
+  }));

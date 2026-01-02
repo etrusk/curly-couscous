@@ -1,0 +1,71 @@
+/**
+ * Styles for BattleStatusBadge component.
+ */
+
+.badge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+  border: 2px solid;
+}
+
+.statusContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.emoji {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.statusText {
+  font-size: 1rem;
+}
+
+.tickDisplay {
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
+/* Status-specific styles */
+.statusActive {
+  background-color: #e6f2ff;
+  border-color: #0072b2;
+  color: #004d7a;
+}
+
+.statusVictory {
+  background-color: #e6ffe6;
+  border-color: #009e73;
+  color: #006b4d;
+}
+
+.statusDefeat {
+  background-color: #ffe6e6;
+  border-color: #d55e00;
+  color: #8f3e00;
+}
+
+.statusDraw {
+  background-color: #f0f0f0;
+  border-color: #999;
+  color: #666;
+}
+
+.statusUnknown {
+  background-color: #fff3cd;
+  border-color: #cc9a06;
+  color: #664d03;
+}
+
+/* High contrast mode support (planned for Phase 5) */
+@media (prefers-contrast: high) {
+  .badge {
+    border-width: 3px;
+  }
+}

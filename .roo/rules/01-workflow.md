@@ -82,6 +82,18 @@ Default to new files over extending existing ones when:
 - The existing file already has a single clear responsibility
 - Adding would require imports unrelated to existing functionality
 
+## Code Mode Exchange Limits
+Code mode enforces context health via hard limits:
+- **15 exchanges**: Self-assessment checkpoint
+- **20 exchanges**: Soft limit — must hand back unless completion imminent
+- **25 exchanges**: Hard limit — mandatory handback, no exceptions
+
+See `.roo/rules-code/03-context-health.md` for full protocol.
+
+When Code hands back with ⚠️ Degraded:
+→ Orchestrator asks human for direction via `ask_followup_question`
+→ Human decides: fresh task, Architect review, guidance, or defer
+
 ## When to Start Fresh (Clean Slate Triggers)
 Start a NEW Orchestrator task when:
 - Switching to an unrelated area of the codebase

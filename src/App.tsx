@@ -125,7 +125,7 @@ function App() {
       type: "attack",
       skill: lightPunch,
       targetCell: { x: 9, y: 2 }, // enemy-1 position
-      targetCharacter: enemy1,
+      targetCharacter: null, // Avoid circular reference
       startedAtTick: 0,
       resolvesAtTick: 0, // Resolves this tick (1-tick skill)
     };
@@ -147,7 +147,7 @@ function App() {
       type: "attack",
       skill: heavyPunch,
       targetCell: { x: 2, y: 2 }, // friendly-1 position
-      targetCharacter: friendly1,
+      targetCharacter: null, // Avoid circular reference
       startedAtTick: 0,
       resolvesAtTick: 1, // Resolves next tick (2-tick skill = locked-in with glow)
     };
@@ -165,7 +165,7 @@ function App() {
     enemy2.currentAction = moveAction2;
 
     actions.initBattle(testCharacters);
-  }, [actions]);
+  }, []); // Empty deps - initialize once on mount
 
   return (
     <div>

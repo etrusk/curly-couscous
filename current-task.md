@@ -6,12 +6,13 @@
 
 ## Current Focus
 
-Battle Viewer UI architecture designed. Ready for Code mode to implement Phase 1.
+Battle Viewer Phases 1-3 complete (Grid, Tokens, Intent Lines). Ready for Phase 4 (Damage Numbers).
 
 ## Recent Completions
 
 <!-- Prune when >10 items or too long. Older completions live in git history. -->
 
+- 2026-01-02: Battle Viewer Phases 1-3 - Grid, Tokens, Intent Lines, 273 tests
 - 2026-01-02: Battle Viewer architecture design - CSS Grid + SVG overlay, 6-phase roadmap (.docs/designs/battle-viewer-architecture.md)
 - 2026-01-02: Decision integration - applyDecisions(), clearResolvedActions(), wired into processTick(), 15 new tests (50374d3)
 - 2026-01-02: AI decisions - computeDecisions() with skill priority, trigger AND logic, 55 tests
@@ -25,6 +26,5 @@ Battle Viewer UI architecture designed. Ready for Code mode to implement Phase 1
 
 ## Next Steps
 
-- Implement Phase 1: Core Grid Foundation (BattleViewer, Grid, Cell components)
-- Add selectTokenData selector to gameStore
+- Battle Viewer Phase 4: Damage Numbers
 - See .docs/designs/battle-viewer-architecture.md for full roadmap

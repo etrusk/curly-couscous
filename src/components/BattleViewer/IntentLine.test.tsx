@@ -28,10 +28,11 @@ describe("IntentLine", () => {
         </svg>,
       );
 
-      const line = container.querySelector("line");
-      expect(line).toBeInTheDocument();
-      expect(line).toHaveAttribute("stroke", "#0072B2"); // Friendly blue
-      expect(line).not.toHaveAttribute("stroke-dasharray"); // Solid line
+      const lines = container.querySelectorAll("line");
+      const mainLine = lines[1]; // Second line is the colored main line
+      expect(mainLine).toBeInTheDocument();
+      expect(mainLine).toHaveAttribute("stroke", "#0072B2"); // Friendly blue
+      expect(mainLine).not.toHaveAttribute("stroke-dasharray"); // Solid line
     });
 
     it("renders solid line for enemy attack", () => {
@@ -46,10 +47,11 @@ describe("IntentLine", () => {
         </svg>,
       );
 
-      const line = container.querySelector("line");
-      expect(line).toBeInTheDocument();
-      expect(line).toHaveAttribute("stroke", "#E69F00"); // Enemy orange
-      expect(line).not.toHaveAttribute("stroke-dasharray"); // Solid line
+      const lines = container.querySelectorAll("line");
+      const mainLine = lines[1]; // Second line is the colored main line
+      expect(mainLine).toBeInTheDocument();
+      expect(mainLine).toHaveAttribute("stroke", "#E69F00"); // Enemy orange
+      expect(mainLine).not.toHaveAttribute("stroke-dasharray"); // Solid line
     });
 
     it("uses arrowhead marker for attacks", () => {
@@ -64,8 +66,12 @@ describe("IntentLine", () => {
         </svg>,
       );
 
-      const line = container.querySelector("line");
-      expect(line).toHaveAttribute("marker-end", "url(#arrowhead-friendly)");
+      const lines = container.querySelectorAll("line");
+      const mainLine = lines[1]; // Second line is the colored main line
+      expect(mainLine).toHaveAttribute(
+        "marker-end",
+        "url(#arrowhead-friendly)",
+      );
     });
   });
 
@@ -82,10 +88,11 @@ describe("IntentLine", () => {
         </svg>,
       );
 
-      const line = container.querySelector("line");
-      expect(line).toBeInTheDocument();
-      expect(line).toHaveAttribute("stroke", "#0072B2"); // Friendly blue
-      expect(line).toHaveAttribute("stroke-dasharray"); // Dashed line
+      const lines = container.querySelectorAll("line");
+      const mainLine = lines[1]; // Second line is the colored main line
+      expect(mainLine).toBeInTheDocument();
+      expect(mainLine).toHaveAttribute("stroke", "#0072B2"); // Friendly blue
+      expect(mainLine).toHaveAttribute("stroke-dasharray"); // Dashed line
     });
 
     it("renders dashed line for enemy movement", () => {
@@ -100,10 +107,11 @@ describe("IntentLine", () => {
         </svg>,
       );
 
-      const line = container.querySelector("line");
-      expect(line).toBeInTheDocument();
-      expect(line).toHaveAttribute("stroke", "#E69F00"); // Enemy orange
-      expect(line).toHaveAttribute("stroke-dasharray"); // Dashed line
+      const lines = container.querySelectorAll("line");
+      const mainLine = lines[1]; // Second line is the colored main line
+      expect(mainLine).toBeInTheDocument();
+      expect(mainLine).toHaveAttribute("stroke", "#E69F00"); // Enemy orange
+      expect(mainLine).toHaveAttribute("stroke-dasharray"); // Dashed line
     });
 
     it("uses circle marker for friendly movement", () => {
@@ -118,8 +126,9 @@ describe("IntentLine", () => {
         </svg>,
       );
 
-      const line = container.querySelector("line");
-      expect(line).toHaveAttribute("marker-end", "url(#circle-friendly)");
+      const lines = container.querySelectorAll("line");
+      const mainLine = lines[1]; // Second line is the colored main line
+      expect(mainLine).toHaveAttribute("marker-end", "url(#circle-friendly)");
     });
 
     it("uses diamond marker for enemy movement", () => {
@@ -134,8 +143,9 @@ describe("IntentLine", () => {
         </svg>,
       );
 
-      const line = container.querySelector("line");
-      expect(line).toHaveAttribute("marker-end", "url(#diamond-enemy)");
+      const lines = container.querySelectorAll("line");
+      const mainLine = lines[1]; // Second line is the colored main line
+      expect(mainLine).toHaveAttribute("marker-end", "url(#diamond-enemy)");
     });
   });
 
@@ -152,8 +162,9 @@ describe("IntentLine", () => {
         </svg>,
       );
 
-      const line = container.querySelector("line");
-      expect(line).toHaveAttribute("stroke-width", "3");
+      const lines = container.querySelectorAll("line");
+      const mainLine = lines[1]; // Second line is the colored main line
+      expect(mainLine).toHaveAttribute("stroke-width", "3");
     });
 
     it("uses 4px stroke for locked-in actions (2+ ticks remaining)", () => {
@@ -168,8 +179,9 @@ describe("IntentLine", () => {
         </svg>,
       );
 
-      const line = container.querySelector("line");
-      expect(line).toHaveAttribute("stroke-width", "4");
+      const lines = container.querySelectorAll("line");
+      const mainLine = lines[1]; // Second line is the colored main line
+      expect(mainLine).toHaveAttribute("stroke-width", "4");
     });
 
     it("applies pulsing animation class for locked-in actions", () => {
@@ -184,8 +196,8 @@ describe("IntentLine", () => {
         </svg>,
       );
 
-      const line = container.querySelector("line");
-      expect(line?.getAttribute("class")).toContain("lockedIn");
+      const group = container.querySelector("g");
+      expect(group?.getAttribute("class")).toContain("lockedIn");
     });
 
     it("does not apply pulsing animation for confirmed actions", () => {
@@ -200,8 +212,8 @@ describe("IntentLine", () => {
         </svg>,
       );
 
-      const line = container.querySelector("line");
-      expect(line?.getAttribute("class")).not.toContain("lockedIn");
+      const group = container.querySelector("g");
+      expect(group?.getAttribute("class")).not.toContain("lockedIn");
     });
   });
 
@@ -247,8 +259,8 @@ describe("IntentLine", () => {
     });
   });
 
-  describe("Accessibility", () => {
-    it("includes contrasting outline for visibility", () => {
+  describe("Accessibility - Contrasting Outlines", () => {
+    it("should render two lines for attack intent (outline + main)", () => {
       const { container } = render(
         <svg>
           <IntentLine
@@ -260,10 +272,191 @@ describe("IntentLine", () => {
         </svg>,
       );
 
-      // Should render with outline via CSS or additional stroke
-      const line = container.querySelector("line");
-      expect(line).toBeInTheDocument();
-      // Outline will be verified via CSS class application
+      const lines = container.querySelectorAll("line");
+      expect(lines).toHaveLength(2);
+    });
+
+    it("should render two lines for move intent (outline + main)", () => {
+      const { container } = render(
+        <svg>
+          <IntentLine
+            {...defaultProps}
+            type="move"
+            faction="friendly"
+            ticksRemaining={1}
+          />
+        </svg>,
+      );
+
+      const lines = container.querySelectorAll("line");
+      expect(lines).toHaveLength(2);
+    });
+
+    it("should render outline line first in DOM order (behind main)", () => {
+      const { container } = render(
+        <svg>
+          <IntentLine
+            {...defaultProps}
+            type="attack"
+            faction="friendly"
+            ticksRemaining={1}
+          />
+        </svg>,
+      );
+
+      const lines = container.querySelectorAll("line");
+      const outlineLine = lines[0];
+      const mainLine = lines[1];
+
+      // Outline should be white
+      expect(outlineLine).toHaveAttribute("stroke", "white");
+      // Main should be colored
+      expect(mainLine).toHaveAttribute("stroke", "#0072B2");
+    });
+
+    it("should use white stroke for outline", () => {
+      const { container } = render(
+        <svg>
+          <IntentLine
+            {...defaultProps}
+            type="attack"
+            faction="friendly"
+            ticksRemaining={1}
+          />
+        </svg>,
+      );
+
+      const lines = container.querySelectorAll("line");
+      const outlineLine = lines[0];
+      expect(outlineLine).toHaveAttribute("stroke", "white");
+    });
+
+    it("should use 5px outline stroke for confirmed actions (3px main + 2)", () => {
+      const { container } = render(
+        <svg>
+          <IntentLine
+            {...defaultProps}
+            type="attack"
+            faction="friendly"
+            ticksRemaining={1}
+          />
+        </svg>,
+      );
+
+      const lines = container.querySelectorAll("line");
+      const outlineLine = lines[0];
+      const mainLine = lines[1];
+
+      expect(outlineLine).toHaveAttribute("stroke-width", "5");
+      expect(mainLine).toHaveAttribute("stroke-width", "3");
+    });
+
+    it("should use 6px outline stroke for locked-in actions (4px main + 2)", () => {
+      const { container } = render(
+        <svg>
+          <IntentLine
+            {...defaultProps}
+            type="attack"
+            faction="friendly"
+            ticksRemaining={2}
+          />
+        </svg>,
+      );
+
+      const lines = container.querySelectorAll("line");
+      const outlineLine = lines[0];
+      const mainLine = lines[1];
+
+      expect(outlineLine).toHaveAttribute("stroke-width", "6");
+      expect(mainLine).toHaveAttribute("stroke-width", "4");
+    });
+
+    it("should not apply marker to outline line", () => {
+      const { container } = render(
+        <svg>
+          <IntentLine
+            {...defaultProps}
+            type="attack"
+            faction="friendly"
+            ticksRemaining={1}
+          />
+        </svg>,
+      );
+
+      const lines = container.querySelectorAll("line");
+      const outlineLine = lines[0];
+      expect(outlineLine).not.toHaveAttribute("marker-end");
+    });
+
+    it("should apply marker to main line only", () => {
+      const { container } = render(
+        <svg>
+          <IntentLine
+            {...defaultProps}
+            type="attack"
+            faction="friendly"
+            ticksRemaining={1}
+          />
+        </svg>,
+      );
+
+      const lines = container.querySelectorAll("line");
+      const mainLine = lines[1];
+      expect(mainLine).toHaveAttribute(
+        "marker-end",
+        "url(#arrowhead-friendly)",
+      );
+    });
+
+    it("should wrap lines in group element", () => {
+      const { container } = render(
+        <svg>
+          <IntentLine
+            {...defaultProps}
+            type="attack"
+            faction="friendly"
+            ticksRemaining={1}
+          />
+        </svg>,
+      );
+
+      const group = container.querySelector("g");
+      expect(group).toBeInTheDocument();
+
+      const lines = group?.querySelectorAll("line");
+      expect(lines).toHaveLength(2);
+    });
+
+    it("should apply lockedIn class to group for locked-in actions", () => {
+      const { container } = render(
+        <svg>
+          <IntentLine
+            {...defaultProps}
+            type="attack"
+            faction="friendly"
+            ticksRemaining={2}
+          />
+        </svg>,
+      );
+
+      const group = container.querySelector("g");
+      expect(group?.getAttribute("class")).toContain("lockedIn");
+    });
+
+    it("should not apply lockedIn class to group for confirmed actions", () => {
+      const { container } = render(
+        <svg>
+          <IntentLine
+            {...defaultProps}
+            type="attack"
+            faction="friendly"
+            ticksRemaining={1}
+          />
+        </svg>,
+      );
+
+      const group = container.querySelector("g");
+      expect(group?.getAttribute("class")).not.toContain("lockedIn");
     });
   });
 });

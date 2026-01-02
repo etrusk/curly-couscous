@@ -42,7 +42,11 @@ export function IntentOverlay({
           refY="5"
           orient="auto"
           markerUnits="strokeWidth"
+          overflow="visible"
         >
+          {/* White outline polygon (rendered first - behind) */}
+          <polygon points="0,0 10,5 0,10" fill="white" stroke="white" />
+          {/* Colored main polygon (rendered second - on top) */}
           <polygon points="0,0 10,5 0,10" fill="#0072B2" />
         </marker>
         <marker
@@ -53,7 +57,11 @@ export function IntentOverlay({
           refY="5"
           orient="auto"
           markerUnits="strokeWidth"
+          overflow="visible"
         >
+          {/* White outline polygon (rendered first - behind) */}
+          <polygon points="0,0 10,5 0,10" fill="white" stroke="white" />
+          {/* Colored main polygon (rendered second - on top) */}
           <polygon points="0,0 10,5 0,10" fill="#E69F00" />
         </marker>
 
@@ -66,7 +74,18 @@ export function IntentOverlay({
           refY="5"
           orient="auto"
           markerUnits="strokeWidth"
+          overflow="visible"
         >
+          {/* White outline circle (thicker - rendered first - behind) */}
+          <circle
+            cx="5"
+            cy="5"
+            r="4"
+            fill="none"
+            stroke="white"
+            strokeWidth="4"
+          />
+          {/* Colored main circle (rendered second - on top) */}
           <circle
             cx="5"
             cy="5"
@@ -84,7 +103,16 @@ export function IntentOverlay({
           refY="5"
           orient="auto"
           markerUnits="strokeWidth"
+          overflow="visible"
         >
+          {/* White outline polygon (thicker - rendered first - behind) */}
+          <polygon
+            points="5,0 10,5 5,10 0,5"
+            fill="none"
+            stroke="white"
+            strokeWidth="4"
+          />
+          {/* Colored main polygon (rendered second - on top) */}
           <polygon
             points="5,0 10,5 5,10 0,5"
             fill="none"

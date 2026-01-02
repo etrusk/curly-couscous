@@ -19,7 +19,6 @@ Use `browser_action` for visual verification when changes affect:
 
 ## Integration with Workflow
 
-- **Step 9b (VISUAL VERIFY)**: Mandatory for UI changes before commit
 - **Debug mode**: Use for investigating visual discrepancies
 - **Budget**: Browser actions count toward exchange limits (plan accordingly)
 

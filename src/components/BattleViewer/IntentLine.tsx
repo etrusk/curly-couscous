@@ -36,6 +36,9 @@ export function IntentLine({
   // Confirmed (1 tick): 3px, Locked-in (2+ ticks): 4px
   const strokeWidth = ticksRemaining === 1 ? 3 : 4;
 
+  // Outline stroke width is main + 2px
+  const outlineStrokeWidth = strokeWidth + 2;
+
   // Determine if line is dashed (for movement)
   const strokeDasharray = type === "move" ? "8 4" : undefined;
 
@@ -46,17 +49,29 @@ export function IntentLine({
   const className = ticksRemaining >= 2 ? styles.lockedIn : "";
 
   return (
-    <line
-      x1={x1}
-      y1={y1}
-      x2={x2}
-      y2={y2}
-      stroke={color}
-      strokeWidth={strokeWidth}
-      strokeDasharray={strokeDasharray}
-      markerEnd={markerEnd}
-      className={className}
-    />
+    <g className={className}>
+      {/* Outline line (white, thicker, no marker) - rendered first (behind) */}
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke="white"
+        strokeWidth={outlineStrokeWidth}
+        strokeDasharray={strokeDasharray}
+      />
+      {/* Main line (colored, with marker) - rendered second (on top) */}
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeDasharray={strokeDasharray}
+        markerEnd={markerEnd}
+      />
+    </g>
   );
 }
 

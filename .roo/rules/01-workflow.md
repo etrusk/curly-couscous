@@ -47,8 +47,6 @@ Use Orchestrator mode. It will:
 9. **VERIFY PASS**: Run tests, confirm they pass
    - If unrelated tests fail (regression) → **9a. REGRESSION DEBUG via Debug**: Systematic analysis (15 exchange budget)
 
-9b. **VISUAL VERIFY** via Code: For UI-affecting changes, use browser tool to verify (see rules/08-visual-testing.md)
-
 10. **COMMIT**: Git commit operations while files are fresh in context
     - Stage all changes: `git add -A && echo "DONE"`
     - Commit with conventional format: `git commit -m "type(scope): description" && echo "DONE"`

@@ -1,4 +1,10 @@
-# Tool Usage Rules
+# Tool Usage Rules (MANDATORY)
+
+## HARD CONSTRAINT
+
+NEVER use execute_command for file reading, searching, or listing operations.
+ALWAYS use native Roo tools: read_file, search_files, list_files, list_code_definition_names.
+This is non-negotiable. Violations waste tokens and bypass .rooignore protections.
 
 ## Native Tools Over Shell Commands
 
@@ -6,36 +12,41 @@ Use Roo's built-in tools instead of `execute_command` for file operations.
 Native tools are token-optimized, provide line numbers, and respect `.rooignore`.
 
 ### File Reading
-| Instead of | Use |
-|------------|-----|
-| `cat file.py` | `read_file` with `path` parameter |
-| `head -n 50 file.py` | `read_file` with `start_line=1, end_line=50` |
-| `tail -n 20 file.py` | `read_file` with negative or calculated line range |
-| `cat file1.py file2.py` | `read_file` with multiple files via `args` format |
+
+| Instead of              | Use                                                |
+| ----------------------- | -------------------------------------------------- |
+| `cat file.py`           | `read_file` with `path` parameter                  |
+| `head -n 50 file.py`    | `read_file` with `start_line=1, end_line=50`       |
+| `tail -n 20 file.py`    | `read_file` with negative or calculated line range |
+| `cat file1.py file2.py` | `read_file` with multiple files via `args` format  |
 
 ### Pattern Search
-| Instead of | Use |
-|------------|-----|
-| `grep -r "pattern" .` | `search_files` with `regex` parameter |
-| `grep -n "pattern" file.py` | `search_files` scoped to specific path |
-| `ag`, `rg`, `ack` | `search_files` or `codebase_search` for semantic search |
+
+| Instead of                  | Use                                                     |
+| --------------------------- | ------------------------------------------------------- |
+| `grep -r "pattern" .`       | `search_files` with `regex` parameter                   |
+| `grep -n "pattern" file.py` | `search_files` scoped to specific path                  |
+| `ag`, `rg`, `ack`           | `search_files` or `codebase_search` for semantic search |
 
 ### Directory Listing
-| Instead of | Use |
-|------------|-----|
-| `ls -la` | `list_files` with `path` parameter |
-| `find . -name "*.py"` | `list_files` with `recursive=true` |
-| `tree` | `list_files` (provides 2-level depth by default) |
+
+| Instead of            | Use                                              |
+| --------------------- | ------------------------------------------------ |
+| `ls -la`              | `list_files` with `path` parameter               |
+| `find . -name "*.py"` | `list_files` with `recursive=true`               |
+| `tree`                | `list_files` (provides 2-level depth by default) |
 
 ### Code Structure
-| Instead of | Use |
-|------------|-----|
-| `grep -E "^(class|def|function)" file.py` | `list_code_definition_names` |
+
+| Instead of               | Use                                                  |
+| ------------------------ | ---------------------------------------------------- | ------------------- | ---------------------------- |
+| `grep -E "^(class        | def                                                  | function)" file.py` | `list_code_definition_names` |
 | Custom regex for imports | `list_code_definition_names` for structural overview |
 
 ## When execute_command IS Appropriate
 
 Use `execute_command` only for actual system operations:
+
 - Installing dependencies: `npm install`, `pip install`, `cargo add`
 - Build/compile: `npm run build`, `make`, `cargo build`
 - Running tests: `npm test`, `pytest`, `go test`

@@ -54,7 +54,7 @@
   padding: 0.5rem;
   border: 1px solid var(--border-default);
   border-radius: 4px;
-  background-color: var(--surface-elevated);
+  background-color: var(--surface-secondary);
 }
 
 .eventEntry {

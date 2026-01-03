@@ -31,7 +31,7 @@ function createCharacter(overrides: Partial<Character> = {}): Character {
       id: "heavy-punch",
       name: "Heavy Punch",
       tickCost: 2,
-      range: 1,
+      range: 2,
       damage: 25,
       enabled: false,
       triggers: [{ type: "enemy_in_range", value: 1 }],

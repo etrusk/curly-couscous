@@ -43,7 +43,7 @@ Characters are homogeneous in v0.3. Differentiation comes from skill loadout and
 
 ### Heavy Punch
 
-- Tick cost: 2, Range: 1 (melee), Damage: 25
+- Tick cost: 2, Range: 2, Damage: 25
 - Default selector: nearest_enemy
 - Slow but powerful. 2-tick wind-up creates dodge window.
 

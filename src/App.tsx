@@ -30,7 +30,7 @@ function App() {
       id: "heavy-punch",
       name: "Heavy Punch",
       tickCost: 2,
-      range: 1,
+      range: 2,
       damage: 25,
       enabled: true,
       triggers: [{ type: "always" }],

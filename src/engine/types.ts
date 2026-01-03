@@ -1,7 +1,7 @@
 /**
  * Core type definitions for the auto-battler game engine.
  * Pure TypeScript - no React dependencies.
- * 
+ *
  * This file matches the authoritative spec v0.3 Section 13 (Data Model).
  */
 
@@ -20,7 +20,7 @@ export interface Position {
 /**
  * Faction determines team allegiance and visual styling.
  */
-export type Faction = 'friendly' | 'enemy';
+export type Faction = "friendly" | "enemy";
 
 // ============================================================================
 // Character Types
@@ -56,7 +56,7 @@ export interface Skill {
   tickCost: number;
   range: number;
   damage?: number;
-  mode?: 'towards' | 'away' | 'hold'; // for Move skill
+  mode?: "towards" | "away" | "hold"; // for Move skill
   enabled: boolean;
   triggers: Trigger[];
   selectorOverride?: Selector;
@@ -67,7 +67,12 @@ export interface Skill {
  * Matches spec Section 13.3.
  */
 export interface Trigger {
-  type: 'always' | 'enemy_in_range' | 'ally_in_range' | 'hp_below' | 'my_cell_targeted_by_enemy';
+  type:
+    | "always"
+    | "enemy_in_range"
+    | "ally_in_range"
+    | "hp_below"
+    | "my_cell_targeted_by_enemy";
   value?: number; // for range X or X% (undefined for 'always' and 'my_cell_targeted_by_enemy')
 }
 
@@ -76,7 +81,12 @@ export interface Trigger {
  * Matches spec Section 13.4.
  */
 export interface Selector {
-  type: 'nearest_enemy' | 'nearest_ally' | 'lowest_hp_enemy' | 'lowest_hp_ally' | 'self';
+  type:
+    | "nearest_enemy"
+    | "nearest_ally"
+    | "lowest_hp_enemy"
+    | "lowest_hp_ally"
+    | "self";
 }
 
 // ============================================================================
@@ -88,12 +98,12 @@ export interface Selector {
  * Uses absolute timing for deterministic replay.
  */
 export interface Action {
-  type: 'attack' | 'move' | 'idle';
+  type: "attack" | "move" | "idle";
   skill: Skill;
   targetCell: Position;
   targetCharacter: Character | null; // null for Move
-  startedAtTick: number;     // When action was committed
-  resolvesAtTick: number;    // Absolute tick when action fires
+  startedAtTick: number; // When action was committed
+  resolvesAtTick: number; // Absolute tick when action fires
 }
 
 // ============================================================================
@@ -107,32 +117,32 @@ export interface Action {
 export interface GameState {
   // Battle participants
   characters: Character[];
-  
+
   // Time tracking
   tick: number;
-  
+
   // Game flow
   phase: BattlePhase;
   battleStatus: BattleStatus;
-  
+
   // Event history (for undo/replay and event log)
   history: GameEvent[];
-  
+
   // RNG for deterministic randomness
-  seed: number;      // Battle seed (immutable after init)
-  rngState: number;  // Current RNG state (mutates each use)
+  seed: number; // Battle seed (immutable after init)
+  rngState: number; // Current RNG state (mutates each use)
 }
 
 /**
  * Battle progresses through discrete phases each tick.
  * Spec Section 4: Decision phase and Resolution phase only.
  */
-export type BattlePhase = 'decision' | 'resolution';
+export type BattlePhase = "decision" | "resolution";
 
 /**
  * Battle status indicates whether combat is ongoing or finished.
  */
-export type BattleStatus = 'active' | 'victory' | 'defeat' | 'draw';
+export type BattleStatus = "active" | "victory" | "defeat" | "draw";
 
 // ============================================================================
 // Event System Types
@@ -151,7 +161,7 @@ export type GameEvent =
   | TickEvent;
 
 export interface SkillDecisionEvent {
-  type: 'skill_decision';
+  type: "skill_decision";
   tick: number;
   characterId: string;
   skillId: string;
@@ -159,7 +169,7 @@ export interface SkillDecisionEvent {
 }
 
 export interface SkillExecutionEvent {
-  type: 'skill_execution';
+  type: "skill_execution";
   tick: number;
   characterId: string;
   skillId: string;
@@ -167,7 +177,7 @@ export interface SkillExecutionEvent {
 }
 
 export interface DamageEvent {
-  type: 'damage';
+  type: "damage";
   tick: number;
   sourceId: string;
   targetId: string;
@@ -176,7 +186,7 @@ export interface DamageEvent {
 }
 
 export interface MovementEvent {
-  type: 'movement';
+  type: "movement";
   tick: number;
   characterId: string;
   from: Position;
@@ -185,13 +195,13 @@ export interface MovementEvent {
 }
 
 export interface DeathEvent {
-  type: 'death';
+  type: "death";
   tick: number;
   characterId: string;
 }
 
 export interface TickEvent {
-  type: 'tick';
+  type: "tick";
   tick: number;
   phase: BattlePhase;
 }
@@ -207,10 +217,10 @@ export interface TickEvent {
 export interface MovementResult {
   /** Characters with updated positions after movement */
   updatedCharacters: Character[];
-  
+
   /** Movement events generated during resolution */
   events: MovementEvent[];
-  
+
   /** Updated RNG state after collision resolutions */
   rngState: number;
 }
@@ -223,7 +233,7 @@ export interface MovementResult {
  * Cardinal directions for movement.
  * Note: Movement uses single-cell moves in 4 directions.
  */
-export type Direction = 'north' | 'south' | 'east' | 'west';
+export type Direction = "north" | "south" | "east" | "west";
 
 /**
  * Helper to check if two positions are equal.
@@ -248,11 +258,56 @@ export const chebyshevDistance = (a: Position, b: Position): number =>
 /**
  * Helper to get adjacent position in a direction.
  */
-export const getAdjacentPosition = (pos: Position, dir: Direction): Position => {
+export const getAdjacentPosition = (
+  pos: Position,
+  dir: Direction,
+): Position => {
   switch (dir) {
-    case 'north': return { x: pos.x, y: pos.y - 1 };
-    case 'south': return { x: pos.x, y: pos.y + 1 };
-    case 'east': return { x: pos.x + 1, y: pos.y };
-    case 'west': return { x: pos.x - 1, y: pos.y };
+    case "north":
+      return { x: pos.x, y: pos.y - 1 };
+    case "south":
+      return { x: pos.x, y: pos.y + 1 };
+    case "east":
+      return { x: pos.x + 1, y: pos.y };
+    case "west":
+      return { x: pos.x - 1, y: pos.y };
   }
 };
+
+// ============================================================================
+// Skill Evaluation Types
+// ============================================================================
+
+/**
+ * Reason why a skill was not selected during decision phase.
+ */
+export type SkillRejectionReason =
+  | "disabled" // skill.enabled === false
+  | "trigger_failed" // One or more triggers didn't pass
+  | "no_target" // Selector returned null (no valid target exists)
+  | "out_of_range"; // Target exists but beyond skill.range
+
+/**
+ * Result of evaluating a single skill for a character.
+ */
+export interface SkillEvaluationResult {
+  skill: Skill;
+  status: "selected" | "rejected" | "skipped";
+  rejectionReason?: SkillRejectionReason;
+
+  // Additional context for display (optional, enriches understanding)
+  target?: Character; // The selected/attempted target
+  distance?: number; // Distance to target (for out_of_range context)
+  failedTriggers?: Trigger[]; // Which triggers failed (for trigger_failed)
+}
+
+/**
+ * Complete evaluation results for a character's skill list.
+ */
+export interface CharacterEvaluationResult {
+  characterId: string;
+  isMidAction: boolean; // True if continuing existing action
+  currentAction?: Action; // The action being continued (if mid-action)
+  skillEvaluations: SkillEvaluationResult[];
+  selectedSkillIndex: number | null; // Index of selected skill, null if idle
+}

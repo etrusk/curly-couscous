@@ -106,35 +106,19 @@ describe("RuleEvaluations", () => {
 
     render(<RuleEvaluations />);
     expect(screen.getByText(/💤 Idle/i)).toBeInTheDocument();
-    expect(screen.getByText(/No valid skill triggered/i)).toBeInTheDocument();
+    expect(screen.getByText(/💤 No valid action/i)).toBeInTheDocument();
   });
 
-  // Test 4: Idle action state
+  // Test 4: Idle action state (character with no current action shows preview)
   it("should display idle action with explanation", () => {
-    const idleAction: Action = {
-      type: "idle",
-      skill: {
-        id: "__idle__",
-        name: "Idle",
-        tickCost: 1,
-        range: 0,
-        enabled: true,
-        triggers: [],
-      },
-      targetCell: { x: 0, y: 0 },
-      targetCharacter: null,
-      startedAtTick: 0,
-      resolvesAtTick: 0,
-    };
-    const character = createCharacter();
+    const character = createCharacter({ currentAction: null });
     const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-    actions.updateCharacter(character.id, { currentAction: idleAction });
+    actions.initBattle([character]); // No enemies
     actions.selectCharacter(character.id);
 
     render(<RuleEvaluations />);
     expect(screen.getByText(/💤 Idle/i)).toBeInTheDocument();
-    expect(screen.getByText(/No valid skill triggered/i)).toBeInTheDocument();
+    expect(screen.getByText(/💤 No valid action/i)).toBeInTheDocument();
   });
 
   // Test 5: Attack action display
@@ -366,7 +350,7 @@ describe("RuleEvaluations", () => {
   });
 
   // Test 13: Disabled skills indicator
-  it("should indicate disabled skills with visual marker", () => {
+  it("should indicate disabled skills with rejection reason", () => {
     const character = createCharacter();
     const { actions } = useGameStore.getState();
     actions.initBattle([character]);
@@ -376,85 +360,19 @@ describe("RuleEvaluations", () => {
     expect(screen.getByText(/\[disabled\]/i)).toBeInTheDocument();
   });
 
-  // Test 14: Single trigger display
-  it("should display single trigger condition", () => {
-    const character = createCharacter();
+  // Test 14: Rejection reason - no target
+  it("should display 'no target' rejection reason", () => {
+    const character = createCharacter({ currentAction: null });
     const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
+    actions.initBattle([character]); // No enemies
     actions.selectCharacter(character.id);
 
     render(<RuleEvaluations />);
-    // Multiple skills have this trigger, so use getAllByText
-    const triggers = screen.getAllByText(/if enemy_in_range 1/i);
-    expect(triggers.length).toBeGreaterThan(0);
+    // Light Punch should show "no target" because there are no enemies
+    expect(screen.getByText(/no target/i)).toBeInTheDocument();
   });
 
-  // Test 15: Multiple triggers with AND
-  it("should display multiple triggers with AND", () => {
-    const multiTriggerSkill: Skill = {
-      id: "multi-skill",
-      name: "Complex Skill",
-      tickCost: 1,
-      range: 1,
-      damage: 10,
-      enabled: true,
-      triggers: [
-        { type: "enemy_in_range", value: 1 },
-        { type: "hp_below", value: 50 },
-      ],
-      selectorOverride: { type: "nearest_enemy" },
-    };
-    const character = createCharacter({ skills: [multiTriggerSkill] });
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    expect(
-      screen.getByText(/if enemy_in_range 1 ✗ AND hp_below 50% ✗/i),
-    ).toBeInTheDocument();
-  });
-
-  // Test 16: Always trigger display
-  it('should display "always" for skills with always trigger', () => {
-    const character = createCharacter();
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    // Move skill has always trigger
-    expect(screen.getByText(/if always/i)).toBeInTheDocument();
-  });
-
-  // Test 17: Accessible panel
-  it("should have accessible panel with role and label", () => {
-    const character = createCharacter({ name: "TestChar" });
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    const panel = screen.getByRole("region", {
-      name: /Rule Evaluations: TestChar/i,
-    });
-    expect(panel).toBeInTheDocument();
-  });
-
-  // Test 18: Semantic list structure
-  it("should render skill list as ordered list element", () => {
-    const character = createCharacter();
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-    actions.selectCharacter(character.id);
-
-    const { container } = render(<RuleEvaluations />);
-    const orderedList = container.querySelector("ol");
-    expect(orderedList).toBeInTheDocument();
-    expect(orderedList?.children.length).toBe(3); // 3 skills
-  });
-
-  // Test 19: Next-tick preview for idle character
+  // Test 15: Next-tick preview for idle character
   it("should preview next action for idle character", () => {
     const target = createTarget();
     const character = createCharacter({ currentAction: null });
@@ -467,7 +385,7 @@ describe("RuleEvaluations", () => {
     expect(screen.getByText(/⚔️ Light Punch → Enemy1/i)).toBeInTheDocument();
   });
 
-  // Test 20: Section header renamed to "Next Action"
+  // Test 16: Section header renamed to "Next Action"
   it('should display "Next Action" section header', () => {
     const character = createCharacter();
     const { actions } = useGameStore.getState();
@@ -480,7 +398,7 @@ describe("RuleEvaluations", () => {
     ).toBeInTheDocument();
   });
 
-  // Test 21: Collapsible skills section with active skill
+  // Test 17: Collapsible skills section with active skill
   it("should show collapsible section for skills below active skill", () => {
     const target = createTarget();
     const character = createCharacter();
@@ -489,13 +407,13 @@ describe("RuleEvaluations", () => {
     actions.selectCharacter(character.id);
 
     const { container } = render(<RuleEvaluations />);
-    // Light Punch is active (index 0), so Move and Heavy Punch should be collapsible
+    // Light Punch is selected (index 0), so Move and Heavy Punch should be collapsible
     const details = container.querySelector("details");
     expect(details).toBeInTheDocument();
     expect(screen.getByText(/Show 2 more skills/i)).toBeInTheDocument();
   });
 
-  // Test 22: No collapsible section when last skill is active
+  // Test 18: No collapsible section when last skill is active
   it("should not show collapsible section when last skill is active", () => {
     const target = createTarget();
     // Enable Heavy Punch and make it trigger
@@ -542,77 +460,49 @@ describe("RuleEvaluations", () => {
     expect(details).not.toBeInTheDocument();
   });
 
-  // Test 23: Collapsible section correct skill count text
-  it("should display singular 'skill' for one collapsed skill", () => {
-    const target = createTarget();
-    // Only 2 skills total, first active
-    const skills: Skill[] = [
-      {
-        id: "light-punch",
-        name: "Light Punch",
-        tickCost: 1,
-        range: 1,
-        damage: 10,
-        enabled: true,
-        triggers: [{ type: "enemy_in_range", value: 1 }],
-        selectorOverride: { type: "nearest_enemy" },
-      },
-      {
-        id: "move",
-        name: "Move",
-        tickCost: 1,
-        range: 0,
-        mode: "towards",
-        enabled: true,
-        triggers: [{ type: "always" }],
-        selectorOverride: { type: "nearest_enemy" },
-      },
-    ];
-    const character = createCharacter({ skills });
+  // Test 19: Accessible panel
+  it("should have accessible panel with role and label", () => {
+    const character = createCharacter({ name: "TestChar" });
     const { actions } = useGameStore.getState();
-    actions.initBattle([character, target]);
+    actions.initBattle([character]);
     actions.selectCharacter(character.id);
 
     render(<RuleEvaluations />);
-    // Only 1 skill below active, should be singular "skill"
-    expect(screen.getByText(/Show 1 more skill$/i)).toBeInTheDocument();
+    const panel = screen.getByRole("region", {
+      name: /Rule Evaluations: TestChar/i,
+    });
+    expect(panel).toBeInTheDocument();
   });
 
-  // Test 24: Collapsible section uses native <details> element
-  it("should use native <details> element for accessibility", () => {
-    const target = createTarget();
+  // Test 20: Semantic list structure
+  it("should render skill list as ordered list element", () => {
     const character = createCharacter();
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+    const orderedList = container.querySelector("ol");
+    expect(orderedList).toBeInTheDocument();
+    expect(orderedList?.children.length).toBe(3); // 3 skills
+  });
+
+  // Test 21: Selected skill arrow indicator
+  it("should show arrow indicator for selected skill", () => {
+    const target = createTarget();
+    const character = createCharacter({ currentAction: null });
     const { actions } = useGameStore.getState();
     actions.initBattle([character, target]);
     actions.selectCharacter(character.id);
 
     const { container } = render(<RuleEvaluations />);
-    const details = container.querySelector("details");
-    expect(details).toBeInTheDocument();
-    const summary = details?.querySelector("summary");
-    expect(summary).toBeInTheDocument();
+    // Light Punch should be selected and have arrow in its text content
+    const firstSkill = container.querySelector("li");
+    expect(firstSkill?.textContent).toContain("→ ");
+    expect(firstSkill?.textContent).toContain("1. Light Punch");
   });
 
-  // Test 25: Correct skill numbering in collapsed section
-  it("should maintain correct numbering for collapsed skills", () => {
-    const target = createTarget();
-    const character = createCharacter();
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character, target]);
-    actions.selectCharacter(character.id);
-
-    const { container } = render(<RuleEvaluations />);
-    // Open the details element
-    const details = container.querySelector("details");
-    expect(details).toBeInTheDocument();
-
-    // Check that the collapsed list has correct start attribute
-    const collapsedList = details?.querySelector("ol");
-    expect(collapsedList).toBeInTheDocument();
-    expect(collapsedList?.getAttribute("start")).toBe("2"); // activeSkillIndex + 2
-  });
-
-  // Test 26: Active skill highlighting with next-tick preview
+  // Test 22: Active skill highlighting
   it("should highlight active skill based on next-tick preview", () => {
     const target = createTarget();
     const character = createCharacter({ currentAction: null });
@@ -627,240 +517,39 @@ describe("RuleEvaluations", () => {
     expect(firstSkill?.className).toContain("activeSkill");
   });
 
-  // Test 27: Single passing trigger shows ✓
-  it("should display ✓ for passing trigger", () => {
-    const target = createTarget();
-    const character = createCharacter();
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character, target]);
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    // Light Punch has "enemy_in_range 1" and enemy is at distance 1
-    // Multiple skills may have this trigger, so use getAllByText
-    const triggers = screen.getAllByText(/if enemy_in_range 1 ✓/i);
-    expect(triggers.length).toBeGreaterThan(0);
-  });
-
-  // Test 28: Single failing trigger shows ✗
-  it("should display ✗ for failing trigger", () => {
-    const character = createCharacter();
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]); // No enemies
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    // Light Punch has "enemy_in_range 1" but no enemies
-    // Multiple skills may have this trigger, so use getAllByText
-    const triggers = screen.getAllByText(/if enemy_in_range 1 ✗/i);
-    expect(triggers.length).toBeGreaterThan(0);
-  });
-
-  // Test 29: Always trigger shows ✓
-  it("should display ✓ for always trigger", () => {
-    const character = createCharacter();
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    // Move has "always" trigger which always passes
-    expect(screen.getByText(/if always ✓/i)).toBeInTheDocument();
-  });
-
-  // Test 30: Multiple triggers show individual pass/fail status
-  it("should display individual pass/fail status for multiple triggers", () => {
-    const target = createTarget();
-    const multiTriggerSkill: Skill = {
-      id: "multi-skill",
-      name: "Complex Skill",
-      tickCost: 1,
-      range: 1,
-      damage: 10,
-      enabled: true,
-      triggers: [
-        { type: "enemy_in_range", value: 1 },
-        { type: "hp_below", value: 50 },
-      ],
-      selectorOverride: { type: "nearest_enemy" },
-    };
-    const character = createCharacter({ skills: [multiTriggerSkill] });
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character, target]);
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    // First trigger passes (enemy at range 1), second fails (HP is 100%)
-    expect(
-      screen.getByText(/enemy_in_range 1 ✓ AND hp_below 50% ✗/i),
-    ).toBeInTheDocument();
-  });
-
-  // Test 31: hp_below trigger passes when below threshold
-  it("should display ✓ for hp_below when HP is below threshold", () => {
-    const hpSkill: Skill = {
-      id: "hp-skill",
-      name: "Low HP Skill",
-      tickCost: 1,
-      range: 1,
-      damage: 10,
-      enabled: true,
-      triggers: [{ type: "hp_below", value: 50 }],
-      selectorOverride: { type: "nearest_enemy" },
-    };
-    const character = createCharacter({ skills: [hpSkill], hp: 40 });
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    expect(screen.getByText(/hp_below 50% ✓/i)).toBeInTheDocument();
-  });
-
-  // Test 32: hp_below trigger fails when above threshold
-  it("should display ✗ for hp_below when HP is above threshold", () => {
-    const hpSkill: Skill = {
-      id: "hp-skill",
-      name: "Low HP Skill",
-      tickCost: 1,
-      range: 1,
-      damage: 10,
-      enabled: true,
-      triggers: [{ type: "hp_below", value: 50 }],
-      selectorOverride: { type: "nearest_enemy" },
-    };
-    const character = createCharacter({ skills: [hpSkill], hp: 100 });
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    expect(screen.getByText(/hp_below 50% ✗/i)).toBeInTheDocument();
-  });
-
-  // Test 33: my_cell_targeted trigger passes when targeted
-  it("should display ✓ for my_cell_targeted when enemy targets character cell", () => {
-    const target = createTarget();
-    const targetedSkill: Skill = {
-      id: "counter-skill",
-      name: "Counter",
-      tickCost: 1,
-      range: 1,
-      damage: 15,
-      enabled: true,
-      triggers: [{ type: "my_cell_targeted_by_enemy" }],
-      selectorOverride: { type: "nearest_enemy" },
-    };
-    const character = createCharacter({
-      skills: [targetedSkill],
-      position: { x: 0, y: 0 },
+  // Test 23: Out of range rejection reason with distance
+  it("should display out of range rejection with distance information", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { x: 10, y: 10 },
     });
-
-    // Enemy targeting character's cell
-    const enemyAction: Action = {
-      type: "attack",
-      skill: {
-        id: "enemy-attack",
-        name: "Enemy Attack",
-        tickCost: 2,
+    // Create character with a skill that has no range-based triggers (uses "always")
+    const skills: Skill[] = [
+      {
+        id: "long-punch",
+        name: "Long Punch",
+        tickCost: 1,
         range: 1,
         damage: 10,
         enabled: true,
-        triggers: [],
+        triggers: [{ type: "always" }], // No range-based trigger, so we hit the range check
+        selectorOverride: { type: "nearest_enemy" },
       },
-      targetCell: { x: 0, y: 0 }, // Same as character position
-      targetCharacter: character,
-      startedAtTick: 0,
-      resolvesAtTick: 1,
-    };
-
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character, target]);
-    actions.updateCharacter(target.id, { currentAction: enemyAction });
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    expect(screen.getByText(/my_cell_targeted ✓/i)).toBeInTheDocument();
-  });
-
-  // Test 34: my_cell_targeted trigger fails when not targeted
-  it("should display ✗ for my_cell_targeted when not targeted by enemy", () => {
-    const target = createTarget();
-    const targetedSkill: Skill = {
-      id: "counter-skill",
-      name: "Counter",
-      tickCost: 1,
-      range: 1,
-      damage: 15,
-      enabled: true,
-      triggers: [{ type: "my_cell_targeted_by_enemy" }],
-      selectorOverride: { type: "nearest_enemy" },
-    };
-    const character = createCharacter({ skills: [targetedSkill] });
-
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character, target]);
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    expect(screen.getByText(/my_cell_targeted ✗/i)).toBeInTheDocument();
-  });
-
-  // Test 35: ally_in_range trigger passes when ally in range
-  it("should display ✓ for ally_in_range when ally is in range", () => {
-    const ally: Character = {
-      id: "ally-1",
-      name: "Ally",
-      faction: "friendly",
-      slotPosition: 1,
-      hp: 100,
-      maxHp: 100,
-      position: { x: 1, y: 0 },
-      skills: [],
-      currentAction: null,
-    };
-    const allySkill: Skill = {
-      id: "heal-skill",
-      name: "Heal",
-      tickCost: 1,
-      range: 1,
-      damage: -10, // Negative damage = healing
-      enabled: true,
-      triggers: [{ type: "ally_in_range", value: 1 }],
-      selectorOverride: { type: "nearest_ally" },
-    };
+    ];
     const character = createCharacter({
-      skills: [allySkill],
-      position: { x: 0, y: 0 },
+      faction: "friendly",
+      position: { x: 5, y: 5 },
+      skills,
     });
-
     const { actions } = useGameStore.getState();
-    actions.initBattle([character, ally]);
+    actions.initBattle([character, enemy]);
     actions.selectCharacter(character.id);
 
     render(<RuleEvaluations />);
-    expect(screen.getByText(/ally_in_range 1 ✓/i)).toBeInTheDocument();
-  });
-
-  // Test 36: ally_in_range trigger fails when no ally in range
-  it("should display ✗ for ally_in_range when no ally in range", () => {
-    const allySkill: Skill = {
-      id: "heal-skill",
-      name: "Heal",
-      tickCost: 1,
-      range: 1,
-      damage: -10,
-      enabled: true,
-      triggers: [{ type: "ally_in_range", value: 1 }],
-      selectorOverride: { type: "nearest_ally" },
-    };
-    const character = createCharacter({ skills: [allySkill] });
-
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]); // No allies
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    expect(screen.getByText(/ally_in_range 1 ✗/i)).toBeInTheDocument();
+    // Long Punch (range 1) should be out of range to enemy at distance 5
+    expect(
+      screen.getByText(/target out of range \(5 > 1\)/i),
+    ).toBeInTheDocument();
   });
 });

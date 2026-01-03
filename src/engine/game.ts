@@ -13,6 +13,8 @@ import {
   Selector,
   Position,
   chebyshevDistance,
+  SkillEvaluationResult,
+  CharacterEvaluationResult,
 } from "./types";
 import { resolveCombat } from "./combat";
 import { resolveMovement } from "./movement";
@@ -130,7 +132,7 @@ const IDLE_SKILL: Skill = {
  * @returns 'attack' if skill has damage, 'move' if skill has mode
  * @throws Error if skill has both or neither damage and mode
  */
-function getActionType(skill: Skill): "attack" | "move" {
+export function getActionType(skill: Skill): "attack" | "move" {
   const hasDamage = skill.damage !== undefined;
   const hasMode = skill.mode !== undefined;
 
@@ -438,4 +440,120 @@ export function clearResolvedActions(
     }
     return character;
   });
+}
+
+/**
+ * Evaluate all skills for a character and return detailed results.
+ *
+ * This function mirrors the decision logic in computeDecisions() but
+ * returns structured data for UI display instead of creating actions.
+ *
+ * @param character - Character to evaluate skills for
+ * @param allCharacters - All characters in battle (for targeting)
+ * @returns Detailed evaluation results for all skills
+ */
+export function evaluateSkillsForCharacter(
+  character: Character,
+  allCharacters: Character[],
+): CharacterEvaluationResult {
+  // 1. Check if mid-action
+  if (character.currentAction !== null) {
+    return {
+      characterId: character.id,
+      isMidAction: true,
+      currentAction: character.currentAction,
+      skillEvaluations: [],
+      selectedSkillIndex: null,
+    };
+  }
+
+  const evaluations: SkillEvaluationResult[] = [];
+  let selectedIndex: number | null = null;
+  let currentIndex = 0;
+
+  for (const skill of character.skills) {
+    // Already found a valid skill - mark remaining as skipped
+    if (selectedIndex !== null) {
+      evaluations.push({ skill, status: "skipped" });
+      currentIndex++;
+      continue;
+    }
+
+    // Check disabled
+    if (!skill.enabled) {
+      evaluations.push({
+        skill,
+        status: "rejected",
+        rejectionReason: "disabled",
+      });
+      currentIndex++;
+      continue;
+    }
+
+    // Check triggers
+    const failedTriggers = skill.triggers.filter(
+      (t) => !evaluateTrigger(t, character, allCharacters),
+    );
+    if (failedTriggers.length > 0) {
+      evaluations.push({
+        skill,
+        status: "rejected",
+        rejectionReason: "trigger_failed",
+        failedTriggers,
+      });
+      currentIndex++;
+      continue;
+    }
+
+    // Special case: hold mode doesn't need target
+    if (skill.mode === "hold") {
+      evaluations.push({ skill, status: "selected" });
+      selectedIndex = currentIndex;
+      currentIndex++;
+      continue;
+    }
+
+    // Evaluate selector
+    const selector = skill.selectorOverride ?? DEFAULT_SELECTOR;
+    const target = evaluateSelector(selector, character, allCharacters);
+
+    if (!target) {
+      evaluations.push({
+        skill,
+        status: "rejected",
+        rejectionReason: "no_target",
+      });
+      currentIndex++;
+      continue;
+    }
+
+    // Check range for attacks
+    const actionType = getActionType(skill);
+    if (actionType === "attack") {
+      const distance = chebyshevDistance(character.position, target.position);
+      if (distance > skill.range) {
+        evaluations.push({
+          skill,
+          status: "rejected",
+          rejectionReason: "out_of_range",
+          target,
+          distance,
+        });
+        currentIndex++;
+        continue;
+      }
+    }
+
+    // Skill selected!
+    evaluations.push({ skill, status: "selected", target });
+    selectedIndex = currentIndex;
+    currentIndex++;
+  }
+
+  return {
+    characterId: character.id,
+    isMidAction: false,
+    skillEvaluations: evaluations,
+    selectedSkillIndex: selectedIndex,
+  };
 }

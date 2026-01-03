@@ -116,6 +116,19 @@
   margin-bottom: 0.25rem;
 }
 
+.selectedArrow {
+  color: var(--faction-friendly);
+  font-weight: 700;
+  margin-right: 0.25rem;
+}
+
+.rejectionReason {
+  color: var(--content-muted);
+  font-weight: 400;
+  font-style: italic;
+  font-size: 0.8125rem;
+}
+
 .skillTrigger {
   font-size: 0.75rem;
   color: var(--content-secondary);
@@ -126,6 +139,32 @@
   color: var(--content-muted);
   font-weight: 400;
   font-style: italic;
+}
+
+/* Collapsible Skills Section */
+.collapsedSkills {
+  margin-top: 0.5rem;
+}
+
+.collapsedSummary {
+  cursor: pointer;
+  padding: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--content-secondary);
+  background-color: var(--surface-secondary);
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  user-select: none;
+  list-style: none; /* Remove default disclosure triangle */
+}
+
+.collapsedSummary:hover {
+  background-color: var(--surface-tertiary);
+  color: var(--content-primary);
+}
+
+.collapsedSummary::-webkit-details-marker {
+  display: none; /* Hide default disclosure triangle in WebKit browsers */
 }
 
 /* High contrast mode support (planned for Phase 5) */

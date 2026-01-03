@@ -9,6 +9,7 @@ import {
   computeDecisions,
   applyDecisions,
   clearResolvedActions,
+  evaluateSkillsForCharacter,
 } from "./game";
 import { GameState, Character, Skill, Action } from "./types";
 import { initRNG } from "./movement";
@@ -1904,5 +1905,429 @@ describe("processTick decision integration", () => {
 
     const updatedChar = result.state.characters.find((c) => c.id === "char1");
     expect(updatedChar?.currentAction).toBeNull();
+  });
+});
+
+describe("evaluateSkillsForCharacter", () => {
+  // ===========================================================================
+  // Section 1: Mid-Action Detection
+  // ===========================================================================
+  describe("mid-action detection", () => {
+    it("should return isMidAction: true when character has currentAction", () => {
+      const action = createAttackAction({ x: 5, y: 5 }, 10, 2);
+      const character = createCharacter({
+        id: "char1",
+        position: { x: 4, y: 4 },
+        currentAction: action,
+        skills: [
+          createSkill({
+            id: "skill1",
+            damage: 10,
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character]);
+
+      expect(result.isMidAction).toBe(true);
+      expect(result.currentAction).toEqual(action);
+      expect(result.skillEvaluations).toHaveLength(0);
+      expect(result.selectedSkillIndex).toBeNull();
+    });
+
+    it("should evaluate skills when character has no currentAction", () => {
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { x: 5, y: 5 },
+      });
+      const character = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { x: 4, y: 4 },
+        currentAction: null,
+        skills: [
+          createSkill({
+            id: "skill1",
+            damage: 10,
+            range: 5,
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character, enemy]);
+
+      expect(result.isMidAction).toBe(false);
+      expect(result.skillEvaluations).toHaveLength(1);
+    });
+  });
+
+  // ===========================================================================
+  // Section 2: Skill Rejection Reasons
+  // ===========================================================================
+  describe("skill rejection reasons", () => {
+    it("should reject disabled skill with reason 'disabled'", () => {
+      const character = createCharacter({
+        id: "char1",
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: "skill1",
+            damage: 10,
+            enabled: false,
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character]);
+
+      expect(result.skillEvaluations).toHaveLength(1);
+      expect(result.skillEvaluations[0]!.status).toBe("rejected");
+      expect(result.skillEvaluations[0]!.rejectionReason).toBe("disabled");
+    });
+
+    it("should reject skill with failed trigger and include failedTriggers", () => {
+      const character = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: "skill1",
+            damage: 10,
+            triggers: [{ type: "enemy_in_range", value: 1 }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character]);
+
+      expect(result.skillEvaluations).toHaveLength(1);
+      expect(result.skillEvaluations[0]!.status).toBe("rejected");
+      expect(result.skillEvaluations[0]!.rejectionReason).toBe(
+        "trigger_failed",
+      );
+      expect(result.skillEvaluations[0]!.failedTriggers).toHaveLength(1);
+      expect(result.skillEvaluations[0]!.failedTriggers![0]!.type).toBe(
+        "enemy_in_range",
+      );
+    });
+
+    it("should reject skill when no target exists with reason 'no_target'", () => {
+      const character = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: "skill1",
+            damage: 10,
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character]);
+
+      expect(result.skillEvaluations).toHaveLength(1);
+      expect(result.skillEvaluations[0]!.status).toBe("rejected");
+      expect(result.skillEvaluations[0]!.rejectionReason).toBe("no_target");
+    });
+
+    it("should reject attack skill when target out of range with distance", () => {
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { x: 10, y: 10 },
+      });
+      const character = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: "skill1",
+            damage: 10,
+            range: 1,
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character, enemy]);
+
+      expect(result.skillEvaluations).toHaveLength(1);
+      expect(result.skillEvaluations[0]!.status).toBe("rejected");
+      expect(result.skillEvaluations[0]!.rejectionReason).toBe("out_of_range");
+      expect(result.skillEvaluations[0]!.distance).toBe(5);
+      expect(result.skillEvaluations[0]!.target).toEqual(enemy);
+    });
+  });
+
+  // ===========================================================================
+  // Section 3: Skill Selection
+  // ===========================================================================
+  describe("skill selection", () => {
+    it("should mark selected skill with status 'selected'", () => {
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: "skill1",
+            damage: 10,
+            range: 5,
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character, enemy]);
+
+      expect(result.skillEvaluations).toHaveLength(1);
+      expect(result.skillEvaluations[0]!.status).toBe("selected");
+      expect(result.selectedSkillIndex).toBe(0);
+      expect(result.skillEvaluations[0]!.target).toEqual(enemy);
+    });
+
+    it("should select first matching skill in priority order", () => {
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: "skill1",
+            damage: 10,
+            range: 5,
+            triggers: [{ type: "always" }],
+          }),
+          createSkill({
+            id: "skill2",
+            damage: 20,
+            range: 5,
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character, enemy]);
+
+      expect(result.selectedSkillIndex).toBe(0);
+      expect(result.skillEvaluations[0]!.skill.id).toBe("skill1");
+      expect(result.skillEvaluations[0]!.status).toBe("selected");
+    });
+
+    it("should select second skill when first is rejected", () => {
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { x: 10, y: 10 },
+      });
+      const character = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: "skill1",
+            damage: 10,
+            range: 1,
+            triggers: [{ type: "always" }],
+          }),
+          createSkill({
+            id: "skill2",
+            damage: 20,
+            range: 10,
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character, enemy]);
+
+      expect(result.selectedSkillIndex).toBe(1);
+      expect(result.skillEvaluations[0]!.status).toBe("rejected");
+      expect(result.skillEvaluations[0]!.rejectionReason).toBe("out_of_range");
+      expect(result.skillEvaluations[1]!.status).toBe("selected");
+    });
+  });
+
+  // ===========================================================================
+  // Section 4: Skipped Skills
+  // ===========================================================================
+  describe("skipped skills", () => {
+    it("should mark skills after selected skill as 'skipped'", () => {
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: "skill1",
+            damage: 10,
+            range: 5,
+            triggers: [{ type: "always" }],
+          }),
+          createSkill({
+            id: "skill2",
+            damage: 20,
+            range: 5,
+            triggers: [{ type: "always" }],
+          }),
+          createSkill({
+            id: "skill3",
+            damage: 30,
+            range: 5,
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character, enemy]);
+
+      expect(result.skillEvaluations).toHaveLength(3);
+      expect(result.skillEvaluations[0]!.status).toBe("selected");
+      expect(result.skillEvaluations[1]!.status).toBe("skipped");
+      expect(result.skillEvaluations[2]!.status).toBe("skipped");
+    });
+  });
+
+  // ===========================================================================
+  // Section 5: Hold Mode Special Case
+  // ===========================================================================
+  describe("hold mode", () => {
+    it("should select hold mode skill without needing a target", () => {
+      const character = createCharacter({
+        id: "char1",
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: "skill1",
+            mode: "hold",
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character]);
+
+      expect(result.skillEvaluations).toHaveLength(1);
+      expect(result.skillEvaluations[0]!.status).toBe("selected");
+      expect(result.selectedSkillIndex).toBe(0);
+    });
+  });
+
+  // ===========================================================================
+  // Section 6: No Valid Skill (Idle)
+  // ===========================================================================
+  describe("no valid skill", () => {
+    it("should return null selectedSkillIndex when no skills are valid", () => {
+      const character = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: "skill1",
+            damage: 10,
+            range: 1,
+            triggers: [{ type: "enemy_in_range", value: 1 }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character]);
+
+      expect(result.selectedSkillIndex).toBeNull();
+      expect(result.skillEvaluations[0]!.status).toBe("rejected");
+    });
+
+    it("should handle character with no skills", () => {
+      const character = createCharacter({
+        id: "char1",
+        position: { x: 5, y: 5 },
+        skills: [],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character]);
+
+      expect(result.skillEvaluations).toHaveLength(0);
+      expect(result.selectedSkillIndex).toBeNull();
+    });
+  });
+
+  // ===========================================================================
+  // Section 7: Complex Scenarios
+  // ===========================================================================
+  describe("complex scenarios", () => {
+    it("should evaluate multiple rejection reasons across skills", () => {
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { x: 10, y: 10 },
+      });
+      const character = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { x: 5, y: 5 },
+        hp: 100,
+        skills: [
+          createSkill({
+            id: "skill1",
+            damage: 10,
+            enabled: false,
+            triggers: [{ type: "always" }],
+          }),
+          createSkill({
+            id: "skill2",
+            damage: 20,
+            triggers: [{ type: "hp_below", value: 50 }],
+          }),
+          createSkill({
+            id: "skill3",
+            damage: 30,
+            range: 1,
+            triggers: [{ type: "always" }],
+          }),
+          createSkill({
+            id: "skill4",
+            damage: 40,
+            range: 10,
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character, enemy]);
+
+      expect(result.skillEvaluations).toHaveLength(4);
+      expect(result.skillEvaluations[0]!.rejectionReason).toBe("disabled");
+      expect(result.skillEvaluations[1]!.rejectionReason).toBe(
+        "trigger_failed",
+      );
+      expect(result.skillEvaluations[2]!.rejectionReason).toBe("out_of_range");
+      expect(result.skillEvaluations[3]!.status).toBe("selected");
+      expect(result.selectedSkillIndex).toBe(3);
+    });
   });
 });

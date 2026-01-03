@@ -5,64 +5,26 @@ import {
   selectNextTickDecision,
   selectCharacters,
 } from "../../stores/gameStore";
-import type { Trigger, Action, Skill, Character } from "../../engine/types";
-import { evaluateTrigger } from "../../engine/triggers";
+import type { Action, SkillEvaluationResult } from "../../engine/types";
+import { evaluateSkillsForCharacter } from "../../engine/game";
 import styles from "./RuleEvaluations.module.css";
 
 /**
- * Trigger evaluation result with pass/fail status.
+ * Format rejection reason for display.
  */
-interface TriggerEvaluationResult {
-  trigger: Trigger;
-  passed: boolean;
-}
-
-/**
- * Evaluate all triggers for a skill and return pass/fail status for each.
- */
-function evaluateSkillTriggers(
-  skill: Skill,
-  character: Character,
-  allCharacters: Character[],
-): TriggerEvaluationResult[] {
-  if (skill.triggers.length === 0) {
-    return [{ trigger: { type: "always" }, passed: true }];
-  }
-  return skill.triggers.map((trigger) => ({
-    trigger,
-    passed: evaluateTrigger(trigger, character, allCharacters),
-  }));
-}
-
-/**
- * Format a single trigger for display with pass/fail status.
- */
-function formatTrigger(trigger: Trigger, passed: boolean): string {
-  const status = passed ? " ✓" : " ✗";
-  switch (trigger.type) {
-    case "always":
-      return `always${status}`;
-    case "enemy_in_range":
-      return `enemy_in_range ${trigger.value}${status}`;
-    case "ally_in_range":
-      return `ally_in_range ${trigger.value}${status}`;
-    case "hp_below":
-      return `hp_below ${trigger.value}%${status}`;
-    case "my_cell_targeted_by_enemy":
-      return `my_cell_targeted${status}`;
+function formatRejectionReason(result: SkillEvaluationResult): string {
+  switch (result.rejectionReason) {
+    case "disabled":
+      return "[disabled]";
+    case "trigger_failed":
+      return "trigger not met";
+    case "no_target":
+      return "no target";
+    case "out_of_range":
+      return `target out of range (${result.distance} > ${result.skill.range})`;
     default:
-      return "unknown trigger";
+      return "";
   }
-}
-
-/**
- * Format trigger array for display with AND joining and pass/fail status.
- */
-function formatTriggers(evaluations: TriggerEvaluationResult[]): string {
-  if (evaluations.length === 0) return "always ✓";
-  return evaluations
-    .map((e) => formatTrigger(e.trigger, e.passed))
-    .join(" AND ");
 }
 
 /**
@@ -109,6 +71,39 @@ function formatResolutionText(action: Action, currentTick: number): string {
   }
 }
 
+/**
+ * Display mid-action state for a character.
+ */
+function MidActionDisplay({
+  characterName,
+  action,
+  currentTick,
+}: {
+  characterName: string;
+  action: Action;
+  currentTick: number;
+}) {
+  const resolutionText = formatResolutionText(action, currentTick);
+  return (
+    <div
+      className={styles.panel}
+      role="region"
+      aria-label={`Rule Evaluations: ${characterName}`}
+    >
+      <h2 className={styles.header}>Rule Evaluations: {characterName}</h2>
+      <div className={styles.nextActionSection}>
+        <h3 className={styles.sectionHeader}>Continuing Action</h3>
+        <div className={styles.nextAction}>
+          <div className={styles.actionDisplay}>
+            {formatActionDisplay(action)}
+          </div>
+          <div className={styles.actionTiming}>{resolutionText}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function RuleEvaluations() {
   const selectedCharacter = useGameStore(selectSelectedCharacter);
   const allCharacters = useGameStore(selectCharacters);
@@ -128,27 +123,42 @@ export function RuleEvaluations() {
     );
   }
 
+  // Evaluate skills for the selected character
+  const evaluation = evaluateSkillsForCharacter(
+    selectedCharacter,
+    allCharacters,
+  );
+
+  // Handle mid-action display
+  if (evaluation.isMidAction && evaluation.currentAction) {
+    return (
+      <MidActionDisplay
+        characterName={selectedCharacter.name}
+        action={evaluation.currentAction}
+        currentTick={currentTick}
+      />
+    );
+  }
+
   const actionDisplay = formatActionDisplay(nextAction);
   const resolutionText =
     nextAction && nextAction.type !== "idle"
       ? formatResolutionText(nextAction, currentTick)
       : "";
 
-  // Find index of active skill (for collapsible section)
-  const activeSkillIndex = selectedCharacter.skills.findIndex(
-    (s) => nextAction?.type !== "idle" && nextAction?.skill.id === s.id,
-  );
+  // Find index of selected skill (for collapsible section)
+  const selectedSkillIndex = evaluation.selectedSkillIndex;
 
-  // Skills up to and including active skill (always shown)
+  // Skills up to and including selected skill (always shown)
   const visibleSkills =
-    activeSkillIndex >= 0
-      ? selectedCharacter.skills.slice(0, activeSkillIndex + 1)
-      : selectedCharacter.skills;
+    selectedSkillIndex !== null
+      ? evaluation.skillEvaluations.slice(0, selectedSkillIndex + 1)
+      : evaluation.skillEvaluations;
 
-  // Skills below active skill (collapsible)
+  // Skills below selected skill (collapsible)
   const collapsedSkills =
-    activeSkillIndex >= 0
-      ? selectedCharacter.skills.slice(activeSkillIndex + 1)
+    selectedSkillIndex !== null
+      ? evaluation.skillEvaluations.slice(selectedSkillIndex + 1)
       : [];
 
   return (
@@ -167,7 +177,7 @@ export function RuleEvaluations() {
         <div className={styles.nextAction}>
           <div className={styles.actionDisplay}>{actionDisplay}</div>
           {nextAction && nextAction.type === "idle" && (
-            <div className={styles.actionNote}>No valid skill triggered</div>
+            <div className={styles.actionNote}>💤 No valid action</div>
           )}
           {nextAction && nextAction.type !== "idle" && (
             <div className={styles.actionTiming}>{resolutionText}</div>
@@ -179,27 +189,29 @@ export function RuleEvaluations() {
       <div className={styles.skillPrioritySection}>
         <h3 className={styles.sectionHeader}>Skill Priority</h3>
         <ol className={styles.skillList} role="list">
-          {visibleSkills.map((skill, index) => {
-            const isActiveSkill =
-              nextAction?.type !== "idle" && nextAction?.skill.id === skill.id;
-            const triggerEvaluations = evaluateSkillTriggers(
-              skill,
-              selectedCharacter,
-              allCharacters,
-            );
+          {visibleSkills.map((evalResult, index) => {
+            const isSelected = evalResult.status === "selected";
+            const rejectionReason =
+              evalResult.status === "rejected"
+                ? formatRejectionReason(evalResult)
+                : "";
+
             return (
               <li
-                key={skill.id}
-                className={`${styles.skillItem} ${isActiveSkill ? styles.activeSkill : ""}`}
+                key={evalResult.skill.id}
+                className={`${styles.skillItem} ${isSelected ? styles.activeSkill : ""}`}
               >
                 <div className={styles.skillName}>
-                  {index + 1}. {skill.name}{" "}
-                  {!skill.enabled && (
-                    <span className={styles.disabled}>[disabled]</span>
+                  {isSelected && (
+                    <span className={styles.selectedArrow}>→ </span>
                   )}
-                </div>
-                <div className={styles.skillTrigger}>
-                  if {formatTriggers(triggerEvaluations)}
+                  {index + 1}. {evalResult.skill.name}
+                  {rejectionReason && (
+                    <span className={styles.rejectionReason}>
+                      {" "}
+                      — {rejectionReason}
+                    </span>
+                  )}
                 </div>
               </li>
             );
@@ -216,25 +228,25 @@ export function RuleEvaluations() {
             <ol
               className={styles.skillList}
               role="list"
-              start={activeSkillIndex + 2}
+              start={(selectedSkillIndex ?? -1) + 2}
             >
-              {collapsedSkills.map((skill, index) => {
-                const absoluteIndex = activeSkillIndex + 1 + index;
-                const triggerEvaluations = evaluateSkillTriggers(
-                  skill,
-                  selectedCharacter,
-                  allCharacters,
-                );
+              {collapsedSkills.map((evalResult, index) => {
+                const absoluteIndex = (selectedSkillIndex ?? -1) + 1 + index;
+                const rejectionReason =
+                  evalResult.status === "rejected"
+                    ? formatRejectionReason(evalResult)
+                    : "";
+
                 return (
-                  <li key={skill.id} className={styles.skillItem}>
+                  <li key={evalResult.skill.id} className={styles.skillItem}>
                     <div className={styles.skillName}>
-                      {absoluteIndex + 1}. {skill.name}{" "}
-                      {!skill.enabled && (
-                        <span className={styles.disabled}>[disabled]</span>
+                      {absoluteIndex + 1}. {evalResult.skill.name}
+                      {rejectionReason && (
+                        <span className={styles.rejectionReason}>
+                          {" "}
+                          — {rejectionReason}
+                        </span>
                       )}
-                    </div>
-                    <div className={styles.skillTrigger}>
-                      if {formatTriggers(triggerEvaluations)}
                     </div>
                   </li>
                 );

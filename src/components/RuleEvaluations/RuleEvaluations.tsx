@@ -3,36 +3,66 @@ import {
   selectSelectedCharacter,
   selectTick,
   selectNextTickDecision,
+  selectCharacters,
 } from "../../stores/gameStore";
-import type { Trigger, Action } from "../../engine/types";
+import type { Trigger, Action, Skill, Character } from "../../engine/types";
+import { evaluateTrigger } from "../../engine/triggers";
 import styles from "./RuleEvaluations.module.css";
 
 /**
- * Format a single trigger for display.
+ * Trigger evaluation result with pass/fail status.
  */
-function formatTrigger(trigger: Trigger): string {
+interface TriggerEvaluationResult {
+  trigger: Trigger;
+  passed: boolean;
+}
+
+/**
+ * Evaluate all triggers for a skill and return pass/fail status for each.
+ */
+function evaluateSkillTriggers(
+  skill: Skill,
+  character: Character,
+  allCharacters: Character[],
+): TriggerEvaluationResult[] {
+  if (skill.triggers.length === 0) {
+    return [{ trigger: { type: "always" }, passed: true }];
+  }
+  return skill.triggers.map((trigger) => ({
+    trigger,
+    passed: evaluateTrigger(trigger, character, allCharacters),
+  }));
+}
+
+/**
+ * Format a single trigger for display with pass/fail status.
+ */
+function formatTrigger(trigger: Trigger, passed: boolean): string {
+  const status = passed ? " ✓" : " ✗";
   switch (trigger.type) {
     case "always":
-      return "always";
+      return `always${status}`;
     case "enemy_in_range":
-      return `enemy_in_range ${trigger.value}`;
+      return `enemy_in_range ${trigger.value}${status}`;
     case "ally_in_range":
-      return `ally_in_range ${trigger.value}`;
+      return `ally_in_range ${trigger.value}${status}`;
     case "hp_below":
-      return `hp_below ${trigger.value}%`;
+      return `hp_below ${trigger.value}%${status}`;
     case "my_cell_targeted_by_enemy":
-      return "my_cell_targeted";
+      return `my_cell_targeted${status}`;
     default:
       return "unknown trigger";
   }
 }
 
 /**
- * Format trigger array for display with AND joining.
+ * Format trigger array for display with AND joining and pass/fail status.
  */
-function formatTriggers(triggers: Trigger[]): string {
-  if (triggers.length === 0) return "always";
-  return triggers.map(formatTrigger).join(" AND ");
+function formatTriggers(evaluations: TriggerEvaluationResult[]): string {
+  if (evaluations.length === 0) return "always ✓";
+  return evaluations
+    .map((e) => formatTrigger(e.trigger, e.passed))
+    .join(" AND ");
 }
 
 /**
@@ -81,6 +111,7 @@ function formatResolutionText(action: Action, currentTick: number): string {
 
 export function RuleEvaluations() {
   const selectedCharacter = useGameStore(selectSelectedCharacter);
+  const allCharacters = useGameStore(selectCharacters);
   const currentTick = useGameStore(selectTick);
   const nextAction = useGameStore(
     selectNextTickDecision(selectedCharacter?.id ?? ""),
@@ -151,6 +182,11 @@ export function RuleEvaluations() {
           {visibleSkills.map((skill, index) => {
             const isActiveSkill =
               nextAction?.type !== "idle" && nextAction?.skill.id === skill.id;
+            const triggerEvaluations = evaluateSkillTriggers(
+              skill,
+              selectedCharacter,
+              allCharacters,
+            );
             return (
               <li
                 key={skill.id}
@@ -163,7 +199,7 @@ export function RuleEvaluations() {
                   )}
                 </div>
                 <div className={styles.skillTrigger}>
-                  if {formatTriggers(skill.triggers)}
+                  if {formatTriggers(triggerEvaluations)}
                 </div>
               </li>
             );
@@ -184,6 +220,11 @@ export function RuleEvaluations() {
             >
               {collapsedSkills.map((skill, index) => {
                 const absoluteIndex = activeSkillIndex + 1 + index;
+                const triggerEvaluations = evaluateSkillTriggers(
+                  skill,
+                  selectedCharacter,
+                  allCharacters,
+                );
                 return (
                   <li key={skill.id} className={styles.skillItem}>
                     <div className={styles.skillName}>
@@ -193,7 +234,7 @@ export function RuleEvaluations() {
                       )}
                     </div>
                     <div className={styles.skillTrigger}>
-                      if {formatTriggers(skill.triggers)}
+                      if {formatTriggers(triggerEvaluations)}
                     </div>
                   </li>
                 );

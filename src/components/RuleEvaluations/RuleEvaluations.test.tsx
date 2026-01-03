@@ -411,7 +411,7 @@ describe("RuleEvaluations", () => {
 
     render(<RuleEvaluations />);
     expect(
-      screen.getByText(/if enemy_in_range 1 AND hp_below 50%/i),
+      screen.getByText(/if enemy_in_range 1 ✗ AND hp_below 50% ✗/i),
     ).toBeInTheDocument();
   });
 
@@ -625,5 +625,242 @@ describe("RuleEvaluations", () => {
     const skillItems = container.querySelectorAll("li");
     const firstSkill = skillItems[0];
     expect(firstSkill?.className).toContain("activeSkill");
+  });
+
+  // Test 27: Single passing trigger shows ✓
+  it("should display ✓ for passing trigger", () => {
+    const target = createTarget();
+    const character = createCharacter();
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    // Light Punch has "enemy_in_range 1" and enemy is at distance 1
+    // Multiple skills may have this trigger, so use getAllByText
+    const triggers = screen.getAllByText(/if enemy_in_range 1 ✓/i);
+    expect(triggers.length).toBeGreaterThan(0);
+  });
+
+  // Test 28: Single failing trigger shows ✗
+  it("should display ✗ for failing trigger", () => {
+    const character = createCharacter();
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]); // No enemies
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    // Light Punch has "enemy_in_range 1" but no enemies
+    // Multiple skills may have this trigger, so use getAllByText
+    const triggers = screen.getAllByText(/if enemy_in_range 1 ✗/i);
+    expect(triggers.length).toBeGreaterThan(0);
+  });
+
+  // Test 29: Always trigger shows ✓
+  it("should display ✓ for always trigger", () => {
+    const character = createCharacter();
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]);
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    // Move has "always" trigger which always passes
+    expect(screen.getByText(/if always ✓/i)).toBeInTheDocument();
+  });
+
+  // Test 30: Multiple triggers show individual pass/fail status
+  it("should display individual pass/fail status for multiple triggers", () => {
+    const target = createTarget();
+    const multiTriggerSkill: Skill = {
+      id: "multi-skill",
+      name: "Complex Skill",
+      tickCost: 1,
+      range: 1,
+      damage: 10,
+      enabled: true,
+      triggers: [
+        { type: "enemy_in_range", value: 1 },
+        { type: "hp_below", value: 50 },
+      ],
+      selectorOverride: { type: "nearest_enemy" },
+    };
+    const character = createCharacter({ skills: [multiTriggerSkill] });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    // First trigger passes (enemy at range 1), second fails (HP is 100%)
+    expect(
+      screen.getByText(/enemy_in_range 1 ✓ AND hp_below 50% ✗/i),
+    ).toBeInTheDocument();
+  });
+
+  // Test 31: hp_below trigger passes when below threshold
+  it("should display ✓ for hp_below when HP is below threshold", () => {
+    const hpSkill: Skill = {
+      id: "hp-skill",
+      name: "Low HP Skill",
+      tickCost: 1,
+      range: 1,
+      damage: 10,
+      enabled: true,
+      triggers: [{ type: "hp_below", value: 50 }],
+      selectorOverride: { type: "nearest_enemy" },
+    };
+    const character = createCharacter({ skills: [hpSkill], hp: 40 });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]);
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    expect(screen.getByText(/hp_below 50% ✓/i)).toBeInTheDocument();
+  });
+
+  // Test 32: hp_below trigger fails when above threshold
+  it("should display ✗ for hp_below when HP is above threshold", () => {
+    const hpSkill: Skill = {
+      id: "hp-skill",
+      name: "Low HP Skill",
+      tickCost: 1,
+      range: 1,
+      damage: 10,
+      enabled: true,
+      triggers: [{ type: "hp_below", value: 50 }],
+      selectorOverride: { type: "nearest_enemy" },
+    };
+    const character = createCharacter({ skills: [hpSkill], hp: 100 });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]);
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    expect(screen.getByText(/hp_below 50% ✗/i)).toBeInTheDocument();
+  });
+
+  // Test 33: my_cell_targeted trigger passes when targeted
+  it("should display ✓ for my_cell_targeted when enemy targets character cell", () => {
+    const target = createTarget();
+    const targetedSkill: Skill = {
+      id: "counter-skill",
+      name: "Counter",
+      tickCost: 1,
+      range: 1,
+      damage: 15,
+      enabled: true,
+      triggers: [{ type: "my_cell_targeted_by_enemy" }],
+      selectorOverride: { type: "nearest_enemy" },
+    };
+    const character = createCharacter({
+      skills: [targetedSkill],
+      position: { x: 0, y: 0 },
+    });
+
+    // Enemy targeting character's cell
+    const enemyAction: Action = {
+      type: "attack",
+      skill: {
+        id: "enemy-attack",
+        name: "Enemy Attack",
+        tickCost: 2,
+        range: 1,
+        damage: 10,
+        enabled: true,
+        triggers: [],
+      },
+      targetCell: { x: 0, y: 0 }, // Same as character position
+      targetCharacter: character,
+      startedAtTick: 0,
+      resolvesAtTick: 1,
+    };
+
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.updateCharacter(target.id, { currentAction: enemyAction });
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    expect(screen.getByText(/my_cell_targeted ✓/i)).toBeInTheDocument();
+  });
+
+  // Test 34: my_cell_targeted trigger fails when not targeted
+  it("should display ✗ for my_cell_targeted when not targeted by enemy", () => {
+    const target = createTarget();
+    const targetedSkill: Skill = {
+      id: "counter-skill",
+      name: "Counter",
+      tickCost: 1,
+      range: 1,
+      damage: 15,
+      enabled: true,
+      triggers: [{ type: "my_cell_targeted_by_enemy" }],
+      selectorOverride: { type: "nearest_enemy" },
+    };
+    const character = createCharacter({ skills: [targetedSkill] });
+
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    expect(screen.getByText(/my_cell_targeted ✗/i)).toBeInTheDocument();
+  });
+
+  // Test 35: ally_in_range trigger passes when ally in range
+  it("should display ✓ for ally_in_range when ally is in range", () => {
+    const ally: Character = {
+      id: "ally-1",
+      name: "Ally",
+      faction: "friendly",
+      slotPosition: 1,
+      hp: 100,
+      maxHp: 100,
+      position: { x: 1, y: 0 },
+      skills: [],
+      currentAction: null,
+    };
+    const allySkill: Skill = {
+      id: "heal-skill",
+      name: "Heal",
+      tickCost: 1,
+      range: 1,
+      damage: -10, // Negative damage = healing
+      enabled: true,
+      triggers: [{ type: "ally_in_range", value: 1 }],
+      selectorOverride: { type: "nearest_ally" },
+    };
+    const character = createCharacter({
+      skills: [allySkill],
+      position: { x: 0, y: 0 },
+    });
+
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, ally]);
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    expect(screen.getByText(/ally_in_range 1 ✓/i)).toBeInTheDocument();
+  });
+
+  // Test 36: ally_in_range trigger fails when no ally in range
+  it("should display ✗ for ally_in_range when no ally in range", () => {
+    const allySkill: Skill = {
+      id: "heal-skill",
+      name: "Heal",
+      tickCost: 1,
+      range: 1,
+      damage: -10,
+      enabled: true,
+      triggers: [{ type: "ally_in_range", value: 1 }],
+      selectorOverride: { type: "nearest_ally" },
+    };
+    const character = createCharacter({ skills: [allySkill] });
+
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]); // No allies
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    expect(screen.getByText(/ally_in_range 1 ✗/i)).toBeInTheDocument();
   });
 });

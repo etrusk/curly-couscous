@@ -97,15 +97,16 @@ describe("RuleEvaluations", () => {
     ).toBeInTheDocument();
   });
 
-  // Test 3: Null action state
-  it('should show "Awaiting decision..." when currentAction is null', () => {
+  // Test 3: Idle character with no target previews idle action
+  it("should preview idle action when character has no valid targets", () => {
     const character = createCharacter({ currentAction: null });
     const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
+    actions.initBattle([character]); // No enemies, so will preview idle
     actions.selectCharacter(character.id);
 
     render(<RuleEvaluations />);
-    expect(screen.getByText(/Awaiting decision\.\.\./i)).toBeInTheDocument();
+    expect(screen.getByText(/💤 Idle/i)).toBeInTheDocument();
+    expect(screen.getByText(/No valid skill triggered/i)).toBeInTheDocument();
   });
 
   // Test 4: Idle action state
@@ -451,5 +452,178 @@ describe("RuleEvaluations", () => {
     const orderedList = container.querySelector("ol");
     expect(orderedList).toBeInTheDocument();
     expect(orderedList?.children.length).toBe(3); // 3 skills
+  });
+
+  // Test 19: Next-tick preview for idle character
+  it("should preview next action for idle character", () => {
+    const target = createTarget();
+    const character = createCharacter({ currentAction: null });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    // Character should preview Light Punch (first enabled skill with enemy in range)
+    expect(screen.getByText(/⚔️ Light Punch → Enemy1/i)).toBeInTheDocument();
+  });
+
+  // Test 20: Section header renamed to "Next Action"
+  it('should display "Next Action" section header', () => {
+    const character = createCharacter();
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]);
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    expect(
+      screen.getByRole("heading", { name: /Next Action/i }),
+    ).toBeInTheDocument();
+  });
+
+  // Test 21: Collapsible skills section with active skill
+  it("should show collapsible section for skills below active skill", () => {
+    const target = createTarget();
+    const character = createCharacter();
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+    // Light Punch is active (index 0), so Move and Heavy Punch should be collapsible
+    const details = container.querySelector("details");
+    expect(details).toBeInTheDocument();
+    expect(screen.getByText(/Show 2 more skills/i)).toBeInTheDocument();
+  });
+
+  // Test 22: No collapsible section when last skill is active
+  it("should not show collapsible section when last skill is active", () => {
+    const target = createTarget();
+    // Enable Heavy Punch and make it trigger
+    const skills: Skill[] = [
+      {
+        id: "light-punch",
+        name: "Light Punch",
+        tickCost: 1,
+        range: 1,
+        damage: 10,
+        enabled: false, // Disabled
+        triggers: [{ type: "enemy_in_range", value: 1 }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+      {
+        id: "move",
+        name: "Move",
+        tickCost: 1,
+        range: 0,
+        mode: "towards",
+        enabled: false, // Disabled
+        triggers: [{ type: "always" }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+      {
+        id: "heavy-punch",
+        name: "Heavy Punch",
+        tickCost: 2,
+        range: 1,
+        damage: 25,
+        enabled: true, // Only this enabled
+        triggers: [{ type: "enemy_in_range", value: 1 }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+    ];
+    const character = createCharacter({ skills });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+    // Heavy Punch is active and last skill, so no collapsible section
+    const details = container.querySelector("details");
+    expect(details).not.toBeInTheDocument();
+  });
+
+  // Test 23: Collapsible section correct skill count text
+  it("should display singular 'skill' for one collapsed skill", () => {
+    const target = createTarget();
+    // Only 2 skills total, first active
+    const skills: Skill[] = [
+      {
+        id: "light-punch",
+        name: "Light Punch",
+        tickCost: 1,
+        range: 1,
+        damage: 10,
+        enabled: true,
+        triggers: [{ type: "enemy_in_range", value: 1 }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+      {
+        id: "move",
+        name: "Move",
+        tickCost: 1,
+        range: 0,
+        mode: "towards",
+        enabled: true,
+        triggers: [{ type: "always" }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+    ];
+    const character = createCharacter({ skills });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    // Only 1 skill below active, should be singular "skill"
+    expect(screen.getByText(/Show 1 more skill$/i)).toBeInTheDocument();
+  });
+
+  // Test 24: Collapsible section uses native <details> element
+  it("should use native <details> element for accessibility", () => {
+    const target = createTarget();
+    const character = createCharacter();
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+    const details = container.querySelector("details");
+    expect(details).toBeInTheDocument();
+    const summary = details?.querySelector("summary");
+    expect(summary).toBeInTheDocument();
+  });
+
+  // Test 25: Correct skill numbering in collapsed section
+  it("should maintain correct numbering for collapsed skills", () => {
+    const target = createTarget();
+    const character = createCharacter();
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+    // Open the details element
+    const details = container.querySelector("details");
+    expect(details).toBeInTheDocument();
+
+    // Check that the collapsed list has correct start attribute
+    const collapsedList = details?.querySelector("ol");
+    expect(collapsedList).toBeInTheDocument();
+    expect(collapsedList?.getAttribute("start")).toBe("2"); // activeSkillIndex + 2
+  });
+
+  // Test 26: Active skill highlighting with next-tick preview
+  it("should highlight active skill based on next-tick preview", () => {
+    const target = createTarget();
+    const character = createCharacter({ currentAction: null });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+    // Light Punch should be active (first skill with enemy in range)
+    const skillItems = container.querySelectorAll("li");
+    const firstSkill = skillItems[0];
+    expect(firstSkill?.className).toContain("activeSkill");
   });
 });

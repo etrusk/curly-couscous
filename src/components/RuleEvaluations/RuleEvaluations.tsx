@@ -2,6 +2,7 @@ import {
   useGameStore,
   selectSelectedCharacter,
   selectTick,
+  selectNextTickDecision,
 } from "../../stores/gameStore";
 import type { Trigger, Action } from "../../engine/types";
 import styles from "./RuleEvaluations.module.css";
@@ -81,6 +82,9 @@ function formatResolutionText(action: Action, currentTick: number): string {
 export function RuleEvaluations() {
   const selectedCharacter = useGameStore(selectSelectedCharacter);
   const currentTick = useGameStore(selectTick);
+  const nextAction = useGameStore(
+    selectNextTickDecision(selectedCharacter?.id ?? ""),
+  );
 
   if (!selectedCharacter) {
     return (
@@ -93,12 +97,28 @@ export function RuleEvaluations() {
     );
   }
 
-  const { currentAction } = selectedCharacter;
-  const actionDisplay = formatActionDisplay(currentAction);
+  const actionDisplay = formatActionDisplay(nextAction);
   const resolutionText =
-    currentAction && currentAction.type !== "idle"
-      ? formatResolutionText(currentAction, currentTick)
+    nextAction && nextAction.type !== "idle"
+      ? formatResolutionText(nextAction, currentTick)
       : "";
+
+  // Find index of active skill (for collapsible section)
+  const activeSkillIndex = selectedCharacter.skills.findIndex(
+    (s) => nextAction?.type !== "idle" && nextAction?.skill.id === s.id,
+  );
+
+  // Skills up to and including active skill (always shown)
+  const visibleSkills =
+    activeSkillIndex >= 0
+      ? selectedCharacter.skills.slice(0, activeSkillIndex + 1)
+      : selectedCharacter.skills;
+
+  // Skills below active skill (collapsible)
+  const collapsedSkills =
+    activeSkillIndex >= 0
+      ? selectedCharacter.skills.slice(activeSkillIndex + 1)
+      : [];
 
   return (
     <div
@@ -110,15 +130,15 @@ export function RuleEvaluations() {
         Rule Evaluations: {selectedCharacter.name}
       </h2>
 
-      {/* Current Action Section */}
-      <div className={styles.currentActionSection}>
-        <h3 className={styles.sectionHeader}>Current Action</h3>
-        <div className={styles.currentAction}>
+      {/* Next Action Section */}
+      <div className={styles.nextActionSection}>
+        <h3 className={styles.sectionHeader}>Next Action</h3>
+        <div className={styles.nextAction}>
           <div className={styles.actionDisplay}>{actionDisplay}</div>
-          {currentAction && currentAction.type === "idle" && (
+          {nextAction && nextAction.type === "idle" && (
             <div className={styles.actionNote}>No valid skill triggered</div>
           )}
-          {currentAction && currentAction.type !== "idle" && (
+          {nextAction && nextAction.type !== "idle" && (
             <div className={styles.actionTiming}>{resolutionText}</div>
           )}
         </div>
@@ -128,10 +148,9 @@ export function RuleEvaluations() {
       <div className={styles.skillPrioritySection}>
         <h3 className={styles.sectionHeader}>Skill Priority</h3>
         <ol className={styles.skillList} role="list">
-          {selectedCharacter.skills.map((skill, index) => {
+          {visibleSkills.map((skill, index) => {
             const isActiveSkill =
-              currentAction?.type !== "idle" &&
-              currentAction?.skill.id === skill.id;
+              nextAction?.type !== "idle" && nextAction?.skill.id === skill.id;
             return (
               <li
                 key={skill.id}
@@ -150,6 +169,38 @@ export function RuleEvaluations() {
             );
           })}
         </ol>
+
+        {/* Collapsible lower-priority skills */}
+        {collapsedSkills.length > 0 && (
+          <details className={styles.collapsedSkills}>
+            <summary className={styles.collapsedSummary}>
+              Show {collapsedSkills.length} more skill
+              {collapsedSkills.length > 1 ? "s" : ""}
+            </summary>
+            <ol
+              className={styles.skillList}
+              role="list"
+              start={activeSkillIndex + 2}
+            >
+              {collapsedSkills.map((skill, index) => {
+                const absoluteIndex = activeSkillIndex + 1 + index;
+                return (
+                  <li key={skill.id} className={styles.skillItem}>
+                    <div className={styles.skillName}>
+                      {absoluteIndex + 1}. {skill.name}{" "}
+                      {!skill.enabled && (
+                        <span className={styles.disabled}>[disabled]</span>
+                      )}
+                    </div>
+                    <div className={styles.skillTrigger}>
+                      if {formatTriggers(skill.triggers)}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </details>
+        )}
       </div>
     </div>
   );

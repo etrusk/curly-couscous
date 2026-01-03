@@ -5,7 +5,10 @@
 
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { processTick as engineProcessTick } from "../engine/game";
+import {
+  processTick as engineProcessTick,
+  computeDecisions,
+} from "../engine/game";
 import type {
   GameState,
   Character,
@@ -386,3 +389,37 @@ export const selectSelectedCharacter = (
   state: GameStore,
 ): Character | undefined =>
   state.gameState.characters.find((c) => c.id === state.selectedCharacterId);
+
+// ============================================================================
+// RuleEvaluations Selectors
+// ============================================================================
+
+/**
+ * Preview what action a character will take next tick.
+ *
+ * If the character has a currentAction (mid-action), returns that.
+ * If the character is idle, uses computeDecisions() to preview their next decision.
+ *
+ * Used by RuleEvaluations to show "Next Action" preview.
+ *
+ * @param characterId - ID of character to preview
+ * @returns Action the character will take, or null if character not found
+ */
+export const selectNextTickDecision =
+  (characterId: string) =>
+  (state: GameStore): Action | null => {
+    const character = state.gameState.characters.find(
+      (c) => c.id === characterId,
+    );
+    if (!character) return null;
+
+    // If character has current action, that's what they'll do next
+    if (character.currentAction !== null) {
+      return character.currentAction;
+    }
+
+    // Character is idle - preview what they would decide
+    const decisions = computeDecisions(state.gameState);
+    const decision = decisions.find((d) => d.characterId === characterId);
+    return decision?.action ?? null;
+  };

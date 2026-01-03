@@ -31,7 +31,12 @@
   font-size: 0.875rem;
 }
 
-/* Current Action Section */
+/* Next Action Section */
+.nextActionSection {
+  margin-top: 0.5rem;
+}
+
+/* Legacy class name for backward compatibility */
 .currentActionSection {
   margin-top: 0.5rem;
 }
@@ -45,6 +50,14 @@
   letter-spacing: 0.05em;
 }
 
+.nextAction {
+  padding: 0.75rem;
+  background-color: var(--surface-secondary);
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+}
+
+/* Legacy class name for backward compatibility */
 .currentAction {
   padding: 0.75rem;
   background-color: var(--surface-secondary);

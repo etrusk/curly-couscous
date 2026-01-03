@@ -11,6 +11,7 @@
   padding: 1rem;
   background-color: var(--surface-primary);
   height: 100%;
+  overflow-y: auto;
 }
 
 .header {
@@ -30,9 +31,101 @@
   font-size: 0.875rem;
 }
 
+/* Current Action Section */
+.currentActionSection {
+  margin-top: 0.5rem;
+}
+
+.sectionHeader {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--content-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.currentAction {
+  padding: 0.75rem;
+  background-color: var(--surface-secondary);
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+}
+
+.actionDisplay {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--content-primary);
+  margin-bottom: 0.25rem;
+}
+
+.actionNote {
+  font-size: 0.75rem;
+  color: var(--content-muted);
+  font-style: italic;
+}
+
+.actionTiming {
+  font-size: 0.75rem;
+  color: var(--content-secondary);
+  margin-top: 0.25rem;
+}
+
+/* Skill Priority Section */
+.skillPrioritySection {
+  margin-top: 1rem;
+}
+
+.skillList {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style: none;
+  counter-reset: skill-counter;
+}
+
+.skillItem {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  background-color: var(--surface-secondary);
+  border-radius: 4px;
+  border-left: 3px solid var(--border-default);
+}
+
+.activeSkill {
+  border-left-color: var(--faction-friendly);
+  background-color: var(--faction-friendly-bg);
+}
+
+.skillName {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--content-primary);
+  margin-bottom: 0.25rem;
+}
+
+.skillTrigger {
+  font-size: 0.75rem;
+  color: var(--content-secondary);
+  font-family: monospace;
+}
+
+.disabled {
+  color: var(--content-muted);
+  font-weight: 400;
+  font-style: italic;
+}
+
 /* High contrast mode support (planned for Phase 5) */
 @media (prefers-contrast: high) {
   .panel {
     border-width: 3px;
+  }
+
+  .currentAction {
+    border-width: 2px;
+  }
+
+  .skillItem {
+    border-left-width: 4px;
   }
 }

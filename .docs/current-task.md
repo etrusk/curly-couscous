@@ -30,5 +30,4 @@ UI layout improvements complete. Controls positioned under battle grid, side pan
 
 ## Next Steps
 
-- Skills Panel: Sentence-builder UI for skill configuration
-- Future theming system: Configurable colors, UI scale, high contrast mode, persistence (deferred from Phase 5)
+- Rule Evaluations panel

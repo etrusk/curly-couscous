@@ -53,7 +53,9 @@ describe("SkillsPanel", () => {
     it("should display 'No character selected' message when no character is selected", () => {
       render(<SkillsPanel />);
 
-      expect(screen.getByText(/no character selected/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/click a character on the grid to configure skills/i),
+      ).toBeInTheDocument();
     });
 
     it("should not display any skill controls when no character is selected", () => {

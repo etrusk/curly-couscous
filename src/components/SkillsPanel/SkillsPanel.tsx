@@ -19,7 +19,9 @@ export function SkillsPanel() {
     return (
       <div className={styles.panel}>
         <h2 className={styles.header}>Skills & Priority</h2>
-        <p className={styles.placeholder}>No character selected</p>
+        <p className={styles.placeholder}>
+          Click a character on the grid to configure skills
+        </p>
       </div>
     );
   }

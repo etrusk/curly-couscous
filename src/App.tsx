@@ -59,7 +59,7 @@ function App() {
         hp: 100,
         maxHp: 100,
         position: { x: 2, y: 2 },
-        skills: [lightPunch],
+        skills: [lightPunch, heavyPunch, moveTowards],
         currentAction: null, // Will be set manually below
       },
       {
@@ -70,7 +70,7 @@ function App() {
         hp: 50,
         maxHp: 100,
         position: { x: 3, y: 5 },
-        skills: [moveTowards],
+        skills: [lightPunch, heavyPunch, moveTowards],
         currentAction: null, // Will be set manually below
       },
       {
@@ -81,7 +81,7 @@ function App() {
         hp: 20,
         maxHp: 100,
         position: { x: 1, y: 8 },
-        skills: [],
+        skills: [lightPunch, heavyPunch, moveTowards],
         currentAction: null,
       },
       // Enemy characters (diamonds)
@@ -93,7 +93,7 @@ function App() {
         hp: 100,
         maxHp: 100,
         position: { x: 9, y: 2 },
-        skills: [heavyPunch],
+        skills: [lightPunch, heavyPunch, moveTowards],
         currentAction: null, // Will be set manually below
       },
       {
@@ -104,7 +104,7 @@ function App() {
         hp: 75,
         maxHp: 100,
         position: { x: 8, y: 6 },
-        skills: [moveTowards],
+        skills: [lightPunch, heavyPunch, moveTowards],
         currentAction: null, // Will be set manually below
       },
       {
@@ -115,7 +115,7 @@ function App() {
         hp: 30,
         maxHp: 100,
         position: { x: 10, y: 9 },
-        skills: [],
+        skills: [lightPunch, heavyPunch, moveTowards],
         currentAction: null,
       },
     ];
@@ -180,13 +180,13 @@ function App() {
         <h1>Auto Battler</h1>
         <ThemeToggle />
       </div>
-      <div className="controls">
-        <BattleStatusBadge />
-        <PlayControls />
-      </div>
       <div className="gridContainer">
         <div className="battleViewer">
           <BattleViewer />
+        </div>
+        <div className="controls">
+          <BattleStatusBadge />
+          <PlayControls />
         </div>
         <div className="skillsPanel">
           <SkillsPanel />

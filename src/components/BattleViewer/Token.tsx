@@ -4,6 +4,11 @@
  */
 
 import type { Faction } from "../../engine/types";
+import {
+  useGameStore,
+  selectSelectedCharacterId,
+  selectActions,
+} from "../../stores/gameStore";
 import styles from "./Token.module.css";
 
 export interface TokenProps {
@@ -24,6 +29,30 @@ const HP_BAR_Y = TOKEN_SIZE + 2; // Below the token
  * Token component renders character as faction-specific shape with HP bar.
  */
 export function Token({ id, faction, hp, maxHp }: TokenProps) {
+  // Selection state and actions
+  const selectedCharacterId = useGameStore(selectSelectedCharacterId);
+  const { selectCharacter } = useGameStore(selectActions);
+  const isSelected = selectedCharacterId === id;
+
+  // Click handler for selection
+  const handleClick = () => {
+    if (isSelected) {
+      // Toggle off if already selected
+      selectCharacter(null);
+    } else {
+      // Select this character
+      selectCharacter(id);
+    }
+  };
+
+  // Keyboard handler for accessibility
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      handleClick();
+      e.preventDefault();
+    }
+  };
+
   // Use CSS variables for faction colors (theme-aware)
   const factionColorVar =
     faction === "friendly" ? "var(--faction-friendly)" : "var(--faction-enemy)";
@@ -39,17 +68,26 @@ export function Token({ id, faction, hp, maxHp }: TokenProps) {
   const factionLabel = faction.charAt(0).toUpperCase() + faction.slice(1);
   const ariaLabel = `${factionLabel} character, ${hp} of ${maxHp} HP`;
 
+  // Apply selected class when this token is selected
+  const className = isSelected
+    ? `${styles.token} ${styles.selected}`
+    : styles.token;
+
   return (
     <svg
-      className={styles.token}
+      className={className}
       width={TOKEN_SIZE}
       height={TOKEN_SIZE + HP_BAR_HEIGHT + 4}
       viewBox={`0 0 ${TOKEN_SIZE} ${TOKEN_SIZE + HP_BAR_HEIGHT + 4}`}
       data-testid={`token-${id}`}
       role="img"
       aria-label={ariaLabel}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      tabIndex={0}
     >
       {/* Pattern definition for enemy diagonal stripes (colorblind support) */}
+      {/* Pattern ID is simple because tokens render in separate SVG DOM subtrees */}
       {faction === "enemy" && (
         <defs>
           <pattern

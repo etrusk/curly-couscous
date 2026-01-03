@@ -30,6 +30,113 @@
   font-size: 0.875rem;
 }
 
+.skillsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+.skillRow {
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 0.75rem;
+  background-color: var(--surface-secondary);
+}
+
+.skillHeader {
+  margin-bottom: 0.5rem;
+}
+
+.enabledCheckbox {
+  cursor: pointer;
+}
+
+.enabledCheckbox:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.enabledLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.enabledLabel h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--content-primary);
+}
+
+.skillControls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-left: 1.5rem;
+}
+
+.controlRow {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.controlRow label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--content-secondary);
+}
+
+.controlRow select,
+.controlRow input[type="number"] {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background-color: var(--surface-primary);
+  color: var(--content-primary);
+  font-size: 0.875rem;
+}
+
+.controlRow select:focus-visible,
+.controlRow input[type="number"]:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.controlRow input[type="number"] {
+  width: 4rem;
+}
+
+.priorityButtons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.priorityButtons button {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background-color: var(--surface-primary);
+  color: var(--content-primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.priorityButtons button:hover:not(:disabled) {
+  background-color: var(--surface-secondary);
+}
+
+.priorityButtons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* High contrast mode support (planned for Phase 5) */
 @media (prefers-contrast: high) {
   .panel {

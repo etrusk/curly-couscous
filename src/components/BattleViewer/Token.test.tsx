@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { Token } from "./Token";
+import { useGameStore } from "../../stores/gameStore";
 
 describe("Token", () => {
   describe("Shape Rendering", () => {
@@ -126,6 +127,67 @@ describe("Token", () => {
       const pattern = svg.querySelector("pattern");
       expect(pattern).toBeInTheDocument();
       expect(pattern).toHaveAttribute("id", "stripe-enemy");
+    });
+  });
+
+  describe("Token Click Selection", () => {
+    it("should call selectCharacter when token is clicked", async () => {
+      const { userEvent } = await import("@testing-library/user-event");
+      const user = userEvent.setup();
+
+      render(<Token id="char-1" faction="friendly" hp={100} maxHp={100} />);
+
+      const token = screen.getByTestId("token-char-1");
+      await user.click(token);
+
+      // After implementation, should select the character
+      const { useGameStore } = await import("../../stores/gameStore");
+      expect(useGameStore.getState().selectedCharacterId).toBe("char-1");
+    });
+
+    it("should apply selected styling when character is selected", () => {
+      // Set up selected character
+      useGameStore.setState({ selectedCharacterId: "char-1" });
+
+      render(<Token id="char-1" faction="friendly" hp={100} maxHp={100} />);
+
+      const token = screen.getByTestId("token-char-1");
+      // Should have selected class/styling (SVG className is an object, use classList)
+      expect(
+        token.classList.contains("selected") ||
+          token.getAttribute("class")?.includes("selected"),
+      ).toBe(true);
+    });
+
+    it("should not apply selected styling when different character is selected", () => {
+      // Set up different character selected
+      useGameStore.setState({ selectedCharacterId: "other-char" });
+
+      render(<Token id="char-1" faction="friendly" hp={100} maxHp={100} />);
+
+      const token = screen.getByTestId("token-char-1");
+      // Should not have selected class
+      expect(
+        token.classList.contains("selected") ||
+          token.getAttribute("class")?.includes("selected"),
+      ).toBe(false);
+    });
+
+    it("should toggle selection when clicking already selected token", async () => {
+      const { userEvent } = await import("@testing-library/user-event");
+      const user = userEvent.setup();
+      const { useGameStore } = await import("../../stores/gameStore");
+
+      // Set up token as already selected
+      useGameStore.setState({ selectedCharacterId: "char-1" });
+
+      render(<Token id="char-1" faction="friendly" hp={100} maxHp={100} />);
+
+      const token = screen.getByTestId("token-char-1");
+      await user.click(token);
+
+      // After implementation, should deselect (set to null)
+      expect(useGameStore.getState().selectedCharacterId).toBeNull();
     });
   });
 });

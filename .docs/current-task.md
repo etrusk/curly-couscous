@@ -6,12 +6,13 @@
 
 ## Current Focus
 
-Theming system foundation complete. Dark mode (default), light mode, high-contrast mode with localStorage persistence and system preference detection. 411 tests passing. Ready for CSS module migration to theme tokens.
+SkillsPanel 80/20 prototype complete. Token click-to-select with keyboard accessibility, skill configuration UI with dropdowns, priority reordering. 461 tests passing.
 
 ## Recent Completions
 
 <!-- Prune when >10 items or too long. Older completions live in git history. -->
 
+- 2026-01-02: SkillsPanel 80/20 prototype - Token click-to-select (keyboard accessible), skill configuration UI (trigger/selector/mode dropdowns), priority reordering (up/down buttons), store actions (selectCharacter, updateSkill, moveSkillUp/Down), 50 new tests, 461 total tests
 - 2026-01-02: Theming system foundation - Dark (default), light, high-contrast modes with localStorage + system preference, ThemeToggle component, 30 new tests, 411 total tests
   - **Files created**: accessibilityStore.ts, theme.css, ThemeToggle component, 4 test files
   - **Architecture**: Zustand store, CSS custom properties (--surface-_, --content-_), Okabe-Ito colors preserved

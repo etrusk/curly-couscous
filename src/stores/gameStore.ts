@@ -14,6 +14,7 @@ import type {
   Position,
   Faction,
   Action,
+  Skill,
 } from "../engine/types";
 
 // ============================================================================
@@ -28,6 +29,9 @@ interface GameStore {
   initialCharacters: Character[];
   initialSeed: number;
   initialRngState: number;
+
+  // UI state
+  selectedCharacterId: string | null;
 
   // Actions to mutate state
   actions: {
@@ -48,6 +52,18 @@ interface GameStore {
 
     // Reset battle to initial state
     reset: () => void;
+
+    // Character selection
+    selectCharacter: (id: string | null) => void;
+
+    // Skill management
+    updateSkill: (
+      charId: string,
+      skillId: string,
+      updates: Partial<Skill>,
+    ) => void;
+    moveSkillUp: (charId: string, skillIndex: number) => void;
+    moveSkillDown: (charId: string, skillIndex: number) => void;
   };
 }
 
@@ -76,6 +92,7 @@ export const useGameStore = create<GameStore>()(
     initialCharacters: [],
     initialSeed: 0,
     initialRngState: 0,
+    selectedCharacterId: null,
 
     // Actions
     actions: {
@@ -145,6 +162,8 @@ export const useGameStore = create<GameStore>()(
         set((state) => {
           // Immer handles immutability - just assign from initial state
           // Deep copy using JSON for characters to avoid shared references
+          // Note: JSON.parse(JSON.stringify()) is used here instead of structuredClone
+          // because Immer wraps state in Proxy objects that structuredClone cannot handle
           const restoredCharacters = JSON.parse(
             JSON.stringify(state.initialCharacters),
           ) as Character[];
@@ -159,6 +178,62 @@ export const useGameStore = create<GameStore>()(
             seed: state.initialSeed,
             rngState: state.initialRngState,
           };
+        }),
+
+      selectCharacter: (id) =>
+        set((state) => {
+          state.selectedCharacterId = id;
+        }),
+
+      updateSkill: (charId, skillId, updates) =>
+        set((state) => {
+          const character = state.gameState.characters.find(
+            (c) => c.id === charId,
+          );
+          if (character) {
+            const skill = character.skills.find((s) => s.id === skillId);
+            if (skill) {
+              Object.assign(skill, updates);
+            }
+          }
+        }),
+
+      moveSkillUp: (charId, skillIndex) =>
+        set((state) => {
+          const character = state.gameState.characters.find(
+            (c) => c.id === charId,
+          );
+          if (
+            character &&
+            skillIndex > 0 &&
+            skillIndex < character.skills.length
+          ) {
+            // Array destructuring swap - bounds check ensures elements exist
+            const skills = character.skills;
+            const a = skills[skillIndex]!;
+            const b = skills[skillIndex - 1]!;
+            skills[skillIndex - 1] = a;
+            skills[skillIndex] = b;
+          }
+        }),
+
+      moveSkillDown: (charId, skillIndex) =>
+        set((state) => {
+          const character = state.gameState.characters.find(
+            (c) => c.id === charId,
+          );
+          if (
+            character &&
+            skillIndex >= 0 &&
+            skillIndex < character.skills.length - 1
+          ) {
+            // Array destructuring swap - bounds check ensures elements exist
+            const skills = character.skills;
+            const a = skills[skillIndex]!;
+            const b = skills[skillIndex + 1]!;
+            skills[skillIndex] = b;
+            skills[skillIndex + 1] = a;
+          }
         }),
     },
   })),
@@ -293,3 +368,21 @@ export const selectRecentDamageEvents = (state: GameStore): DamageEvent[] => {
     (e): e is DamageEvent => e.type === "damage" && e.tick === tick,
   );
 };
+
+// ============================================================================
+// SkillsPanel Selectors
+// ============================================================================
+
+/**
+ * Select currently selected character ID.
+ */
+export const selectSelectedCharacterId = (state: GameStore): string | null =>
+  state.selectedCharacterId;
+
+/**
+ * Select currently selected character.
+ */
+export const selectSelectedCharacter = (
+  state: GameStore,
+): Character | undefined =>
+  state.gameState.characters.find((c) => c.id === state.selectedCharacterId);

@@ -6,6 +6,12 @@
 .token {
   display: block;
   pointer-events: auto;
+  cursor: pointer;
+}
+
+/* Selected state */
+.selected {
+  filter: drop-shadow(0 0 4px var(--accent-primary));
 }
 
 /* Character shape styling */
@@ -15,6 +21,7 @@
 
 .token:hover .shape {
   opacity: 0.9;
+  /* Filter applied on nested element - acceptable for hover effects */
   filter: brightness(1.1);
 }
 

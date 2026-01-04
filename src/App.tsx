@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { BattleViewer } from "./components/BattleViewer";
 import { PlayControls } from "./components/PlayControls";
 import { BattleStatusBadge } from "./components/BattleStatus";
-import { EventLog } from "./components/EventLog";
 import { SkillsPanel } from "./components/SkillsPanel";
 import { RuleEvaluations } from "./components/RuleEvaluations";
 import { ThemeToggle } from "./components/ThemeToggle";
@@ -193,9 +192,6 @@ function App() {
         </div>
         <div className="ruleEvaluations">
           <RuleEvaluations />
-        </div>
-        <div className="eventLog">
-          <EventLog />
         </div>
       </div>
     </div>

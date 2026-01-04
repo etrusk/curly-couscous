@@ -36,6 +36,18 @@ Rules change completely:
 
 Focus on answering the question.
 
+### 3a. Human Verification Protocol (for multi-option spikes)
+
+When exploring multiple approaches:
+
+1. **After each option**: Use `ask_followup_question` to show the result and ask human to verify
+   - Include screenshot or description of visual result
+   - Note any issues or trade-offs observed
+2. **After all options explored**: Present comparison and ask human to select preferred approach
+   - List all approaches tried with pros/cons
+   - Recommend best option with rationale
+   - Wait for human selection before proceeding
+
 ### 4. Capture (3-5 bullets in `.docs/current-task.md`)
 
 ```markdown

@@ -21,6 +21,108 @@ import type {
 } from "../engine/types";
 
 // ============================================================================
+// Default Skills and Character Counter
+// ============================================================================
+
+/**
+ * Counter for generating unique character IDs.
+ * Format: ${faction}-${timestamp}-${counter}
+ */
+let characterIdCounter = 0;
+
+/**
+ * Default skills assigned to newly added characters.
+ */
+const DEFAULT_SKILLS: Skill[] = [
+  {
+    id: "light-punch",
+    name: "Light Punch",
+    tickCost: 1,
+    range: 1,
+    damage: 10,
+    enabled: true,
+    triggers: [{ type: "always" }],
+    selectorOverride: { type: "nearest_enemy" },
+  },
+  {
+    id: "heavy-punch",
+    name: "Heavy Punch",
+    tickCost: 2,
+    range: 2,
+    damage: 25,
+    enabled: true,
+    triggers: [{ type: "always" }],
+    selectorOverride: { type: "nearest_enemy" },
+  },
+  {
+    id: "move-towards",
+    name: "Move Towards",
+    tickCost: 1,
+    range: 1,
+    mode: "towards",
+    enabled: true,
+    triggers: [{ type: "always" }],
+    selectorOverride: { type: "nearest_enemy" },
+  },
+];
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Find the first unoccupied position on the grid (row-major order).
+ * @param characters - Current characters on the grid
+ * @returns Position if available, null if grid is full
+ */
+function findNextAvailablePosition(characters: Character[]): Position | null {
+  const occupiedPositions = new Set(
+    characters.map((c) => `${c.position.x},${c.position.y}`),
+  );
+
+  for (let y = 0; y < 12; y++) {
+    for (let x = 0; x < 12; x++) {
+      const key = `${x},${y}`;
+      if (!occupiedPositions.has(key)) {
+        return { x, y };
+      }
+    }
+  }
+
+  return null; // Grid is full
+}
+
+/**
+ * Calculate battle status for mid-battle/post-removal scenarios.
+ * @param characters - Current characters
+ * @returns Battle status
+ */
+function calculateBattleStatus(
+  characters: Character[],
+): "active" | "victory" | "defeat" | "draw" {
+  const hasFriendly = characters.some((c) => c.faction === "friendly");
+  const hasEnemy = characters.some((c) => c.faction === "enemy");
+
+  if (!hasFriendly && !hasEnemy) return "draw";
+  if (!hasEnemy) return "victory";
+  if (!hasFriendly) return "defeat";
+  return "active";
+}
+
+/**
+ * Calculate battle status for pre-battle setup (addCharacter).
+ * Requires both factions for "active", otherwise "draw".
+ * @param characters - Current characters
+ * @returns Battle status
+ */
+function calculatePreBattleStatus(characters: Character[]): "active" | "draw" {
+  const hasFriendly = characters.some((c) => c.faction === "friendly");
+  const hasEnemy = characters.some((c) => c.faction === "enemy");
+
+  return hasFriendly && hasEnemy ? "active" : "draw";
+}
+
+// ============================================================================
 // Store State Type
 // ============================================================================
 
@@ -35,6 +137,9 @@ interface GameStore {
 
   // UI state
   selectedCharacterId: string | null;
+
+  // Selectors
+  selectIsGridFull: () => boolean;
 
   // Actions to mutate state
   actions: {
@@ -67,6 +172,10 @@ interface GameStore {
     ) => void;
     moveSkillUp: (charId: string, skillIndex: number) => void;
     moveSkillDown: (charId: string, skillIndex: number) => void;
+
+    // Character add/remove
+    addCharacter: (faction: Faction) => boolean;
+    removeCharacter: (id: string) => void;
   };
 }
 
@@ -89,13 +198,16 @@ const initialGameState: GameState = {
 // ============================================================================
 
 export const useGameStore = create<GameStore>()(
-  immer((set) => ({
+  immer((set, get) => ({
     // Initial state
     gameState: initialGameState,
     initialCharacters: [],
     initialSeed: 0,
     initialRngState: 0,
     selectedCharacterId: null,
+
+    // Selectors
+    selectIsGridFull: () => get().gameState.characters.length >= 144,
 
     // Actions
     actions: {
@@ -237,6 +349,82 @@ export const useGameStore = create<GameStore>()(
             skills[skillIndex] = b;
             skills[skillIndex + 1] = a;
           }
+        }),
+
+      addCharacter: (faction) => {
+        let success = false;
+        set((state) => {
+          // Check if grid is full
+          if (state.gameState.characters.length >= 144) {
+            success = false;
+            return;
+          }
+
+          // Find next available position
+          const position = findNextAvailablePosition(
+            state.gameState.characters,
+          );
+          if (!position) {
+            success = false;
+            return;
+          }
+
+          // Generate unique ID
+          const id = `${faction}-${Date.now()}-${characterIdCounter++}`;
+
+          // Determine slotPosition (next sequential number)
+          const slotPosition = state.gameState.characters.length;
+
+          // Create new character
+          const newCharacter: Character = {
+            id,
+            name: `${faction === "friendly" ? "Friendly" : "Enemy"} ${slotPosition + 1}`,
+            faction,
+            slotPosition,
+            hp: 100,
+            maxHp: 100,
+            position,
+            skills: structuredClone(DEFAULT_SKILLS),
+            currentAction: null,
+          };
+
+          // Add to gameState
+          state.gameState.characters.push(newCharacter);
+
+          // Add to initialCharacters
+          state.initialCharacters.push(structuredClone(newCharacter));
+
+          // Recalculate battleStatus (pre-battle setup)
+          state.gameState.battleStatus = calculatePreBattleStatus(
+            state.gameState.characters,
+          );
+
+          success = true;
+        });
+        return success;
+      },
+
+      removeCharacter: (id) =>
+        set((state) => {
+          // Remove from gameState.characters
+          state.gameState.characters = state.gameState.characters.filter(
+            (c) => c.id !== id,
+          );
+
+          // Remove from initialCharacters
+          state.initialCharacters = state.initialCharacters.filter(
+            (c) => c.id !== id,
+          );
+
+          // Clear selectedCharacterId if removed character was selected
+          if (state.selectedCharacterId === id) {
+            state.selectedCharacterId = null;
+          }
+
+          // Recalculate battleStatus
+          state.gameState.battleStatus = calculateBattleStatus(
+            state.gameState.characters,
+          );
         }),
     },
   })),
@@ -423,3 +611,14 @@ export const selectNextTickDecision =
     const decision = decisions.find((d) => d.characterId === characterId);
     return decision?.action ?? null;
   };
+
+// ============================================================================
+// CharacterControls Selectors
+// ============================================================================
+
+/**
+ * Check if grid is full (144 characters).
+ * Used by CharacterControls to disable add buttons.
+ */
+export const selectIsGridFull = (state: GameStore): boolean =>
+  state.gameState.characters.length >= 144;

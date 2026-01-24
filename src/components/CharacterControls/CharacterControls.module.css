@@ -1,0 +1,42 @@
+/**
+ * Styles for CharacterControls component.
+ */
+
+.characterControls {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: var(--surface-secondary);
+  border-radius: 4px;
+}
+
+.characterControls button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--content-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  background-color: var(--surface-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.characterControls button:hover:not(:disabled) {
+  background-color: var(--interactive-hover);
+  border-color: var(--border-default);
+}
+
+.characterControls button:active:not(:disabled) {
+  background-color: var(--interactive-hover);
+}
+
+.characterControls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.characterControls button:focus-visible {
+  outline: 2px solid var(--interactive-focus);
+  outline-offset: 2px;
+}

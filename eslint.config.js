@@ -68,6 +68,7 @@ export default tseslint.config(
       // General
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-case-declarations': 'error',
+      'max-lines': ['error', { max: 400, skipBlankLines: true, skipComments: true }],
     },
   },
   {

@@ -26,10 +26,10 @@ If any gate fails:
 
 ## Scope of Verification
 
-| Gate          | What It Verifies                       |
-| ------------- | -------------------------------------- |
-| lint          | Code style, potential bugs, formatting |
-| type-check    | Type safety, interface contracts       |
-| test:critical | Core functionality, regressions        |
-| security:scan | Known vulnerabilities, unsafe patterns |
-| build:verify  | Compilation, bundle integrity          |
+| Gate          | What It Verifies                                                              |
+| ------------- | ----------------------------------------------------------------------------- |
+| lint          | Code style, potential bugs, formatting, file size constraints (max 400 lines) |
+| type-check    | Type safety, interface contracts                                              |
+| test:critical | Core functionality, regressions                                               |
+| security:scan | Known vulnerabilities, unsafe patterns                                        |
+| build:verify  | Compilation, bundle integrity                                                 |

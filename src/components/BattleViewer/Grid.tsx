@@ -11,9 +11,17 @@ export interface GridProps {
   width: number;
   height: number;
   characters?: TokenData[];
+  onCellClick?: (x: number, y: number) => void;
+  clickableCells?: Set<string>;
 }
 
-export function Grid({ width, height, characters = [] }: GridProps) {
+export function Grid({
+  width,
+  height,
+  characters = [],
+  onCellClick,
+  clickableCells,
+}: GridProps) {
   // Create a map of position -> character for O(1) lookup
   const characterMap = new Map<string, TokenData>();
   for (const char of characters) {
@@ -25,8 +33,19 @@ export function Grid({ width, height, characters = [] }: GridProps) {
   const cells: JSX.Element[] = [];
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const character = characterMap.get(`${x}-${y}`);
-      cells.push(<Cell key={`${x}-${y}`} x={x} y={y} character={character} />);
+      const key = `${x}-${y}`;
+      const character = characterMap.get(key);
+      const isClickable = clickableCells?.has(key) ?? false;
+      cells.push(
+        <Cell
+          key={key}
+          x={x}
+          y={y}
+          character={character}
+          onClick={onCellClick}
+          isClickable={isClickable}
+        />,
+      );
     }
   }
 

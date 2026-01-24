@@ -21,6 +21,21 @@ import type {
 } from "../engine/types";
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+/**
+ * Grid size (12×12 grid).
+ */
+const GRID_SIZE = 12;
+
+/**
+ * Helper function to create consistent position keys.
+ * Uses hyphen format: "x-y"
+ */
+const positionKey = (x: number, y: number): string => `${x}-${y}`;
+
+// ============================================================================
 // Default Skills and Character Counter
 // ============================================================================
 
@@ -77,12 +92,12 @@ const DEFAULT_SKILLS: Skill[] = [
  */
 function findNextAvailablePosition(characters: Character[]): Position | null {
   const occupiedPositions = new Set(
-    characters.map((c) => `${c.position.x},${c.position.y}`),
+    characters.map((c) => positionKey(c.position.x, c.position.y)),
   );
 
-  for (let y = 0; y < 12; y++) {
-    for (let x = 0; x < 12; x++) {
-      const key = `${x},${y}`;
+  for (let y = 0; y < GRID_SIZE; y++) {
+    for (let x = 0; x < GRID_SIZE; x++) {
+      const key = positionKey(x, y);
       if (!occupiedPositions.has(key)) {
         return { x, y };
       }
@@ -126,6 +141,15 @@ function calculatePreBattleStatus(characters: Character[]): "active" | "draw" {
 // Store State Type
 // ============================================================================
 
+/**
+ * Selection mode for click-to-place functionality.
+ */
+export type SelectionMode =
+  | "idle"
+  | "placing-friendly"
+  | "placing-enemy"
+  | "moving";
+
 interface GameStore {
   // Current game state
   gameState: GameState;
@@ -137,6 +161,7 @@ interface GameStore {
 
   // UI state
   selectedCharacterId: string | null;
+  selectionMode: SelectionMode;
 
   // Selectors
   selectIsGridFull: () => boolean;
@@ -176,6 +201,11 @@ interface GameStore {
     // Character add/remove
     addCharacter: (faction: Faction) => boolean;
     removeCharacter: (id: string) => void;
+
+    // Selection mode management
+    setSelectionMode: (mode: SelectionMode) => void;
+    addCharacterAtPosition: (faction: Faction, position: Position) => boolean;
+    moveCharacter: (characterId: string, newPosition: Position) => boolean;
   };
 }
 
@@ -205,6 +235,7 @@ export const useGameStore = create<GameStore>()(
     initialSeed: 0,
     initialRngState: 0,
     selectedCharacterId: null,
+    selectionMode: "idle",
 
     // Selectors
     selectIsGridFull: () => get().gameState.characters.length >= 144,
@@ -426,6 +457,118 @@ export const useGameStore = create<GameStore>()(
             state.gameState.characters,
           );
         }),
+
+      setSelectionMode: (mode) =>
+        set((state) => {
+          state.selectionMode = mode;
+        }),
+
+      addCharacterAtPosition: (faction, position) => {
+        let success = false;
+        set((state) => {
+          // Validate position is within bounds
+          if (
+            position.x < 0 ||
+            position.x >= 12 ||
+            position.y < 0 ||
+            position.y >= 12
+          ) {
+            success = false;
+            return;
+          }
+
+          // Check if position is occupied
+          const isOccupied = state.gameState.characters.some(
+            (c) => c.position.x === position.x && c.position.y === position.y,
+          );
+          if (isOccupied) {
+            success = false;
+            return;
+          }
+
+          // Generate unique ID
+          const id = `${faction}-${Date.now()}-${characterIdCounter++}`;
+
+          // Determine slotPosition (next sequential number)
+          const slotPosition = state.gameState.characters.length;
+
+          // Create new character
+          const newCharacter: Character = {
+            id,
+            name: `${faction === "friendly" ? "Friendly" : "Enemy"} ${slotPosition + 1}`,
+            faction,
+            slotPosition,
+            hp: 100,
+            maxHp: 100,
+            position,
+            skills: structuredClone(DEFAULT_SKILLS),
+            currentAction: null,
+          };
+
+          // Add to gameState
+          state.gameState.characters.push(newCharacter);
+
+          // Add to initialCharacters
+          state.initialCharacters.push(structuredClone(newCharacter));
+
+          // Recalculate battleStatus (pre-battle setup)
+          state.gameState.battleStatus = calculatePreBattleStatus(
+            state.gameState.characters,
+          );
+
+          success = true;
+        });
+        return success;
+      },
+
+      moveCharacter: (characterId, newPosition) => {
+        let success = false;
+        set((state) => {
+          // Find character
+          const character = state.gameState.characters.find(
+            (c) => c.id === characterId,
+          );
+          if (!character) {
+            success = false;
+            return;
+          }
+
+          // Validate position is within bounds
+          if (
+            newPosition.x < 0 ||
+            newPosition.x >= 12 ||
+            newPosition.y < 0 ||
+            newPosition.y >= 12
+          ) {
+            success = false;
+            return;
+          }
+
+          // Check if position is occupied
+          const isOccupied = state.gameState.characters.some(
+            (c) =>
+              c.position.x === newPosition.x && c.position.y === newPosition.y,
+          );
+          if (isOccupied) {
+            success = false;
+            return;
+          }
+
+          // Update position in gameState
+          character.position = newPosition;
+
+          // Update position in initialCharacters
+          const initialCharacter = state.initialCharacters.find(
+            (c) => c.id === characterId,
+          );
+          if (initialCharacter) {
+            initialCharacter.position = newPosition;
+          }
+
+          success = true;
+        });
+        return success;
+      },
     },
   })),
 );
@@ -622,3 +765,37 @@ export const selectNextTickDecision =
  */
 export const selectIsGridFull = (state: GameStore): boolean =>
   state.gameState.characters.length >= 144;
+
+/**
+ * Select current selection mode.
+ * Used by CharacterControls to show active button state.
+ */
+export const selectSelectionMode = (state: GameStore): SelectionMode =>
+  state.selectionMode;
+
+/**
+ * Compute which cells are clickable based on current selection mode.
+ * Returns empty Set in idle mode.
+ * Returns Set of "x-y" formatted strings for empty cells in placement/moving modes.
+ */
+export const selectClickableCells = (state: GameStore): Set<string> => {
+  const { selectionMode } = state;
+  if (selectionMode === "idle") return new Set();
+
+  // Build set of occupied positions
+  const occupied = new Set(
+    state.gameState.characters.map((c) => `${c.position.x}-${c.position.y}`),
+  );
+
+  // Return all empty cells (12×12 grid)
+  const clickable = new Set<string>();
+  for (let y = 0; y < 12; y++) {
+    for (let x = 0; x < 12; x++) {
+      const key = `${x}-${y}`;
+      if (!occupied.has(key)) {
+        clickable.add(key);
+      }
+    }
+  }
+  return clickable;
+};

@@ -64,19 +64,15 @@ describe("CharacterControls - Add Friendly Button", () => {
     useGameStore.getState().actions.initBattle([]);
   });
 
-  it("should add friendly character when clicked", async () => {
+  it("should set selection mode to placing-friendly when clicked", async () => {
     render(<CharacterControls />);
-
-    const initialCount = useGameStore.getState().gameState.characters.length;
 
     const addFriendlyButton = screen.getByRole("button", {
       name: /add friendly/i,
     });
     await user.click(addFriendlyButton);
 
-    const characters = useGameStore.getState().gameState.characters;
-    expect(characters.length).toBe(initialCount + 1);
-    expect(characters[characters.length - 1]?.faction).toBe("friendly");
+    expect(useGameStore.getState().selectionMode).toBe("placing-friendly");
   });
 
   it("should be disabled when grid is full", () => {
@@ -105,17 +101,13 @@ describe("CharacterControls - Add Enemy Button", () => {
     useGameStore.getState().actions.initBattle([]);
   });
 
-  it("should add enemy character when clicked", async () => {
+  it("should set selection mode to placing-enemy when clicked", async () => {
     render(<CharacterControls />);
-
-    const initialCount = useGameStore.getState().gameState.characters.length;
 
     const addEnemyButton = screen.getByRole("button", { name: /add enemy/i });
     await user.click(addEnemyButton);
 
-    const characters = useGameStore.getState().gameState.characters;
-    expect(characters.length).toBe(initialCount + 1);
-    expect(characters[characters.length - 1]?.faction).toBe("enemy");
+    expect(useGameStore.getState().selectionMode).toBe("placing-enemy");
   });
 
   it("should be disabled when grid is full", () => {
@@ -187,5 +179,106 @@ describe("CharacterControls - Remove Button", () => {
     // Selection should be cleared after removal
     expect(useGameStore.getState().selectedCharacterId).toBeNull();
     expect(removeButton).toBeDisabled();
+  });
+});
+
+describe("CharacterControls - Move Button (Debug UI)", () => {
+  let user: ReturnType<typeof userEvent.setup>;
+
+  beforeEach(() => {
+    user = userEvent.setup();
+    useGameStore.getState().actions.reset();
+    useGameStore.getState().actions.initBattle([]);
+  });
+
+  it("should render Move button", () => {
+    render(<CharacterControls />);
+
+    const moveButton = screen.getByRole("button", { name: /move character/i });
+    expect(moveButton).toBeInTheDocument();
+  });
+
+  it("Move button should be disabled when no character selected", () => {
+    render(<CharacterControls />);
+
+    const moveButton = screen.getByRole("button", { name: /move character/i });
+    expect(moveButton).toBeDisabled();
+  });
+
+  it("Move button should be enabled when character is selected", () => {
+    useGameStore.getState().actions.addCharacter("friendly");
+    const charId = useGameStore.getState().gameState.characters[0]!.id;
+    useGameStore.getState().actions.selectCharacter(charId);
+
+    render(<CharacterControls />);
+
+    const moveButton = screen.getByRole("button", { name: /move character/i });
+    expect(moveButton).toBeEnabled();
+  });
+
+  it("clicking Add Friendly should set selectionMode to placing-friendly", async () => {
+    render(<CharacterControls />);
+
+    const addFriendlyButton = screen.getByRole("button", {
+      name: /add friendly/i,
+    });
+    await user.click(addFriendlyButton);
+
+    expect(useGameStore.getState().selectionMode).toBe("placing-friendly");
+  });
+
+  it("clicking Add Enemy should set selectionMode to placing-enemy", async () => {
+    render(<CharacterControls />);
+
+    const addEnemyButton = screen.getByRole("button", { name: /add enemy/i });
+    await user.click(addEnemyButton);
+
+    expect(useGameStore.getState().selectionMode).toBe("placing-enemy");
+  });
+
+  it("clicking Move should set selectionMode to moving", async () => {
+    useGameStore.getState().actions.addCharacter("friendly");
+    const charId = useGameStore.getState().gameState.characters[0]!.id;
+    useGameStore.getState().actions.selectCharacter(charId);
+
+    render(<CharacterControls />);
+
+    const moveButton = screen.getByRole("button", { name: /move character/i });
+    await user.click(moveButton);
+
+    expect(useGameStore.getState().selectionMode).toBe("moving");
+  });
+
+  it("clicking active mode button again should return to idle", async () => {
+    render(<CharacterControls />);
+
+    const addFriendlyButton = screen.getByRole("button", {
+      name: /add friendly/i,
+    });
+
+    // Click once to activate
+    await user.click(addFriendlyButton);
+    expect(useGameStore.getState().selectionMode).toBe("placing-friendly");
+
+    // Click again to deactivate
+    await user.click(addFriendlyButton);
+    expect(useGameStore.getState().selectionMode).toBe("idle");
+  });
+
+  it("should show visual indicator for active selection mode", async () => {
+    render(<CharacterControls />);
+
+    const addFriendlyButton = screen.getByRole("button", {
+      name: /add friendly/i,
+    });
+
+    // Initially not active
+    expect(addFriendlyButton.className).not.toContain("activeButton");
+
+    // Click to activate
+    await user.click(addFriendlyButton);
+
+    // Should have active class
+    expect(addFriendlyButton.className).toContain("activeButton");
   });
 });

@@ -22,9 +22,14 @@
   box-sizing: border-box;
 }
 
-.cell:hover {
-  background-color: var(--cell-hover-bg);
+/* Clickable cell styling */
+.clickable {
   cursor: pointer;
+}
+
+.clickable:hover {
+  background-color: var(--cell-hover-bg);
+  outline: 2px solid var(--focus-ring);
 }
 
 /* High contrast mode support */

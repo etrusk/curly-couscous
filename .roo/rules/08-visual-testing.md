@@ -11,7 +11,7 @@ Use `browser_action` for visual verification when changes affect:
 
 ## Verification Flow
 
-1. **Launch**: `browser_action` with `launch` to open dev server URL
+1. **Launch**: `browser_action` with `launch` to open dev server URL (**Note:** Check if `npm run dev` is already running before starting)
 2. **Navigate**: Go to affected view/component
 3. **Verify**: Check visual elements match expectations
 4. **Screenshot**: Capture state if issues found for handback

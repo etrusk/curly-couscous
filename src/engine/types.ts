@@ -230,10 +230,18 @@ export interface MovementResult {
 // ============================================================================
 
 /**
- * Cardinal directions for movement.
- * Note: Movement uses single-cell moves in 4 directions.
+ * Directions for 8-directional movement.
+ * Includes cardinal directions (north, south, east, west) and diagonal directions.
  */
-export type Direction = "north" | "south" | "east" | "west";
+export type Direction =
+  | "north"
+  | "south"
+  | "east"
+  | "west"
+  | "northeast"
+  | "northwest"
+  | "southeast"
+  | "southwest";
 
 /**
  * Helper to check if two positions are equal.
@@ -271,6 +279,14 @@ export const getAdjacentPosition = (
       return { x: pos.x + 1, y: pos.y };
     case "west":
       return { x: pos.x - 1, y: pos.y };
+    case "northeast":
+      return { x: pos.x + 1, y: pos.y - 1 };
+    case "northwest":
+      return { x: pos.x - 1, y: pos.y - 1 };
+    case "southeast":
+      return { x: pos.x + 1, y: pos.y + 1 };
+    case "southwest":
+      return { x: pos.x - 1, y: pos.y + 1 };
   }
 };
 

@@ -41,7 +41,7 @@ When subtask A completes and subtask B needs its output:
 - **Architect**: Design decisions, tradeoff analysis, planning docs, **test design**
 - **Code**: Implementation, writing tests from approved designs, fixes, **visual verification**
 - **Ask**: Review, explanation, critique (read-only)
-- **Debug**: Root cause analysis, systematic troubleshooting, **visual debugging**
+- **Debug**: Root cause analysis, systematic troubleshooting, **visual debugging** (expensive specialist—call when Code is stuck)
   - Route when tests fail after 2+ Code attempts
   - Route when root cause is unclear
   - Route before human escalation for technical issues

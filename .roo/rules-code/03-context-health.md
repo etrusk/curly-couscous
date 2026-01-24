@@ -1,10 +1,13 @@
 # Context Health Rules for Code Mode
 
 ## Exchange Budget (ENFORCED)
+
 Code tasks have a **20-exchange soft limit** and **25-exchange hard limit**.
 
 ### At ~15 exchanges
+
 Pause and self-assess:
+
 - What's implemented and working?
 - What's blocked or failing?
 - Am I making measurable progress (tests passing, errors changing)?
@@ -12,15 +15,18 @@ Pause and self-assess:
 If no measurable progress in last 5 exchanges → proceed to Early Stop.
 
 ### At 20 exchanges without completion
+
 → STOP. Do not attempt further fixes.
 → Proceed to **Structured Handback for Human Review** (below).
 
 ### At 25 exchanges
+
 HARD STOP. No exceptions. Execute handback immediately.
 
 ---
 
 ## Early Stop Triggers
+
 Stop immediately and execute handback if ANY of these occur:
 
 - [ ] Editing the same file 3+ times without test improvement
@@ -69,6 +75,7 @@ When any limit or trigger is hit, use `attempt_completion` with this EXACT forma
 ```
 
 Do NOT:
+
 - Continue attempting fixes after triggering handback
 - Provide vague summaries ("something is wrong with X")
 - Omit the attempts made section
@@ -77,6 +84,7 @@ Do NOT:
 ---
 
 ## What Code Mode Does NOT Do
-- Code mode does not debug complex issues. If root cause is unclear after 2-3 attempts, hand back.
+
+- Code mode handles general debugging; for complex issues where root cause remains unclear after 2-3 attempts, hand back to Debug mode.
 - Code mode does not redesign. If implementation reveals design flaws, hand back for Architect review.
 - Code mode does not push through confusion. Confusion is a signal, not an obstacle to overcome.

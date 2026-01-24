@@ -1435,7 +1435,7 @@ describe("computeDecisions", () => {
       expect(decisions[0]!.action.targetCell).toEqual({ x: 5, y: 5 });
     });
 
-    it("should prefer horizontal movement when dx === dy (diagonal tiebreaking)", () => {
+    it("should prefer diagonal movement when dx === dy (diagonal tiebreaking)", () => {
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
@@ -1460,9 +1460,380 @@ describe("computeDecisions", () => {
 
       const decisions = computeDecisions(state);
 
-      // dx = 3, dy = 3 (equal), should prefer horizontal movement
+      // dx = 3, dy = 3 (equal), with diagonal movement should move to (6,6)
+      // Diagonal reduces Chebyshev distance from 3 to 2, horizontal only reduces to 2
+      // Both reduce distance equally, but diagonal also reduces |dx| and |dy| equally
+      // According to tiebreaking: minimize resulting |dx| then |dy|
+      // After diagonal move: |dx|=2, |dy|=2
+      // After horizontal move: |dx|=2, |dy|=3
+      // Diagonal wins because |dy| is smaller (2 < 3)
       expect(decisions[0]!.action.type).toBe("move");
-      expect(decisions[0]!.action.targetCell).toEqual({ x: 6, y: 5 });
+      expect(decisions[0]!.action.targetCell).toEqual({ x: 6, y: 6 });
+    });
+
+    // ===========================================================================
+    // Section 9.1: Diagonal Movement Tests
+    // ===========================================================================
+    describe("diagonal movement", () => {
+      it("should move northeast when target is northeast (dx>0, dy>0)", () => {
+        const enemy = createCharacter({
+          id: "enemy",
+          faction: "enemy",
+          position: { x: 7, y: 6 },
+        });
+        const character = createCharacter({
+          id: "char1",
+          faction: "friendly",
+          position: { x: 5, y: 5 },
+          skills: [
+            createSkill({
+              id: "skill1",
+              mode: "towards",
+              triggers: [{ type: "always" }],
+            }),
+          ],
+        });
+        const state = createGameState({
+          tick: 1,
+          characters: [character, enemy],
+        });
+
+        const decisions = computeDecisions(state);
+
+        // dx=2, dy=1 → diagonal reduces Chebyshev distance from 2 to 1
+        expect(decisions[0]!.action.type).toBe("move");
+        expect(decisions[0]!.action.targetCell).toEqual({ x: 6, y: 6 });
+      });
+
+      it("should move northwest when target is northwest (dx<0, dy>0)", () => {
+        const enemy = createCharacter({
+          id: "enemy",
+          faction: "enemy",
+          position: { x: 3, y: 7 },
+        });
+        const character = createCharacter({
+          id: "char1",
+          faction: "friendly",
+          position: { x: 5, y: 5 },
+          skills: [
+            createSkill({
+              id: "skill1",
+              mode: "towards",
+              triggers: [{ type: "always" }],
+            }),
+          ],
+        });
+        const state = createGameState({
+          tick: 1,
+          characters: [character, enemy],
+        });
+
+        const decisions = computeDecisions(state);
+
+        // dx=-2, dy=2 → diagonal reduces Chebyshev distance from 2 to 1
+        expect(decisions[0]!.action.type).toBe("move");
+        expect(decisions[0]!.action.targetCell).toEqual({ x: 4, y: 6 });
+      });
+
+      it("should move southeast when target is southeast (dx>0, dy<0)", () => {
+        const enemy = createCharacter({
+          id: "enemy",
+          faction: "enemy",
+          position: { x: 7, y: 3 },
+        });
+        const character = createCharacter({
+          id: "char1",
+          faction: "friendly",
+          position: { x: 5, y: 5 },
+          skills: [
+            createSkill({
+              id: "skill1",
+              mode: "towards",
+              triggers: [{ type: "always" }],
+            }),
+          ],
+        });
+        const state = createGameState({
+          tick: 1,
+          characters: [character, enemy],
+        });
+
+        const decisions = computeDecisions(state);
+
+        // dx=2, dy=-2 → diagonal reduces Chebyshev distance from 2 to 1
+        expect(decisions[0]!.action.type).toBe("move");
+        expect(decisions[0]!.action.targetCell).toEqual({ x: 6, y: 4 });
+      });
+
+      it("should move southwest when target is southwest (dx<0, dy<0)", () => {
+        const enemy = createCharacter({
+          id: "enemy",
+          faction: "enemy",
+          position: { x: 3, y: 3 },
+        });
+        const character = createCharacter({
+          id: "char1",
+          faction: "friendly",
+          position: { x: 5, y: 5 },
+          skills: [
+            createSkill({
+              id: "skill1",
+              mode: "towards",
+              triggers: [{ type: "always" }],
+            }),
+          ],
+        });
+        const state = createGameState({
+          tick: 1,
+          characters: [character, enemy],
+        });
+
+        const decisions = computeDecisions(state);
+
+        // dx=-2, dy=-2 → diagonal reduces Chebyshev distance from 2 to 1
+        expect(decisions[0]!.action.type).toBe("move");
+        expect(decisions[0]!.action.targetCell).toEqual({ x: 4, y: 4 });
+      });
+
+      it("should prefer diagonal over orthogonal when strictly better Chebyshev distance", () => {
+        const enemy = createCharacter({
+          id: "enemy",
+          faction: "enemy",
+          position: { x: 7, y: 6 },
+        });
+        const character = createCharacter({
+          id: "char1",
+          faction: "friendly",
+          position: { x: 5, y: 5 },
+          skills: [
+            createSkill({
+              id: "skill1",
+              mode: "towards",
+              triggers: [{ type: "always" }],
+            }),
+          ],
+        });
+        const state = createGameState({
+          tick: 1,
+          characters: [character, enemy],
+        });
+
+        const decisions = computeDecisions(state);
+
+        // Current Chebyshev distance: max(2,1) = 2
+        // Diagonal (6,6): distance becomes max(1,0) = 1
+        // Horizontal (6,5): distance becomes max(1,1) = 1
+        // Vertical (5,6): distance becomes max(2,0) = 2
+        // Both diagonal and horizontal reduce distance to 1
+        // Tiebreaking: minimize resulting |dx| then |dy|
+        // Diagonal: |dx|=1, |dy|=0
+        // Horizontal: |dx|=1, |dy|=1
+        // Diagonal wins because |dy| is smaller (0 < 1)
+        expect(decisions[0]!.action.type).toBe("move");
+        expect(decisions[0]!.action.targetCell).toEqual({ x: 6, y: 6 });
+      });
+
+      it("should prefer orthogonal when diagonal offers no Chebyshev advantage (true tie)", () => {
+        const enemy = createCharacter({
+          id: "enemy",
+          faction: "enemy",
+          position: { x: 6, y: 5 },
+        });
+        const character = createCharacter({
+          id: "char1",
+          faction: "friendly",
+          position: { x: 5, y: 5 },
+          skills: [
+            createSkill({
+              id: "skill1",
+              mode: "towards",
+              triggers: [{ type: "always" }],
+            }),
+          ],
+        });
+        const state = createGameState({
+          tick: 1,
+          characters: [character, enemy],
+        });
+
+        const decisions = computeDecisions(state);
+
+        // dx=1, dy=0
+        // Diagonal (6,6): distance becomes max(0,1) = 1 (no improvement)
+        // Horizontal (6,5): distance becomes max(0,0) = 0 (optimal)
+        // Should choose horizontal
+        expect(decisions[0]!.action.type).toBe("move");
+        expect(decisions[0]!.action.targetCell).toEqual({ x: 6, y: 5 });
+      });
+
+      it("should handle away mode with diagonal movement", () => {
+        const enemy = createCharacter({
+          id: "enemy",
+          faction: "enemy",
+          position: { x: 5, y: 5 },
+        });
+        const character = createCharacter({
+          id: "char1",
+          faction: "friendly",
+          position: { x: 6, y: 6 },
+          skills: [
+            createSkill({
+              id: "skill1",
+              mode: "away",
+              triggers: [{ type: "always" }],
+            }),
+          ],
+        });
+        const state = createGameState({
+          tick: 1,
+          characters: [character, enemy],
+        });
+
+        const decisions = computeDecisions(state);
+
+        // dx=-1, dy=-1 → moving away diagonally to (7,7)
+        expect(decisions[0]!.action.type).toBe("move");
+        expect(decisions[0]!.action.targetCell).toEqual({ x: 7, y: 7 });
+      });
+
+      it("should handle diagonal movement with wall-boundary fallback", () => {
+        const enemy = createCharacter({
+          id: "enemy",
+          faction: "enemy",
+          position: { x: 1, y: 1 },
+        });
+        const character = createCharacter({
+          id: "char1",
+          faction: "friendly",
+          position: { x: 0, y: 0 },
+          skills: [
+            createSkill({
+              id: "skill1",
+              mode: "towards",
+              triggers: [{ type: "always" }],
+            }),
+          ],
+        });
+        const state = createGameState({
+          tick: 1,
+          characters: [character, enemy],
+        });
+
+        const decisions = computeDecisions(state);
+
+        // At corner (0,0), moving towards (1,1) would be diagonal to (1,1)
+        // But (1,1) is occupied by enemy, so should move to (0,1) or (1,0)
+        // According to tiebreaking: minimize |dx| then |dy|
+        // (0,1): resultDx=1, resultDy=0 → |dx|=1, |dy|=0
+        // (1,0): resultDx=0, resultDy=1 → |dx|=0, |dy|=1
+        // (1,0) wins because |dx|=0 < |dx|=1
+        expect(decisions[0]!.action.type).toBe("move");
+        expect(decisions[0]!.action.targetCell).toEqual({ x: 1, y: 0 });
+      });
+
+      it("should handle diagonal tiebreaking with equal Chebyshev reduction", () => {
+        const enemy = createCharacter({
+          id: "enemy",
+          faction: "enemy",
+          position: { x: 7, y: 7 },
+        });
+        const character = createCharacter({
+          id: "char1",
+          faction: "friendly",
+          position: { x: 5, y: 5 },
+          skills: [
+            createSkill({
+              id: "skill1",
+              mode: "towards",
+              triggers: [{ type: "always" }],
+            }),
+          ],
+        });
+        const state = createGameState({
+          tick: 1,
+          characters: [character, enemy],
+        });
+
+        const decisions = computeDecisions(state);
+
+        // dx=2, dy=2
+        // Diagonal (6,6): distance becomes max(1,1) = 1
+        // Horizontal (6,5): distance becomes max(1,2) = 2
+        // Vertical (5,6): distance becomes max(2,1) = 2
+        // Diagonal is strictly better
+        expect(decisions[0]!.action.type).toBe("move");
+        expect(decisions[0]!.action.targetCell).toEqual({ x: 6, y: 6 });
+      });
+
+      it("should handle diagonal movement with multiple equidistant options", () => {
+        const enemy = createCharacter({
+          id: "enemy",
+          faction: "enemy",
+          position: { x: 6, y: 6 },
+        });
+        const character = createCharacter({
+          id: "char1",
+          faction: "friendly",
+          position: { x: 5, y: 5 },
+          skills: [
+            createSkill({
+              id: "skill1",
+              mode: "towards",
+              triggers: [{ type: "always" }],
+            }),
+          ],
+        });
+        const state = createGameState({
+          tick: 1,
+          characters: [character, enemy],
+        });
+
+        const decisions = computeDecisions(state);
+
+        // dx=1, dy=1
+        // Diagonal (6,6): distance becomes max(0,0) = 0 (optimal, but occupied)
+        // Should choose next best: horizontal (6,5) or vertical (5,6)
+        // According to tiebreaking: horizontal first
+        expect(decisions[0]!.action.type).toBe("move");
+        expect(decisions[0]!.action.targetCell).toEqual({ x: 6, y: 5 });
+      });
+
+      it("should maintain deterministic replay with diagonal movement", () => {
+        const enemy = createCharacter({
+          id: "enemy",
+          faction: "enemy",
+          position: { x: 7, y: 6 },
+        });
+        const character = createCharacter({
+          id: "char1",
+          faction: "friendly",
+          position: { x: 5, y: 5 },
+          skills: [
+            createSkill({
+              id: "skill1",
+              mode: "towards",
+              triggers: [{ type: "always" }],
+            }),
+          ],
+        });
+        const state1 = createGameState({
+          tick: 1,
+          characters: [character, enemy],
+          seed: 12345,
+        });
+        const state2 = createGameState({
+          tick: 1,
+          characters: [character, enemy],
+          seed: 12345,
+        });
+
+        const decisions1 = computeDecisions(state1);
+        const decisions2 = computeDecisions(state2);
+
+        expect(decisions1[0]!.action.targetCell).toEqual(
+          decisions2[0]!.action.targetCell,
+        );
+      });
     });
 
     it("should clamp move destination to grid bounds at x=0 edge", () => {

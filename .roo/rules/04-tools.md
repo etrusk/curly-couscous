@@ -51,7 +51,7 @@ Use `execute_command` only for actual system operations:
 - Build/compile: `npm run build`, `make`, `cargo build`
 - Running tests: `npm test`, `pytest`, `go test`
 - Git operations: `git add`, `git commit`, `git push`, `git status`
-- Starting servers: `npm start`, `python -m http.server`
+- Starting servers: `npm start`, `python -m http.server` (**Note:** Check if `npm run dev` is already running before starting)
 - Package management: `npm audit`, `pip-audit`, `cargo audit`
 - Linting/formatting: `eslint`, `prettier`, `black`, `ruff`
 

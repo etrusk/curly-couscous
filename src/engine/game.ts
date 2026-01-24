@@ -148,13 +148,15 @@ export function getActionType(skill: Skill): "attack" | "move" {
 }
 
 /**
- * Compute move destination with tiebreaking rules.
+ * Compute move destination with tiebreaking rules for 8-direction movement.
  *
- * Tiebreaking (when multiple cells equidistant):
- * 1. Prefer horizontal movement (lower X difference)
- * 2. Then vertical movement (lower Y difference)
- * 3. Then lower Y coordinate
- * 4. Then lower X coordinate
+ * Tiebreaking hierarchy (when multiple cells equally optimal):
+ * 1. For "towards": minimize resulting Chebyshev distance to target
+ *    For "away": maximize resulting Chebyshev distance from target
+ * 2. For "towards": minimize resulting |dx|, then |dy|
+ *    For "away": maximize resulting |dx|, then maximize |dy|
+ * 3. Then lower Y coordinate of candidate cell
+ * 4. Then lower X coordinate of candidate cell
  *
  * @param mover - Character that is moving
  * @param target - Target character to move towards/away from
@@ -165,84 +167,241 @@ function computeMoveDestination(
   mover: Character,
   target: Character,
   mode: "towards" | "away",
+  allCharacters: Character[],
 ): Position {
   const dx = target.position.x - mover.position.x;
   const dy = target.position.y - mover.position.y;
 
-  // Calculate step direction based on mode
-  const stepX = mode === "towards" ? Math.sign(dx) : -Math.sign(dx);
-  const stepY = mode === "towards" ? Math.sign(dy) : -Math.sign(dy);
-
-  // Tiebreaking: prefer horizontal movement (lower X difference)
-  const absDx = Math.abs(dx);
-  const absDy = Math.abs(dy);
-
-  let destination: Position;
-
-  if (absDx > absDy) {
-    // Move horizontally - clamp to valid grid bounds [0, 11]
-    destination = {
-      x: Math.max(0, Math.min(11, mover.position.x + stepX)),
-      y: mover.position.y,
-    };
-  } else if (absDy > absDx) {
-    // Move vertically - clamp to valid grid bounds [0, 11]
-    destination = {
-      x: mover.position.x,
-      y: Math.max(0, Math.min(11, mover.position.y + stepY)),
-    };
-  } else if (absDx === absDy && absDx > 0) {
-    // Equal distance: prefer horizontal per tiebreaking rules - clamp to valid grid bounds [0, 11]
-    destination = {
-      x: Math.max(0, Math.min(11, mover.position.x + stepX)),
-      y: mover.position.y,
-    };
-  } else {
-    // Already at target position (dx === dy === 0)
+  // Already at target position (dx === dy === 0)
+  if (dx === 0 && dy === 0) {
     return mover.position;
   }
 
-  // Wall-boundary fallback for "away" mode
-  if (
-    mode === "away" &&
-    destination.x === mover.position.x &&
-    destination.y === mover.position.y
-  ) {
-    // Primary movement was blocked by wall, try perpendicular escape
-    if (absDx >= absDy) {
-      // Primary was horizontal, try perpendicular (vertical) escape
-      if (dy !== 0) {
-        // Natural secondary direction exists
-        const newY = Math.max(0, Math.min(11, mover.position.y + stepY));
-        destination = { x: mover.position.x, y: newY };
-      } else {
-        // No natural secondary (same row), try lower Y first, then higher Y
-        if (mover.position.y > 0) {
-          destination = { x: mover.position.x, y: mover.position.y - 1 };
-        } else if (mover.position.y < 11) {
-          destination = { x: mover.position.x, y: mover.position.y + 1 };
-        }
-        // else: stuck at corner, no escape possible - destination remains current position
+  // Generate all 8 possible adjacent cells (including diagonals)
+  const candidates = generateValidCandidates(mover, allCharacters, mode);
+
+  // If no valid candidates (should never happen unless mover is outside grid)
+  if (candidates.length === 0) {
+    return mover.position;
+  }
+
+  // Evaluate each candidate using tiebreaking hierarchy
+  return selectBestCandidate(candidates, target, mode);
+}
+
+/**
+ * Generate valid candidate positions for movement.
+ */
+function generateValidCandidates(
+  mover: Character,
+  allCharacters: Character[],
+  mode: "towards" | "away",
+): Position[] {
+  const candidates: Position[] = [];
+
+  // All 8 directions
+  const directions = [
+    { x: 0, y: -1 }, // north
+    { x: 0, y: 1 }, // south
+    { x: 1, y: 0 }, // east
+    { x: -1, y: 0 }, // west
+    { x: 1, y: -1 }, // northeast
+    { x: -1, y: -1 }, // northwest
+    { x: 1, y: 1 }, // southeast
+    { x: -1, y: 1 }, // southwest
+  ];
+
+  // Helper to check if a cell is occupied by another character
+  const isOccupied = (pos: Position): boolean => {
+    return allCharacters.some(
+      (c) =>
+        c.id !== mover.id && c.position.x === pos.x && c.position.y === pos.y,
+    );
+  };
+
+  // Helper to check if a move is diagonal
+  const isDiagonal = (dir: { x: number; y: number }): boolean => {
+    return dir.x !== 0 && dir.y !== 0;
+  };
+
+  for (const dir of directions) {
+    const candidate = {
+      x: mover.position.x + dir.x,
+      y: mover.position.y + dir.y,
+    };
+
+    // Only consider cells within grid bounds
+    if (
+      candidate.x >= 0 &&
+      candidate.x < 12 &&
+      candidate.y >= 0 &&
+      candidate.y < 12
+    ) {
+      // Filter out occupied diagonal cells
+      if (isDiagonal(dir) && isOccupied(candidate)) {
+        continue; // Skip occupied diagonal cells
       }
-    } else {
-      // Primary was vertical, try perpendicular (horizontal) escape
-      if (dx !== 0) {
-        // Natural secondary direction exists
-        const newX = Math.max(0, Math.min(11, mover.position.x + stepX));
-        destination = { x: newX, y: mover.position.y };
-      } else {
-        // No natural secondary (same column), try lower X first, then higher X
-        if (mover.position.x > 0) {
-          destination = { x: mover.position.x - 1, y: mover.position.y };
-        } else if (mover.position.x < 11) {
-          destination = { x: mover.position.x + 1, y: mover.position.y };
-        }
-        // else: stuck at corner, no escape possible - destination remains current position
-      }
+      candidates.push(candidate);
     }
   }
 
-  return destination;
+  // For "away" mode, also consider staying in place as an option
+  if (mode === "away") {
+    candidates.push(mover.position);
+  }
+
+  return candidates;
+}
+
+interface CandidateScore {
+  distance: number;
+  absDx: number;
+  absDy: number;
+  y: number;
+  x: number;
+}
+
+/**
+ * Calculate candidate score for tiebreaking comparison.
+ */
+function calculateCandidateScore(
+  candidate: Position,
+  target: Position,
+): CandidateScore {
+  const resultDx = target.x - candidate.x;
+  const resultDy = target.y - candidate.y;
+  const distance = Math.max(Math.abs(resultDx), Math.abs(resultDy)); // Chebyshev distance
+
+  return {
+    distance,
+    absDx: Math.abs(resultDx),
+    absDy: Math.abs(resultDy),
+    y: candidate.y,
+    x: candidate.x,
+  };
+}
+
+/**
+ * Compare two candidates for "towards" mode.
+ */
+function compareTowardsMode(
+  candidateScore: CandidateScore,
+  bestScore: CandidateScore,
+): boolean {
+  // Primary comparison: distance (minimize)
+  if (candidateScore.distance < bestScore.distance) {
+    return true;
+  }
+  if (candidateScore.distance > bestScore.distance) {
+    return false;
+  }
+
+  // Secondary: absDx (minimize)
+  if (candidateScore.absDx < bestScore.absDx) {
+    return true;
+  }
+  if (candidateScore.absDx > bestScore.absDx) {
+    return false;
+  }
+
+  // Tertiary: absDy (minimize)
+  if (candidateScore.absDy < bestScore.absDy) {
+    return true;
+  }
+  if (candidateScore.absDy > bestScore.absDy) {
+    return false;
+  }
+
+  // Quaternary: y coordinate (minimize)
+  if (candidateScore.y < bestScore.y) {
+    return true;
+  }
+  if (candidateScore.y > bestScore.y) {
+    return false;
+  }
+
+  // Quinary: x coordinate (minimize)
+  if (candidateScore.x < bestScore.x) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Compare two candidates for "away" mode.
+ */
+function compareAwayMode(
+  candidateScore: CandidateScore,
+  bestScore: CandidateScore,
+): boolean {
+  // Primary comparison: distance (maximize)
+  if (candidateScore.distance > bestScore.distance) {
+    return true;
+  }
+  if (candidateScore.distance < bestScore.distance) {
+    return false;
+  }
+
+  // Secondary: absDx (maximize)
+  if (candidateScore.absDx > bestScore.absDx) {
+    return true;
+  }
+  if (candidateScore.absDx < bestScore.absDx) {
+    return false;
+  }
+
+  // Tertiary: absDy (maximize)
+  if (candidateScore.absDy > bestScore.absDy) {
+    return true;
+  }
+  if (candidateScore.absDy < bestScore.absDy) {
+    return false;
+  }
+
+  // Quaternary: y coordinate (minimize)
+  if (candidateScore.y < bestScore.y) {
+    return true;
+  }
+  if (candidateScore.y > bestScore.y) {
+    return false;
+  }
+
+  // Quinary: x coordinate (minimize)
+  if (candidateScore.x < bestScore.x) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Select the best candidate based on tiebreaking hierarchy.
+ */
+function selectBestCandidate(
+  candidates: Position[],
+  target: Character,
+  mode: "towards" | "away",
+): Position {
+  let bestCandidate: Position = candidates[0]!;
+  let bestScore = calculateCandidateScore(bestCandidate, target.position);
+
+  for (let i = 1; i < candidates.length; i++) {
+    const candidate = candidates[i]!;
+    const candidateScore = calculateCandidateScore(candidate, target.position);
+
+    const isBetter =
+      mode === "towards"
+        ? compareTowardsMode(candidateScore, bestScore)
+        : compareAwayMode(candidateScore, bestScore);
+
+    if (isBetter) {
+      bestCandidate = candidate;
+      bestScore = candidateScore;
+    }
+  }
+
+  return bestCandidate;
 }
 
 /**
@@ -277,6 +436,7 @@ function createSkillAction(
   character: Character,
   target: Character,
   tick: number,
+  allCharacters: Character[],
 ): Action {
   const actionType = getActionType(skill);
 
@@ -292,7 +452,12 @@ function createSkillAction(
     if (skill.mode === "hold") {
       targetCell = character.position;
     } else {
-      targetCell = computeMoveDestination(character, target, skill.mode!);
+      targetCell = computeMoveDestination(
+        character,
+        target,
+        skill.mode!,
+        allCharacters,
+      );
     }
     targetCharacter = null;
   }
@@ -389,7 +554,13 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
       }
 
       // 7. Create Action with locked targetCell
-      action = createSkillAction(skill, character, target, state.tick);
+      action = createSkillAction(
+        skill,
+        character,
+        target,
+        state.tick,
+        state.characters,
+      );
       break;
     }
 

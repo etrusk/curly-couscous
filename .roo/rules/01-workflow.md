@@ -124,6 +124,8 @@ When Code hands back with ⚠️ Degraded:
 
 ## Debug Escalation Protocol
 
+Debug mode is an expensive senior‑dev resource—use only when Code is stuck.
+
 Route to Debug mode (instead of immediate human escalation) when:
 
 - Tests fail after 2+ Code mode implementation attempts

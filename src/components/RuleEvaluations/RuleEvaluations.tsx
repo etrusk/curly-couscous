@@ -5,7 +5,12 @@ import {
   selectNextTickDecision,
   selectCharacters,
 } from "../../stores/gameStore";
-import type { Action, SkillEvaluationResult } from "../../engine/types";
+import type {
+  Action,
+  SkillEvaluationResult,
+  Character,
+  CharacterEvaluationResult,
+} from "../../engine/types";
 import { evaluateSkillsForCharacter } from "../../engine/game";
 import styles from "./RuleEvaluations.module.css";
 
@@ -104,27 +109,49 @@ function MidActionDisplay({
   );
 }
 
-export function RuleEvaluations() {
-  const selectedCharacter = useGameStore(selectSelectedCharacter);
-  const allCharacters = useGameStore(selectCharacters);
-  const currentTick = useGameStore(selectTick);
-  const nextAction = useGameStore(
-    selectNextTickDecision(selectedCharacter?.id ?? ""),
-  );
+/**
+ * Render skill list items for visible skills.
+ */
+function renderSkillListItems(
+  skills: SkillEvaluationResult[],
+  startIndex: number = 0,
+  selectedIndex: number | null = null,
+) {
+  return skills.map((evalResult, index) => {
+    const absoluteIndex = startIndex + index;
+    const isSelected =
+      selectedIndex !== null && absoluteIndex === selectedIndex;
+    const rejectionReason =
+      evalResult.status === "rejected" ? formatRejectionReason(evalResult) : "";
 
-  if (!selectedCharacter) {
     return (
-      <div className={styles.panel}>
-        <h2 className={styles.header}>Rule Evaluations</h2>
-        <p className={styles.placeholder}>
-          Click a character on the grid to see AI decisions
-        </p>
-      </div>
+      <li
+        key={evalResult.skill.id}
+        className={`${styles.skillItem} ${isSelected ? styles.activeSkill : ""}`}
+      >
+        <div className={styles.skillName}>
+          {isSelected && <span className={styles.selectedArrow}>→ </span>}
+          {absoluteIndex + 1}. {evalResult.skill.name}
+          {rejectionReason && (
+            <span className={styles.rejectionReason}> — {rejectionReason}</span>
+          )}
+        </div>
+      </li>
     );
-  }
+  });
+}
 
+/**
+ * Render the main content when a character is selected.
+ */
+function renderSelectedCharacterContent(
+  selectedCharacter: Character,
+  allCharacters: Character[],
+  currentTick: number,
+  nextAction: Action | null,
+) {
   // Evaluate skills for the selected character
-  const evaluation = evaluateSkillsForCharacter(
+  const evaluation: CharacterEvaluationResult = evaluateSkillsForCharacter(
     selectedCharacter,
     allCharacters,
   );
@@ -189,33 +216,7 @@ export function RuleEvaluations() {
       <div className={styles.skillPrioritySection}>
         <h3 className={styles.sectionHeader}>Skill Priority</h3>
         <ol className={styles.skillList} role="list">
-          {visibleSkills.map((evalResult, index) => {
-            const isSelected = evalResult.status === "selected";
-            const rejectionReason =
-              evalResult.status === "rejected"
-                ? formatRejectionReason(evalResult)
-                : "";
-
-            return (
-              <li
-                key={evalResult.skill.id}
-                className={`${styles.skillItem} ${isSelected ? styles.activeSkill : ""}`}
-              >
-                <div className={styles.skillName}>
-                  {isSelected && (
-                    <span className={styles.selectedArrow}>→ </span>
-                  )}
-                  {index + 1}. {evalResult.skill.name}
-                  {rejectionReason && (
-                    <span className={styles.rejectionReason}>
-                      {" "}
-                      — {rejectionReason}
-                    </span>
-                  )}
-                </div>
-              </li>
-            );
-          })}
+          {renderSkillListItems(visibleSkills, 0, selectedSkillIndex)}
         </ol>
 
         {/* Collapsible lower-priority skills */}
@@ -230,31 +231,42 @@ export function RuleEvaluations() {
               role="list"
               start={(selectedSkillIndex ?? -1) + 2}
             >
-              {collapsedSkills.map((evalResult, index) => {
-                const absoluteIndex = (selectedSkillIndex ?? -1) + 1 + index;
-                const rejectionReason =
-                  evalResult.status === "rejected"
-                    ? formatRejectionReason(evalResult)
-                    : "";
-
-                return (
-                  <li key={evalResult.skill.id} className={styles.skillItem}>
-                    <div className={styles.skillName}>
-                      {absoluteIndex + 1}. {evalResult.skill.name}
-                      {rejectionReason && (
-                        <span className={styles.rejectionReason}>
-                          {" "}
-                          — {rejectionReason}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
+              {renderSkillListItems(
+                collapsedSkills,
+                (selectedSkillIndex ?? -1) + 1,
+                null,
+              )}
             </ol>
           </details>
         )}
       </div>
     </div>
+  );
+}
+
+export function RuleEvaluations() {
+  const selectedCharacter = useGameStore(selectSelectedCharacter);
+  const allCharacters = useGameStore(selectCharacters);
+  const currentTick = useGameStore(selectTick);
+  const nextAction = useGameStore(
+    selectNextTickDecision(selectedCharacter?.id ?? ""),
+  );
+
+  if (!selectedCharacter) {
+    return (
+      <div className={styles.panel}>
+        <h2 className={styles.header}>Rule Evaluations</h2>
+        <p className={styles.placeholder}>
+          Click a character on the grid to see AI decisions
+        </p>
+      </div>
+    );
+  }
+
+  return renderSelectedCharacterContent(
+    selectedCharacter,
+    allCharacters,
+    currentTick,
+    nextAction,
   );
 }

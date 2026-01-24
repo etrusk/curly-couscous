@@ -177,21 +177,23 @@ function computeMoveDestination(
   const absDx = Math.abs(dx);
   const absDy = Math.abs(dy);
 
+  let destination: Position;
+
   if (absDx > absDy) {
     // Move horizontally - clamp to valid grid bounds [0, 11]
-    return {
+    destination = {
       x: Math.max(0, Math.min(11, mover.position.x + stepX)),
       y: mover.position.y,
     };
   } else if (absDy > absDx) {
     // Move vertically - clamp to valid grid bounds [0, 11]
-    return {
+    destination = {
       x: mover.position.x,
       y: Math.max(0, Math.min(11, mover.position.y + stepY)),
     };
   } else if (absDx === absDy && absDx > 0) {
     // Equal distance: prefer horizontal per tiebreaking rules - clamp to valid grid bounds [0, 11]
-    return {
+    destination = {
       x: Math.max(0, Math.min(11, mover.position.x + stepX)),
       y: mover.position.y,
     };
@@ -199,6 +201,48 @@ function computeMoveDestination(
     // Already at target position (dx === dy === 0)
     return mover.position;
   }
+
+  // Wall-boundary fallback for "away" mode
+  if (
+    mode === "away" &&
+    destination.x === mover.position.x &&
+    destination.y === mover.position.y
+  ) {
+    // Primary movement was blocked by wall, try perpendicular escape
+    if (absDx >= absDy) {
+      // Primary was horizontal, try perpendicular (vertical) escape
+      if (dy !== 0) {
+        // Natural secondary direction exists
+        const newY = Math.max(0, Math.min(11, mover.position.y + stepY));
+        destination = { x: mover.position.x, y: newY };
+      } else {
+        // No natural secondary (same row), try lower Y first, then higher Y
+        if (mover.position.y > 0) {
+          destination = { x: mover.position.x, y: mover.position.y - 1 };
+        } else if (mover.position.y < 11) {
+          destination = { x: mover.position.x, y: mover.position.y + 1 };
+        }
+        // else: stuck at corner, no escape possible - destination remains current position
+      }
+    } else {
+      // Primary was vertical, try perpendicular (horizontal) escape
+      if (dx !== 0) {
+        // Natural secondary direction exists
+        const newX = Math.max(0, Math.min(11, mover.position.x + stepX));
+        destination = { x: newX, y: mover.position.y };
+      } else {
+        // No natural secondary (same column), try lower X first, then higher X
+        if (mover.position.x > 0) {
+          destination = { x: mover.position.x - 1, y: mover.position.y };
+        } else if (mover.position.x < 11) {
+          destination = { x: mover.position.x + 1, y: mover.position.y };
+        }
+        // else: stuck at corner, no escape possible - destination remains current position
+      }
+    }
+  }
+
+  return destination;
 }
 
 /**

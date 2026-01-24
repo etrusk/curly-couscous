@@ -11,7 +11,24 @@
 
 /* Selected state */
 .selected {
-  filter: drop-shadow(0 0 4px var(--accent-primary));
+  filter: drop-shadow(0 0 8px var(--accent-primary))
+    drop-shadow(0 0 16px var(--accent-primary))
+    drop-shadow(0 0 24px var(--accent-primary));
+  animation: selectionPulse 2s ease-in-out infinite;
+}
+
+@keyframes selectionPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 8px var(--accent-primary))
+      drop-shadow(0 0 16px var(--accent-primary))
+      drop-shadow(0 0 24px var(--accent-primary));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px var(--accent-primary))
+      drop-shadow(0 0 24px var(--accent-primary))
+      drop-shadow(0 0 32px var(--accent-primary));
+  }
 }
 
 /* Character shape styling */

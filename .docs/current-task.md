@@ -10,6 +10,7 @@
 
 ## Recent Completions
 
+- 2026-01-25: RuleEvaluations.test.tsx decomposition - Removed 468‑line monolithic test file, split into 3 focused test modules (basic, next‑action, skill‑priority) + helpers, 23 tests pass
 - 2026-01-25: selectors.test.ts decomposition - Removed 523‑line monolithic test file, split into 9 focused test modules (nearest_enemy, nearest_ally, lowest_hp_enemy, lowest_hp_ally, self, tie‑breaking, metric‑independence, edge‑cases, helpers), 627 total tests pass
 - 2026-01-25: triggers.test.ts decomposition - Removed 717‑line monolithic test file, split into 7 focused test modules (enemy‑in‑range, ally‑in‑range, hp‑below, cell‑targeted, edge‑cases, always, helpers), 627 total tests pass
 - 2026-01-25: combat.test.ts decomposition - Removed 1083‑line monolithic test file, split into 4 focused test modules (basic, multi‑attack, death, edge‑cases) + helpers, 623 tests pass

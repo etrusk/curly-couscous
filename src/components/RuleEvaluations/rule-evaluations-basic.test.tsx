@@ -1,0 +1,121 @@
+/**
+ * Basic rendering tests for RuleEvaluations component.
+ * Extracted from RuleEvaluations.test.tsx.
+ */
+
+import { describe, it, expect, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { RuleEvaluations } from "./RuleEvaluations";
+import { useGameStore } from "../../stores/gameStore";
+import { createCharacter, createTarget } from "./rule-evaluations-test-helpers";
+
+describe("RuleEvaluations - Basic Rendering", () => {
+  beforeEach(() => {
+    // Reset store before each test
+    const { actions } = useGameStore.getState();
+    actions.initBattle([]);
+    actions.selectCharacter(null);
+  });
+
+  // Test 1: No character selected
+  it("should show placeholder when no character selected", () => {
+    render(<RuleEvaluations />);
+    expect(
+      screen.getByText(/Click a character on the grid to see AI decisions/i),
+    ).toBeInTheDocument();
+  });
+
+  // Test 2: Character name in header
+  it("should show character name in header when selected", () => {
+    const character = createCharacter({ name: "TestWarrior" });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]);
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    expect(
+      screen.getByRole("heading", { name: /Rule Evaluations: TestWarrior/i }),
+    ).toBeInTheDocument();
+  });
+
+  // Test 3: Idle character with no target previews idle action
+  it("should preview idle action when character has no valid targets", () => {
+    const character = createCharacter({ currentAction: null });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]); // No enemies, so will preview idle
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    expect(screen.getByText(/💤 Idle/i)).toBeInTheDocument();
+    expect(screen.getByText(/💤 No valid action/i)).toBeInTheDocument();
+  });
+
+  // Test 4: Idle action state (character with no current action shows preview)
+  it("should display idle action with explanation", () => {
+    const character = createCharacter({ currentAction: null });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]); // No enemies
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    expect(screen.getByText(/💤 Idle/i)).toBeInTheDocument();
+    expect(screen.getByText(/💤 No valid action/i)).toBeInTheDocument();
+  });
+
+  // Test 19: Accessible panel
+  it("should have accessible panel with role and label", () => {
+    const character = createCharacter({ name: "TestChar" });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]);
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    const panel = screen.getByRole("region", {
+      name: /Rule Evaluations: TestChar/i,
+    });
+    expect(panel).toBeInTheDocument();
+  });
+
+  // Test 20: Semantic list structure
+  it("should render skill list as ordered list element", () => {
+    const character = createCharacter();
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+    const orderedList = container.querySelector("ol");
+    expect(orderedList).toBeInTheDocument();
+    expect(orderedList?.children.length).toBe(3); // 3 skills
+  });
+
+  // Test 21: Selected skill arrow indicator
+  it("should show arrow indicator for selected skill", () => {
+    const target = createTarget();
+    const character = createCharacter({ currentAction: null });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+    // Light Punch should be selected and have arrow in its text content
+    const firstSkill = container.querySelector("li");
+    expect(firstSkill?.textContent).toContain("→ ");
+    expect(firstSkill?.textContent).toContain("1. Light Punch");
+  });
+
+  // Test 22: Active skill highlighting
+  it("should highlight active skill based on next-tick preview", () => {
+    const target = createTarget();
+    const character = createCharacter({ currentAction: null });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+    // Light Punch should be active (first skill with enemy in range)
+    const skillItems = container.querySelectorAll("li");
+    const firstSkill = skillItems[0];
+    expect(firstSkill?.className).toContain("activeSkill");
+  });
+});

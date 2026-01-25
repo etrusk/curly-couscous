@@ -4,8 +4,8 @@
 
 Use Orchestrator mode. It will:
 
-0. **HEALTH CHECK**: Verify `.docs/current-task.md` is under 500 tokens
-   - Run: `wc -w .docs/current-task.md` (multiply by 1.3 for token estimate)
+0. **HEALTH CHECK** via Code: Verify `.docs/current-task.md` is under 500 tokens
+   - Delegate: `wc -w .docs/current-task.md` (multiply by 1.3 for token estimate)
    - ✅ Under 500 → proceed to step 1
    - ⚠️ 500-650 → warn user, recommend pruning, may proceed if user confirms
    - 🛑 Over 650 → STOP. Output pruning guidance. Do not proceed until fixed.
@@ -28,7 +28,7 @@ Use Orchestrator mode. It will:
    - Code mode implements ONLY the approved tests
    - Do not add, remove, or modify test scope without re-approval
 
-5. **VERIFY FAIL**: Run tests, confirm they fail (proves tests are valid)
+5. **VERIFY FAIL** via Code: Run tests, confirm they fail (proves tests are valid)
    - If tests pass when they should fail → **5a. INVESTIGATE via Debug**: Determine if test is wrong or code already implements behavior (10 exchange budget)
 
 6. **IMPLEMENT** via Code: Write code to make tests pass
@@ -49,7 +49,7 @@ Use Orchestrator mode. It will:
    - After fixing only 🟡/🟢: self-verify all items addressed, then proceed to step 9
    - After 2 review cycles without 🔴 resolution: escalate to human
 
-9. **VERIFY PASS**: Run tests, confirm they pass
+9. **VERIFY PASS** via Code: Run tests, confirm they pass
    - If unrelated tests fail (regression) → **9a. REGRESSION DEBUG via Debug**: Systematic analysis (15 exchange budget)
 
 10. **SYNC DOCS**: Verify and update documentation before commit
@@ -66,15 +66,16 @@ Use Orchestrator mode. It will:
       - Verify file remains under 500 tokens after update
       - If update would exceed: prune old items first, then add new
 
-11. **COMMIT**: Git commit operations while files are fresh in context
-    - Stage all changes: `git add -A && echo "DONE"`
-    - Commit with conventional format: `git commit -m "type(scope): description" && echo "DONE"`
+11. **COMMIT** via Code: Git commit operations while files are fresh in context
+    - Delegate staging: `git add -A && echo "DONE"`
+    - Delegate commit: `git commit -m "type(scope): description" && echo "DONE"`
       - Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`
       - Example: `git commit -m "feat(combat): add dodge mechanics" && echo "DONE"`
     - **Husky + lint-staged**: Pre-commit hook automatically runs ESLint + Prettier on staged files
     - **Note**: The `&& echo "DONE"` suffix ensures terminal completion detection in VS Code
 
-12. **PUSH**: Push to remote: `git push && echo "DONE"`
+12. **PUSH** via Code: Push to remote
+    - Delegate: `git push && echo "DONE"`
     - Verify push succeeded (no conflicts or errors)
     - 🛑 **Do NOT use `attempt_completion` until changes are committed and pushed**
     - Include commit hash in completion message

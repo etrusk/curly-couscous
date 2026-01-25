@@ -105,12 +105,12 @@ Should it continue, or would you like to intervene?
 
 ## Final Step: Workflow Completion
 
-Before completing ANY task, execute **Workflow Steps 10-12** (see `01-workflow.md`):
+Before completing ANY task, delegate **Workflow Steps 10-12** to Code mode (see `01-workflow.md`):
 
-1. **Step 10 (SYNC DOCS)**: Verify spec/code alignment, update documentation as needed
-2. **Step 11 (COMMIT)**: Stage and commit with conventional format
-3. **Step 12 (PUSH)**: Push to remote
+1. **Step 10 (SYNC DOCS)** via Code: Delegate doc verification and updates
+2. **Step 11 (COMMIT)** via Code: Delegate git staging and commit operations
+3. **Step 12 (PUSH)** via Code: Delegate git push operation
 
-🛑 **MANDATORY**: Do NOT use `attempt_completion` until changes are committed and pushed
+🛑 **MANDATORY**: Do NOT use `attempt_completion` until Code mode confirms changes are committed and pushed
 
 **Exception**: If explicitly instructed not to commit/push, note this in handback with reason

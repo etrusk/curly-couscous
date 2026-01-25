@@ -101,7 +101,7 @@ Every subtask MUST use this format:
   - Route when tests fail after 2+ Code attempts
   - Route when root cause is unclear
   - Route before human escalation for technical issues
-  - ⚠️ Debug has strict 20-exchange limit — see rules-debug
+  - ⚠️ Debug has strict 10-exchange limit — see rules-debug
 
 ## Completion Requirements
 

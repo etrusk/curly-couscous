@@ -2,10 +2,12 @@
 
 ## For Non-Trivial Tasks
 
-Use Orchestrator mode. It will:
+Use Orchestrator mode. **Orchestrator's role is orchestration only** — it delegates all file operations (reading, writing, editing) to specialized modes (Architect, Code, Ask, Debug). Orchestrator never directly modifies files.
 
-0. **SESSION INIT**: Update `.docs/current-task.md` at task start
-   - Replace "Current Focus" section with detailed task description
+It will:
+
+0. **SESSION INIT** via Code: Update `.docs/current-task.md` at task start
+   - Delegate to Code mode to replace "Current Focus" section with detailed task description
    - Include: Goal, scope, files involved, approach, constraints
    - Provide enough context for a fresh session to understand the task completely
 
@@ -28,11 +30,11 @@ Use Orchestrator mode. It will:
    - Do not add, remove, or modify test scope without re-approval
 
 5. **VERIFY FAIL** via Code: Run tests, confirm they fail (proves tests are valid)
-   - If tests pass when they should fail → **5a. INVESTIGATE via Debug**: Determine if test is wrong or code already implements behavior (10 exchange budget)
+   - If tests pass when they should fail → **5a. INVESTIGATE via Debug**: Determine if test is wrong or code already implements behavior (10-exchange budget)
 
 6. **IMPLEMENT** via Code: Write code to make tests pass
 
-6a. **INVESTIGATE** via Debug: If tests still fail after 2 Code mode attempts - Root cause analysis (15-20 exchange budget) - Handback to Code mode with findings OR escalate to Architect if design flaw detected
+6a. **INVESTIGATE** via Debug: If tests still fail after 2 Code mode attempts - Root cause analysis (10-exchange budget) - Handback to Code mode with findings OR escalate to Architect if design flaw detected
 
 7. **REVIEW** via Ask: Critique implementation (read-only — no edits)
    - Categorize issues: 🔴 CRITICAL (security, data integrity, major bugs), 🟡 IMPORTANT (performance, maintainability, edge cases), 🟢 MINOR (style, naming, documentation)
@@ -49,27 +51,34 @@ Use Orchestrator mode. It will:
    - After 2 review cycles without 🔴 resolution: escalate to human
 
 9. **VERIFY PASS** via Code: Run tests, confirm they pass
-   - If unrelated tests fail (regression) → **9a. REGRESSION DEBUG via Debug**: Systematic analysis (15 exchange budget)
+   - If unrelated tests fail (regression) → **9a. REGRESSION DEBUG via Debug**: Systematic analysis (10-exchange budget)
 
-10. **SYNC DOCS**: Verify and update documentation before commit
-    - **Spec/Doc Alignment Check**:
-      - Did human feedback change requirements or behavior?
-      - Were features implemented differently than originally designed?
-      - Did architectural decisions deviate from spec?
-    - **If updates needed**, update relevant docs:
-      - `.docs/spec.md` — requirement changes
-      - `.docs/architecture.md` — design deviations
-      - `.docs/patterns/` or `.docs/decisions/` — new patterns/decisions
-      - Delegate to Architect if changes are substantial
+10. **SYNC DOCS** via Code: Verify and update documentation before commit
+    - **MANDATORY Spec Verification** (execute every time):
+      1. Delegate to Code: Read `.docs/current-task.md` "Current Focus" section for task context
+      2. Delegate to Code: Compare implemented behavior against `.docs/spec.md`
+      3. Orchestrator checks if ANY of these occurred:
+         - Human feedback changed requirements or behavior
+         - Implementation revealed spec incompleteness (missing edge cases, unclear rules)
+         - Behavioral details were clarified/added during development
+         - Game mechanics were refined based on testing
+         - Features implemented differently than originally designed
+         - Architectural decisions deviated from documented spec
+      4. **If YES to any** → Delegate updates to Code mode:
+         - `.docs/spec.md` — behavioral changes, clarifications, new rules
+         - `.docs/architecture.md` — design deviations
+         - `.docs/patterns/` or `.docs/decisions/` — new patterns/decisions
+         - Orchestrator escalates to Architect if changes are substantial
+      5. **If NO** → Orchestrator confirms in Code handback: "Verified spec.md alignment—no updates needed"
     - **Session state** (`.docs/current-task.md`):
-      - Move "Current Focus" entry to "Recent Completions" with completion note
+      - Delegate to Code mode to move "Current Focus" entry to "Recent Completions" with completion note
       - Keep completion entries concise but informative (what was done + outcome)
-      - **Token budget check**: Verify file remains under 500 tokens after update
-        - Delegate: `wc -w .docs/current-task.md` (multiply by 1.3 for token estimate)
+      - **Token budget check**: Orchestrator verifies file remains under 500 tokens after update
+        - Delegate to Code: `wc -w .docs/current-task.md` (multiply by 1.3 for token estimate)
         - ✅ Under 500 → proceed to commit
-        - ⚠️ 500-650 → prune oldest "Recent Completions" items, then add new
-        - 🛑 Over 650 → prune aggressively before commit
-      - If update would exceed: prune oldest items first, then add new
+        - ⚠️ 500-650 → Code prunes oldest "Recent Completions" items, then adds new
+        - 🛑 Over 650 → Code prunes aggressively before commit
+      - If update would exceed: Code prunes oldest items first, then adds new
 
 11. **COMMIT** via Code: Git commit operations while files are fresh in context
     - **MANDATORY**: `.docs/current-task.md` must be included in every commit
@@ -109,9 +118,9 @@ Orchestrator may adapt the 12-step workflow based on task context:
 
 Orchestrator may compress Steps 3-5 (DESIGN TESTS → WRITE TESTS → VERIFY FAIL) into:
 
-- **Step 3-ALT**: Verify existing tests cover refactored code
-- Proceed to Step 6 (IMPLEMENT via Code) if coverage is sufficient
-- If coverage gaps exist, return to Step 3 (DESIGN TESTS) for missing cases
+- **Step 3-ALT** via Code: Verify existing tests cover refactored code
+- Orchestrator proceeds to Step 6 (IMPLEMENT via Code) if coverage is sufficient
+- If coverage gaps exist, Orchestrator returns to Step 3 (DESIGN TESTS) for missing cases
 
 **Refactoring examples:**
 
@@ -158,7 +167,7 @@ Architect mode handback deliverables:
 ### Before Implementation
 
 If planned changes touch more than 5 files:
-→ Pause and confirm: "This task touches [N] files. Should I decompose into smaller subtasks?"
+→ Orchestrator pauses and confirms with human: "This task touches [N] files. Should I decompose into smaller subtasks?"
 
 ### During Implementation
 
@@ -225,7 +234,7 @@ Do NOT try to "fix" a degraded conversation — start fresh with a summary of wh
 
 ## Session Continuity
 
-At task start: Check `current-task.md` for context from prior sessions.
-At task end: Update `current-task.md` with completions and next steps.
+At task start: Orchestrator delegates to Code to check `current-task.md` for context from prior sessions.
+At task end: Orchestrator delegates to Code to update `current-task.md` with completions and next steps.
 
 Keep entries brief — this is a breadcrumb trail, not documentation.

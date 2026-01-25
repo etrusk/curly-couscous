@@ -6,10 +6,11 @@
 
 ## Current Focus
 
-_(Ready for next task)_
+(Ready for next task)
 
 ## Recent Completions
 
+- 2026-01-25: selectors.test.ts decomposition - Removed 523‑line monolithic test file, split into 9 focused test modules (nearest_enemy, nearest_ally, lowest_hp_enemy, lowest_hp_ally, self, tie‑breaking, metric‑independence, edge‑cases, helpers), 627 total tests pass
 - 2026-01-25: triggers.test.ts decomposition - Removed 717‑line monolithic test file, split into 7 focused test modules (enemy‑in‑range, ally‑in‑range, hp‑below, cell‑targeted, edge‑cases, always, helpers), 627 total tests pass
 - 2026-01-25: combat.test.ts decomposition - Removed 1083‑line monolithic test file, split into 4 focused test modules (basic, multi‑attack, death, edge‑cases) + helpers, 623 tests pass
 - 2026-01-25: gameStore.test.ts decomposition - Removed 1313‑line monolithic test file, split into 5 focused test modules (integration, reset, skills, characters, debug‑ui), 623 tests pass

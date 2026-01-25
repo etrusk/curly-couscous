@@ -1,0 +1,118 @@
+/**
+ * Tests for action type inference logic in computeDecisions.
+ */
+
+import { describe, it, expect } from "vitest";
+import { computeDecisions } from "./game-decisions";
+import {
+  createGameState,
+  createCharacter,
+  createSkill,
+} from "./game-test-helpers";
+
+describe("computeDecisions - action type inference", () => {
+  it("should create attack action for skill with damage", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { x: 6, y: 5 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { x: 5, y: 5 },
+      skills: [
+        createSkill({
+          id: "skill1",
+          damage: 10,
+          triggers: [{ type: "always" }],
+        }),
+      ],
+    });
+    const state = createGameState({
+      tick: 1,
+      characters: [character, enemy],
+    });
+
+    const decisions = computeDecisions(state);
+
+    expect(decisions[0]!.action.type).toBe("attack");
+  });
+
+  it("should create move action for skill with mode", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { x: 8, y: 5 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { x: 5, y: 5 },
+      skills: [
+        createSkill({
+          id: "skill1",
+          mode: "towards",
+          triggers: [{ type: "always" }],
+        }),
+      ],
+    });
+    const state = createGameState({
+      tick: 1,
+      characters: [character, enemy],
+    });
+
+    const decisions = computeDecisions(state);
+
+    expect(decisions[0]!.action.type).toBe("move");
+  });
+
+  it("should throw for skill with both damage and mode", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { x: 6, y: 5 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { x: 5, y: 5 },
+      skills: [
+        createSkill({
+          id: "skill1",
+          damage: 10,
+          mode: "towards",
+          triggers: [{ type: "always" }],
+        }),
+      ],
+    });
+    const state = createGameState({
+      tick: 1,
+      characters: [character, enemy],
+    });
+
+    expect(() => computeDecisions(state)).toThrow(
+      /cannot have both damage and mode/,
+    );
+  });
+
+  it("should throw for skill with neither damage nor mode", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { x: 6, y: 5 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { x: 5, y: 5 },
+      skills: [createSkill({ id: "skill1", triggers: [{ type: "always" }] })],
+    });
+    const state = createGameState({
+      tick: 1,
+      characters: [character, enemy],
+    });
+
+    expect(() => computeDecisions(state)).toThrow(/must have damage or mode/);
+  });
+});

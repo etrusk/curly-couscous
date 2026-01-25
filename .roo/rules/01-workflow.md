@@ -4,11 +4,10 @@
 
 Use Orchestrator mode. It will:
 
-0. **HEALTH CHECK** via Code: Verify `.docs/current-task.md` is under 500 tokens
-   - Delegate: `wc -w .docs/current-task.md` (multiply by 1.3 for token estimate)
-   - ✅ Under 500 → proceed to step 1
-   - ⚠️ 500-650 → warn user, recommend pruning, may proceed if user confirms
-   - 🛑 Over 650 → STOP. Output pruning guidance. Do not proceed until fixed.
+0. **SESSION INIT**: Update `.docs/current-task.md` at task start
+   - Replace "Current Focus" section with detailed task description
+   - Include: Goal, scope, files involved, approach, constraints
+   - Provide enough context for a fresh session to understand the task completely
 
 1. **EXPLORE** via Architect: Read files, understand context
 
@@ -63,10 +62,17 @@ Use Orchestrator mode. It will:
       - `.docs/patterns/` or `.docs/decisions/` — new patterns/decisions
       - Delegate to Architect if changes are substantial
     - **Session state** (`.docs/current-task.md`):
-      - Verify file remains under 500 tokens after update
-      - If update would exceed: prune old items first, then add new
+      - Move "Current Focus" entry to "Recent Completions" with completion note
+      - Keep completion entries concise but informative (what was done + outcome)
+      - **Token budget check**: Verify file remains under 500 tokens after update
+        - Delegate: `wc -w .docs/current-task.md` (multiply by 1.3 for token estimate)
+        - ✅ Under 500 → proceed to commit
+        - ⚠️ 500-650 → prune oldest "Recent Completions" items, then add new
+        - 🛑 Over 650 → prune aggressively before commit
+      - If update would exceed: prune oldest items first, then add new
 
 11. **COMMIT** via Code: Git commit operations while files are fresh in context
+    - **MANDATORY**: `.docs/current-task.md` must be included in every commit
     - Delegate staging: `git add -A && echo "DONE"`
     - Delegate commit: `git commit -m "type(scope): description" && echo "DONE"`
       - Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`
@@ -83,6 +89,65 @@ Use Orchestrator mode. It will:
 ## For Simple Fixes
 
 Typos, obvious bugs, small tweaks — proceed directly in Code mode.
+
+## Workflow Adaptation
+
+Orchestrator may adapt the 12-step workflow based on task context:
+
+### When to Use Full 12-Step TDD Workflow
+
+**Use Steps 0-12 verbatim for:**
+
+- New features (new behavior, new APIs, new components)
+- Bug fixes that change behavior
+- Any change where correctness is uncertain
+- Unfamiliar code areas where tests provide safety
+
+### When to Adapt for Refactoring
+
+**For pure refactoring (behavior unchanged, structure improved):**
+
+Orchestrator may compress Steps 3-5 (DESIGN TESTS → WRITE TESTS → VERIFY FAIL) into:
+
+- **Step 3-ALT**: Verify existing tests cover refactored code
+- Proceed to Step 6 (IMPLEMENT via Code) if coverage is sufficient
+- If coverage gaps exist, return to Step 3 (DESIGN TESTS) for missing cases
+
+**Refactoring examples:**
+
+- File decomposition (splitting large files)
+- Extract helper functions
+- Rename for clarity
+- Reorganize module structure
+
+**Non-negotiable in ALL workflows:**
+
+- Step 9 (VERIFY PASS): All tests must pass before commit
+- Steps 10-12 (SYNC DOCS → COMMIT → PUSH): Always execute
+
+### Architect Mode Handback (MANDATORY)
+
+**Architect mode MUST ALWAYS return to Orchestrator via `attempt_completion`.**
+
+Architect mode handback deliverables:
+
+- Step 1 (EXPLORE): Context summary in markdown
+- Step 2 (PLAN): Design document in markdown
+- Step 3 (DESIGN TESTS): Test specifications in markdown
+
+**Architect NEVER:**
+
+- Spawns Code subtasks directly
+- Creates/modifies `.ts`, `.tsx`, `.js`, `.jsx` files
+- Implements code from designs
+
+**Orchestrator responsibility:**
+
+- Review Architect's design deliverable
+- Request human approval if needed (especially Step 3 test designs)
+- Delegate implementation to Code mode (Steps 4-6)
+
+**Rationale**: Architect designs must pass through Orchestrator approval gate. Direct Architect→Code delegation bypasses this control point and loses design context.
 
 ## Recognition
 
@@ -134,7 +199,7 @@ Route to Debug mode (instead of immediate human escalation) when:
 - Regression detected in unrelated tests
 - Visual/UI behavior doesn't match expectations
 
-Debug mode has 20-exchange hard limit. If Debug cannot resolve:
+Debug mode has 10-exchange hard limit. If Debug cannot resolve:
 
 - Handback with findings, hypothesis, and ruled-out causes
 - Orchestrator routes to Architect (if design issue) or human (if needs direction)

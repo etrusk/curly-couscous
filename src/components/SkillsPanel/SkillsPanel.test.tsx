@@ -2,47 +2,12 @@
  * Tests for SkillsPanel component.
  * Following TDD workflow - these tests are written before implementation.
  */
-
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { SkillsPanel } from "./SkillsPanel";
 import { useGameStore } from "../../stores/gameStore";
-import type { Character, Skill } from "../../engine/types";
-
-// ============================================================================
-// Test Helpers
-// ============================================================================
-
-const createCharacter = (
-  overrides: Partial<Character> & { id: string },
-): Character => ({
-  id: overrides.id,
-  name: overrides.name ?? `Character ${overrides.id}`,
-  faction: overrides.faction ?? "friendly",
-  slotPosition: overrides.slotPosition ?? 0,
-  hp: overrides.hp ?? 100,
-  maxHp: overrides.maxHp ?? 100,
-  position: overrides.position ?? { x: 0, y: 0 },
-  skills: overrides.skills ?? [],
-  currentAction: overrides.currentAction ?? null,
-});
-
-const createSkill = (overrides: Partial<Skill> & { id: string }): Skill => ({
-  id: overrides.id,
-  name: overrides.name ?? `Skill-${overrides.id}`,
-  tickCost: overrides.tickCost ?? 1,
-  range: overrides.range ?? 1,
-  damage: overrides.damage,
-  mode: overrides.mode,
-  enabled: overrides.enabled ?? true,
-  triggers: overrides.triggers ?? [{ type: "always" }],
-  selectorOverride: overrides.selectorOverride,
-});
-
-// ============================================================================
-// SkillsPanel Tests
-// ============================================================================
+import { createCharacter, createSkill } from "../../engine/game-test-helpers";
 
 describe("SkillsPanel", () => {
   beforeEach(() => {

@@ -10,6 +10,7 @@ Debug UI improvements. Next: Additional debugging tools as needed.
 
 ## Recent Completions
 
+- 2026-01-25: gameStore.test.ts decomposition - Removed 1313‑line monolithic test file, split into 5 focused test modules (integration, reset, skills, characters, debug‑ui), 623 tests pass
 - 2026-01-25: game.test.ts decomposition - Removed 3186‑line monolithic test file, split into 5 focused test modules (action‑type‑inference, attack‑targeting, move‑destination‑basic, move‑destination‑wall‑boundary, evaluate‑skills), 728 total tests pass
 - 2026-01-25: gameStore decomposition - Split 484‑line store into 5 focused modules (constants, helpers, selectors, types, actions), 327‑line core, 683 tests pass
 - 2026-01-24: Debug UI click-to-place - Selection modes for adding/moving characters, clickable cells, CharacterControls buttons, 583 tests

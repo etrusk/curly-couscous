@@ -9,6 +9,10 @@ Every subtask MUST use this format:
 
 **Files**: [Explicit paths — e.g., src/auth/login.ts, src/auth/login.test.ts]
 
+**Prior Findings**: [Factual data from completed subtasks — command outputs, measurements, decisions]
+
+**Scope**: [What IS and IS NOT this subtask's concern — prevent false alarms]
+
 **Context**: [2-3 bullets max — only decisions affecting THIS subtask]
 
 **Success Criteria**: [Specific, testable conditions for completion]
@@ -29,12 +33,64 @@ Every subtask MUST use this format:
 - Background context the subtask doesn't need
 - Speculative "might also need" files
 
-## Context Transfer Between Subtasks
+## Context Ownership and Transfer
 
-When subtask A completes and subtask B needs its output:
+**Orchestrator owns context from completed subtasks.** Extract key findings from handbacks and pass them forward to eliminate redundant work.
 
-- Include only the **decision** and **artifact** (file path, function name)
-- Do NOT include A's reasoning or rejected approaches
+### What to Pass Forward
+
+**Prior Findings** (factual data from completed subtasks):
+
+- Command outputs (ESLint results, test counts, file sizes)
+- Measurements (line counts, violation counts)
+- Decisions made (file selected, approach chosen)
+- Artifacts created or modified
+
+**Scope** (prevent false alarms):
+
+- What IS this subtask's responsibility
+- What IS NOT this subtask's concern (even if imperfect)
+- Constraints (atomic task, single file only, etc.)
+
+**Context** (decisions affecting this subtask):
+
+- Recent patterns (how similar work was done)
+- Project constraints (max file size, naming conventions)
+- DO NOT include reasoning or rejected approaches
+
+### Example: Delegation After Investigation
+
+**Before** (redundant work):
+
+```
+**Goal**: Design decomposition for game.test.ts
+
+**Files**: src/engine/game.test.ts
+
+**Context**: ESLint max-lines rule is 400 lines
+```
+
+→ Architect has to re-run ESLint and re-read files to understand the problem
+
+**After** (context ownership):
+
+```
+**Goal**: Design decomposition for game.test.ts (2694 lines)
+
+**Files**: src/engine/game.test.ts, src/engine/game.ts
+
+**Prior Findings**:
+- ESLint violations: game.test.ts (2694 lines), 4 other files also exceed limit
+- Parent class game.ts is 26 lines (compliant)
+
+**Scope**: This is an atomic task. Decompose game.test.ts only. Other violations are out of scope.
+
+**Context**: Recent gameStore decomposed into 5 focused modules (constants, helpers, selectors, types, actions)
+
+**Success Criteria**: Propose decomposition plan with each resulting file under 400 lines
+```
+
+→ Architect has all information needed without re-running commands or re-reading files
 
 ## Mode Selection
 

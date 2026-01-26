@@ -119,6 +119,8 @@ When multiple cells are equidistant to target:
 
 Intent lines visualize pending actions, enabling at-a-glance battlefield reading.
 
+**Visibility:** Intent lines appear for actions with `ticksRemaining > 0` (actions that will resolve in future ticks). Same‑tick actions (e.g., Light Punch with tick cost 1) do not show intent lines because they resolve immediately—players see the damage effect instead.
+
 ### Visual Encoding
 
 | Type              | Line Style | Color          | Endpoint         |

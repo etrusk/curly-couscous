@@ -5,7 +5,11 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { useGameStore, selectRecentDamageEvents } from "./gameStore";
+import {
+  useGameStore,
+  selectRecentDamageEvents,
+  selectIntentData,
+} from "./gameStore";
 import type { DamageEvent, GameEvent } from "../engine/types";
 import { createCharacter, createSkill } from "./gameStore-test-helpers";
 
@@ -341,6 +345,79 @@ describe("processTick Integration", () => {
     // Guard covers all terminal states (!== 'active')
     expect(useGameStore.getState().gameState.tick).toBe(tickBeforeSecondCall);
     expect(useGameStore.getState().gameState.battleStatus).toBe("victory");
+  });
+});
+
+describe("Intent Data Integration", () => {
+  beforeEach(() => {
+    useGameStore.getState().actions.reset();
+  });
+
+  it("should produce non-empty intent data BEFORE processTick for Heavy Punch (tickCost 2)", () => {
+    const heavyPunchSkill = createSkill({
+      id: "heavy-punch",
+      damage: 25,
+      tickCost: 2,
+      range: 2,
+    });
+    const action = {
+      type: "attack" as const,
+      skill: heavyPunchSkill,
+      targetCell: { x: 2, y: 0 },
+      targetCharacter: null,
+      startedAtTick: 0,
+      resolvesAtTick: 1, // 0 + 2 - 1 = 1
+    };
+    const attacker = createCharacter({
+      id: "attacker",
+      faction: "friendly",
+      position: { x: 0, y: 0 },
+      slotPosition: 0,
+      currentAction: action,
+    });
+    const target = createCharacter({
+      id: "target",
+      faction: "enemy",
+      position: { x: 2, y: 0 },
+      slotPosition: 1,
+    });
+
+    useGameStore.getState().actions.initBattle([attacker, target]);
+    // At tick 0, action has resolvesAtTick=1, ticksRemaining=1
+
+    const intentData = selectIntentData(useGameStore.getState());
+    expect(intentData).toHaveLength(1);
+    expect(intentData[0]?.characterId).toBe("attacker");
+    expect(intentData[0]?.ticksRemaining).toBe(1);
+  });
+
+  it("should produce empty intent data after processTick for Light Punch (tickCost 1)", () => {
+    const attacker = createCharacter({
+      id: "attacker",
+      faction: "friendly",
+      position: { x: 0, y: 0 },
+      slotPosition: 0,
+      skills: [
+        createSkill({ id: "light-punch", damage: 10, tickCost: 1, range: 1 }),
+      ],
+    });
+    const target = createCharacter({
+      id: "target",
+      faction: "enemy",
+      position: { x: 1, y: 0 },
+      slotPosition: 1,
+    });
+
+    useGameStore.getState().actions.initBattle([attacker, target]);
+    // At tick 0, computeDecisions produces an action with resolvesAtTick = 0 (tickCost 1)
+    // processTick applies decisions, then clearResolvedActions removes it because resolvesAtTick <= tick after processing.
+    // After processTick, tick becomes 1, so any action with resolvesAtTick = 0 has ticksRemaining = -1 (negative)
+    // and is filtered out by selectIntentData (ticksRemaining > 0 filter).
+    // This test verifies intent lines are not shown for already-resolved actions.
+    useGameStore.getState().actions.processTick();
+
+    const intentData = selectIntentData(useGameStore.getState());
+    expect(intentData).toHaveLength(0);
   });
 });
 

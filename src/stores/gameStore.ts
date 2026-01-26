@@ -94,10 +94,11 @@ export const useGameStore = create<GameStore>()(
           const seed = Date.now(); // Use timestamp as seed
 
           // Strip transient state before cloning to avoid circular references
+          // Preserve currentAction if set (for testing scenarios)
           const sanitized = characters.map((char, index) => ({
             ...char,
             slotPosition: index, // Assign slot position based on order
-            currentAction: null, // Strip transient state
+            currentAction: char.currentAction ?? null, // Preserve if set, otherwise null
           }));
 
           // Store deep clone of initial state for reset

@@ -116,3 +116,69 @@ describe("computeDecisions - action type inference", () => {
     expect(() => computeDecisions(state)).toThrow(/must have damage or mode/);
   });
 });
+
+describe("computeDecisions - tick resolution for intent visibility", () => {
+  it("should set resolvesAtTick = currentTick + tickCost - 1 for Light Punch (tickCost 1)", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { x: 6, y: 5 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { x: 5, y: 5 },
+      skills: [
+        createSkill({
+          id: "light-punch",
+          damage: 10,
+          tickCost: 1,
+          triggers: [{ type: "always" }],
+        }),
+      ],
+    });
+    const state = createGameState({
+      tick: 0,
+      characters: [character, enemy],
+    });
+
+    const decisions = computeDecisions(state);
+
+    expect(decisions).toHaveLength(2); // Both characters make decisions
+    const char1Decision = decisions.find((d) => d.characterId === "char1");
+    expect(char1Decision!.action.type).toBe("attack");
+    expect(char1Decision!.action.resolvesAtTick).toBe(0); // 0 + 1 - 1 = 0
+  });
+
+  it("should set resolvesAtTick = currentTick + tickCost - 1 for Heavy Punch (tickCost 2)", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { x: 6, y: 5 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { x: 5, y: 5 },
+      skills: [
+        createSkill({
+          id: "heavy-punch",
+          damage: 25,
+          tickCost: 2,
+          triggers: [{ type: "always" }],
+        }),
+      ],
+    });
+    const state = createGameState({
+      tick: 0,
+      characters: [character, enemy],
+    });
+
+    const decisions = computeDecisions(state);
+
+    expect(decisions).toHaveLength(2); // Both characters make decisions
+    const char1Decision = decisions.find((d) => d.characterId === "char1");
+    expect(char1Decision!.action.type).toBe("attack");
+    expect(char1Decision!.action.resolvesAtTick).toBe(1); // 0 + 2 - 1 = 1
+  });
+});

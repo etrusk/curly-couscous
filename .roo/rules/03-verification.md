@@ -1,8 +1,18 @@
 # Verification
 
-## Implicit Verification via Quality Gates
+## Multi-Stage Quality Gates
 
-Verification is built into the workflow through mandatory quality gates that run before any commit:
+Quality gates run at THREE points in the workflow:
+
+1. **After test creation (Step 4):** Type-checking ensures tests compile
+2. **After implementation (Step 6):** Lint + type-check catch issues before review
+3. **Pre-commit (Step 11):** Husky hook runs lint-staged as final safety check
+
+Catching issues early (Steps 4 & 6) prevents wasted review cycles.
+
+### Full Quality Gate Suite
+
+The complete quality gate suite includes:
 
 ```bash
 npm run lint              # ESLint + Prettier (auto-fix)

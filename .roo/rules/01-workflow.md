@@ -28,11 +28,16 @@ It will:
 4. **WRITE TESTS** via Code: Implement approved test designs as failing tests
    - Code mode implements ONLY the approved tests
    - Do not add, remove, or modify test scope without re-approval
+   - **Quality Gate:** Run `npm run type-check` to ensure tests compile
 
 5. **VERIFY FAIL** via Code: Run tests, confirm they fail (proves tests are valid)
    - If tests pass when they should fail → **5a. INVESTIGATE via Debug**: Determine if test is wrong or code already implements behavior (10-exchange budget)
 
 6. **IMPLEMENT** via Code: Write code to make tests pass
+   - **Quality Gate:** After implementation, run:
+     - `npm run lint` — catch style and potential bugs
+     - `npm run type-check` — verify type safety
+   - If quality gates fail → fix immediately, do not proceed to Step 7 (REVIEW)
 
 6a. **INVESTIGATE** via Debug: If tests still fail after 2 Code mode attempts - Root cause analysis (10-exchange budget) - Handback to Code mode with findings OR escalate to Architect if design flaw detected
 

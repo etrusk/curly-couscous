@@ -119,18 +119,35 @@ export interface IntentData {
 /**
  * Select pending actions for intent line visualization.
  * Used by IntentOverlay to render lines from characters to their targets.
+ *
+ * Filters out:
+ * - Idle actions (type "idle")
+ * - Actions with ticksRemaining <= 0 (resolving this tick or already resolved)
+ *   Note: ticksRemaining = 0 means action resolves in current tick, so not shown.
+ *
+ * Shows all pending actions that will execute on future ticks (ticksRemaining > 0),
+ * enabling complete battlefield awareness per "Into the Breach" design principle.
+ *
+ * @param state - The game store state
+ * @returns Array of intent data for rendering, empty if no pending actions
  */
 export const selectIntentData = (state: GameStore): IntentData[] => {
   const { tick, characters } = state.gameState;
   return characters
-    .filter((c) => c.currentAction !== null)
+    .filter(
+      (c): c is Character & { currentAction: Action } =>
+        c.currentAction !== null,
+    )
     .map((c) => ({
       characterId: c.id,
       characterPosition: c.position,
       faction: c.faction,
-      action: c.currentAction!,
-      ticksRemaining: c.currentAction!.resolvesAtTick - tick,
-    }));
+      action: c.currentAction,
+      ticksRemaining: c.currentAction.resolvesAtTick - tick,
+    }))
+    .filter(
+      (intent) => intent.ticksRemaining > 0 && intent.action.type !== "idle",
+    );
 };
 
 /**

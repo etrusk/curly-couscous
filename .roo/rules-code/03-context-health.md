@@ -2,7 +2,9 @@
 
 ## Exchange Budget (ENFORCED)
 
-Code tasks have a **20-exchange soft limit** and **25-exchange hard limit**.
+- **15 exchanges**: Self-assessment checkpoint
+- **20 exchanges**: Soft limit—must hand back unless completion imminent
+- **25 exchanges**: Hard limit—mandatory handback, no exceptions
 
 ### At ~15 exchanges
 
@@ -10,62 +12,41 @@ Pause and self-assess:
 
 - What's implemented and working?
 - What's blocked or failing?
-- Am I making measurable progress (tests passing, errors changing)?
+- Am I making measurable progress?
 
-If no measurable progress in last 5 exchanges → proceed to Early Stop.
-
-### At 20 exchanges without completion
-
-→ STOP. Do not attempt further fixes.
-→ Proceed to **Structured Handback for Human Review** (below).
-
-### At 25 exchanges
-
-HARD STOP. No exceptions. Execute handback immediately.
-
----
+If no progress in last 5 exchanges → proceed to Early Stop.
 
 ## Early Stop Triggers
 
-Stop immediately and execute handback if ANY of these occur:
+Stop immediately and execute handback if ANY occur:
 
-- [ ] Editing the same file 3+ times without test improvement
-- [ ] Suggesting an approach you already tried earlier in this session
-- [ ] Referencing APIs, methods, or types that don't exist
-- [ ] Unable to explain why your current fix should work
-- [ ] Test failures that don't match your mental model
-- [ ] Saying "let me try one more thing" more than twice
-- [ ] Error messages are surprising or nonsensical given your changes
+- Editing same file 3+ times without test improvement
+- Suggesting previously-tried approach
+- Referencing non-existent APIs, methods, or types
+- Unable to explain why current fix should work
+- Test failures that don't match mental model
+- Saying "let me try one more thing" more than twice
 
-These indicate context degradation. A fresh start with your summary beats continued thrashing.
+## Structured Handback Format
 
----
-
-## Structured Handback for Human Review
-
-When any limit or trigger is hit, use `attempt_completion` with this EXACT format:
+When any limit or trigger is hit, use `attempt_completion` with:
 
 ```
 **Status**: 🛑 Blocked — context limit reached
 
-**What Works**:
-- [Bullet list of implemented functionality that is verified working]
+**What Works**: [Bullet list of verified working functionality]
 
-**What's Failing**:
-- [Specific test/behavior]: [Exact error or symptom]
+**What's Failing**: [Specific test/behavior]: [Exact error]
 
 **Test State**: X passing / Y failing
 
-**Files Modified**:
-- `path/to/file.ts`: [1-line summary of changes]
+**Files Modified**: `path/to/file.ts`: [1-line summary]
 
 **Attempts Made**:
 1. [Approach 1]: [Why it didn't work]
 2. [Approach 2]: [Why it didn't work]
-3. [Approach 3]: [Why it didn't work]
 
-**Current Hypothesis**:
-[Your best theory on root cause, even if uncertain]
+**Current Hypothesis**: [Best theory on root cause]
 
 **Recommended Next Steps**:
 - [Option A]: [What it would involve]
@@ -74,17 +55,8 @@ When any limit or trigger is hit, use `attempt_completion` with this EXACT forma
 **Health**: ⚠️ Degraded — [exchange limit | early stop trigger hit]
 ```
 
-Do NOT:
-
-- Continue attempting fixes after triggering handback
-- Provide vague summaries ("something is wrong with X")
-- Omit the attempts made section
-- Skip the hypothesis
-
----
-
 ## What Code Mode Does NOT Do
 
-- Code mode handles general debugging; for complex issues where root cause remains unclear after 2-3 attempts, hand back to Debug mode.
-- Code mode does not redesign. If implementation reveals design flaws, hand back for Architect review.
-- Code mode does not push through confusion. Confusion is a signal, not an obstacle to overcome.
+- Complex debugging with unclear root cause after 2-3 attempts → hand back to Debug
+- Design flaws → hand back to Architect
+- Confusion is a signal—do not push through it

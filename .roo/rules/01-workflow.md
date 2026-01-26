@@ -2,229 +2,85 @@
 
 ## For Non-Trivial Tasks
 
-Use Orchestrator mode. **Orchestrator's role is orchestration only** — it delegates all file operations (reading, writing, editing) to specialized modes (Architect, Code, Ask, Debug). Orchestrator never directly modifies files.
+Use Orchestrator mode. **Orchestrator's role is orchestration only** — it delegates all file operations to specialized modes (Architect, Code, Ask, Debug). Orchestrator never directly modifies files.
 
-It will:
+### TDD Workflow Steps
 
 0. **SESSION INIT** via Code: Update `.docs/current-task.md` at task start
-   - Delegate to Code mode to replace "Current Focus" section with detailed task description
-   - Include: Goal, scope, files involved, approach, constraints
-   - Provide enough context for a fresh session to understand the task completely
+   - Replace "Current Focus" with: goal, scope, files, approach, constraints
+   - Provide enough context for a fresh session to continue
 
 1. **EXPLORE** via Architect: Read files, understand context
 
 2. **PLAN** via Architect: Propose approach in markdown
    - Apply file hygiene rules (see below)
 
-3. **DESIGN TESTS** via Architect: Propose test cases for the planned behavior
-   - Output UNABRIDGED complete list of tests with justifications (no summaries or ellipses)
+3. **DESIGN TESTS** via Architect: Propose test cases
+   - Output UNABRIDGED complete list with justifications
    - See rules-architect/03-test-design.md for format
-   - Architect uses `ask_followup_question` to present tests and request approval
-   - 🛑 STOP and wait for explicit human approval before signaling completion
-   - Human may approve, reject, or request modifications
-   - If modifications requested → revise and re-request approval
-   - Architect signals completion only after approval received
+   - 🛑 STOP and wait for explicit human approval before proceeding
 
 4. **WRITE TESTS** via Code: Implement approved test designs as failing tests
-   - Code mode implements ONLY the approved tests
-   - Do not add, remove, or modify test scope without re-approval
+   - Implement ONLY the approved tests—no scope changes without re-approval
 
-5. **VERIFY FAIL** via Code: Run tests, confirm they fail (proves tests are valid)
-   - If tests pass when they should fail → **5a. INVESTIGATE via Debug**: Determine if test is wrong or code already implements behavior (10-exchange budget)
+5. **VERIFY FAIL** via Code: Run tests, confirm they fail
+   - If tests unexpectedly pass → escalate to Debug (10-exchange budget)
 
 6. **IMPLEMENT** via Code: Write code to make tests pass
-   - **Quality Gate:** After implementation, run:
-     - `npm run lint`
-     - `npm run type-check`
-   - If quality gates fail → escalate to Debug mode with full context (implementation details, gate errors, files modified)
-   - Debug attempts resolution → handback to Code to continue OR escalate to human if unresolvable
+   - **Quality Gate:** Run `npm run lint` and `npm run type-check`
+   - If gates fail → attempt fix; if stuck after 2 attempts → escalate to Debug
 
-6a. **VISUAL VERIFY** via Code: Use browser_action to verify visual changes
+7. **VERIFY** via Code: Visual verification + review trigger
+   - **Visual** (when changes affect components/CSS): Launch browser, verify visual correctness, screenshot issues
+   - **Review trigger**: Proceed to Ask mode for code review
 
-- Required when changes affect React components (.tsx in src/components/), CSS/styling, layout, or accessibility features
-- Launch dev server if not running, navigate to affected view, verify visual correctness
-- Take screenshot if issues found → escalate to Debug mode
-- Close browser when complete
+8. **REVIEW** via Ask: Critique implementation (read-only)
+   - Categorize: 🔴 CRITICAL | 🟡 IMPORTANT | 🟢 MINOR
+   - ALL issues are mandatory to address
+   - If 🔴 found → proceed to FIX, then re-review (max 2 cycles)
 
-7. **INVESTIGATE** via Debug: If tests still fail after 2 Code mode attempts
-   - Root cause analysis (10-exchange budget)
-   - Handback to Code mode with findings OR escalate to Architect if design flaw detected
-
-8. **REVIEW** via Ask: Critique implementation (read-only — no edits)
-   - Categorize issues: 🔴 CRITICAL (security, data integrity, major bugs), 🟡 IMPORTANT (performance, maintainability, edge cases), 🟢 MINOR (style, naming, documentation)
-   - **ALL issues are mandatory** — every 🔴, 🟡, and 🟢 must be addressed
-   - If 🔴 CRITICAL issues found → proceed to step 8, then return to step 7 (max 2 cycles)
-   - If only 🟡/🟢 issues found → proceed to step 8, then skip to step 9 (Code self-verifies)
-   - If no issues → skip to step 9
-
-9. **FIX** via Code: Address ALL issues found in review
-   - **Mandatory implementation**: Fix every 🔴, 🟡, and 🟢 issue — none are optional
-   - Provide checklist confirmation: "✅ Addressed: [list each issue fixed]"
-   - After fixing 🔴 CRITICAL: re-review (step 7) scoped to fixed code only
-   - After fixing only 🟡/🟢: self-verify all items addressed, then proceed to step 9
-   - After 2 review cycles without 🔴 resolution: escalate to human
+9. **FIX** via Code: Address ALL review issues
+   - Provide checklist: "✅ Addressed: [list each issue fixed]"
+   - After 2 review cycles without 🔴 resolution → escalate to human
 
 10. **VERIFY PASS** via Code: Run tests, confirm they pass
-    - If unrelated tests fail (regression) → **10a. REGRESSION DEBUG via Debug**: Systematic analysis (10-exchange budget)
+    - If regression detected → escalate to Debug (10-exchange budget)
 
-11. **SYNC DOCS** via Code: Verify and update documentation before commit
-    - **MANDATORY Spec Verification** (execute every time):
-      1. Delegate to Code: Read `.docs/current-task.md` "Current Focus" section for task context
-      2. Delegate to Code: Compare implemented behavior against `.docs/spec.md`
-      3. Orchestrator checks if ANY of these occurred:
-         - Human feedback changed requirements or behavior
-         - Implementation revealed spec incompleteness (missing edge cases, unclear rules)
-         - Behavioral details were clarified/added during development
-         - Game mechanics were refined based on testing
-         - Features implemented differently than originally designed
-         - Architectural decisions deviated from documented spec
-      4. **If YES to any** → Delegate updates to Code mode:
-         - `.docs/spec.md` — behavioral changes, clarifications, new rules
-         - `.docs/architecture.md` — design deviations
-         - `.docs/patterns/` or `.docs/decisions/` — new patterns/decisions
-         - Orchestrator escalates to Architect if changes are substantial
-      5. **If NO** → Orchestrator confirms in Code handback: "Verified spec.md alignment—no updates needed"
-    - **Session state** (`.docs/current-task.md`):
-      - Delegate to Code mode to move "Current Focus" entry to "Recent Completions" with completion note
-      - Keep completion entries concise but informative (what was done + outcome)
-      - **Token budget check**: Orchestrator verifies file remains under 500 tokens after update
-        - Delegate to Code: `wc -w .docs/current-task.md` (multiply by 1.3 for token estimate)
-        - ✅ Under 500 → proceed to commit
-        - ⚠️ 500-650 → Code prunes oldest "Recent Completions" items, then adds new
-        - 🛑 Over 650 → Code prunes aggressively before commit
-      - If update would exceed: Code prunes oldest items first, then adds new
+11. **SYNC DOCS** via Code: Verify and update documentation
+    - Compare implementation against `.docs/spec.md`
+    - Update spec if behavior changed during development
+    - Move "Current Focus" to "Recent Completions" in `current-task.md`
+    - Keep `current-task.md` under 500 tokens (prune oldest completions if needed)
 
-12. **COMMIT & PUSH** via Code: Git operations while files are fresh in context
-    - **MANDATORY**: `.docs/current-task.md` must be included in every commit
-    - Delegate staging: `git add -A && echo "DONE"`
-    - Delegate commit: `git commit -m "type(scope): description" && echo "DONE"`
-      - Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`
-      - Example: `git commit -m "feat(combat): add dodge mechanics" && echo "DONE"`
-    - **Husky + lint-staged**: Pre-commit hook automatically runs ESLint + Prettier on staged files
-    - Delegate push: `git push && echo "DONE"`
-    - Verify push succeeded (no conflicts or errors)
-    - 🛑 **Do NOT use `attempt_completion` until changes are committed and pushed**
+12. **COMMIT & PUSH** via Code: Git operations
+    - `git add -A && echo "DONE"`
+    - `git commit -m "type(scope): description" && echo "DONE"`
+    - `git push && echo "DONE"`
+    - 🛑 Do NOT use `attempt_completion` until pushed
     - Include commit hash in completion message
 
-**Todo list format**: `[ ]` pending, `[-]` in progress, `[x]` done — NO leading dashes, NO nesting, one item per line.
+**Todo list format**: `[ ]` pending, `[-]` in progress, `[x]` done — NO dashes, NO nesting.
 
 ## For Simple Fixes
 
 Typos, obvious bugs, small tweaks — proceed directly in Code mode.
 
-## Workflow Adaptation
-
-Orchestrator may adapt the 12-step workflow based on task context:
-
-### When to Use Full 12-Step TDD Workflow
-
-**Use Steps 0-11 verbatim for:**
-
-- New features (new behavior, new APIs, new components)
-- Bug fixes that change behavior
-- Any change where correctness is uncertain
-- Unfamiliar code areas where tests provide safety
-
-### When to Adapt for Refactoring
-
-**For pure refactoring (behavior unchanged, structure improved):**
-
-Orchestrator may compress Steps 3-5 (DESIGN TESTS → WRITE TESTS → VERIFY FAIL) into:
-
-- **Step 3-ALT** via Code: Verify existing tests cover refactored code
-- Orchestrator proceeds to Step 6 (IMPLEMENT via Code) if coverage is sufficient
-- If coverage gaps exist, Orchestrator returns to Step 3 (DESIGN TESTS) for missing cases
-
-**Refactoring examples:**
-
-- File decomposition (splitting large files)
-- Extract helper functions
-- Rename for clarity
-- Reorganize module structure
-
-**Non-negotiable in ALL workflows:**
-
-- Step 10 (VERIFY PASS): All tests must pass before commit
-- Steps 11-12 (SYNC DOCS → COMMIT & PUSH): Always execute
-
-### Architect Mode Handback (MANDATORY)
-
-**Architect mode MUST ALWAYS return to Orchestrator via `attempt_completion`.**
-
-Architect mode handback deliverables:
-
-- Step 1 (EXPLORE): Context summary in markdown
-- Step 2 (PLAN): Design document in markdown
-- Step 3 (DESIGN TESTS): Test specifications in markdown
-
-**Architect NEVER:**
-
-- Spawns Code subtasks directly
-- Creates/modifies `.ts`, `.tsx`, `.js`, `.jsx` files
-- Implements code from designs
-
-**Orchestrator responsibility:**
-
-- Review Architect's design deliverable
-- Request human approval if needed (especially Step 3 test designs)
-- Delegate implementation to Code mode (Steps 4-6)
-
-**Rationale**: Architect designs must pass through Orchestrator approval gate. Direct Architect→Code delegation bypasses this control point and loses design context.
-
-## Recognition
-
-"Non-trivial" = new features, refactoring, multi-file changes, unfamiliar code areas.
-
-## File Hygiene Rules
-
-### Before Implementation
-
-If planned changes touch more than 5 files:
-→ Orchestrator pauses and confirms with human: "This task touches [N] files. Should I decompose into smaller subtasks?"
-
-### During Implementation
-
-If adding code to a file that exceeds 300 lines:
-→ Flag: "This file is [N] lines. Consider extracting [component] to a new file."
-→ Proceed only if user confirms or provides alternative
-
-### New Features
-
-Default to new files over extending existing ones when:
-
-- The feature is logically independent
-- The existing file already has a single clear responsibility
-- Adding would require imports unrelated to existing functionality
-
-## Code Mode Exchange Limits
-
-Code mode enforces context health via hard limits:
-
-- **15 exchanges**: Self-assessment checkpoint
-- **20 exchanges**: Soft limit — must hand back unless completion imminent
-- **25 exchanges**: Hard limit — mandatory handback, no exceptions
-
-See `.roo/rules-code/03-context-health.md` for full protocol.
-
-When Code hands back with ⚠️ Degraded:
-→ Orchestrator asks human for direction via `ask_followup_question`
-→ Human decides: fresh task, Architect review, guidance, or defer
-
 ## Debug Escalation Protocol
 
-Debug mode is an expensive senior‑dev resource—use only when Code is stuck.
+Debug mode is an expensive specialist—use only when Code is stuck.
 
-Route to Debug mode (instead of immediate human escalation) when:
+**Route to Debug when:**
 
-- Tests fail after 2+ Code mode implementation attempts
+- Tests fail after 2+ Code implementation attempts
 - Root cause of failure is unclear
-- Regression detected in unrelated tests
-- Visual/UI behavior doesn't match expectations
+- Regression in unrelated tests
+- Visual behavior doesn't match expectations
+- Tests pass unexpectedly (step 5)
 
-Debug mode has 10-exchange hard limit. If Debug cannot resolve:
+**Debug has 10-exchange hard limit.** If unresolved:
 
-- Handback with findings, hypothesis, and ruled-out causes
-- Orchestrator routes to Architect (if design issue) or human (if needs direction)
+- Handback with findings, hypothesis, ruled-out causes
+- Route to Architect (design issue) or human (needs direction)
 
 **Do NOT route to Debug for:**
 
@@ -232,22 +88,70 @@ Debug mode has 10-exchange hard limit. If Debug cannot resolve:
 - Architecture decisions (route to Architect)
 - Simple typos/obvious bugs (Code handles directly)
 
-## When to Start Fresh (Clean Slate Triggers)
+## Workflow Adaptation
 
-Start a NEW Orchestrator task when:
+### Full TDD (Steps 0-12)
 
-- Switching to an unrelated area of the codebase
-- A distinct feature or task is complete
-- AI repeats previously rejected solutions
-- AI contradicts its earlier analysis
-- Responses become vague or generic instead of project-specific
-- AI invents APIs, methods, or packages that don't exist
+Use for: new features, behavior-changing fixes, unfamiliar code areas.
 
-Do NOT try to "fix" a degraded conversation — start fresh with a summary of what was learned.
+### Refactoring Adaptation
+
+For pure refactoring (behavior unchanged):
+
+- **Step 3-ALT** via Code: Verify existing tests cover refactored code
+- If coverage sufficient → skip to Step 6; else return to Step 3
+
+### Non-Negotiable in ALL Workflows
+
+- Step 10 (VERIFY PASS): All tests must pass
+- Steps 11-12 (SYNC DOCS → COMMIT): Always execute
+
+### Architect Mode Handback
+
+Architect MUST return to Orchestrator via `attempt_completion`:
+
+- Step 1: Context summary
+- Step 2: Design document
+- Step 3: Test specifications
+
+Architect NEVER spawns Code subtasks or implements code.
+
+## File Hygiene Rules
+
+**Before implementation:**
+
+- If >5 files affected → confirm decomposition with human
+
+**During implementation:**
+
+- If file exceeds 300 lines → flag for extraction
+
+**New features:**
+
+- Default to new files when feature is logically independent
+
+## Code Mode Exchange Limits
+
+- **15 exchanges**: Self-assessment checkpoint
+- **20 exchanges**: Soft limit—must hand back unless completion imminent
+- **25 exchanges**: Hard limit—mandatory handback
+
+When Code hands back ⚠️ Degraded → Orchestrator asks human for direction.
+
+## Clean Slate Triggers
+
+Start a NEW task when:
+
+- Distinct task is complete
+- AI contradicts earlier analysis or invents non-existent APIs
+- Responses become vague or generic
+- Same rejected solution suggested again
+
+Do NOT try to "fix" a degraded conversation—start fresh with summary.
 
 ## Session Continuity
 
-At task start: Orchestrator delegates to Code to check `current-task.md` for context from prior sessions.
-At task end: Orchestrator delegates to Code to update `current-task.md` with completions and next steps.
+At task start: Code checks `current-task.md` for prior context.
+At task end: Code updates `current-task.md` with completions.
 
-Keep entries brief — this is a breadcrumb trail, not documentation.
+Keep entries brief—breadcrumb trail, not documentation.

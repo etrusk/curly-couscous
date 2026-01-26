@@ -28,37 +28,46 @@ It will:
 4. **WRITE TESTS** via Code: Implement approved test designs as failing tests
    - Code mode implements ONLY the approved tests
    - Do not add, remove, or modify test scope without re-approval
-   - **Quality Gate:** Run `npm run type-check` to ensure tests compile
 
 5. **VERIFY FAIL** via Code: Run tests, confirm they fail (proves tests are valid)
    - If tests pass when they should fail → **5a. INVESTIGATE via Debug**: Determine if test is wrong or code already implements behavior (10-exchange budget)
 
 6. **IMPLEMENT** via Code: Write code to make tests pass
    - **Quality Gate:** After implementation, run:
-     - `npm run lint` — catch style and potential bugs
-     - `npm run type-check` — verify type safety
-   - If quality gates fail → fix immediately, do not proceed to Step 7 (REVIEW)
+     - `npm run lint`
+     - `npm run type-check`
+   - If quality gates fail → escalate to Debug mode with full context (implementation details, gate errors, files modified)
+   - Debug attempts resolution → handback to Code to continue OR escalate to human if unresolvable
 
-6a. **INVESTIGATE** via Debug: If tests still fail after 2 Code mode attempts - Root cause analysis (10-exchange budget) - Handback to Code mode with findings OR escalate to Architect if design flaw detected
+6a. **VISUAL VERIFY** via Code: Use browser_action to verify visual changes
 
-7. **REVIEW** via Ask: Critique implementation (read-only — no edits)
+- Required when changes affect React components (.tsx in src/components/), CSS/styling, layout, or accessibility features
+- Launch dev server if not running, navigate to affected view, verify visual correctness
+- Take screenshot if issues found → escalate to Debug mode
+- Close browser when complete
+
+7. **INVESTIGATE** via Debug: If tests still fail after 2 Code mode attempts
+   - Root cause analysis (10-exchange budget)
+   - Handback to Code mode with findings OR escalate to Architect if design flaw detected
+
+8. **REVIEW** via Ask: Critique implementation (read-only — no edits)
    - Categorize issues: 🔴 CRITICAL (security, data integrity, major bugs), 🟡 IMPORTANT (performance, maintainability, edge cases), 🟢 MINOR (style, naming, documentation)
    - **ALL issues are mandatory** — every 🔴, 🟡, and 🟢 must be addressed
    - If 🔴 CRITICAL issues found → proceed to step 8, then return to step 7 (max 2 cycles)
    - If only 🟡/🟢 issues found → proceed to step 8, then skip to step 9 (Code self-verifies)
    - If no issues → skip to step 9
 
-8. **FIX** via Code: Address ALL issues found in review
+9. **FIX** via Code: Address ALL issues found in review
    - **Mandatory implementation**: Fix every 🔴, 🟡, and 🟢 issue — none are optional
    - Provide checklist confirmation: "✅ Addressed: [list each issue fixed]"
    - After fixing 🔴 CRITICAL: re-review (step 7) scoped to fixed code only
    - After fixing only 🟡/🟢: self-verify all items addressed, then proceed to step 9
    - After 2 review cycles without 🔴 resolution: escalate to human
 
-9. **VERIFY PASS** via Code: Run tests, confirm they pass
-   - If unrelated tests fail (regression) → **9a. REGRESSION DEBUG via Debug**: Systematic analysis (10-exchange budget)
+10. **VERIFY PASS** via Code: Run tests, confirm they pass
+    - If unrelated tests fail (regression) → **10a. REGRESSION DEBUG via Debug**: Systematic analysis (10-exchange budget)
 
-10. **SYNC DOCS** via Code: Verify and update documentation before commit
+11. **SYNC DOCS** via Code: Verify and update documentation before commit
     - **MANDATORY Spec Verification** (execute every time):
       1. Delegate to Code: Read `.docs/current-task.md` "Current Focus" section for task context
       2. Delegate to Code: Compare implemented behavior against `.docs/spec.md`
@@ -85,17 +94,14 @@ It will:
         - 🛑 Over 650 → Code prunes aggressively before commit
       - If update would exceed: Code prunes oldest items first, then adds new
 
-11. **COMMIT** via Code: Git commit operations while files are fresh in context
+12. **COMMIT & PUSH** via Code: Git operations while files are fresh in context
     - **MANDATORY**: `.docs/current-task.md` must be included in every commit
     - Delegate staging: `git add -A && echo "DONE"`
     - Delegate commit: `git commit -m "type(scope): description" && echo "DONE"`
       - Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`
       - Example: `git commit -m "feat(combat): add dodge mechanics" && echo "DONE"`
     - **Husky + lint-staged**: Pre-commit hook automatically runs ESLint + Prettier on staged files
-    - **Note**: The `&& echo "DONE"` suffix ensures terminal completion detection in VS Code
-
-12. **PUSH** via Code: Push to remote
-    - Delegate: `git push && echo "DONE"`
+    - Delegate push: `git push && echo "DONE"`
     - Verify push succeeded (no conflicts or errors)
     - 🛑 **Do NOT use `attempt_completion` until changes are committed and pushed**
     - Include commit hash in completion message
@@ -112,7 +118,7 @@ Orchestrator may adapt the 12-step workflow based on task context:
 
 ### When to Use Full 12-Step TDD Workflow
 
-**Use Steps 0-12 verbatim for:**
+**Use Steps 0-11 verbatim for:**
 
 - New features (new behavior, new APIs, new components)
 - Bug fixes that change behavior
@@ -138,8 +144,8 @@ Orchestrator may compress Steps 3-5 (DESIGN TESTS → WRITE TESTS → VERIFY FAI
 
 **Non-negotiable in ALL workflows:**
 
-- Step 9 (VERIFY PASS): All tests must pass before commit
-- Steps 10-12 (SYNC DOCS → COMMIT → PUSH): Always execute
+- Step 10 (VERIFY PASS): All tests must pass before commit
+- Steps 11-12 (SYNC DOCS → COMMIT & PUSH): Always execute
 
 ### Architect Mode Handback (MANDATORY)
 

@@ -55,6 +55,20 @@ Use `execute_command` only for actual system operations:
 - Package management: `npm audit`, `pip-audit`, `cargo audit`
 - Linting/formatting: `eslint`, `prettier`, `black`, `ruff`
 
+## Command Suffix Rule (MANDATORY)
+
+**ALWAYS append `&& echo "DONE"` to every `execute_command` invocation.**
+
+This ensures terminal completion detection in VS Code.
+
+**Examples:**
+
+- `npm run lint && echo "DONE"`
+- `git add -A && echo "DONE"`
+- `npm test && echo "DONE"`
+
+No exceptions.
+
 ## Why This Matters
 
 1. **Token efficiency**: `read_file` output is structured with line numbers; shell output wastes tokens

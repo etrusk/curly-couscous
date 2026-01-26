@@ -1,14 +1,10 @@
 # Verification
 
-## Multi-Stage Quality Gates
+## Quality Gate Execution
 
-Quality gates run at THREE points in the workflow:
+Quality gates run **ONCE** after implementation (Step 6).
 
-1. **After test creation (Step 4):** Type-checking ensures tests compile
-2. **After implementation (Step 6):** Lint + type-check catch issues before review
-3. **Pre-commit (Step 11):** Husky hook runs lint-staged as final safety check
-
-Catching issues early (Steps 4 & 6) prevents wasted review cycles.
+Pre-commit hook (Step 12) provides final safety net via Husky + lint-staged.
 
 ### Full Quality Gate Suite
 

@@ -161,11 +161,10 @@ Should it continue, or would you like to intervene?
 
 ## Final Step: Workflow Completion
 
-Before completing ANY task, delegate **Workflow Steps 10-12** to Code mode (see `01-workflow.md`):
+Before completing ANY task, delegate **Workflow Steps 11-12** to Code mode (see `01-workflow.md`):
 
-1. **Step 10 (SYNC DOCS)** via Code: Delegate doc verification and updates
-2. **Step 11 (COMMIT)** via Code: Delegate git staging and commit operations
-3. **Step 12 (PUSH)** via Code: Delegate git push operation
+1. **Step 11 (SYNC DOCS)** via Code: Delegate doc verification and updates
+2. **Step 12 (COMMIT & PUSH)** via Code: Delegate git operations (staging, commit, push)
 
 🛑 **MANDATORY**: Do NOT use `attempt_completion` until Code mode confirms changes are committed and pushed
 

@@ -132,13 +132,44 @@ Intent lines visualize pending actions, enabling at-a-glance battlefield reading
 
 - Confirmed (1 tick remaining): 3px stroke
 - Locked-in (2+ ticks): 4px stroke, pulsing animation
-- Contrasting outline: Planned for Phase 5 (Accessibility Polish)
+- Contrasting outline: White outline for visibility (implemented)
 
 ### Damage Display
 
 - Damage numbers displayed in tile center
 - Colored border matching attacker faction
 - Multiple attackers: Stack numbers, show combined on hover
+
+## Character Icons
+
+Character tokens display alphabetical letters for visual distinction, making it easier to identify and reference individual characters during gameplay.
+
+### Letter Assignment
+
+- Letters are assigned based on `slotPosition` (order added to battle)
+- First character: A, second: B, third: C, etc.
+- After Z, continues with AA, AB, AC... (Excel-style column naming)
+- Letters are unique per character within a battle
+
+### Visual Design
+
+- Letters are displayed centered within the token shape
+- **Friendly tokens (circle):** White letter on blue background (#0072B2)
+- **Enemy tokens (diamond):** White letter on orange background (#E69F00)
+- Font size scales with token size (40px tokens use 16px font)
+- High contrast ensures readability at small sizes
+
+### Accessibility
+
+- Letters provide additional visual distinction beyond shape and color
+- ARIA labels include letter for screen readers (e.g., "Character A, friendly")
+- Supports colorblind users who may struggle with hue differentiation
+
+### Implementation Details
+
+- Letter mapping handled by `letterMapping` utility function
+- Token component renders letter as SVG text element
+- No impact on game logic—purely visual enhancement
 
 ## Victory Conditions
 
@@ -148,9 +179,9 @@ Intent lines visualize pending actions, enabling at-a-glance battlefield reading
 
 ## UI Layout
 
-Four-panel structure:
+Four-panel structure (v0.3 implementation):
 
 1. **Battle Viewer (50% width):** 12×12 grid with tokens, intent lines, damage numbers
-2. **Skills Panel (25% width):** Sentence-builder UI for skill configuration
-3. **Rule Evaluations (25% width):** Real-time AI decision display (Simple/Detailed/Expert modes)
-4. **Event Log (bottom):** Chronological resolved actions with filtering
+2. **Skills Panel (25% width):** Sentence-builder UI for skill configuration (triggers, selectors, priority)
+3. **Rule Evaluations (25% width):** Real-time AI decision display for selected character (shows skill priority evaluation and next action)
+4. **Event Log (bottom):** Planned for future release

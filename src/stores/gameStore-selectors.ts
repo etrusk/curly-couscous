@@ -88,6 +88,7 @@ export interface TokenData {
   faction: Faction;
   hp: number;
   maxHp: number;
+  slotPosition: number;
 }
 
 /**
@@ -101,6 +102,7 @@ export const selectTokenData = (state: GameStore): TokenData[] =>
     faction: c.faction,
     hp: c.hp,
     maxHp: c.maxHp,
+    slotPosition: c.slotPosition,
   }));
 
 /**

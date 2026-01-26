@@ -9,12 +9,20 @@
   cursor: pointer;
 }
 
+/* Focus state for keyboard navigation */
+.token:focus-visible {
+  outline: none;
+  filter: drop-shadow(0 0 4px var(--interactive-focus))
+    drop-shadow(0 0 8px var(--interactive-focus));
+}
+
 /* Selected state */
 .selected {
   filter: drop-shadow(0 0 8px var(--accent-primary))
     drop-shadow(0 0 16px var(--accent-primary))
     drop-shadow(0 0 24px var(--accent-primary));
   animation: selectionPulse 2s ease-in-out infinite;
+  will-change: filter; /* Performance hint for animation */
 }
 
 @keyframes selectionPulse {
@@ -51,6 +59,19 @@
   transition: width 0.3s ease-out;
 }
 
+/* Letter styling */
+.letter {
+  user-select: none;
+  pointer-events: none;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
 /* High contrast mode support */
 :root[data-theme="high-contrast"] .shape {
   stroke-width: 2;
@@ -59,4 +80,9 @@
 :root[data-theme="high-contrast"] .hpBarBackground {
   fill: var(--surface-ground);
   stroke-width: 1;
+}
+
+:root[data-theme="high-contrast"] .letter {
+  fill: var(--text-on-faction);
+  font-weight: 900;
 }

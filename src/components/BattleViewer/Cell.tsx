@@ -37,6 +37,7 @@ export function Cell({ x, y, character, onClick, isClickable }: CellProps) {
           faction={character.faction}
           hp={character.hp}
           maxHp={character.maxHp}
+          slotPosition={character.slotPosition}
         />
       )}
     </div>

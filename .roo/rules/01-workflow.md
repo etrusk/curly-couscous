@@ -95,6 +95,8 @@ It will:
     - 🛑 **Do NOT use `attempt_completion` until changes are committed and pushed**
     - Include commit hash in completion message
 
+**Todo list format**: `[ ]` pending, `[-]` in progress, `[x]` done — NO leading dashes, NO nesting, one item per line.
+
 ## For Simple Fixes
 
 Typos, obvious bugs, small tweaks — proceed directly in Code mode.

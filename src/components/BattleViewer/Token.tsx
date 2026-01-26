@@ -3,19 +3,27 @@
  * Uses SVG for faction-specific shapes (circle/diamond) with HP visualization.
  */
 
+import { useMemo } from "react";
 import type { Faction } from "../../engine/types";
 import {
   useGameStore,
   selectSelectedCharacterId,
   selectActions,
 } from "../../stores/gameStore";
+import { slotPositionToLetter } from "../../utils/letterMapping";
 import styles from "./Token.module.css";
 
 export interface TokenProps {
+  /** Unique identifier for the character */
   id: string;
+  /** Faction determines shape and color (friendly/enemy) */
   faction: Faction;
+  /** Current hit points (can be zero or negative) */
   hp: number;
+  /** Maximum hit points (must be positive) */
   maxHp: number;
+  /** Slot position (1-based) used for letter mapping (A, B, C, ...) */
+  slotPosition: number;
 }
 
 // Token size constants
@@ -28,7 +36,7 @@ const HP_BAR_Y = TOKEN_SIZE + 2; // Below the token
 /**
  * Token component renders character as faction-specific shape with HP bar.
  */
-export function Token({ id, faction, hp, maxHp }: TokenProps) {
+export function Token({ id, faction, hp, maxHp, slotPosition }: TokenProps) {
   // Selection state and actions
   const selectedCharacterId = useGameStore(selectSelectedCharacterId);
   const { selectCharacter } = useGameStore(selectActions);
@@ -60,13 +68,21 @@ export function Token({ id, faction, hp, maxHp }: TokenProps) {
   const hpBarBgColor = "var(--surface-secondary)";
   const hpBarFillColor =
     hp > maxHp * 0.3 ? "var(--health-high)" : "var(--health-low)";
-  const hpPercent =
-    maxHp > 0 ? Math.max(0, Math.min(100, (hp / maxHp) * 100)) : 0;
-  const hpBarFillWidth = (hpPercent / 100) * HP_BAR_WIDTH;
+  // Calculate HP bar width with clamping to handle edge cases (negative hp, hp > maxHp, zero maxHp)
+  const hpBarFillWidth =
+    maxHp > 0
+      ? Math.max(0, Math.min(HP_BAR_WIDTH, (hp / maxHp) * HP_BAR_WIDTH))
+      : 0;
+
+  // Get letter for slot position (memoized to avoid recomputation on re-renders)
+  const letter = useMemo(
+    () => slotPositionToLetter(slotPosition),
+    [slotPosition],
+  );
 
   // Capitalize faction for aria-label
   const factionLabel = faction.charAt(0).toUpperCase() + faction.slice(1);
-  const ariaLabel = `${factionLabel} character, ${hp} of ${maxHp} HP`;
+  const ariaLabel = `${factionLabel} character ${letter}, ${hp} of ${maxHp} HP`;
 
   // Apply selected class when this token is selected
   const className = isSelected
@@ -87,11 +103,11 @@ export function Token({ id, faction, hp, maxHp }: TokenProps) {
       tabIndex={0}
     >
       {/* Pattern definition for enemy diagonal stripes (colorblind support) */}
-      {/* Pattern ID is simple because tokens render in separate SVG DOM subtrees */}
+      {/* Unique pattern ID per character to avoid DOM collisions */}
       {faction === "enemy" && (
         <defs>
           <pattern
-            id="stripe-enemy"
+            id={`stripe-enemy-${id}`}
             patternUnits="userSpaceOnUse"
             width="4"
             height="4"
@@ -123,12 +139,26 @@ export function Token({ id, faction, hp, maxHp }: TokenProps) {
       ) : (
         <polygon
           points={`${TOKEN_RADIUS},2 ${TOKEN_SIZE - 2},${TOKEN_RADIUS} ${TOKEN_RADIUS},${TOKEN_SIZE - 2} 2,${TOKEN_RADIUS}`}
-          fill={factionColorVar}
+          fill={`url(#stripe-enemy-${id})`}
           stroke={strokeColor}
           strokeWidth="1.5"
           className={styles.shape}
         />
       )}
+
+      {/* Letter label */}
+      <text
+        x={TOKEN_RADIUS}
+        y={TOKEN_RADIUS}
+        textAnchor="middle"
+        dominantBaseline="central"
+        className={styles.letter}
+        fill="var(--text-on-faction)"
+        fontSize="16"
+        fontWeight="bold"
+      >
+        {letter}
+      </text>
 
       {/* HP Bar Background */}
       <rect

@@ -5,11 +5,16 @@ description: Execute full TDD workflow for a feature or bugfix. Orchestrates all
 
 # TDD Workflow Orchestrator
 
-You are the orchestrator for a Test-Driven Development workflow. Your ONLY job is:
+You are the orchestrator for a Test-Driven Development workflow. You MUST execute the workflow COMPLETELY AUTONOMOUSLY without asking for permission between phases.
+
+Your job is to:
 
 1. Read `.tdd/session.md` to understand current state
-2. Route to the appropriate agent
-3. Update `.tdd/session.md` after each phase
+2. AUTOMATICALLY spawn the appropriate agent using the Task tool
+3. Update `.tdd/session.md` after each phase completes
+4. Continue to next phase IMMEDIATELY without user intervention
+
+**CRITICAL**: Use the Task tool to spawn agents. NEVER ask "should I proceed?" or "ready to continue?" - just execute the next phase automatically.
 
 You are a LIGHTWEIGHT ROUTER. Do NOT read implementation files directly.
 
@@ -65,84 +70,133 @@ IMPLEMENT → VERIFY_PASS → REVIEW → [FIX if needed] → SYNC_DOCS → COMMI
 
 ## Routing Logic
 
+**IMPORTANT**: Use the Task tool with `subagent_type` parameter to spawn agents. Execute each phase AUTOMATICALLY without asking permission.
+
+### INIT Phase
+
 ```
-if phase == INIT:
-    create .tdd/session.md with task description
-    set phase = EXPLORE
-    route to architect: "Explore the codebase for: [task]. Read .docs/ first."
+1. Create .tdd/session.md with task description
+2. Update phase to EXPLORE
+3. IMMEDIATELY spawn architect agent (no permission needed)
+```
 
-if phase == EXPLORE:
-    verify .tdd/exploration.md exists and has content
-    set phase = PLAN
-    route to architect: "Create implementation plan based on exploration."
+Use Task tool:
 
-if phase == PLAN:
-    verify .tdd/plan.md exists and has content
-    set phase = DESIGN_TESTS
-    route to architect: "Design tests for the planned implementation."
+```
+subagent_type: "architect"
+description: "Explore codebase for TDD task"
+prompt: "EXPLORE phase: Explore the codebase for this task: [task description].
 
-if phase == DESIGN_TESTS:
-    verify .tdd/test-designs.md exists and has content
-    set phase = WRITE_TESTS
-    route to coder: "Implement tests from .tdd/test-designs.md"
+Read .docs/spec.md, .docs/architecture.md, .docs/patterns/index.md first.
+Write findings to .tdd/exploration.md.
+Update .tdd/session.md when complete."
+```
 
-if phase == WRITE_TESTS:
-    verify tests exist
-    set phase = VERIFY_FAIL
-    route to coder: "Run tests, confirm they fail for the right reasons."
+### EXPLORE Phase Complete → PLAN Phase
 
-if phase == VERIFY_FAIL:
-    if tests pass unexpectedly:
-        route to troubleshooter: "Tests pass unexpectedly. Investigate."
-        on troubleshooter complete: re-evaluate based on findings
-    else:
-        set phase = IMPLEMENT
-        route to coder: "Write code to make tests pass."
+When architect completes exploration, AUTOMATICALLY spawn architect again for planning:
 
-if phase == IMPLEMENT:
-    if coder reports STUCK:
-        route to troubleshooter: "Coder stuck. Diagnose root cause."
-        on troubleshooter complete:
-            if recommendation == "Architect": set phase = PLAN
-            else: resume coder with troubleshooter findings
-    else:
-        set phase = VERIFY_PASS
-        route to coder: "Run all tests and quality gates."
+```
+subagent_type: "architect"
+description: "Create implementation plan"
+prompt: "PLAN phase: Read .tdd/exploration.md and create detailed implementation plan.
 
-if phase == VERIFY_PASS:
-    if regression detected:
-        route to troubleshooter: "Regression in unrelated tests."
-    else:
-        set phase = REVIEW
-        route to reviewer: "Review implementation against spec and patterns."
+Write plan to .tdd/plan.md.
+Update .tdd/session.md when complete."
+```
 
-if phase == REVIEW:
-    read .tdd/review-findings.md
-    if critical_issues > 0:
-        set phase = FIX
-        increment review_cycle
-        route to coder: "Fix issues in .tdd/review-findings.md"
-    else:
-        set phase = SYNC_DOCS
+### PLAN Phase Complete → DESIGN_TESTS Phase
 
-if phase == FIX:
-    verify fixes applied
-    if review_cycles >= 2 and still has critical issues:
-        set phase = ESCALATE
-        output: "Review cycle limit exceeded. Manual intervention required."
-        STOP
-    else:
-        set phase = REVIEW
-        route to reviewer: "Re-review fixed code."
+AUTOMATICALLY spawn architect for test design:
 
-if phase == SYNC_DOCS:
-    set phase = COMMIT
-    route to coder: "Note any documentation recommendations, then commit changes."
+```
+subagent_type: "architect"
+description: "Design test specifications"
+prompt: "DESIGN_TESTS phase: Read .tdd/plan.md and design test specifications.
 
-if phase == COMMIT:
-    verify commit created
-    output: "WORKFLOW COMPLETE. [commit-hash]"
-    archive session (optional)
+Write test designs to .tdd/test-designs.md using the required format.
+Update .tdd/session.md when complete."
+```
+
+### DESIGN_TESTS Phase Complete → WRITE_TESTS Phase
+
+AUTOMATICALLY spawn coder for test implementation:
+
+```
+subagent_type: "coder"
+description: "Implement tests (red)"
+prompt: "WRITE_TESTS phase: Read .tdd/test-designs.md and implement tests.
+
+Implement tests exactly as specified. They should FAIL (red).
+Update .tdd/session.md when complete."
+```
+
+### WRITE_TESTS Phase Complete → IMPLEMENT Phase
+
+AUTOMATICALLY spawn coder for implementation:
+
+```
+subagent_type: "coder"
+description: "Implement code (green)"
+prompt: "IMPLEMENT phase: Read .tdd/test-designs.md and .tdd/plan.md.
+
+Write code to make tests pass (green).
+Run quality gates (npm run test, lint, type-check).
+Update .tdd/session.md when complete."
+```
+
+### IMPLEMENT Phase Complete → REVIEW Phase
+
+AUTOMATICALLY spawn reviewer:
+
+```
+subagent_type: "reviewer"
+description: "Review implementation"
+prompt: "REVIEW phase: Review the implementation.
+
+Read .tdd/plan.md, .docs/spec.md, .docs/patterns/index.md.
+Write findings to .tdd/review-findings.md.
+Update .tdd/session.md when complete."
+```
+
+### REVIEW Phase Complete → FIX or COMMIT
+
+Read `.tdd/review-findings.md`:
+
+- If critical issues found: AUTOMATICALLY spawn coder to fix
+- If no critical issues: AUTOMATICALLY spawn coder to commit
+
+```
+# If fixes needed:
+subagent_type: "coder"
+description: "Fix review issues"
+prompt: "FIX phase: Read .tdd/review-findings.md and fix all issues.
+
+Address all critical and important issues.
+Update .tdd/session.md when complete."
+
+# If ready to commit:
+subagent_type: "coder"
+description: "Commit changes"
+prompt: "COMMIT phase: Create conventional commit for this work.
+
+Run git status, git diff, git log to understand changes.
+Create commit with Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+Update .tdd/session.md when complete."
+```
+
+### Handling Stuck/Troubleshooting
+
+If coder reports STUCK, AUTOMATICALLY spawn troubleshooter:
+
+```
+subagent_type: "troubleshooter"
+description: "Diagnose root cause"
+prompt: "TROUBLESHOOT: Coder is stuck. Diagnose root cause.
+
+Review .tdd/plan.md and recent work.
+Write findings to .tdd/troubleshooter-report.md.
+Recommend next action."
 ```
 
 ## Session State Format
@@ -249,3 +303,25 @@ When COMMIT phase succeeds:
    - Documentation recommendations (if any)
 
 2. End with: `TDD WORKFLOW COMPLETE. [commit-hash]`
+
+## CRITICAL EXECUTION RULES
+
+**YOU MUST EXECUTE AUTONOMOUSLY:**
+
+1. NEVER ask "should I proceed to next phase?"
+2. NEVER ask "ready to continue?"
+3. NEVER wait for user permission between phases
+4. ALWAYS use Task tool to spawn the next agent immediately
+5. ALWAYS continue until COMMIT phase or ESCALATE
+
+**The user expects ZERO interruptions during the workflow.**
+
+When a phase completes:
+
+1. Read the agent's output
+2. Update `.tdd/session.md` with phase completion
+3. IMMEDIATELY determine next phase
+4. IMMEDIATELY spawn next agent with Task tool
+5. Repeat until workflow complete
+
+**Do NOT stop and wait. Execute the entire workflow in one continuous sequence.**

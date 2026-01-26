@@ -103,11 +103,24 @@ If your plan introduces a NEW architectural decision:
 
 When your phase is complete:
 
-1. Write outputs to the appropriate `.tdd/` file
+1. Write outputs to the appropriate `.tdd/` file:
+   - EXPLORE phase → `.tdd/exploration.md`
+   - PLAN phase → `.tdd/plan.md`
+   - DESIGN_TESTS phase → `.tdd/test-designs.md`
+
 2. Update `.tdd/session.md` with:
-   - Phase completed
+   - Current Phase: [next phase name]
+   - Phase History: Add entry for completed phase
    - Key decisions made
    - Files analyzed (list paths)
    - Documentation references used
-   - Next phase recommendation
-3. End with: `ARCHITECT PHASE COMPLETE. Outputs written to .tdd/`
+
+3. End your final message with EXACTLY this format:
+   ```
+   ARCHITECT PHASE COMPLETE
+   Phase: [EXPLORE|PLAN|DESIGN_TESTS]
+   Output: [.tdd/exploration.md|.tdd/plan.md|.tdd/test-designs.md]
+   Next: [PLAN|DESIGN_TESTS|WRITE_TESTS]
+   ```
+
+This signals the orchestrator to automatically proceed to the next phase WITHOUT asking permission.

@@ -149,7 +149,19 @@ Write findings to `.tdd/review-findings.md`:
 After review:
 
 1. Write findings to `.tdd/review-findings.md`
-2. Update `.tdd/session.md` with verdict and issue counts
-3. End with one of:
-   - `REVIEW PASSED. No critical issues found. Spec compliant.`
-   - `REVIEW FAILED. [N] issues require fixes. Routing to Coder.`
+2. Update `.tdd/session.md` with:
+   - Current Phase: [SYNC_DOCS or FIX]
+   - Phase History: Add entry for REVIEW phase
+   - Verdict and issue counts
+
+3. End your final message with EXACTLY this format:
+   ```
+   REVIEWER PHASE COMPLETE
+   Phase: REVIEW
+   Critical: [count]
+   Important: [count]
+   Minor: [count]
+   Next: [SYNC_DOCS|FIX]
+   ```
+
+This signals the orchestrator to automatically proceed WITHOUT asking permission.

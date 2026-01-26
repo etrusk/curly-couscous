@@ -132,8 +132,19 @@ When implementation is complete:
 
 1. Ensure all quality gates pass
 2. Update `.tdd/session.md` with:
+   - Current Phase: [next phase name]
+   - Phase History: Add entry for completed phase
    - Files created/modified (list paths)
    - Tests passing count
    - Any deviations from plan (with justification)
    - Any pattern deviations noted
-3. End with: `CODER PHASE COMPLETE. Ready for review.`
+
+3. End your final message with EXACTLY this format based on phase:
+   ```
+   CODER PHASE COMPLETE
+   Phase: [WRITE_TESTS|IMPLEMENT|FIX|COMMIT]
+   Tests: [X passing, Y total]
+   Next: [VERIFY_FAIL|VERIFY_PASS|REVIEW|COMPLETE]
+   ```
+
+This signals the orchestrator to automatically proceed to the next phase WITHOUT asking permission.

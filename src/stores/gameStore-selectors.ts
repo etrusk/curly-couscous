@@ -10,8 +10,12 @@ import type {
   Faction,
   Action,
   DamageEvent,
+  CharacterEvaluationResult,
 } from "../engine/types";
-import { computeDecisions } from "../engine/game";
+import {
+  computeDecisions,
+  evaluateSkillsForCharacter as _evaluateSkillsForCharacter,
+} from "../engine/game";
 
 // ============================================================================
 // Basic Selectors
@@ -214,6 +218,39 @@ export const selectNextTickDecision =
     return decision?.action ?? null;
   };
 
+/**
+ * Select evaluation results for all characters on the board.
+ * Used by RuleEvaluations to show condensed view of all characters' AI decisions.
+ *
+ * Memoized to avoid re-computation on every render when characters haven't changed.
+ *
+ * @param state - The game store state
+ * @returns Array of character evaluation results, one per character
+ */
+export const selectAllCharacterEvaluations = (() => {
+  let lastCharacters: Character[] | null = null;
+  let lastResult: CharacterEvaluationResult[] | null = null;
+
+  return (state: GameStore): CharacterEvaluationResult[] => {
+    const { characters } = state.gameState;
+
+    // If characters reference hasn't changed, return cached result
+    if (characters === lastCharacters && lastResult !== null) {
+      return lastResult;
+    }
+
+    // Compute fresh result
+    const result = characters.map((character) =>
+      _evaluateSkillsForCharacter(character, characters),
+    );
+
+    // Update cache
+    lastCharacters = characters;
+    lastResult = result;
+
+    return result;
+  };
+})();
 // ============================================================================
 // CharacterControls Selectors
 // ============================================================================

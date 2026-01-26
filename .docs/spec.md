@@ -185,5 +185,5 @@ Four-panel structure (v0.3 implementation):
 
 1. **Battle Viewer (50% width):** 12×12 grid with tokens, intent lines, damage numbers
 2. **Skills Panel (25% width):** Sentence-builder UI for skill configuration (triggers, selectors, priority)
-3. **Rule Evaluations (25% width):** Real-time AI decision display for selected character (shows skill priority evaluation and next action)
+3. **Rule Evaluations (25% width):** Real-time AI decision display for all board characters (shows skill priority evaluation and next action for each character)
 4. **Event Log (bottom):** Planned for future release

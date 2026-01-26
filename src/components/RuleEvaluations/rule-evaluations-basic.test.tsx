@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { RuleEvaluations } from "./RuleEvaluations";
 import { useGameStore } from "../../stores/gameStore";
 import { createCharacter, createTarget } from "./rule-evaluations-test-helpers";
@@ -20,9 +21,7 @@ describe("RuleEvaluations - Basic Rendering", () => {
   // Test 1: No character selected
   it("should show placeholder when no character selected", () => {
     render(<RuleEvaluations />);
-    expect(
-      screen.getByText(/Click a character on the grid to see AI decisions/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/No characters on the board/i)).toBeInTheDocument();
   });
 
   // Test 2: Character name in header
@@ -117,5 +116,79 @@ describe("RuleEvaluations - Basic Rendering", () => {
     const skillItems = container.querySelectorAll("li");
     const firstSkill = skillItems[0];
     expect(firstSkill?.className).toContain("activeSkill");
+  });
+
+  // Test 23: Empty board shows appropriate message when no characters
+  it("should show empty board message when no characters on board", () => {
+    // No characters added to battle
+    render(<RuleEvaluations />);
+    expect(screen.getByText(/No characters on the board/i)).toBeInTheDocument();
+  });
+
+  // Test 24: Renders all characters when no character selected
+  it("should render condensed headers for all characters when no character selected", () => {
+    const char1 = createCharacter({ id: "char1", name: "Alpha" });
+    const char2 = createCharacter({
+      id: "char2",
+      name: "Beta",
+      faction: "enemy",
+    });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([char1, char2]);
+    // No character selected
+
+    render(<RuleEvaluations />);
+    // Should show both character names in condensed headers
+    expect(screen.getByText(/Alpha/i)).toBeInTheDocument();
+    expect(screen.getByText(/Beta/i)).toBeInTheDocument();
+    // Should not show placeholder "Click a character"
+    expect(
+      screen.queryByText(/Click a character on the grid to see AI decisions/i),
+    ).not.toBeInTheDocument();
+  });
+
+  // Test 25: Expand/collapse works for each character section
+  it("should expand character section when clicked", async () => {
+    const char1 = createCharacter({ id: "char1", name: "Alpha" });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([char1]);
+    // No character selected
+
+    render(<RuleEvaluations />);
+    // Find expand button (the character header button contains the character name)
+    const expandButton = screen.getByRole("button", { name: /Alpha/i });
+    // Click it
+    await userEvent.click(expandButton);
+    // Should show detailed skill list
+    expect(screen.getByText(/Skill Priority/i)).toBeInTheDocument();
+  });
+
+  // Test 26: Accessibility attributes present for all character sections
+  it("should have accessible region for each character", () => {
+    const char1 = createCharacter({ id: "char1", name: "Alpha" });
+    const char2 = createCharacter({ id: "char2", name: "Beta" });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([char1, char2]);
+
+    render(<RuleEvaluations />);
+    const regions = screen.getAllByRole("region");
+    expect(regions).toHaveLength(2);
+    expect(regions[0]).toHaveAccessibleName(/Rule Evaluations: Alpha/i);
+    expect(regions[1]).toHaveAccessibleName(/Rule Evaluations: Beta/i);
+  });
+
+  // Test 27: Performance with many characters (limit to 10)
+  it("should render up to 10 characters without performance issues", () => {
+    const characters = Array.from({ length: 10 }, (_, i) =>
+      createCharacter({ id: `char${i}`, name: `Char${i}` }),
+    );
+    const { actions } = useGameStore.getState();
+    actions.initBattle(characters);
+
+    render(<RuleEvaluations />);
+    // Should render all 10 character headers
+    for (let i = 0; i < 10; i++) {
+      expect(screen.getByText(new RegExp(`Char${i}`, "i"))).toBeInTheDocument();
+    }
   });
 });

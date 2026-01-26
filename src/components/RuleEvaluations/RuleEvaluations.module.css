@@ -36,11 +36,6 @@
   margin-top: 0.5rem;
 }
 
-/* Legacy class name for backward compatibility */
-.currentActionSection {
-  margin-top: 0.5rem;
-}
-
 .sectionHeader {
   margin: 0 0 0.5rem 0;
   font-size: 0.875rem;
@@ -51,14 +46,6 @@
 }
 
 .nextAction {
-  padding: 0.75rem;
-  background-color: var(--surface-secondary);
-  border-radius: 4px;
-  border: 1px solid var(--border-subtle);
-}
-
-/* Legacy class name for backward compatibility */
-.currentAction {
   padding: 0.75rem;
   background-color: var(--surface-secondary);
   border-radius: 4px;
@@ -167,17 +154,122 @@
   display: none; /* Hide default disclosure triangle in WebKit browsers */
 }
 
+/* Multi-character list styles */
+.characterList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.characterSection {
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background-color: var(--surface-secondary);
+}
+
+.characterHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.characterHeader:hover {
+  background-color: var(--surface-tertiary);
+}
+
+.characterHeaderContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.characterLetter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: white;
+}
+
+.characterLetter.friendly {
+  background-color: var(--faction-friendly);
+}
+
+.characterLetter.enemy {
+  background-color: var(--faction-enemy);
+}
+
+/* Standalone faction classes for JS referencing */
+.friendly {
+  /* No additional styles, just a marker */
+}
+
+.enemy {
+  /* No additional styles, just a marker */
+}
+
+.characterName {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--content-primary);
+}
+
+.characterHp {
+  font-size: 0.75rem;
+  color: var(--content-secondary);
+  margin-left: auto;
+  padding-right: 0.5rem;
+}
+
+.expandButton {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: var(--content-secondary);
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.expandButton:hover {
+  color: var(--content-primary);
+}
+
+.characterDetails {
+  padding: 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--surface-primary);
+}
+
+.emptyBoardMessage {
+  padding: 2rem;
+  text-align: center;
+  color: var(--content-muted);
+  font-style: italic;
+  font-size: 0.875rem;
+}
+
 /* High contrast mode support (planned for Phase 5) */
 @media (prefers-contrast: high) {
   .panel {
     border-width: 3px;
   }
 
-  .currentAction {
-    border-width: 2px;
-  }
-
   .skillItem {
     border-left-width: 4px;
+  }
+
+  .characterSection {
+    border-width: 2px;
   }
 }

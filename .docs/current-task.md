@@ -4,8 +4,13 @@
      Research shows memory files should total 1.3k-2.2k tokens combined.
      This is a breadcrumb trail, not documentation. Prune aggressively. -->
 
+## Current Focus
+
+_No active focus — awaiting next task delegation._
+
 ## Recent Completions
 
+- 2026-01-26: Token.test.tsx decomposition - Split 428-line file into token-visual.test.tsx (327 lines) and token-interaction.test.tsx (206 lines), resolving ESLint max-lines violation. All tests pass (664 tests).
 - 2026-01-26: Intent lines visualization fix - Fixed selector to show intent lines for actions with ticksRemaining > 0 (Heavy Punch shows arrow, Light Punch does not). Updated spec.md with visibility rule.
 - 2026-01-26: Character icons alphabetical letters - Added letter display to tokens based on slotPosition (A, B, C...). Implemented letterMapping utility, updated Token component with SVG text, maintained visual design and accessibility.
 - 2026-01-25: spec.md verification - Updated spec to reflect current implementation

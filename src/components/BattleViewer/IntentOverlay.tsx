@@ -5,7 +5,7 @@
 
 import { useGameStore, selectIntentData } from "../../stores/gameStore";
 import type { IntentData } from "../../stores/gameStore-selectors";
-import type { Position } from "../../engine/types";
+import { positionsEqual } from "../../engine/types";
 import { IntentLine } from "./IntentLine";
 import styles from "./IntentOverlay.module.css";
 
@@ -13,13 +13,6 @@ export interface IntentOverlayProps {
   gridWidth: number;
   gridHeight: number;
   cellSize: number;
-}
-
-/**
- * Check if two positions are equal.
- */
-function posEqual(a: Position, b: Position): boolean {
-  return a.x === b.x && a.y === b.y;
 }
 
 /**
@@ -45,8 +38,8 @@ function detectBidirectionalAttacks(
       (other) =>
         other.characterId !== intent.characterId &&
         other.action.type === "attack" &&
-        posEqual(other.characterPosition, intent.action.targetCell) &&
-        posEqual(other.action.targetCell, intent.characterPosition),
+        positionsEqual(other.characterPosition, intent.action.targetCell) &&
+        positionsEqual(other.action.targetCell, intent.characterPosition),
     );
 
     if (reverseIntent) {

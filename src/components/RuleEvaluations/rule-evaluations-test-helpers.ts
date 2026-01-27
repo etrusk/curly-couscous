@@ -122,3 +122,22 @@ export function createMoveAction(
     resolvesAtTick,
   };
 }
+
+// Helper to create idle action
+export function createIdleAction(): Action {
+  return {
+    type: "idle",
+    skill: {
+      id: "idle",
+      name: "Idle",
+      tickCost: 1,
+      range: 0,
+      enabled: true,
+      triggers: [],
+    },
+    targetCell: { x: 0, y: 0 },
+    targetCharacter: null,
+    startedAtTick: 0,
+    resolvesAtTick: 0,
+  };
+}

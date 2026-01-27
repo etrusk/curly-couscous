@@ -154,13 +154,15 @@ describe("RuleEvaluations - Basic Rendering", () => {
     actions.initBattle([char1]);
     // No character selected
 
-    render(<RuleEvaluations />);
+    const { container } = render(<RuleEvaluations />);
     // Find expand button (the character header button contains the character name)
     const expandButton = screen.getByRole("button", { name: /Alpha/i });
     // Click it
     await userEvent.click(expandButton);
-    // Should show detailed skill list
-    expect(screen.getByText(/Skill Priority/i)).toBeInTheDocument();
+    // Should show compact evaluation list (ordered list of skill evaluations)
+    const orderedList = container.querySelector("ol");
+    expect(orderedList).toBeInTheDocument();
+    expect(orderedList?.querySelectorAll("li").length).toBeGreaterThan(0);
   });
 
   // Test 26: Accessibility attributes present for all character sections

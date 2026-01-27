@@ -43,6 +43,10 @@
   --faction-friendly-text: #4da6ff; /* text on tinted bg (lighter for dark) */
   --faction-enemy-text: #ffb84d; /* text on tinted bg (lighter for dark) */
 
+  /* === TOKEN (character icons) === */
+  --text-on-faction: #ffffff; /* white text on colored faction backgrounds */
+  --accent-primary: #00a8ff; /* selection glow, accent highlights */
+
   /* === STATUS === */
   --status-success: #009e73; /* victory (green) */
   --status-success-bg: rgba(0, 158, 115, 0.15);
@@ -113,6 +117,10 @@
   --faction-friendly-text: #004d7a; /* text on tinted bg (darker for light) */
   --faction-enemy-text: #8f5a00; /* text on tinted bg (darker for light) */
 
+  /* === TOKEN (character icons) === */
+  --text-on-faction: #ffffff; /* white text on colored faction backgrounds */
+  --accent-primary: #0072b2; /* matches friendly blue for consistency */
+
   /* === STATUS === */
   --status-success: #009e73;
   --status-success-bg: #e6ffe6;
@@ -182,6 +190,10 @@
   --faction-enemy-bg: rgba(255, 153, 0, 0.2);
   --faction-friendly-text: #66ccff;
   --faction-enemy-text: #ffb84d;
+
+  /* === TOKEN (character icons) === */
+  --text-on-faction: #ffffff; /* white text on colored faction backgrounds */
+  --accent-primary: #00ff00; /* bright green for maximum visibility */
 
   /* === STATUS === */
   --status-success: #00ff88;

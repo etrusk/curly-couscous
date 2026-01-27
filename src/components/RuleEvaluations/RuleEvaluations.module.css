@@ -222,6 +222,13 @@
   color: var(--content-primary);
 }
 
+.actionSummary {
+  color: var(--content-secondary);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  margin-left: 0.25rem;
+}
+
 .characterHp {
   font-size: 0.75rem;
   color: var(--content-secondary);
@@ -257,6 +264,25 @@
   color: var(--content-muted);
   font-style: italic;
   font-size: 0.875rem;
+}
+
+/* Compact evaluation list (debugging display) */
+.evaluationList {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style: decimal;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.evaluationItem {
+  color: var(--content-secondary);
+  font-family: var(--font-mono, monospace);
+}
+
+.evaluationItem.selected {
+  color: var(--faction-friendly-text);
+  font-weight: 500;
 }
 
 /* High contrast mode support (planned for Phase 5) */

@@ -15,69 +15,14 @@ import type {
 } from "../../engine/types";
 import { evaluateSkillsForCharacter } from "../../engine/game";
 import { slotPositionToLetter } from "../../utils/letterMapping";
+import {
+  formatActionSummary,
+  formatEvaluationStatus,
+  formatRejectionReason,
+  formatActionDisplay,
+  formatResolutionText,
+} from "./rule-evaluations-formatters";
 import styles from "./RuleEvaluations.module.css";
-
-/**
- * Format rejection reason for display.
- */
-function formatRejectionReason(result: SkillEvaluationResult): string {
-  switch (result.rejectionReason) {
-    case "disabled":
-      return "[disabled]";
-    case "trigger_failed":
-      return "trigger not met";
-    case "no_target":
-      return "no target";
-    case "out_of_range":
-      return `target out of range (${result.distance} > ${result.skill.range})`;
-    default:
-      return "";
-  }
-}
-
-/**
- * Format action display text.
- */
-function formatActionDisplay(action: Action | null): string {
-  if (!action) {
-    return "Awaiting decision...";
-  }
-
-  if (action.type === "idle") {
-    return "💤 Idle";
-  }
-
-  if (action.type === "attack") {
-    const targetName = action.targetCharacter?.name || "Unknown target";
-    return `⚔️ ${action.skill.name} → ${targetName}`;
-  }
-
-  // Move action
-  const mode = action.skill.mode;
-  if (mode === "towards") {
-    return "🚶 Move towards";
-  } else if (mode === "away") {
-    return "🚶 Move away";
-  } else if (mode === "hold") {
-    return "🚶 Move (hold)";
-  }
-
-  return "Unknown action";
-}
-
-/**
- * Format resolution timing text.
- */
-function formatResolutionText(action: Action, currentTick: number): string {
-  const ticksRemaining = action.resolvesAtTick - currentTick;
-  if (ticksRemaining === 0) {
-    return "Resolves: this tick";
-  } else if (ticksRemaining === 1) {
-    return "Resolves: next tick";
-  } else {
-    return `Resolves: in ${ticksRemaining} ticks`;
-  }
-}
 
 /**
  * Display next action with timing.
@@ -108,6 +53,38 @@ function NextActionDisplay({
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Display compact evaluation list for debugging (stops at selected skill).
+ */
+function CompactEvaluationList({
+  skillEvaluations,
+  selectedSkillIndex,
+}: {
+  skillEvaluations: SkillEvaluationResult[];
+  selectedSkillIndex: number | null;
+}) {
+  // Filter: only rejected + selected (stop at selectedSkillIndex)
+  const relevantEvaluations = skillEvaluations.slice(
+    0,
+    selectedSkillIndex !== null ? selectedSkillIndex + 1 : skillEvaluations.length
+  );
+
+  return (
+    <ol className={styles.evaluationList}>
+      {relevantEvaluations.map((evaluation, index) => (
+        <li
+          key={evaluation.skill.id}
+          className={`${styles.evaluationItem} ${
+            index === selectedSkillIndex ? styles.selected : ""
+          }`}
+        >
+          {evaluation.skill.name}: {formatEvaluationStatus(evaluation)}
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -288,20 +265,17 @@ function renderSelectedCharacterContent(
  *
  * @param character - The character data
  * @param evaluation - Evaluation result for the character
- * @param currentTick - Current game tick
  * @param isExpanded - Whether the section is expanded
  * @param onToggle - Callback to toggle expansion
  */
 function CharacterSection({
   character,
   evaluation,
-  currentTick,
   isExpanded,
   onToggle,
 }: {
   character: Character;
   evaluation: CharacterEvaluationResult;
-  currentTick: number;
   isExpanded: boolean;
   onToggle: () => void;
 }) {
@@ -310,6 +284,7 @@ function CharacterSection({
   const factionClass =
     character.faction === "friendly" ? styles.friendly : styles.enemy;
   const nextAction = useGameStore(selectNextTickDecision(character.id));
+  const actionSummary = formatActionSummary(nextAction);
 
   return (
     <section
@@ -329,6 +304,7 @@ function CharacterSection({
             {letter}
           </span>
           <span className={styles.characterName}>{character.name}</span>
+          <span className={styles.actionSummary}>→ {actionSummary}</span>
           <span className={styles.characterHp}>
             HP: {character.hp}/{character.maxHp}
           </span>
@@ -342,11 +318,7 @@ function CharacterSection({
           id={`character-details-${character.id}`}
           className={styles.characterDetails}
         >
-          <NextActionDisplay
-            nextAction={nextAction}
-            currentTick={currentTick}
-          />
-          <SkillPriorityList
+          <CompactEvaluationList
             skillEvaluations={evaluation.skillEvaluations}
             selectedSkillIndex={evaluation.selectedSkillIndex}
           />
@@ -361,10 +333,8 @@ function CharacterSection({
  */
 function MultiCharacterView({
   evaluations,
-  currentTick,
 }: {
   evaluations: CharacterEvaluationResult[];
-  currentTick: number;
 }) {
   const [expandedCharacterId, setExpandedCharacterId] = useState<string | null>(
     null,
@@ -411,7 +381,6 @@ function MultiCharacterView({
               key={character.id}
               character={character}
               evaluation={evaluation}
-              currentTick={currentTick}
               isExpanded={expandedCharacterId === character.id}
               onToggle={() => handleToggle(character.id)}
             />
@@ -442,7 +411,5 @@ export function RuleEvaluations() {
   }
 
   // Otherwise show multi-character view
-  return (
-    <MultiCharacterView evaluations={evaluations} currentTick={currentTick} />
-  );
+  return <MultiCharacterView evaluations={evaluations} />;
 }

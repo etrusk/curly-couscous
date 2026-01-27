@@ -137,24 +137,26 @@ export interface IntentData {
  */
 export const selectIntentData = (state: GameStore): IntentData[] => {
   const { tick, characters } = state.gameState;
-  return characters
-    .filter(
-      (c): c is Character & { currentAction: Action } =>
-        c.currentAction !== null,
-    )
-    .map((c) => ({
-      characterId: c.id,
-      characterPosition: c.position,
-      faction: c.faction,
-      action: c.currentAction,
-      ticksRemaining: c.currentAction.resolvesAtTick - tick,
-    }))
-    .filter(
-      (intent) =>
-        intent.action.type !== "idle" &&
-        (intent.ticksRemaining > 0 ||
-          (intent.action.type === "move" && intent.ticksRemaining >= 0)),
-    );
+  const withActions = characters.filter(
+    (c): c is Character & { currentAction: Action } => c.currentAction !== null,
+  );
+
+  const mapped = withActions.map((c) => ({
+    characterId: c.id,
+    characterPosition: c.position,
+    faction: c.faction,
+    action: c.currentAction,
+    ticksRemaining: c.currentAction.resolvesAtTick - tick,
+  }));
+
+  const filtered = mapped.filter(
+    (intent) =>
+      intent.action.type !== "idle" &&
+      (intent.ticksRemaining > 0 ||
+        (intent.action.type === "move" && intent.ticksRemaining >= 0)),
+  );
+
+  return filtered;
 };
 
 /**

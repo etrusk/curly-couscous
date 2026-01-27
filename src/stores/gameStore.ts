@@ -138,7 +138,25 @@ export const useGameStore = create<GameStore>()(
           }
 
           const result = engineProcessTick(state.gameState);
-          state.gameState = result.state;
+
+          // Immer requires mutating the draft, not replacing references
+          // Use splice to replace array contents in place
+          state.gameState.characters.splice(
+            0,
+            state.gameState.characters.length,
+            ...result.state.characters,
+          );
+          state.gameState.tick = result.state.tick;
+          state.gameState.phase = result.state.phase;
+          state.gameState.battleStatus = result.state.battleStatus;
+
+          // For history array, also use splice
+          state.gameState.history.splice(
+            0,
+            state.gameState.history.length,
+            ...result.state.history,
+          );
+          state.gameState.rngState = result.state.rngState;
         }),
 
       updateCharacter: (id, updates) =>

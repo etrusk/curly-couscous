@@ -1,23 +1,14 @@
 /**
- * Tests for gameStore selectors, focusing on intent data selection.
- * Extracted from gameStore.test.ts.
+ * Tests for selectIntentData selector - filtering logic.
+ * Extracted from gameStore-selectors.test.ts.
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  useGameStore,
-  selectIntentData,
-  selectAllCharacterEvaluations,
-} from "./gameStore";
+import { useGameStore, selectIntentData } from "./gameStore";
 import { createCharacter, createSkill } from "./gameStore-test-helpers";
-import { DEFAULT_SKILLS } from "./gameStore-constants";
-import type {
-  Action,
-  Position,
-  CharacterEvaluationResult,
-} from "../engine/types";
+import type { Action, Position } from "../engine/types";
 
-describe("selectIntentData", () => {
+describe("selectIntentData - Filtering Logic", () => {
   beforeEach(() => {
     useGameStore.getState().actions.reset();
   });
@@ -196,40 +187,12 @@ describe("selectIntentData", () => {
     // characterPosition should be the character's current position (not targetCell)
     expect(result[0]?.characterPosition).toEqual({ x: 0, y: 0 });
   });
-});
 
-describe("selectAllCharacterEvaluations", () => {
-  beforeEach(() => {
-    useGameStore.getState().actions.reset();
-  });
-
-  it("should return empty array when no characters on board", () => {
-    // Ensure clean state by resetting and initializing empty battle
-    useGameStore.getState().actions.reset();
-    useGameStore.getState().actions.initBattle([]);
-    const result = selectAllCharacterEvaluations(useGameStore.getState());
-    expect(result).toEqual([]);
-  });
-
-  it("should return evaluation for each character on board", () => {
-    const char1 = createCharacter({ id: "char1", faction: "friendly" });
-    const char2 = createCharacter({ id: "char2", faction: "enemy" });
-    useGameStore.getState().actions.initBattle([char1, char2]);
-
-    const result = selectAllCharacterEvaluations(useGameStore.getState());
-
-    expect(result).toHaveLength(2);
-    expect(result[0]?.characterId).toBe("char1");
-    expect(result[1]?.characterId).toBe("char2");
-    // Should contain skillEvaluations array
-    expect(result[0]?.skillEvaluations).toBeDefined();
-    expect(result[1]?.skillEvaluations).toBeDefined();
-  });
-
-  it("should include mid-action characters with isMidAction true", () => {
+  it("should include attack actions with ticksRemaining = 0 (resolving this tick)", () => {
+    const skill = createSkill({ id: "attack-skill", tickCost: 1 });
     const action: Action = {
       type: "attack",
-      skill: createSkill({ id: "light-punch", tickCost: 1 }),
+      skill,
       targetCell: { x: 1, y: 0 },
       targetCharacter: null,
       startedAtTick: 0,
@@ -240,46 +203,96 @@ describe("selectAllCharacterEvaluations", () => {
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
+    // Advance tick to resolution tick (ticksRemaining = 0)
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
-    const result = selectAllCharacterEvaluations(useGameStore.getState());
+    const result = selectIntentData(useGameStore.getState());
 
+    // Attack actions resolving on current tick should show intent lines (spec requires >= 0)
     expect(result).toHaveLength(1);
-    expect(result[0]?.isMidAction).toBe(true);
-    expect(result[0]?.currentAction).toEqual(action);
+    expect(result[0]?.ticksRemaining).toBe(0);
   });
 
-  it("should evaluate skill priority for idle characters", () => {
+  it("should include movement actions with ticksRemaining = 0 (uniform filtering)", () => {
+    const skill = createSkill({ id: "move-skill", tickCost: 1 });
+    const action: Action = {
+      type: "move",
+      skill,
+      targetCell: { x: 1, y: 0 },
+      targetCharacter: null,
+      startedAtTick: 0,
+      resolvesAtTick: 1,
+    };
     const char = createCharacter({
       id: "char1",
-      currentAction: null,
-      skills: DEFAULT_SKILLS,
+      currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
+    // Advance tick to resolution tick (ticksRemaining = 0)
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
-    const result = selectAllCharacterEvaluations(useGameStore.getState());
+    const result = selectIntentData(useGameStore.getState());
 
+    // Movement actions follow uniform filtering (spec requires >= 0 for all actions)
     expect(result).toHaveLength(1);
-    expect(result[0]?.isMidAction).toBe(false);
-    expect(result[0]?.skillEvaluations).toHaveLength(3); // Default 3 skills
-    // Should have selectedSkillIndex maybe null if no valid skill
-    expect(result[0]?.selectedSkillIndex).toBeDefined();
+    expect(result[0]?.action.type).toBe("move");
+    expect(result[0]?.ticksRemaining).toBe(0);
   });
 
-  it("should handle mixed factions correctly", () => {
-    const friendly = createCharacter({ id: "friendly", faction: "friendly" });
-    const enemy = createCharacter({ id: "enemy", faction: "enemy" });
-    useGameStore.getState().actions.initBattle([friendly, enemy]);
+  it("should include both attack and movement at ticksRemaining = 0 (uniform filtering)", () => {
+    const attackSkill = createSkill({
+      id: "light-punch",
+      tickCost: 1,
+      range: 1,
+      damage: 10,
+    });
+    const attackAction: Action = {
+      type: "attack",
+      skill: attackSkill,
+      targetCell: { x: 1, y: 0 },
+      targetCharacter: null,
+      startedAtTick: 0,
+      resolvesAtTick: 1,
+    };
+    const moveSkill = createSkill({
+      id: "move-towards",
+      tickCost: 1,
+      mode: "towards",
+    });
+    const moveAction: Action = {
+      type: "move",
+      skill: moveSkill,
+      targetCell: { x: 2, y: 0 },
+      targetCharacter: null,
+      startedAtTick: 0,
+      resolvesAtTick: 1,
+    };
+    const charA = createCharacter({
+      id: "char-a",
+      currentAction: attackAction,
+    });
+    const charB = createCharacter({
+      id: "char-b",
+      currentAction: moveAction,
+    });
+    useGameStore.getState().actions.initBattle([charA, charB]);
+    // Advance to resolution tick
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
-    const result = selectAllCharacterEvaluations(useGameStore.getState());
+    const result = selectIntentData(useGameStore.getState());
 
     expect(result).toHaveLength(2);
-    const friendlyEval = result.find(
-      (r: CharacterEvaluationResult) => r.characterId === "friendly",
-    );
-    const enemyEval = result.find(
-      (r: CharacterEvaluationResult) => r.characterId === "enemy",
-    );
-    expect(friendlyEval).toBeDefined();
-    expect(enemyEval).toBeDefined();
+    const attackResult = result.find((r) => r.action.type === "attack");
+    const moveResult = result.find((r) => r.action.type === "move");
+    expect(attackResult).toBeDefined();
+    expect(moveResult).toBeDefined();
+    expect(attackResult?.ticksRemaining).toBe(0);
+    expect(moveResult?.ticksRemaining).toBe(0);
   });
 });

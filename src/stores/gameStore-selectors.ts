@@ -126,11 +126,11 @@ export interface IntentData {
  *
  * Filters out:
  * - Idle actions (type "idle")
- * - Attack actions with ticksRemaining <= 0 (resolving this tick or already resolved)
+ * - Actions with ticksRemaining < 0 (already resolved)
  *
- * Movement exception:
- * - Movement actions are shown even with ticksRemaining = 0 because movement
- *   has no visible "damage effect" - showing intent aids battlefield readability.
+ * All action types (attack, move) are treated uniformly.
+ * Actions with ticksRemaining >= 0 are shown, matching the spec requirement
+ * that all actions show intent lines for at least one tick before resolution.
  *
  * @param state - The game store state
  * @returns Array of intent data for rendering, empty if no pending actions
@@ -151,8 +151,7 @@ export const selectIntentData = (state: GameStore): IntentData[] => {
   }));
 
   const filtered = mapped.filter(
-    (intent) =>
-      intent.action.type !== "idle" && intent.ticksRemaining >= 0,
+    (intent) => intent.action.type !== "idle" && intent.ticksRemaining >= 0,
   );
 
   return filtered;

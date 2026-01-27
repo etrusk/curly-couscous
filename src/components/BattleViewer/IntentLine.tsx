@@ -13,6 +13,7 @@ export interface IntentLineProps {
   faction: Faction;
   ticksRemaining: number;
   cellSize: number;
+  offset?: { x: number; y: number };
 }
 
 export function IntentLine({
@@ -22,12 +23,13 @@ export function IntentLine({
   faction,
   ticksRemaining,
   cellSize,
+  offset = { x: 0, y: 0 },
 }: IntentLineProps) {
-  // Calculate cell center positions
-  const x1 = from.x * cellSize + cellSize / 2;
-  const y1 = from.y * cellSize + cellSize / 2;
-  const x2 = to.x * cellSize + cellSize / 2;
-  const y2 = to.y * cellSize + cellSize / 2;
+  // Calculate cell center positions with offset
+  const x1 = from.x * cellSize + cellSize / 2 + offset.x;
+  const y1 = from.y * cellSize + cellSize / 2 + offset.y;
+  const x2 = to.x * cellSize + cellSize / 2 + offset.x;
+  const y2 = to.y * cellSize + cellSize / 2 + offset.y;
 
   // Determine line color based on faction (using CSS variables)
   const color =

@@ -36,96 +36,96 @@ export function IntentOverlay({
         {/* Attack arrowheads - filled */}
         <marker
           id="arrowhead-friendly"
-          markerWidth="10"
-          markerHeight="10"
+          markerWidth="12"
+          markerHeight="8"
           refX="9"
-          refY="5"
+          refY="4"
           orient="auto"
-          markerUnits="strokeWidth"
+          markerUnits="userSpaceOnUse"
           overflow="visible"
         >
           {/* White outline polygon (rendered first - behind) */}
           <polygon
-            points="0,0 10,5 0,10"
+            points="0,0 10,4 0,8"
             fill="var(--contrast-line)"
             stroke="var(--contrast-line)"
           />
           {/* Colored main polygon (rendered second - on top) */}
-          <polygon points="0,0 10,5 0,10" fill="var(--faction-friendly)" />
+          <polygon points="0,0 10,4 0,8" fill="var(--faction-friendly)" />
         </marker>
         <marker
           id="arrowhead-enemy"
-          markerWidth="10"
-          markerHeight="10"
+          markerWidth="12"
+          markerHeight="8"
           refX="9"
-          refY="5"
+          refY="4"
           orient="auto"
-          markerUnits="strokeWidth"
+          markerUnits="userSpaceOnUse"
           overflow="visible"
         >
           {/* White outline polygon (rendered first - behind) */}
           <polygon
-            points="0,0 10,5 0,10"
+            points="0,0 10,4 0,8"
             fill="var(--contrast-line)"
             stroke="var(--contrast-line)"
           />
           {/* Colored main polygon (rendered second - on top) */}
-          <polygon points="0,0 10,5 0,10" fill="var(--faction-enemy)" />
+          <polygon points="0,0 10,4 0,8" fill="var(--faction-enemy)" />
         </marker>
 
         {/* Movement endpoints - hollow */}
         <marker
           id="circle-friendly"
-          markerWidth="10"
-          markerHeight="10"
-          refX="5"
-          refY="5"
+          markerWidth="12"
+          markerHeight="12"
+          refX="6"
+          refY="6"
           orient="auto"
-          markerUnits="strokeWidth"
+          markerUnits="userSpaceOnUse"
           overflow="visible"
         >
           {/* White outline circle (thicker - rendered first - behind) */}
           <circle
-            cx="5"
-            cy="5"
+            cx="6"
+            cy="6"
             r="4"
             fill="none"
             stroke="var(--contrast-line)"
-            strokeWidth="4"
+            strokeWidth="3"
           />
           {/* Colored main circle (rendered second - on top) */}
           <circle
-            cx="5"
-            cy="5"
+            cx="6"
+            cy="6"
             r="4"
             fill="none"
             stroke="var(--faction-friendly)"
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
         </marker>
         <marker
           id="diamond-enemy"
-          markerWidth="10"
-          markerHeight="10"
-          refX="5"
-          refY="5"
+          markerWidth="12"
+          markerHeight="12"
+          refX="6"
+          refY="6"
           orient="auto"
-          markerUnits="strokeWidth"
+          markerUnits="userSpaceOnUse"
           overflow="visible"
         >
           {/* White outline polygon (thicker - rendered first - behind) */}
           <polygon
-            points="5,0 10,5 5,10 0,5"
+            points="6,0 12,6 6,12 0,6"
             fill="none"
             stroke="white"
-            strokeWidth="4"
+            strokeWidth="3"
           />
           {/* Colored main polygon (rendered second - on top) */}
           <polygon
-            points="5,0 10,5 5,10 0,5"
+            points="6,0 12,6 6,12 0,6"
             fill="none"
             stroke="#E69F00"
-            strokeWidth="2"
+            strokeWidth="1.5"
           />
         </marker>
       </defs>

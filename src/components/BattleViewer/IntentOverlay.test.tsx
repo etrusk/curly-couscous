@@ -54,7 +54,7 @@ describe("IntentOverlay", () => {
       expect(mainPolygon).toHaveAttribute("fill", "var(--faction-enemy)");
     });
 
-    it("should render circle-friendly marker with outline stroke behind", () => {
+    it("circle-friendly marker uses reduced stroke widths (3/1.5)", () => {
       const { container } = render(<IntentOverlay {...defaultProps} />);
 
       const marker = container.querySelector('marker[id="circle-friendly"]');
@@ -66,16 +66,16 @@ describe("IntentOverlay", () => {
       // First circle is contrast-line outline (thicker)
       const outlineCircle = circles?.[0];
       expect(outlineCircle).toHaveAttribute("stroke", "var(--contrast-line)");
-      expect(outlineCircle).toHaveAttribute("stroke-width", "4");
+      expect(outlineCircle).toHaveAttribute("stroke-width", "3");
       expect(outlineCircle).toHaveAttribute("fill", "none");
 
       // Second circle is colored main
       const mainCircle = circles?.[1];
       expect(mainCircle).toHaveAttribute("stroke", "var(--faction-friendly)");
-      expect(mainCircle).toHaveAttribute("stroke-width", "2");
+      expect(mainCircle).toHaveAttribute("stroke-width", "1.5");
     });
 
-    it("should render diamond-enemy marker with outline stroke behind", () => {
+    it("diamond-enemy marker uses reduced stroke widths (3/1.5)", () => {
       const { container } = render(<IntentOverlay {...defaultProps} />);
 
       const marker = container.querySelector('marker[id="diamond-enemy"]');
@@ -87,13 +87,13 @@ describe("IntentOverlay", () => {
       // First polygon is white outline (thicker)
       const outlinePolygon = polygons?.[0];
       expect(outlinePolygon).toHaveAttribute("stroke", "white");
-      expect(outlinePolygon).toHaveAttribute("stroke-width", "4");
+      expect(outlinePolygon).toHaveAttribute("stroke-width", "3");
       expect(outlinePolygon).toHaveAttribute("fill", "none");
 
       // Second polygon is colored main
       const mainPolygon = polygons?.[1];
       expect(mainPolygon).toHaveAttribute("stroke", "#E69F00");
-      expect(mainPolygon).toHaveAttribute("stroke-width", "2");
+      expect(mainPolygon).toHaveAttribute("stroke-width", "1.5");
     });
 
     it("should set overflow='visible' on all markers", () => {
@@ -105,6 +105,63 @@ describe("IntentOverlay", () => {
       markers.forEach((marker) => {
         expect(marker).toHaveAttribute("overflow", "visible");
       });
+    });
+
+    it("markers use userSpaceOnUse for consistent sizing", () => {
+      const { container } = render(<IntentOverlay {...defaultProps} />);
+
+      const arrowheadFriendly = container.querySelector(
+        'marker[id="arrowhead-friendly"]',
+      );
+      const arrowheadEnemy = container.querySelector(
+        'marker[id="arrowhead-enemy"]',
+      );
+      const circleFriendly = container.querySelector(
+        'marker[id="circle-friendly"]',
+      );
+      const diamondEnemy = container.querySelector(
+        'marker[id="diamond-enemy"]',
+      );
+
+      expect(arrowheadFriendly).toHaveAttribute(
+        "markerUnits",
+        "userSpaceOnUse",
+      );
+      expect(arrowheadEnemy).toHaveAttribute("markerUnits", "userSpaceOnUse");
+      expect(circleFriendly).toHaveAttribute("markerUnits", "userSpaceOnUse");
+      expect(diamondEnemy).toHaveAttribute("markerUnits", "userSpaceOnUse");
+    });
+
+    it("arrowhead markers have appropriate fixed dimensions", () => {
+      const { container } = render(<IntentOverlay {...defaultProps} />);
+
+      const arrowheadFriendly = container.querySelector(
+        'marker[id="arrowhead-friendly"]',
+      );
+      const arrowheadEnemy = container.querySelector(
+        'marker[id="arrowhead-enemy"]',
+      );
+
+      expect(arrowheadFriendly).toHaveAttribute("markerWidth", "12");
+      expect(arrowheadFriendly).toHaveAttribute("markerHeight", "8");
+      expect(arrowheadEnemy).toHaveAttribute("markerWidth", "12");
+      expect(arrowheadEnemy).toHaveAttribute("markerHeight", "8");
+    });
+
+    it("movement markers have appropriate fixed dimensions", () => {
+      const { container } = render(<IntentOverlay {...defaultProps} />);
+
+      const circleFriendly = container.querySelector(
+        'marker[id="circle-friendly"]',
+      );
+      const diamondEnemy = container.querySelector(
+        'marker[id="diamond-enemy"]',
+      );
+
+      expect(circleFriendly).toHaveAttribute("markerWidth", "12");
+      expect(circleFriendly).toHaveAttribute("markerHeight", "12");
+      expect(diamondEnemy).toHaveAttribute("markerWidth", "12");
+      expect(diamondEnemy).toHaveAttribute("markerHeight", "12");
     });
 
     describe("Integration with store", () => {
@@ -152,7 +209,7 @@ describe("IntentOverlay", () => {
         expect(lines).toHaveLength(2);
       });
 
-      it("should pass proper props to IntentLine", () => {
+      it("stroke-width 2.5px for locked-in attack in IntentOverlay integration", () => {
         const skill = createSkill({
           id: "heavy-punch",
           tickCost: 3,
@@ -185,8 +242,8 @@ describe("IntentOverlay", () => {
           "marker-end",
           "url(#arrowhead-friendly)",
         );
-        // stroke-width should be 4 because ticksRemaining = 3 (locked-in)
-        expect(mainLine).toHaveAttribute("stroke-width", "4");
+        // stroke-width should be 2.5 because ticksRemaining = 3 (locked-in)
+        expect(mainLine).toHaveAttribute("stroke-width", "2.5");
       });
 
       it("should render lines for Light Punch when ticksRemaining > 0 (complete information)", () => {
@@ -218,7 +275,7 @@ describe("IntentOverlay", () => {
         expect(lines).toHaveLength(2); // outline + main
       });
 
-      it("should render movement intent with dashed line and circle marker", () => {
+      it("movement intent renders with '4 2' dash pattern in IntentOverlay", () => {
         const moveSkill = createSkill({
           id: "move-towards",
           tickCost: 1,
@@ -247,12 +304,12 @@ describe("IntentOverlay", () => {
 
         // Main line (second line element)
         const mainLine = lines[1];
-        expect(mainLine).toHaveAttribute("stroke-dasharray", "8 4");
+        expect(mainLine).toHaveAttribute("stroke-dasharray", "4 2");
         expect(mainLine).toHaveAttribute("marker-end", "url(#circle-friendly)");
         expect(mainLine).toHaveAttribute("stroke", "var(--faction-friendly)");
       });
 
-      it("should render enemy movement intent with dashed line and diamond marker", () => {
+      it("enemy movement intent renders with '4 2' dash pattern", () => {
         const moveSkill = createSkill({
           id: "move-towards",
           tickCost: 1,
@@ -281,7 +338,7 @@ describe("IntentOverlay", () => {
 
         // Main line (second line element)
         const mainLine = lines[1];
-        expect(mainLine).toHaveAttribute("stroke-dasharray", "8 4");
+        expect(mainLine).toHaveAttribute("stroke-dasharray", "4 2");
         expect(mainLine).toHaveAttribute("marker-end", "url(#diamond-enemy)");
         expect(mainLine).toHaveAttribute("stroke", "var(--faction-enemy)");
       });

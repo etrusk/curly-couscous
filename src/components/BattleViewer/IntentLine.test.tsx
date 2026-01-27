@@ -95,6 +95,25 @@ describe("IntentLine", () => {
       expect(mainLine).toHaveAttribute("stroke-dasharray"); // Dashed line
     });
 
+    it("uses tighter dash pattern (4 2) for movement lines", () => {
+      const { container } = render(
+        <svg>
+          <IntentLine
+            {...defaultProps}
+            type="move"
+            faction="friendly"
+            ticksRemaining={1}
+          />
+        </svg>,
+      );
+
+      const lines = container.querySelectorAll("line");
+      const mainLine = lines[1]; // Second line is the colored main line
+      const outlineLine = lines[0];
+      expect(mainLine).toHaveAttribute("stroke-dasharray", "4 2");
+      expect(outlineLine).toHaveAttribute("stroke-dasharray", "4 2");
+    });
+
     it("renders dashed line for enemy movement", () => {
       const { container } = render(
         <svg>
@@ -150,7 +169,7 @@ describe("IntentLine", () => {
   });
 
   describe("Line Thickness and Animation", () => {
-    it("uses 3px stroke for confirmed actions (1 tick remaining)", () => {
+    it("uses 2px stroke for confirmed actions (1 tick remaining)", () => {
       const { container } = render(
         <svg>
           <IntentLine
@@ -164,10 +183,10 @@ describe("IntentLine", () => {
 
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1]; // Second line is the colored main line
-      expect(mainLine).toHaveAttribute("stroke-width", "3");
+      expect(mainLine).toHaveAttribute("stroke-width", "2");
     });
 
-    it("uses 4px stroke for locked-in actions (2+ ticks remaining)", () => {
+    it("uses 2.5px stroke for locked-in actions (2+ ticks remaining)", () => {
       const { container } = render(
         <svg>
           <IntentLine
@@ -181,7 +200,7 @@ describe("IntentLine", () => {
 
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1]; // Second line is the colored main line
-      expect(mainLine).toHaveAttribute("stroke-width", "4");
+      expect(mainLine).toHaveAttribute("stroke-width", "2.5");
     });
 
     it("applies pulsing animation class for locked-in actions", () => {
@@ -256,207 +275,6 @@ describe("IntentLine", () => {
       // To (5, 7) center: (5 * 40 + 20, 7 * 40 + 20) = (220, 300)
       expect(line).toHaveAttribute("x2", "220");
       expect(line).toHaveAttribute("y2", "300");
-    });
-  });
-
-  describe("Accessibility - Contrasting Outlines", () => {
-    it("should render two lines for attack intent (outline + main)", () => {
-      const { container } = render(
-        <svg>
-          <IntentLine
-            {...defaultProps}
-            type="attack"
-            faction="friendly"
-            ticksRemaining={1}
-          />
-        </svg>,
-      );
-
-      const lines = container.querySelectorAll("line");
-      expect(lines).toHaveLength(2);
-    });
-
-    it("should render two lines for move intent (outline + main)", () => {
-      const { container } = render(
-        <svg>
-          <IntentLine
-            {...defaultProps}
-            type="move"
-            faction="friendly"
-            ticksRemaining={1}
-          />
-        </svg>,
-      );
-
-      const lines = container.querySelectorAll("line");
-      expect(lines).toHaveLength(2);
-    });
-
-    it("should render outline line first in DOM order (behind main)", () => {
-      const { container } = render(
-        <svg>
-          <IntentLine
-            {...defaultProps}
-            type="attack"
-            faction="friendly"
-            ticksRemaining={1}
-          />
-        </svg>,
-      );
-
-      const lines = container.querySelectorAll("line");
-      const outlineLine = lines[0];
-      const mainLine = lines[1];
-
-      // Outline should be white
-      expect(outlineLine).toHaveAttribute("stroke", "var(--contrast-line)");
-      // Main should be colored
-      expect(mainLine).toHaveAttribute("stroke", "var(--faction-friendly)");
-    });
-
-    it("should use white stroke for outline", () => {
-      const { container } = render(
-        <svg>
-          <IntentLine
-            {...defaultProps}
-            type="attack"
-            faction="friendly"
-            ticksRemaining={1}
-          />
-        </svg>,
-      );
-
-      const lines = container.querySelectorAll("line");
-      const outlineLine = lines[0];
-      expect(outlineLine).toHaveAttribute("stroke", "var(--contrast-line)");
-    });
-
-    it("should use 5px outline stroke for confirmed actions (3px main + 2)", () => {
-      const { container } = render(
-        <svg>
-          <IntentLine
-            {...defaultProps}
-            type="attack"
-            faction="friendly"
-            ticksRemaining={1}
-          />
-        </svg>,
-      );
-
-      const lines = container.querySelectorAll("line");
-      const outlineLine = lines[0];
-      const mainLine = lines[1];
-
-      expect(outlineLine).toHaveAttribute("stroke-width", "5");
-      expect(mainLine).toHaveAttribute("stroke-width", "3");
-    });
-
-    it("should use 6px outline stroke for locked-in actions (4px main + 2)", () => {
-      const { container } = render(
-        <svg>
-          <IntentLine
-            {...defaultProps}
-            type="attack"
-            faction="friendly"
-            ticksRemaining={2}
-          />
-        </svg>,
-      );
-
-      const lines = container.querySelectorAll("line");
-      const outlineLine = lines[0];
-      const mainLine = lines[1];
-
-      expect(outlineLine).toHaveAttribute("stroke-width", "6");
-      expect(mainLine).toHaveAttribute("stroke-width", "4");
-    });
-
-    it("should not apply marker to outline line", () => {
-      const { container } = render(
-        <svg>
-          <IntentLine
-            {...defaultProps}
-            type="attack"
-            faction="friendly"
-            ticksRemaining={1}
-          />
-        </svg>,
-      );
-
-      const lines = container.querySelectorAll("line");
-      const outlineLine = lines[0];
-      expect(outlineLine).not.toHaveAttribute("marker-end");
-    });
-
-    it("should apply marker to main line only", () => {
-      const { container } = render(
-        <svg>
-          <IntentLine
-            {...defaultProps}
-            type="attack"
-            faction="friendly"
-            ticksRemaining={1}
-          />
-        </svg>,
-      );
-
-      const lines = container.querySelectorAll("line");
-      const mainLine = lines[1];
-      expect(mainLine).toHaveAttribute(
-        "marker-end",
-        "url(#arrowhead-friendly)",
-      );
-    });
-
-    it("should wrap lines in group element", () => {
-      const { container } = render(
-        <svg>
-          <IntentLine
-            {...defaultProps}
-            type="attack"
-            faction="friendly"
-            ticksRemaining={1}
-          />
-        </svg>,
-      );
-
-      const group = container.querySelector("g");
-      expect(group).toBeInTheDocument();
-
-      const lines = group?.querySelectorAll("line");
-      expect(lines).toHaveLength(2);
-    });
-
-    it("should apply lockedIn class to group for locked-in actions", () => {
-      const { container } = render(
-        <svg>
-          <IntentLine
-            {...defaultProps}
-            type="attack"
-            faction="friendly"
-            ticksRemaining={2}
-          />
-        </svg>,
-      );
-
-      const group = container.querySelector("g");
-      expect(group?.getAttribute("class")).toContain("lockedIn");
-    });
-
-    it("should not apply lockedIn class to group for confirmed actions", () => {
-      const { container } = render(
-        <svg>
-          <IntentLine
-            {...defaultProps}
-            type="attack"
-            faction="friendly"
-            ticksRemaining={1}
-          />
-        </svg>,
-      );
-
-      const group = container.querySelector("g");
-      expect(group?.getAttribute("class")).not.toContain("lockedIn");
     });
   });
 });

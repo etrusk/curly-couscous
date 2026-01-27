@@ -35,14 +35,14 @@ export function IntentLine({
   const outlineColor = "var(--contrast-line)";
 
   // Determine stroke width based on ticks remaining
-  // Confirmed (1 tick): 3px, Locked-in (2+ ticks): 4px
-  const strokeWidth = ticksRemaining === 1 ? 3 : 4;
+  // Confirmed (1 tick): 2px, Locked-in (2+ ticks): 2.5px
+  const strokeWidth = ticksRemaining === 1 ? 2 : 2.5;
 
-  // Outline stroke width is main + 2px
-  const outlineStrokeWidth = strokeWidth + 2;
+  // Outline stroke width is main + 1px
+  const outlineStrokeWidth = strokeWidth + 1;
 
   // Determine if line is dashed (for movement)
-  const strokeDasharray = type === "move" ? "8 4" : undefined;
+  const strokeDasharray = type === "move" ? "4 2" : undefined;
 
   // Determine marker based on type and faction
   const markerEnd = getMarkerEnd(type, faction);
@@ -61,6 +61,7 @@ export function IntentLine({
         stroke={outlineColor}
         strokeWidth={outlineStrokeWidth}
         strokeDasharray={strokeDasharray}
+        strokeLinecap="round"
       />
       {/* Main line (colored, with marker) - rendered second (on top) */}
       <line
@@ -72,6 +73,7 @@ export function IntentLine({
         strokeWidth={strokeWidth}
         strokeDasharray={strokeDasharray}
         markerEnd={markerEnd}
+        strokeLinecap="round"
       />
     </g>
   );

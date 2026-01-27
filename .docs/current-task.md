@@ -20,6 +20,7 @@ Started: [YYYY-MM-DD HH:MM]
 
 ## Recent Completions
 
+- 2026-01-27: Movement intent line visualization - Added visual movement intent lines (blue dashed) to show where characters plan to move. Modified selectIntentData to include movement actions with ticksRemaining >= 0 (exception to attack rule since movement has no visible damage effect). Extracted 6 movement tests to separate file. All 724 tests passing. Commit adceb43.
 - 2026-01-27: Rule Evaluations action preview + compact debugging - Added action summary to collapsed headers (shows skill + target without expanding). Compact evaluation list on expand (stops at selected skill, debugging-friendly format with parameter names). Added missing --text-on-faction/--accent-primary CSS variables for character icon lettering. Extracted formatters to separate module. 29 new tests, all 716 passing. Commit c0fd64a.
 - 2026-01-27: Fixed slotPosition 0-based bug - Changed gameStore to use 1-based slotPosition (position 1='A', 2='B') fixing "slotPosition must be positive, got 0" error when adding characters. Refactored RuleEvaluations to use shared letterMapping utility. Updated 142 test fixtures. All 687 tests passing. Commit 7b4eb90.
 - 2026-01-27: Unified project status across workflows - Implemented shared `.docs/current-task.md` file used by both Roo and Claude Code workflows. Added workflow identifiers, updated all Claude Code agents and commands to read/write shared status. Maintains workflow separation with ephemeral `.tdd/session.md` state. No cross-contamination verified.
@@ -33,5 +34,4 @@ Started: [YYYY-MM-DD HH:MM]
 
 - If only 2 characters, they move erratically in a zig-zag towards each other, should be smoother
 - Sentence-builder UI for SkillsPanel configuration
-- Movement and targeting should have their own intent lines
 - Change Heavy Punch to resolve on 2nd tick

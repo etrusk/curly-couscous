@@ -217,6 +217,74 @@ describe("IntentOverlay", () => {
         const lines = container.querySelectorAll("line");
         expect(lines).toHaveLength(2); // outline + main
       });
+
+      it("should render movement intent with dashed line and circle marker", () => {
+        const moveSkill = createSkill({
+          id: "move-towards",
+          tickCost: 1,
+          mode: "towards",
+        });
+        const moveAction = {
+          type: "move" as const,
+          skill: moveSkill,
+          targetCell: { x: 5, y: 5 },
+          targetCharacter: null,
+          startedAtTick: 0,
+          resolvesAtTick: 0,
+        };
+        const char = createCharacter({
+          id: "char1",
+          faction: "friendly",
+          position: { x: 4, y: 5 },
+          currentAction: moveAction,
+        });
+        useGameStore.getState().actions.initBattle([char]);
+
+        const { container } = render(<IntentOverlay {...defaultProps} />);
+
+        const lines = container.querySelectorAll("line");
+        expect(lines).toHaveLength(2); // outline + main
+
+        // Main line (second line element)
+        const mainLine = lines[1];
+        expect(mainLine).toHaveAttribute("stroke-dasharray", "8 4");
+        expect(mainLine).toHaveAttribute("marker-end", "url(#circle-friendly)");
+        expect(mainLine).toHaveAttribute("stroke", "var(--faction-friendly)");
+      });
+
+      it("should render enemy movement intent with dashed line and diamond marker", () => {
+        const moveSkill = createSkill({
+          id: "move-towards",
+          tickCost: 1,
+          mode: "towards",
+        });
+        const moveAction = {
+          type: "move" as const,
+          skill: moveSkill,
+          targetCell: { x: 5, y: 5 },
+          targetCharacter: null,
+          startedAtTick: 0,
+          resolvesAtTick: 0,
+        };
+        const char = createCharacter({
+          id: "char1",
+          faction: "enemy",
+          position: { x: 4, y: 5 },
+          currentAction: moveAction,
+        });
+        useGameStore.getState().actions.initBattle([char]);
+
+        const { container } = render(<IntentOverlay {...defaultProps} />);
+
+        const lines = container.querySelectorAll("line");
+        expect(lines).toHaveLength(2); // outline + main
+
+        // Main line (second line element)
+        const mainLine = lines[1];
+        expect(mainLine).toHaveAttribute("stroke-dasharray", "8 4");
+        expect(mainLine).toHaveAttribute("marker-end", "url(#diamond-enemy)");
+        expect(mainLine).toHaveAttribute("stroke", "var(--faction-enemy)");
+      });
     });
   });
 });

@@ -131,19 +131,17 @@ export function IntentOverlay({
       </defs>
 
       {/* Render intent lines */}
-      {intents
-        .filter((intent) => intent.action.type !== "idle")
-        .map((intent) => (
-          <IntentLine
-            key={intent.characterId}
-            from={intent.characterPosition}
-            to={intent.action.targetCell}
-            type={intent.action.type as "attack" | "move"}
-            faction={intent.faction}
-            ticksRemaining={intent.ticksRemaining}
-            cellSize={cellSize}
-          />
-        ))}
+      {intents.map((intent) => (
+        <IntentLine
+          key={intent.characterId}
+          from={intent.characterPosition}
+          to={intent.action.targetCell}
+          type={intent.action.type as "attack" | "move"}
+          faction={intent.faction}
+          ticksRemaining={intent.ticksRemaining}
+          cellSize={cellSize}
+        />
+      ))}
     </svg>
   );
 }

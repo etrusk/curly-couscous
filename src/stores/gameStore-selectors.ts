@@ -126,11 +126,11 @@ export interface IntentData {
  *
  * Filters out:
  * - Idle actions (type "idle")
- * - Actions with ticksRemaining <= 0 (resolving this tick or already resolved)
- *   Note: ticksRemaining = 0 means action resolves in current tick, so not shown.
+ * - Attack actions with ticksRemaining <= 0 (resolving this tick or already resolved)
  *
- * Shows all pending actions that will execute on future ticks (ticksRemaining > 0),
- * enabling complete battlefield awareness per "Into the Breach" design principle.
+ * Movement exception:
+ * - Movement actions are shown even with ticksRemaining = 0 because movement
+ *   has no visible "damage effect" - showing intent aids battlefield readability.
  *
  * @param state - The game store state
  * @returns Array of intent data for rendering, empty if no pending actions
@@ -150,7 +150,10 @@ export const selectIntentData = (state: GameStore): IntentData[] => {
       ticksRemaining: c.currentAction.resolvesAtTick - tick,
     }))
     .filter(
-      (intent) => intent.ticksRemaining > 0 && intent.action.type !== "idle",
+      (intent) =>
+        intent.action.type !== "idle" &&
+        (intent.ticksRemaining > 0 ||
+          (intent.action.type === "move" && intent.ticksRemaining >= 0)),
     );
 };
 

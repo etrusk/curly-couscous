@@ -35,9 +35,19 @@ This project maintains documentation in `.docs/`:
 - **architecture.md**: System design and key decisions
 - **patterns/index.md**: Implementation patterns and conventions
 - **decisions/index.md**: Architectural Decision Records (ADRs)
-- **current-task.md**: Current focus and recent completions (breadcrumb trail)
+- **current-task.md**: Project status (shared by both Roo and Claude Code workflows)
 
 **Agents MUST read relevant `.docs/` files before making changes.**
+
+### `.docs/current-task.md` Format
+
+Both Roo and Claude Code workflows use this file:
+
+- **Current Focus**: Active task description, workflow identifier, start timestamp
+- **Recent Completions**: Last 3-5 completed tasks with outcomes
+- **Next Steps**: Planned improvements
+
+No mid-task switching between workflows.
 
 ## Critical Constraints
 
@@ -63,10 +73,11 @@ Non-trivial tasks use `/tdd [task description]`:
 
 ## Session State
 
-- Workflow state: `.tdd/session.md`
-- Project knowledge: `.docs/`
+- **Long-term project status**: `.docs/current-task.md` (shared with Roo workflow)
+- **Workflow-specific ephemeral state**: `.tdd/session.md` (deleted after commit)
+- **Project knowledge**: `.docs/` (version controlled)
 
-Read `.tdd/session.md` at workflow start for continuity.
+Read `.docs/current-task.md` and `.tdd/session.md` at workflow start for continuity.
 
 ## Project-Specific Patterns
 

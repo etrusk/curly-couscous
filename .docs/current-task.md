@@ -2,11 +2,21 @@
 
 <!-- TOKEN BUDGET: Keep this file under 500 tokens (~200 words total).
      Research shows memory files should total 1.3k-2.2k tokens combined.
-     This is a breadcrumb trail, not documentation. Prune aggressively. -->
+     This is a breadcrumb trail, not documentation. Prune aggressively.
+
+     FORMAT: Both Roo and Claude Code workflows use this file.
+     - Workflow identifier helps track which system is active
+     - No mid-task switching between workflows -->
 
 ## Current Focus
 
 [No active task]
+
+<!-- When starting a task, replace above with:
+Task: [description]
+Workflow: [roo|claude-code]
+Started: [YYYY-MM-DD HH:MM]
+-->
 
 ## Recent Completions
 

@@ -7,17 +7,30 @@ description: Check current TDD workflow state and project documentation status
 
 Read and report the current state of the TDD workflow.
 
+## Project Status
+
+1. Check `.docs/current-task.md` (shared with Roo workflow):
+
+   ```bash
+   cat .docs/current-task.md 2>/dev/null || echo "NO_CURRENT_TASK"
+   ```
+
+   Report:
+   - Current Focus (task, workflow, started timestamp)
+   - Recent Completions (last 3-5 entries)
+   - Next Steps (planned improvements)
+
 ## Workflow Status
 
-1. Check `.tdd/session.md`:
+2. Check `.tdd/session.md`:
 
    ```bash
    cat .tdd/session.md 2>/dev/null || echo "NO_SESSION"
    ```
 
-2. If no session: Report "No active TDD session. Start with `/tdd [task description]`"
+3. If no session: Report "No active TDD session. Start with `/tdd [task description]`"
 
-3. If session exists, report:
+4. If session exists, report:
    - Current phase
    - Task description
    - Phases completed

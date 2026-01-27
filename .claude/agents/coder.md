@@ -139,7 +139,13 @@ When implementation is complete:
    - Any deviations from plan (with justification)
    - Any pattern deviations noted
 
-3. End your final message with EXACTLY this format based on phase:
+3. **If COMMIT phase**: Update `.docs/current-task.md`:
+   - Move "Current Focus" to "Recent Completions" with timestamp and summary
+   - Format: `YYYY-MM-DD: [brief description] - [outcome]`
+   - Set "Current Focus" to `[No active task]`
+   - Prune old completions if over 500 tokens (multiply word count by 1.3)
+
+4. End your final message with EXACTLY this format based on phase:
    ```
    CODER PHASE COMPLETE
    Phase: [WRITE_TESTS|IMPLEMENT|FIX|COMMIT]

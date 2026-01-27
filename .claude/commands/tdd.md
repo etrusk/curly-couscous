@@ -31,7 +31,16 @@ Before starting ANY new workflow:
    - If session exists with incomplete phase → Resume from current phase
    - If no session → Create new session
 
-2. **Verify documentation exists** (informational only):
+2. **Check project status** (shared with Roo workflow):
+
+   ```bash
+   cat .docs/current-task.md 2>/dev/null || echo "NO_CURRENT_TASK"
+   ```
+
+   - Read "Current Focus" section for context from prior sessions
+   - If another workflow is active, warn user
+
+3. **Verify documentation exists** (informational only):
 
    ```bash
    ls .docs/spec.md .docs/architecture.md 2>/dev/null
@@ -39,7 +48,7 @@ Before starting ANY new workflow:
 
    - If missing: Note it, agents will handle gracefully
 
-3. **Create .tdd/ directory if needed**:
+4. **Create .tdd/ directory if needed**:
    ```bash
    mkdir -p .tdd
    ```
@@ -220,7 +229,7 @@ Recommend next action."
 
 ## Session State Format
 
-`.tdd/session.md` template:
+`.tdd/session.md` template (ephemeral - deleted after commit):
 
 ```markdown
 # TDD Session
@@ -268,6 +277,8 @@ Count: [0-2]
 - [ ] Decision to record: [description]
 ```
 
+**Note**: `.tdd/session.md` is workflow-specific ephemeral state. Long-term project status lives in `.docs/current-task.md` (shared with Roo workflow).
+
 ## Context Preservation
 
 You are a LIGHTWEIGHT ROUTER. Do NOT:
@@ -294,9 +305,15 @@ When invoked with a task:
 /tdd Implement user authentication with JWT tokens
 ```
 
-1. Create `.tdd/session.md` with task description
-2. Set phase = EXPLORE
-3. Route to architect
+1. Update `.docs/current-task.md` "Current Focus":
+   ```
+   Task: Implement user authentication with JWT tokens
+   Workflow: claude-code
+   Started: [timestamp]
+   ```
+2. Create `.tdd/session.md` with task description
+3. Set phase = EXPLORE
+4. Route to architect
 
 ## Resuming Existing Workflow
 
@@ -314,13 +331,16 @@ When invoked without a task:
 
 When COMMIT phase succeeds:
 
-1. Delete ephemeral files:
+1. Update `.docs/current-task.md`:
+   - Move "Current Focus" to "Recent Completions" with timestamp and summary
+   - Set "Current Focus" back to `[No active task]`
+   - Prune old completions if token budget exceeded (keep under 500 tokens)
+
+2. Delete ephemeral files:
 
    ```bash
    rm -f .tdd/session.md .tdd/exploration.md .tdd/plan.md .tdd/test-designs.md .tdd/review-findings.md .tdd/troubleshooter-report.md
    ```
-
-2. Update `.docs/current-task.md` with completion (add to Recent Completions)
 
 3. Output final summary:
    - Task completed

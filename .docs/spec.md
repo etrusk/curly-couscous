@@ -16,6 +16,31 @@ Client-side only for v0.3 (foundation for future roguelike meta-progression).
 
 **Progressive disclosure:** Show minimum needed for immediate decisions, reveal depth on demand, preserve ability to override automation, always let players see why AI made each choice.
 
+### Progressive Disclosure Implementation
+
+Inspired by Baldur's Gate 3's nested tooltip system, the UI should layer information depth-first:
+
+**Level 1 - Glanceable:** Critical info visible without interaction (HP bars, intent lines, next action)
+
+**Level 2 - On-demand detail:** Additional context revealed through interaction:
+
+- Collapsed sections for secondary information (e.g., "Show 8 more skill evaluations")
+- Nested tooltips for rule explanations
+- Expandable decision chains showing AI reasoning
+
+**Level 3 - Deep inspection:** Full detail for debugging and learning:
+
+- Complete rule evaluation logs
+- All considered alternatives and why they were rejected
+- Frame-by-frame action resolution
+
+**Implementation patterns:**
+
+- Use native `<details>/<summary>` elements for keyboard accessibility
+- Tooltips should nest (hover on a term in a tooltip reveals deeper definition)
+- Progressive disclosure respects cognitive load—never show all information by default
+- Screen reader friendly: collapsed state announced, keyboard navigable
+
 ## Design Goals
 
 1. Emergent tactical gameplay through simple, composable rules

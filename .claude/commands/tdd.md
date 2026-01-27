@@ -5,53 +5,39 @@ description: Execute full TDD workflow for a feature or bugfix. Orchestrates all
 
 # TDD Workflow Orchestrator
 
-You are the orchestrator for a Test-Driven Development workflow. You MUST execute the workflow COMPLETELY AUTONOMOUSLY without asking for permission between phases.
+You are a LIGHTWEIGHT ROUTER orchestrating Test-Driven Development. Execute the workflow COMPLETELY AUTONOMOUSLY—NEVER ask permission between phases.
 
-Your job is to:
+**Your job:**
 
-1. Read `.tdd/session.md` to understand current state
-2. AUTOMATICALLY spawn the appropriate agent using the Task tool
-3. Update `.tdd/session.md` after each phase completes
-4. Continue to next phase IMMEDIATELY without user intervention
+1. Read `.tdd/session.md` for current state
+2. Spawn appropriate agent via Task tool
+3. Update `.tdd/session.md` after each phase
+4. Continue to next phase IMMEDIATELY
 
-**CRITICAL**: Use the Task tool to spawn agents. NEVER ask "should I proceed?" or "ready to continue?" - just execute the next phase automatically.
+**CRITICAL**: Use Task tool to spawn agents. NEVER ask "should I proceed?" or "ready to continue?"—execute the next phase automatically.
 
-You are a LIGHTWEIGHT ROUTER. Do NOT read implementation files directly.
+Do NOT read implementation files directly.
+
+---
 
 ## Pre-Workflow Validation
 
 Before starting ANY new workflow:
 
-1. **Check for existing session**:
+1. **Check existing session**: `cat .tdd/session.md 2>/dev/null || echo "NO_SESSION"`
+   - Session exists with incomplete phase → Resume from current phase
+   - No session → Create new session
 
-   ```bash
-   cat .tdd/session.md 2>/dev/null || echo "NO_SESSION"
-   ```
+2. **Check project status**: `cat .docs/current-task.md 2>/dev/null || echo "NO_CURRENT_TASK"`
+   - Read "Current Focus" for context from prior sessions
+   - If another workflow active, warn user
 
-   - If session exists with incomplete phase → Resume from current phase
-   - If no session → Create new session
+3. **Verify documentation** (informational only): `ls .docs/spec.md .docs/architecture.md 2>/dev/null`
+   - If missing: Note it, agents handle gracefully
 
-2. **Check project status** (shared with Roo workflow):
+4. **Create .tdd/ directory**: `mkdir -p .tdd`
 
-   ```bash
-   cat .docs/current-task.md 2>/dev/null || echo "NO_CURRENT_TASK"
-   ```
-
-   - Read "Current Focus" section for context from prior sessions
-   - If another workflow is active, warn user
-
-3. **Verify documentation exists** (informational only):
-
-   ```bash
-   ls .docs/spec.md .docs/architecture.md 2>/dev/null
-   ```
-
-   - If missing: Note it, agents will handle gracefully
-
-4. **Create .tdd/ directory if needed**:
-   ```bash
-   mkdir -p .tdd
-   ```
+---
 
 ## Workflow Phases
 
@@ -60,37 +46,59 @@ INIT → EXPLORE → PLAN → DESIGN_TESTS → TEST_DESIGN_REVIEW → WRITE_TEST
 VERIFY_FAIL → IMPLEMENT → VERIFY_PASS → REVIEW → [FIX if needed] → SYNC_DOCS → COMMIT
 ```
 
-## Phase Definitions
+---
 
-| Phase              | Agent     | Success Criteria                                    |
-| ------------------ | --------- | --------------------------------------------------- |
-| INIT               | (self)    | `.tdd/session.md` created with task description     |
-| EXPLORE            | architect | `.tdd/exploration.md` contains codebase analysis    |
-| PLAN               | architect | `.tdd/plan.md` contains implementation plan         |
-| DESIGN_TESTS       | architect | `.tdd/test-designs.md` contains test specifications |
-| TEST_DESIGN_REVIEW | architect | Test designs reviewed and approved                  |
-| WRITE_TESTS        | coder     | Tests implemented, all FAIL (red)                   |
-| VERIFY_FAIL        | coder     | Confirmed tests fail for right reasons              |
-| IMPLEMENT          | coder     | Code written, tests PASS (green)                    |
-| VERIFY_PASS        | coder     | All tests pass, quality gates pass                  |
-| REVIEW             | reviewer  | `.tdd/review-findings.md` created                   |
-| FIX                | coder     | All review issues addressed                         |
-| SYNC_DOCS          | architect | Documentation synced with implementation            |
-| COMMIT             | coder     | Changes committed with conventional commit message  |
+## Agent Summary Format
 
-## Routing Logic
+After EVERY agent completion, output:
 
-**IMPORTANT**: Use the Task tool with `subagent_type` parameter to spawn agents. Execute each phase AUTOMATICALLY without asking permission.
+```
+✓ [AGENT_TYPE] completed [PHASE]
+  → [2-4 bullet points of key actions/findings]
+  → Next: [NEXT_PHASE]
+```
 
-### INIT Phase
+---
+
+## Phase Routing
+
+| Phase              | Agent     | Task Prompt Template                                                                                                | Route To               |
+| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                               | EXPLORE                |
+| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index}.md`. Write findings to `.tdd/exploration.md`. Update session.        | PLAN                   |
+| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                           | DESIGN_TESTS           |
+| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                   | TEST_DESIGN_REVIEW     |
+| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Fix if needed. Update session.      | WRITE_TESTS            |
+| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests (should FAIL). Update session.                                         | IMPLEMENT              |
+| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run quality gates. Update session.                    | REVIEW                 |
+| REVIEW             | reviewer  | Read `.tdd/plan.md`, `.docs/{spec,patterns/index}.md`. Write findings to `.tdd/review-findings.md`. Update session. | FIX or SYNC_DOCS       |
+| FIX                | coder     | Read `.tdd/review-findings.md`. Fix all critical/important issues. Update session.                                  | REVIEW (re-review)     |
+| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                        | COMMIT                 |
+| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                          | Cleanup and completion |
+
+**Stuck/Troubleshooting**: If coder reports STUCK, spawn troubleshooter agent for root cause diagnosis.
+
+---
+
+## INIT Phase
 
 ```
 1. Create .tdd/session.md with task description
 2. Update phase to EXPLORE
-3. IMMEDIATELY spawn architect agent (no permission needed)
+3. Output summary to user
+4. IMMEDIATELY spawn architect agent (no permission needed)
 ```
 
-Use Task tool:
+**Summary**:
+
+```
+✓ Orchestrator initialized TDD workflow
+  → Task: [task description]
+  → Created .tdd/session.md
+  → Next: EXPLORE
+```
+
+**Task tool**:
 
 ```
 subagent_type: "architect"
@@ -102,129 +110,27 @@ Write findings to .tdd/exploration.md.
 Update .tdd/session.md when complete."
 ```
 
-### EXPLORE Phase Complete → PLAN Phase
+---
 
-When architect completes exploration, AUTOMATICALLY spawn architect again for planning:
+## Phase Transitions
 
-```
-subagent_type: "architect"
-description: "Create implementation plan"
-prompt: "PLAN phase: Read .tdd/exploration.md and create detailed implementation plan.
+For each subsequent phase completion:
 
-Write plan to .tdd/plan.md.
-Update .tdd/session.md when complete."
-```
+1. **Output agent summary** (see format above)
+2. **Read phase output** (`.tdd/exploration.md`, `.tdd/plan.md`, etc.)
+3. **Route per table above** (AUTOMATICALLY spawn next agent)
 
-### PLAN Phase Complete → DESIGN_TESTS Phase
+**Example REVIEW → FIX/SYNC_DOCS routing**:
 
-AUTOMATICALLY spawn architect for test design:
+- Read `.tdd/review-findings.md`
+- If critical issues found → Spawn coder for FIX (returns to REVIEW after)
+- If no critical issues → Spawn architect for SYNC_DOCS
 
-```
-subagent_type: "architect"
-description: "Design test specifications"
-prompt: "DESIGN_TESTS phase: Read .tdd/plan.md and design test specifications.
+---
 
-Write test designs to .tdd/test-designs.md using the required format.
-Update .tdd/session.md when complete."
-```
+## SYNC_DOCS Phase (Mandatory)
 
-### DESIGN_TESTS Phase Complete → TEST_DESIGN_REVIEW Phase
-
-AUTOMATICALLY spawn architect to review test designs:
-
-```
-subagent_type: "architect"
-description: "Review test designs"
-prompt: "TEST_DESIGN_REVIEW phase: Review your test designs in .tdd/test-designs.md.
-
-Check for:
-- Completeness: Do tests cover all edge cases?
-- Clarity: Are test specifications unambiguous?
-- Correctness: Do assertions match expected behavior?
-- Coverage: Are all requirements from .tdd/plan.md tested?
-
-If issues found, update .tdd/test-designs.md.
-Update .tdd/session.md when complete."
-```
-
-### TEST_DESIGN_REVIEW Phase Complete → WRITE_TESTS Phase
-
-AUTOMATICALLY spawn coder for test implementation:
-
-```
-subagent_type: "coder"
-description: "Implement tests (red)"
-prompt: "WRITE_TESTS phase: Read .tdd/test-designs.md and implement tests.
-
-Implement tests exactly as specified. They should FAIL (red).
-Update .tdd/session.md when complete."
-```
-
-### WRITE_TESTS Phase Complete → IMPLEMENT Phase
-
-AUTOMATICALLY spawn coder for implementation:
-
-```
-subagent_type: "coder"
-description: "Implement code (green)"
-prompt: "IMPLEMENT phase: Read .tdd/test-designs.md and .tdd/plan.md.
-
-Write code to make tests pass (green).
-Run quality gates (npm run test, lint, type-check).
-Update .tdd/session.md when complete."
-```
-
-### IMPLEMENT Phase Complete → REVIEW Phase
-
-AUTOMATICALLY spawn reviewer:
-
-```
-subagent_type: "reviewer"
-description: "Review implementation"
-prompt: "REVIEW phase: Review the implementation.
-
-Read .tdd/plan.md, .docs/spec.md, .docs/patterns/index.md.
-Write findings to .tdd/review-findings.md.
-Update .tdd/session.md when complete."
-```
-
-### REVIEW Phase Complete → FIX or SYNC_DOCS
-
-Read `.tdd/review-findings.md`:
-
-- If critical issues found: AUTOMATICALLY spawn coder to fix (then return to REVIEW)
-- If no critical issues: AUTOMATICALLY proceed to SYNC_DOCS phase
-
-```
-# If fixes needed:
-subagent_type: "coder"
-description: "Fix review issues"
-prompt: "FIX phase: Read .tdd/review-findings.md and fix all issues.
-
-Address all critical and important issues.
-Update .tdd/session.md when complete."
-```
-
-### FIX Phase Complete → REVIEW Phase
-
-After fixes are applied, AUTOMATICALLY spawn reviewer again to verify fixes:
-
-```
-subagent_type: "reviewer"
-description: "Re-review after fixes"
-prompt: "REVIEW phase: Re-review the implementation after fixes.
-
-Read .tdd/review-findings.md to see what was fixed.
-Verify all issues are addressed.
-Write updated findings to .tdd/review-findings.md.
-Update .tdd/session.md when complete."
-```
-
-### REVIEW Phase Complete (no critical issues) → SYNC_DOCS Phase
-
-**This step is mandatory—execute every time.**
-
-AUTOMATICALLY spawn architect for documentation synchronization:
+**AUTOMATICALLY spawn architect**:
 
 ```
 subagent_type: "architect"
@@ -240,25 +146,25 @@ Read and compare:
 4. .tdd/plan.md (planned approach)
 5. .tdd/review-findings.md (review notes)
 
-Answer these questions:
-- [ ] Did human feedback change requirements during implementation?
-- [ ] Were features implemented differently than originally designed?
-- [ ] Did implementation reveal spec incompleteness (missing edge cases, unclear rules)?
-- [ ] Were behavioral details clarified/added during development?
-- [ ] Did architectural decisions deviate from documented spec?
+Answer:
+- Did human feedback change requirements during implementation?
+- Were features implemented differently than originally designed?
+- Did implementation reveal spec incompleteness (missing edge cases, unclear rules)?
+- Were behavioral details clarified/added during development?
+- Did architectural decisions deviate from documented spec?
 
 **If YES to any** → proceed to Step 11b
-**If NO to all** → document in .tdd/session.md: 'Verified spec.md alignment—no updates needed' → Update phase to complete
+**If NO to all** → document 'Verified spec.md alignment—no updates needed' → Update phase to complete
 
 **Step 11b: Update Documents (if needed)**
 
-| Change Type | Target File | Action |
-|-------------|-------------|--------|
-| Behavioral changes, new rules, clarifications | .docs/spec.md | Update affected sections |
-| Design deviations, architectural changes | .docs/architecture.md | Document deviation and rationale |
-| New patterns discovered | .docs/patterns/index.md | Add pattern entry |
-| Significant decisions | .docs/decisions/index.md | Add ADR entry |
-| Failure patterns, lessons learned | .docs/lessons-learned.md | Append finding |
+| Change Type                               | Target File                  | Action              |
+| ----------------------------------------- | ---------------------------- | ------------------- |
+| Behavioral changes, new rules             | .docs/spec.md                | Update sections     |
+| Design deviations, architectural changes  | .docs/architecture.md        | Document + rationale|
+| New patterns discovered                   | .docs/patterns/index.md      | Add pattern         |
+| Significant decisions                     | .docs/decisions/index.md     | Add ADR             |
+| Failure patterns, lessons learned         | .docs/lessons-learned.md     | Append finding      |
 
 **Substantial changes?** → Note in .tdd/session.md for human review before commit.
 
@@ -270,49 +176,68 @@ Update .docs/current-task.md:
 
 **Step 11d: Lessons Learned (if applicable)**
 
-If implementation revealed spec problems, append to .docs/lessons-learned.md:
-
-```markdown
-## [Date]: [Brief title]
-
-**Spec gap**: [What the spec didn't cover]
-**Discovery**: [How it was discovered during implementation]
-**Resolution**: [How spec was updated]
-**Prevention**: [How to write better specs for similar features]
-```
+If implementation revealed spec problems, append to .docs/lessons-learned.md.
 
 Write summary to .tdd/session.md under 'Documentation Updates'.
 Update .tdd/session.md phase to complete."
 ```
 
-### SYNC_DOCS Phase Complete → COMMIT Phase
+---
 
-AUTOMATICALLY spawn coder for commit:
+## COMMIT Phase → Completion
 
-```
-subagent_type: "coder"
-description: "Commit changes"
-prompt: "COMMIT phase: Create conventional commit for this work.
+When coder completes COMMIT:
 
-Run git status, git diff, git log to understand changes.
-Include ALL changes (implementation + documentation updates).
-Create commit with Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
-Update .tdd/session.md when complete."
-```
+1. **Output agent summary**:
 
-### Handling Stuck/Troubleshooting
+   ```
+   ✓ Coder completed COMMIT
+     → Committed [N] files
+     → Commit message: [message]
+     → Commit hash: [hash]
+     → Next: Cleanup and final summary
+   ```
 
-If coder reports STUCK, AUTOMATICALLY spawn troubleshooter:
+2. **Update `.docs/current-task.md`**:
+   - Move "Current Focus" to "Recent Completions" with timestamp and summary
+   - Set "Current Focus" to `[No active task]`
+   - Prune old completions if token budget exceeded (keep under 500 tokens)
 
-```
-subagent_type: "troubleshooter"
-description: "Diagnose root cause"
-prompt: "TROUBLESHOOT: Coder is stuck. Diagnose root cause.
+3. **Delete ephemeral files**:
 
-Review .tdd/plan.md and recent work.
-Write findings to .tdd/troubleshooter-report.md.
-Recommend next action."
-```
+   ```bash
+   rm -f .tdd/session.md .tdd/exploration.md .tdd/plan.md .tdd/test-designs.md .tdd/review-findings.md .tdd/troubleshooter-report.md
+   ```
+
+   **Note**: Do NOT delete `.docs/` files—version-controlled project knowledge.
+
+4. **Output final workflow summary**:
+
+   ```
+   ═══════════════════════════════════════
+   TDD WORKFLOW COMPLETE
+   ═══════════════════════════════════════
+
+   Task: [task description]
+   Commit: [commit-hash]
+
+   Implementation:
+   → Files created: [list]
+   → Files modified: [list]
+   → Tests added: [count] tests in [files]
+
+   Documentation:
+   → [files updated or "No documentation updates needed"]
+
+   Quality Gates:
+   ✓ Tests pass
+   ✓ Lint pass
+   ✓ Type check pass
+   ✓ Review approved
+   ═══════════════════════════════════════
+   ```
+
+---
 
 ## Session State Format
 
@@ -333,18 +258,14 @@ Recommend next action."
 
 - [timestamp] INIT: Started task "[description]"
 - [timestamp] EXPLORE: Completed. Found [summary].
-- ...
 
 ## Key Decisions
 
 - [Decision 1]
-- [Decision 2]
 
 ## Documentation Used
 
 - .docs/spec.md: [sections referenced]
-- .docs/architecture.md: [sections referenced]
-- .docs/patterns/index.md: [patterns applied]
 
 ## Files Touched
 
@@ -360,15 +281,16 @@ Count: [0-2]
 
 ## Documentation Updates
 
-[SYNC_DOCS phase findings - spec alignment status, files updated, lessons learned]
+[SYNC_DOCS phase findings]
 
 ## Documentation Recommendations
 
 - [ ] Pattern to add: [description]
-- [ ] Decision to record: [description]
 ```
 
 **Note**: `.tdd/session.md` is workflow-specific ephemeral state. Long-term project status lives in `.docs/current-task.md` (shared with Roo workflow).
+
+---
 
 ## Context Preservation
 
@@ -388,79 +310,24 @@ Your context should contain:
 
 If context exceeds ~50% utilization, summarize phase history and continue.
 
-## Starting New Workflow
+---
 
-When invoked with a task:
+## Starting/Resuming Workflow
 
-```
-/tdd Implement user authentication with JWT tokens
-```
+**New workflow** (`/tdd Implement user authentication`):
 
-1. Update `.docs/current-task.md` "Current Focus":
-   ```
-   Task: Implement user authentication with JWT tokens
-   Workflow: claude-code
-   Started: [timestamp]
-   ```
+1. Update `.docs/current-task.md` "Current Focus" with task + workflow + timestamp
 2. Create `.tdd/session.md` with task description
 3. Set phase = EXPLORE
 4. Route to architect
 
-## Resuming Existing Workflow
-
-When invoked without a task:
-
-```
-/tdd
-```
+**Resume workflow** (`/tdd`):
 
 1. Read `.tdd/session.md`
 2. Determine current phase
 3. Continue from that phase
 
-## Completing Workflow
-
-When COMMIT phase succeeds:
-
-1. Update `.docs/current-task.md`:
-   - Move "Current Focus" to "Recent Completions" with timestamp and summary
-   - Set "Current Focus" back to `[No active task]`
-   - Prune old completions if token budget exceeded (keep under 500 tokens)
-
-2. Delete ephemeral files:
-
-   ```bash
-   rm -f .tdd/session.md .tdd/exploration.md .tdd/plan.md .tdd/test-designs.md .tdd/review-findings.md .tdd/troubleshooter-report.md
-   ```
-
-   **Note**: Do NOT delete `.docs/` files—these are version-controlled and contain long-term project knowledge.
-
-3. Output final summary:
-   - Task completed
-   - Files created/modified (implementation + documentation)
-   - Tests added
-   - Commit hash
-   - Documentation updates made (if any)
-
-4. End with: `TDD WORKFLOW COMPLETE. [commit-hash]`
-
-## Context Management
-
-**Long-term context** (`.docs/` - version controlled):
-
-- Project knowledge persists across all tasks
-- Agents MUST read relevant `.docs/` files before planning
-
-**Per-task context** (`.tdd/*.md` - ephemeral):
-
-- Created fresh per task, deleted after successful commit
-- Prevents context pollution between tasks
-
-**Agent isolation**:
-
-- Each agent runs in isolated context via Task tool
-- Orchestrator reads only `.tdd/session.md` (current phase)
-- Agent contexts automatically discarded after completion
+---
 
 ## CRITICAL EXECUTION RULES
 
@@ -469,14 +336,14 @@ When COMMIT phase succeeds:
 1. NEVER ask "should I proceed to next phase?"
 2. NEVER ask "ready to continue?"
 3. NEVER wait for user permission between phases
-4. ALWAYS use Task tool to spawn the next agent immediately
+4. ALWAYS use Task tool to spawn next agent immediately
 5. ALWAYS continue until COMMIT phase or ESCALATE
 
 **The user expects ZERO interruptions during the workflow.**
 
 When a phase completes:
 
-1. Read the agent's output
+1. Read agent output
 2. Update `.tdd/session.md` with phase completion
 3. IMMEDIATELY determine next phase
 4. IMMEDIATELY spawn next agent with Task tool

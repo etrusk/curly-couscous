@@ -33,9 +33,12 @@ This project maintains documentation in `.docs/`:
 
 - **spec.md**: Requirements and acceptance criteria
 - **architecture.md**: System design and key decisions
-- **patterns/index.md**: Implementation patterns and conventions
-- **decisions/index.md**: Architectural Decision Records (ADRs)
+- **patterns/index.md**: LLM-optimized index of patterns (details in `patterns/*.md`)
+- **decisions/index.md**: LLM-optimized index of ADRs (details in `decisions/*.md`)
+- **investigations/index.md**: LLM-optimized index of debugging sessions (details in `investigations/*.md`)
 - **current-task.md**: Project status (shared by both Roo and Claude Code workflows)
+
+**Index files are lightweight pointers. Read specific detail files (e.g., `patterns/collapsible-section.md`) when needed.**
 
 **Agents MUST read relevant `.docs/` files before making changes.**
 

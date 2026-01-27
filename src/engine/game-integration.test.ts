@@ -18,7 +18,7 @@ describe("processTick decision integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 5, y: 5 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: null,
       skills: [
         createSkill({
@@ -33,7 +33,7 @@ describe("processTick decision integration", () => {
       faction: "enemy",
       position: { x: 6, y: 5 },
       hp: 100,
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state = createGameState({
@@ -54,7 +54,7 @@ describe("processTick decision integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 5, y: 5 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: null,
       skills: [
         createSkill({
@@ -70,7 +70,7 @@ describe("processTick decision integration", () => {
       faction: "enemy",
       position: { x: 6, y: 5 },
       hp: 100,
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state = createGameState({
@@ -97,7 +97,7 @@ describe("processTick decision integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 5, y: 5 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: action,
       skills: [
         createSkill({
@@ -112,7 +112,7 @@ describe("processTick decision integration", () => {
       faction: "enemy",
       position: { x: 6, y: 5 },
       hp: 100,
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state = createGameState({
@@ -133,7 +133,7 @@ describe("processTick decision integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 5, y: 5 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: null,
       skills: [
         createSkill({
@@ -148,7 +148,7 @@ describe("processTick decision integration", () => {
       faction: "enemy",
       position: { x: 6, y: 5 },
       hp: 100,
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state1 = createGameState({
@@ -176,7 +176,7 @@ describe("processTick decision integration", () => {
       id: "char1",
       faction: "friendly",
       position: { x: 5, y: 5 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: null,
       skills: [
         createSkill({
@@ -205,7 +205,7 @@ describe("cross-module integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 5, y: 5 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: null,
       skills: [
         createSkill({
@@ -220,7 +220,7 @@ describe("cross-module integration", () => {
       faction: "enemy",
       position: { x: 6, y: 5 },
       hp: 100,
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state = createGameState({
@@ -258,7 +258,7 @@ describe("cross-module integration", () => {
       id: "mover",
       faction: "friendly",
       position: { x: 5, y: 5 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: null,
       skills: [
         createSkill({
@@ -272,7 +272,7 @@ describe("cross-module integration", () => {
       id: "target",
       faction: "enemy",
       position: { x: 8, y: 5 },
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state = createGameState({
@@ -305,7 +305,7 @@ describe("cross-module integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 5, y: 5 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: null,
       skills: [
         createSkill({
@@ -326,7 +326,7 @@ describe("cross-module integration", () => {
       faction: "enemy",
       position: { x: 10, y: 5 },
       hp: 100,
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state = createGameState({

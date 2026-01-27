@@ -19,7 +19,7 @@ describe("useDamageNumbers", () => {
     id,
     name: `Character ${id}`,
     faction,
-    slotPosition: 0,
+    slotPosition: 1,
     hp: 100,
     maxHp: 100,
     position,

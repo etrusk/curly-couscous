@@ -99,7 +99,7 @@ export const useGameStore = create<GameStore>()(
           // Preserve currentAction if set (for testing scenarios)
           const sanitized = characters.map((char, index) => ({
             ...char,
-            slotPosition: index, // Assign slot position based on order
+            slotPosition: index + 1, // Assign 1-based slot position (first = 1)
             currentAction: char.currentAction ?? null, // Preserve if set, otherwise null
           }));
 
@@ -254,12 +254,12 @@ export const useGameStore = create<GameStore>()(
           const id = `${faction}-${Date.now()}-${getNextCharacterIdCounter()}`;
 
           // Determine slotPosition (next sequential number)
-          const slotPosition = state.gameState.characters.length;
+          const slotPosition = state.gameState.characters.length + 1;
 
           // Create new character
           const newCharacter: Character = {
             id,
-            name: `${faction === "friendly" ? "Friendly" : "Enemy"} ${slotPosition + 1}`,
+            name: `${faction === "friendly" ? "Friendly" : "Enemy"} ${slotPosition}`,
             faction,
             slotPosition,
             hp: 100,
@@ -340,12 +340,12 @@ export const useGameStore = create<GameStore>()(
           const id = `${faction}-${Date.now()}-${getNextCharacterIdCounter()}`;
 
           // Determine slotPosition (next sequential number)
-          const slotPosition = state.gameState.characters.length;
+          const slotPosition = state.gameState.characters.length + 1;
 
           // Create new character
           const newCharacter: Character = {
             id,
-            name: `${faction === "friendly" ? "Friendly" : "Enemy"} ${slotPosition + 1}`,
+            name: `${faction === "friendly" ? "Friendly" : "Enemy"} ${slotPosition}`,
             faction,
             slotPosition,
             hp: 100,

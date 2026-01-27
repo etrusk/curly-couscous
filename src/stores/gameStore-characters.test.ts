@@ -134,9 +134,9 @@ describe("addCharacter", () => {
     useGameStore.getState().actions.addCharacter("friendly");
 
     const characters = useGameStore.getState().gameState.characters;
-    expect(characters[0]?.slotPosition).toBe(0);
-    expect(characters[1]?.slotPosition).toBe(1);
-    expect(characters[2]?.slotPosition).toBe(2);
+    expect(characters[0]?.slotPosition).toBe(1);
+    expect(characters[1]?.slotPosition).toBe(2);
+    expect(characters[2]?.slotPosition).toBe(3);
   });
 
   it("should recalculate battleStatus to active when opposing factions exist", () => {

@@ -153,9 +153,9 @@ describe("addCharacterAtPosition", () => {
       .actions.addCharacterAtPosition("friendly", { x: 2, y: 2 });
 
     const characters = useGameStore.getState().gameState.characters;
-    expect(characters[0]?.slotPosition).toBe(0);
-    expect(characters[1]?.slotPosition).toBe(1);
-    expect(characters[2]?.slotPosition).toBe(2);
+    expect(characters[0]?.slotPosition).toBe(1);
+    expect(characters[1]?.slotPosition).toBe(2);
+    expect(characters[2]?.slotPosition).toBe(3);
   });
 
   it("addCharacterAtPosition should create character with default skills", () => {

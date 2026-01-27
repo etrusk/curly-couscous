@@ -18,26 +18,26 @@ describe("Movement Groups and Stress Tests", () => {
       const mover1A = createCharacter({
         id: "mover1A",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const mover1B = createCharacter({
         id: "mover1B",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       // Group 2: Two movers to (8,8)
       const mover2A = createCharacter({
         id: "mover2A",
         position: { x: 7, y: 8 },
-        slotPosition: 2,
+        slotPosition: 3,
         currentAction: createMoveAction({ x: 8, y: 8 }, 1),
       });
       const mover2B = createCharacter({
         id: "mover2B",
         position: { x: 8, y: 7 },
-        slotPosition: 3,
+        slotPosition: 4,
         currentAction: createMoveAction({ x: 8, y: 8 }, 1),
       });
 
@@ -63,25 +63,25 @@ describe("Movement Groups and Stress Tests", () => {
       const mover1A = createCharacter({
         id: "mover1A",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const mover1B = createCharacter({
         id: "mover1B",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const mover2A = createCharacter({
         id: "mover2A",
         position: { x: 7, y: 8 },
-        slotPosition: 2,
+        slotPosition: 3,
         currentAction: createMoveAction({ x: 8, y: 8 }, 1),
       });
       const mover2B = createCharacter({
         id: "mover2B",
         position: { x: 8, y: 7 },
-        slotPosition: 3,
+        slotPosition: 4,
         currentAction: createMoveAction({ x: 8, y: 8 }, 1),
       });
 
@@ -104,25 +104,25 @@ describe("Movement Groups and Stress Tests", () => {
       const moverA1 = createCharacter({
         id: "moverA1",
         position: { x: 0, y: 0 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 2, y: 3 }, 1), // Target Y=3, X=2
       });
       const moverA2 = createCharacter({
         id: "moverA2",
         position: { x: 1, y: 2 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 2, y: 3 }, 1),
       });
       const moverB1 = createCharacter({
         id: "moverB1",
         position: { x: 4, y: 4 },
-        slotPosition: 2,
+        slotPosition: 3,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1), // Target Y=5, X=5
       });
       const moverB2 = createCharacter({
         id: "moverB2",
         position: { x: 5, y: 4 },
-        slotPosition: 3,
+        slotPosition: 4,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -151,37 +151,37 @@ describe("Movement Groups and Stress Tests", () => {
         createCharacter({
           id: "mover0",
           position: { x: 4, y: 4 },
-          slotPosition: 0,
+          slotPosition: 1,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         }),
         createCharacter({
           id: "mover1",
           position: { x: 5, y: 4 },
-          slotPosition: 1,
+          slotPosition: 2,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         }),
         createCharacter({
           id: "mover2",
           position: { x: 6, y: 4 },
-          slotPosition: 2,
+          slotPosition: 3,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         }),
         createCharacter({
           id: "mover3",
           position: { x: 4, y: 5 },
-          slotPosition: 3,
+          slotPosition: 4,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         }),
         createCharacter({
           id: "mover4",
           position: { x: 6, y: 5 },
-          slotPosition: 4,
+          slotPosition: 5,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         }),
         createCharacter({
           id: "mover5",
           position: { x: 4, y: 6 },
-          slotPosition: 5,
+          slotPosition: 6,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         }),
         createCharacter({

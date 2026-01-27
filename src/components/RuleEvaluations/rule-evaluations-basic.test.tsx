@@ -191,4 +191,39 @@ describe("RuleEvaluations - Basic Rendering", () => {
       expect(screen.getByText(new RegExp(`Char${i}`, "i"))).toBeInTheDocument();
     }
   });
+
+  // Test: RuleEvaluations-displays-correct-letter
+  it("should display correct letter A for character with slotPosition 1", () => {
+    const character = createCharacter({ id: "char1", name: "TestChar" });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]);
+    // Don't select character - render MultiCharacterView to show letters
+
+    render(<RuleEvaluations />);
+    // Character section should display letter "A" in the multi-character view
+    // The letter appears in the character header button
+    expect(screen.getByText(/^A$/)).toBeInTheDocument();
+  });
+
+  // Test: RuleEvaluations-handles-positions-beyond-26
+  it("should display AA for character with slotPosition 27", () => {
+    // Create character with slotPosition 27 by directly setting state
+    // (bypassing initBattle which would reassign based on array index)
+    const character = createCharacter({
+      id: "char27",
+      name: "CharAA",
+      slotPosition: 27,
+    });
+
+    // Directly set state to include character with slotPosition 27
+    useGameStore.setState((state) => {
+      state.gameState.characters = [character];
+      state.gameState.battleStatus = "active";
+    });
+
+    // Don't select character - render MultiCharacterView to show letters
+    render(<RuleEvaluations />);
+    // Should display "AA" for position 27 in multi-character view
+    expect(screen.getByText(/^AA$/)).toBeInTheDocument();
+  });
 });

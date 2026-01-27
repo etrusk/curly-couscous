@@ -1,228 +1,137 @@
-# Exploration Findings: Skill Priority Sub-panel UI Enhancement
+# Exploration: slotPosition Validation Error
 
-## Task Summary
+## Summary
 
-Enhance the `SkillPriorityList` component in `RuleEvaluations.tsx` to improve transparency of AI decision-making by:
+Clicking "Add Friendly" button causes error: `slotPosition must be positive, got 0`
 
-1. Always showing higher-priority skills that failed (with rejection reasons)
-2. Showing an expandable section with remaining lower-priority skills
-3. Maintaining existing functionality for selected skill highlighting and collapsible sections
+## Root Cause
 
-## Current Implementation Analysis
+**The bug is a mismatch between 0-based and 1-based indexing conventions.**
 
-### SkillPriorityList Component (Lines 120-168)
+The `letterMapping.ts` utility expects `slotPosition` to be **1-based** (first character = 1), but the `gameStore.ts` assigns `slotPosition` as **0-based** (first character = 0).
 
-The current `SkillPriorityList` function divides skills into two groups:
+### Evidence
 
-```tsx
-// Current logic:
-const visibleSkills =
-  selectedSkillIndex !== null
-    ? skillEvaluations.slice(0, selectedSkillIndex + 1) // Skills up to selected
-    : skillEvaluations; // All if none selected
-
-const collapsedSkills =
-  selectedSkillIndex !== null
-    ? skillEvaluations.slice(selectedSkillIndex + 1) // Skills after selected
-    : [];
-```
-
-**Current Behavior:**
-
-- Shows skills from index 0 through `selectedSkillIndex` (inclusive)
-- Collapses remaining skills below selected skill
-- When `selectedSkillIndex` is null (idle), shows all skills without collapsing
-- Uses `<details>/<summary>` pattern per documented collapsible section pattern
-
-**Problem:** This shows ALL higher-priority skills, but the new requirement is:
-
-- Always show higher-priority skills that are NOT satisfied (rejected)
-- The selected skill should be visible
-- Lower-priority skills (below selected) go in expandable section
-
-### Data Structures Available
-
-From `src/engine/types.ts`:
-
+**letterMapping.ts:14-16** - Expects 1-based:
 ```typescript
-interface SkillEvaluationResult {
-  skill: Skill;
-  status: "selected" | "rejected" | "skipped";
-  rejectionReason?: SkillRejectionReason; // "disabled" | "trigger_failed" | "no_target" | "out_of_range"
-  target?: Character;
-  distance?: number; // For out_of_range context
-  failedTriggers?: Trigger[]; // For trigger_failed context
-}
-
-interface CharacterEvaluationResult {
-  characterId: string;
-  isMidAction: boolean;
-  currentAction?: Action;
-  skillEvaluations: SkillEvaluationResult[];
-  selectedSkillIndex: number | null; // null if idle
-}
+export function slotPositionToLetter(slotPosition: number): string {
+  if (slotPosition <= 0) {
+    throw new Error(`slotPosition must be positive, got ${slotPosition}`);
+  }
 ```
 
-### Rejection Reason Formatting (Lines 26-39)
+**gameStore.ts:257** - Assigns 0-based in `addCharacter`:
+```typescript
+// Determine slotPosition (next sequential number)
+const slotPosition = state.gameState.characters.length;
+```
 
-Already implemented in `formatRejectionReason()`:
+When there are 0 characters, `state.gameState.characters.length` is 0, so the first character gets `slotPosition = 0`, which violates the letterMapping validation.
 
-- `"disabled"` -> `"[disabled]"`
-- `"trigger_failed"` -> `"trigger not met"`
-- `"no_target"` -> `"no target"`
-- `"out_of_range"` -> `"target out of range (X > Y)"`
+**gameStore.ts:343** - Same issue in `addCharacterAtPosition`:
+```typescript
+const slotPosition = state.gameState.characters.length;
+```
 
-### renderSkillListItems Helper (Lines 206-233)
+**gameStore.ts:102** - Same issue in `initBattle`:
+```typescript
+slotPosition: index, // Assign slot position based on order
+```
+When called with an array, the first character gets `index = 0`.
 
-Renders skill items with:
+## Flow Analysis
 
-- Index numbering (1-based)
-- Arrow indicator for selected skill
-- Rejection reason display
-- Active skill CSS class
+1. User clicks "Add Friendly" button
+2. `CharacterControls.handleAddFriendly()` sets `selectionMode` to `"placing-friendly"`
+3. User clicks on a grid cell
+4. `BattleViewer` calls `actions.addCharacterAtPosition("friendly", position)`
+5. `addCharacterAtPosition` sets `slotPosition = state.gameState.characters.length` = **0**
+6. Character is added to state
+7. `Cell.tsx:40` passes `slotPosition={character.slotPosition}` to Token
+8. `Token.tsx:79` calls `slotPositionToLetter(slotPosition)` with slotPosition=0
+9. **Error thrown**: `slotPosition must be positive, got 0`
 
-## Spec Alignment Check
+## Documentation Review
 
-From `.docs/spec.md`:
+**spec.md:151-152** states:
+```
+- Letters are assigned based on `slotPosition` (order added to battle)
+- First character: A, second: B, third: C, etc.
+```
 
-- **Design Vision**: "Progressive disclosure: Show minimum needed for immediate decisions, reveal depth on demand"
-- **Transparency Goal**: "always let players see why AI made each choice"
-- **Rule Evaluations Panel**: "Real-time AI decision display...shows skill priority evaluation"
+This implies first character = A = position 1, which is **1-based**.
 
-**Alignment**: The enhancement directly supports the transparency goal by showing WHY higher-priority skills were skipped.
+**spec.md:32-33** states:
+```
+- **Slot position:** Order added to battle (used for collision tiebreaking)
+```
 
-## Architecture Alignment
+This is ambiguous about 0-based vs 1-based.
 
-From `.docs/architecture.md`:
+## Scope of Impact
 
-- **CSS Modules**: Used for styling
-- **Zustand selectors**: For fine-grained re-renders
-- **Functional Components with Hooks**: Pattern followed
+The following locations use 0-based slotPosition (need fixing):
 
-No conflicts with architecture.
+1. **gameStore.ts:102** - `initBattle` action
+2. **gameStore.ts:257** - `addCharacter` action
+3. **gameStore.ts:343** - `addCharacterAtPosition` action
 
-## Pattern Alignment
+The following locations also use 0-based slotPosition but work differently:
 
-From `.docs/patterns/index.md`:
+4. **RuleEvaluations.tsx:312-313** - Uses `slotPosition % 26` which works with 0-based (A=0), creating an inconsistency with Token.tsx
 
-- **Collapsible Section Pattern**: Uses native `<details>/<summary>` elements
-- Already implemented in `SkillPriorityList` for lower-priority skills
+## Secondary Issue: RuleEvaluations Inconsistency
 
-The enhancement should continue using this pattern for the lower-priority expandable section.
+The `RuleEvaluations.tsx` component uses a different letter calculation method:
+```typescript
+const letter = String.fromCharCode(
+  LETTER_A_CHAR_CODE + (character.slotPosition % LETTER_COUNT),
+);
+```
 
-## Existing Tests
+This assumes 0-based slotPosition (A=0, B=1, etc.) but:
+- Does not support letters beyond Z (AA, AB, etc.)
+- Is inconsistent with the `letterMapping.ts` utility
 
-### rule-evaluations-skill-priority.test.tsx (154 lines)
+## Test Files Using 0-based slotPosition
 
-Relevant tests:
+Many test files use `slotPosition: 0` for the first character:
+- `PlayControls.test.tsx`: Lines 81, 123, 158, etc.
+- `gameStore-reset.test.ts`: Lines 20, 66, 91, etc.
+- `gameStore-characters.test.ts`: Lines 137-139 (test explicitly checks for 0-based)
+- `gameStore-debug-ui.test.ts`: Lines 156-158 (test explicitly checks for 0-based)
+- Many engine test files
 
-- Test 12: Displays skill priority list with indices
-- Test 13: Indicates disabled skills with `[disabled]` rejection reason
-- Test 14: Displays "no target" rejection reason
-- Test 17: Shows collapsible section for skills below active skill (expects "Show 2 more skills")
-- Test 18: No collapsible section when last skill is active
-- Test 23: Displays out of range rejection with distance information
+## Recommended Fix
 
-**Impact:** Tests 17 and 18 test the collapsible behavior and may need updates if the grouping logic changes.
+**Option A: Change letterMapping to accept 0-based (Breaking Change)**
+- Modify `slotPositionToLetter` to accept 0-based input
+- Update validation: `if (slotPosition < 0)` instead of `if (slotPosition <= 0)`
+- Update internal logic: `let n = slotPosition + 1;` at start
+- Pros: Matches existing game logic convention, fewer changes
+- Cons: Changes the utility function semantics
 
-### rule-evaluations-basic.test.tsx (195 lines)
+**Option B: Change gameStore to use 1-based (Recommended)**
+- Modify all three action handlers to use `state.gameState.characters.length + 1`
+- Update RuleEvaluations.tsx to use `letterMapping.ts` utility
+- Update test files that check slotPosition values
+- Pros: Consistent with spec language ("First character: A"), natural mapping (position 1 = A)
+- Cons: More test file changes
 
-Relevant tests:
+**Recommendation: Option B**
 
-- Test 20: Semantic list structure (expects `<ol>` element)
-- Test 21: Selected skill arrow indicator
-- Test 22: Active skill highlighting (expects `activeSkill` class)
-
-**Impact:** These test the visual indicators that should remain unchanged.
-
-## Constraints
-
-1. **File Size Limit**: RuleEvaluations.tsx is currently **444 lines** (over 400 limit)
-   - May need decomposition if changes add significant lines
-   - Consider extracting `SkillPriorityList` to separate file
-
-2. **TypeScript Strict Mode**: All code must type-check without errors
-
-3. **Accessibility Requirements**:
-   - Screen reader compatibility via semantic HTML
-   - `<details>/<summary>` provides built-in accessibility
-   - Focus ring for keyboard navigation
-   - Respect reduced motion preference
-
-4. **CSS Variables**: Use existing variables (`--content-muted`, `--border-subtle`, etc.)
-
-## Key Observations
-
-### Current Skill Display Logic Flaw
-
-The current implementation shows "skills up to selected index" which includes ALL skills, not just rejected ones. Example:
-
-Skills: [Light Punch, Move, Heavy Punch]
-
-- Light Punch: rejected (no target)
-- Move: selected (always triggers)
-- Heavy Punch: skipped
-
-Current display:
-
-1. Light Punch - no target
-2. Move (selected)
-   [Collapsed: Heavy Punch]
-
-This is actually correct behavior for the current implementation. The issue is that the task description says "always show any higher priority skills that are not satisfied" - which is what the current code does. The real change is about GROUPING:
-
-**Desired behavior:**
-
-1. **Primary section (always visible)**:
-   - All skills with status "rejected" (higher priority but not satisfied)
-   - The selected skill (if any)
-2. **Expandable section**:
-   - All remaining skills (status "skipped")
-
-### Edge Cases to Consider
-
-1. **No selected skill (idle)**: All skills are rejected, show all in primary section, no expandable
-2. **First skill selected**: No rejected skills above, just show selected, expandable has rest
-3. **Last skill selected**: All above rejected, show all, no expandable section
-4. **All skills disabled**: All rejected with "disabled", show all, idle state
-5. **Mid-action state**: Shows "Continuing Action" instead of skill list (handled by MidActionDisplay)
+The spec clearly states "First character: A" which implies 1-based indexing. The letterMapping utility was designed correctly per spec. The bug is in the store implementation.
 
 ## Files to Modify
 
-1. **`src/components/RuleEvaluations/RuleEvaluations.tsx`**
-   - Modify `SkillPriorityList` function to change grouping logic
-   - May need to add sub-headers or visual separators
+1. `/home/bob/Projects/auto-battler/src/stores/gameStore.ts` (lines 102, 257, 343)
+2. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx` (lines 311-314)
+3. Test files (update slotPosition values from 0-based to 1-based)
 
-2. **`src/components/RuleEvaluations/RuleEvaluations.module.css`**
-   - May need styles for visual hierarchy between rejected/selected/skipped groups
+## Test File Impact
 
-3. **`src/components/RuleEvaluations/rule-evaluations-skill-priority.test.tsx`**
-   - Update Test 17 expectations if collapsible content changes
-   - Add new tests for the enhanced grouping logic
+Tests that explicitly verify 0-based slotPosition behavior will need updating:
+- `src/stores/gameStore-characters.test.ts:129-139`
+- `src/stores/gameStore-debug-ui.test.ts:144-158`
 
-## Recommended Approach
-
-1. **Modify `SkillPriorityList` to group by status**:
-
-   ```tsx
-   // Primary section: rejected + selected
-   const primarySkills = skillEvaluations.filter(
-     (e, idx) => e.status === "rejected" || idx === selectedSkillIndex,
-   );
-
-   // Expandable section: skipped
-   const expandableSkills = skillEvaluations.filter(
-     (e) => e.status === "skipped",
-   );
-   ```
-
-2. **Maintain original indices for numbering** (critical for user understanding)
-
-3. **Keep existing visual patterns**:
-   - Arrow indicator for selected
-   - Rejection reason formatting
-   - Collapsible pattern for expandable section
-
-4. **Consider file decomposition** if changes push beyond 400 lines:
-   - Extract `SkillPriorityList` to `SkillPriorityList.tsx`
-   - Extract helper functions to `rule-evaluations-helpers.ts`
+All other test files that use `slotPosition: 0` for first character may need updating depending on whether their tests rely on the specific value.

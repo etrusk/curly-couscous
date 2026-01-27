@@ -14,11 +14,8 @@ import type {
   CharacterEvaluationResult,
 } from "../../engine/types";
 import { evaluateSkillsForCharacter } from "../../engine/game";
+import { slotPositionToLetter } from "../../utils/letterMapping";
 import styles from "./RuleEvaluations.module.css";
-
-// Constants for letter mapping
-const LETTER_A_CHAR_CODE = 65; // ASCII code for 'A'
-const LETTER_COUNT = 26; // Number of letters in alphabet
 
 /**
  * Format rejection reason for display.
@@ -309,9 +306,7 @@ function CharacterSection({
   onToggle: () => void;
 }) {
   // Determine character letter (A, B, C, ...) based on slotPosition
-  const letter = String.fromCharCode(
-    LETTER_A_CHAR_CODE + (character.slotPosition % LETTER_COUNT),
-  );
+  const letter = slotPositionToLetter(character.slotPosition);
   const factionClass =
     character.faction === "friendly" ? styles.friendly : styles.enemy;
   const nextAction = useGameStore(selectNextTickDecision(character.id));

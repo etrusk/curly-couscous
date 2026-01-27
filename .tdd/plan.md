@@ -1,391 +1,199 @@
-# Implementation Plan: Skill Priority Sub-panel UI Enhancement
+# Implementation Plan: Fix slotPosition 0-based to 1-based Bug
 
-## Overview
+## Summary
 
-Enhance the `SkillPriorityList` component to group skills by evaluation status rather than by position, improving transparency of AI decision-making.
+Fix the bug where `slotPositionToLetter` throws "slotPosition must be positive, got 0" when adding a character. The root cause is a mismatch between the letterMapping utility (expects 1-based) and gameStore (assigns 0-based).
 
-**Current Behavior**: Shows skills up to and including selected index, collapses rest.
+## Spec Alignment
 
-**New Behavior**: Shows rejected skills + selected skill always visible, collapses only skipped skills.
+- **spec.md:151-152**: "First character: A, second: B, third: C"
+- This clearly indicates 1-based indexing (position 1 = A)
+- The `letterMapping.ts` utility is correctly implemented per spec
+- The bug is in `gameStore.ts` which uses 0-based indexing
 
-## Spec Alignment Check
+## Changes Required
 
-- [x] Plan aligns with `.docs/spec.md` requirements (Progressive disclosure, Transparency goal)
-- [x] Approach consistent with `.docs/architecture.md` (CSS Modules, functional components)
-- [x] Patterns follow `.docs/patterns/index.md` (Collapsible Section Pattern)
-- [x] No conflicts with `.docs/decisions/index.md` (ADR-001 unchanged)
+### 1. gameStore.ts - Fix slotPosition Assignment
 
----
+**File**: `/home/bob/Projects/auto-battler/src/stores/gameStore.ts`
 
-## Step 1: File Size Constraint Analysis
+#### Change 1: initBattle action (line 102)
 
-**Current state**: `RuleEvaluations.tsx` is 444 lines (exceeds 400-line limit).
-
-**Decision**: Do NOT extract `SkillPriorityList` to a separate file at this time.
-
-**Rationale**:
-
-1. The changes will REDUCE line count by simplifying logic
-2. Current implementation has redundant slicing logic that can be replaced with filtering
-3. If post-implementation line count still exceeds 400, extraction should happen as a follow-up task
-
-**Line count projection**:
-
-- Remove: ~10 lines (redundant slice logic, separate indexing)
-- Add: ~15 lines (filtering logic, optional "Checked but not viable" label)
-- Net change: approximately +5 lines
-- Projected total: ~449 lines (still over limit, but marginal)
-
-**Recommendation**: Proceed with implementation, then evaluate extraction as separate task if needed.
-
----
-
-## Step 2: Core Logic Change in `SkillPriorityList`
-
-### Current Implementation (Lines 120-168)
-
-```tsx
-// Current: position-based grouping
-const visibleSkills =
-  selectedSkillIndex !== null
-    ? skillEvaluations.slice(0, selectedSkillIndex + 1)
-    : skillEvaluations;
-
-const collapsedSkills =
-  selectedSkillIndex !== null
-    ? skillEvaluations.slice(selectedSkillIndex + 1)
-    : [];
+**Before**:
+```typescript
+slotPosition: index, // Assign slot position based on order
 ```
 
-### New Implementation
-
-```tsx
-// New: status-based grouping with index tracking
-// Primary section: rejected skills + selected skill (always visible)
-const primarySkillsWithIndices = skillEvaluations
-  .map((evaluation, index) => ({ evaluation, originalIndex: index }))
-  .filter(
-    ({ evaluation, originalIndex }) =>
-      evaluation.status === "rejected" || originalIndex === selectedSkillIndex,
-  );
-
-// Expandable section: skipped skills only
-const skippedSkillsWithIndices = skillEvaluations
-  .map((evaluation, index) => ({ evaluation, originalIndex: index }))
-  .filter(({ evaluation }) => evaluation.status === "skipped");
+**After**:
+```typescript
+slotPosition: index + 1, // Assign 1-based slot position (first = 1)
 ```
 
-### Key Design Decisions
+#### Change 2: addCharacter action (line 257)
 
-1. **Preserve original indices**: Users see 1-based numbers matching skill priority order
-2. **Track indices alongside evaluations**: Use `{ evaluation, originalIndex }` tuples
-3. **Filter by status, not position**: `rejected` and `selected` in primary, `skipped` in expandable
-
----
-
-## Step 3: Rendering Changes
-
-### Modified `SkillPriorityList` Structure
-
-```tsx
-function SkillPriorityList({ skillEvaluations, selectedSkillIndex }) {
-  // Compute grouped skills with indices
-  const primarySkillsWithIndices = skillEvaluations
-    .map((evaluation, index) => ({ evaluation, originalIndex: index }))
-    .filter(
-      ({ evaluation, originalIndex }) =>
-        evaluation.status === "rejected" ||
-        originalIndex === selectedSkillIndex,
-    );
-
-  const skippedSkillsWithIndices = skillEvaluations
-    .map((evaluation, index) => ({ evaluation, originalIndex: index }))
-    .filter(({ evaluation }) => evaluation.status === "skipped");
-
-  return (
-    <div className={styles.skillPrioritySection}>
-      <h3 className={styles.sectionHeader}>Skill Priority</h3>
-
-      {/* Primary skills: rejected + selected */}
-      <ol className={styles.skillList} role="list">
-        {primarySkillsWithIndices.map(({ evaluation, originalIndex }) => (
-          <SkillListItem
-            key={evaluation.skill.id}
-            evaluation={evaluation}
-            displayIndex={originalIndex + 1}
-            isSelected={originalIndex === selectedSkillIndex}
-          />
-        ))}
-      </ol>
-
-      {/* Expandable: skipped skills */}
-      {skippedSkillsWithIndices.length > 0 && (
-        <details className={styles.collapsedSkills}>
-          <summary className={styles.collapsedSummary}>
-            Show {skippedSkillsWithIndices.length} more skill
-            {skippedSkillsWithIndices.length > 1 ? "s" : ""}
-          </summary>
-          <ol className={styles.skillList} role="list">
-            {skippedSkillsWithIndices.map(({ evaluation, originalIndex }) => (
-              <SkillListItem
-                key={evaluation.skill.id}
-                evaluation={evaluation}
-                displayIndex={originalIndex + 1}
-                isSelected={false}
-              />
-            ))}
-          </ol>
-        </details>
-      )}
-    </div>
-  );
-}
+**Before**:
+```typescript
+const slotPosition = state.gameState.characters.length;
 ```
 
-### Refactor `renderSkillListItems` to `SkillListItem` Component
-
-Convert the inline render function to a proper component for clarity:
-
-```tsx
-function SkillListItem({
-  evaluation,
-  displayIndex,
-  isSelected,
-}: {
-  evaluation: SkillEvaluationResult;
-  displayIndex: number;
-  isSelected: boolean;
-}) {
-  const rejectionReason =
-    evaluation.status === "rejected" ? formatRejectionReason(evaluation) : "";
-
-  return (
-    <li
-      key={evaluation.skill.id}
-      className={`${styles.skillItem} ${isSelected ? styles.activeSkill : ""}`}
-    >
-      <div className={styles.skillName}>
-        {isSelected && <span className={styles.selectedArrow}>→ </span>}
-        {displayIndex}. {evaluation.skill.name}
-        {rejectionReason && (
-          <span className={styles.rejectionReason}> — {rejectionReason}</span>
-        )}
-      </div>
-    </li>
-  );
-}
+**After**:
+```typescript
+const slotPosition = state.gameState.characters.length + 1;
 ```
 
----
+#### Change 3: addCharacterAtPosition action (line 343)
 
-## Step 4: Edge Cases
-
-### Edge Case 1: No Selected Skill (Idle State)
-
-**Scenario**: All skills are rejected, `selectedSkillIndex` is `null`.
-
-**Behavior**:
-
-- `primarySkillsWithIndices`: All skills with `status === 'rejected'`
-- `skippedSkillsWithIndices`: Empty (no skills have `status === 'skipped'`)
-- Result: All skills shown in primary section, no expandable section
-
-**No special handling required** - the filter logic naturally handles this.
-
-### Edge Case 2: First Skill Selected
-
-**Scenario**: `selectedSkillIndex === 0` (first skill is selected).
-
-**Behavior**:
-
-- `primarySkillsWithIndices`: Only the selected skill (index 0)
-- `skippedSkillsWithIndices`: All remaining skills (status `skipped`)
-- Result: Single skill visible, rest in expandable section
-
-**No special handling required**.
-
-### Edge Case 3: Last Skill Selected
-
-**Scenario**: `selectedSkillIndex === skillEvaluations.length - 1`.
-
-**Behavior**:
-
-- `primarySkillsWithIndices`: All rejected skills + selected (last) skill
-- `skippedSkillsWithIndices`: Empty (no skills after selected)
-- Result: All skills visible, no expandable section
-
-**No special handling required**.
-
-### Edge Case 4: No Skills
-
-**Scenario**: `skillEvaluations` is empty.
-
-**Behavior**:
-
-- Both arrays empty
-- Result: Empty ordered list rendered
-
-**Consider**: Add empty state message? Current implementation does not have one. Leave as-is for consistency.
-
-### Edge Case 5: All Skills Skipped (Theoretical)
-
-**Scenario**: A selected skill at index N where all skills before it pass triggers but are not chosen.
-
-**Note**: This cannot happen in the current game logic - a skill is either selected, rejected, or skipped. If a skill passes all checks, it becomes selected. Skills after the selected one are skipped.
-
-**No special handling required**.
-
----
-
-## Step 5: CSS Changes
-
-### No New CSS Classes Required
-
-The existing CSS classes are sufficient:
-
-- `.skillPrioritySection` - Container
-- `.skillList` - Ordered list
-- `.skillItem` - Individual skill item
-- `.activeSkill` - Selected skill highlighting
-- `.selectedArrow` - Arrow indicator
-- `.rejectionReason` - Rejection text styling
-- `.collapsedSkills` - Details element
-- `.collapsedSummary` - Summary text
-
-### Optional Enhancement (Deferred)
-
-Consider adding visual separation between rejected and selected skill:
-
-- A subtle divider or spacing change
-- Different background shade for rejected vs selected
-
-**Decision**: Defer to future enhancement. Current styling provides adequate visual hierarchy through:
-
-- Arrow indicator for selected
-- `activeSkill` class with distinct background
-- Rejection reason text in muted color
-
----
-
-## Step 6: Accessibility Preservation
-
-### Current Accessibility Features (Maintain)
-
-1. **Semantic HTML**: `<ol>` with `role="list"` for skill priority
-2. **Keyboard Navigation**: Native `<details>/<summary>` provides Enter/Space activation
-3. **Screen Reader Support**: Summary announces expanded/collapsed state
-4. **Focus Indicators**: `:focus-visible` styling in CSS
-
-### Changes Required
-
-**Remove the `start` attribute workaround**:
-
-Current code uses `start={(selectedSkillIndex ?? -1) + 2}` to continue numbering in the collapsed section. With the new approach, each `<li>` displays its `displayIndex` explicitly, so the `start` attribute is no longer needed.
-
-```tsx
-// Before (has start attribute)
-<ol className={styles.skillList} role="list" start={(selectedSkillIndex ?? -1) + 2}>
-
-// After (no start attribute needed, indices rendered explicitly)
-<ol className={styles.skillList} role="list">
+**Before**:
+```typescript
+const slotPosition = state.gameState.characters.length;
 ```
 
----
+**After**:
+```typescript
+const slotPosition = state.gameState.characters.length + 1;
+```
 
-## Step 7: Test Modifications
+### 2. RuleEvaluations.tsx - Use letterMapping Utility
 
-### Tests Requiring Updates
+**File**: `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx`
 
-#### Test 17: Collapsible Section Behavior
+#### Change: Replace inline letter calculation with utility function (lines 19-21 and 311-314)
 
-**Current expectation**: "Show 2 more skills" when Light Punch selected.
+**Before** (lines 19-21):
+```typescript
+// Constants for letter mapping
+const LETTER_A_CHAR_CODE = 65; // ASCII code for 'A'
+const LETTER_COUNT = 26; // Number of letters in alphabet
+```
 
-**File**: `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-skill-priority.test.tsx`
+**After** (line ~1, add import):
+```typescript
+import { slotPositionToLetter } from "../../utils/letterMapping";
+```
 
-**Scenario**: Character with default skills (Light Punch, Move, Heavy Punch). Enemy at position (1,0), character at (0,0). Light Punch selected.
+**Before** (lines 311-314):
+```typescript
+// Determine character letter (A, B, C, ...) based on slotPosition
+const letter = String.fromCharCode(
+  LETTER_A_CHAR_CODE + (character.slotPosition % LETTER_COUNT),
+);
+```
 
-**Current skill evaluations**:
+**After**:
+```typescript
+// Determine character letter (A, B, C, ...) based on slotPosition
+const letter = slotPositionToLetter(character.slotPosition);
+```
 
-- Light Punch: `selected` (enemy in range)
-- Move: `skipped` (higher priority skill matched)
-- Heavy Punch: `skipped` (higher priority skill matched, also disabled but disabled doesn't matter after skip)
+**Remove**: Delete the `LETTER_A_CHAR_CODE` and `LETTER_COUNT` constants (lines 19-21) as they are no longer needed.
 
-**New expectation**: "Show 2 more skills" - UNCHANGED because Move and Heavy Punch are both `skipped`.
+### 3. Test File Updates
 
-**Action**: Verify test still passes without modification.
+The following test files contain assertions expecting 0-based slotPosition that must be updated to 1-based:
 
-#### Test 18: No Collapsible When Last Skill Active
+#### gameStore-characters.test.ts (lines 137-139)
 
-**Current expectation**: No `<details>` element when Heavy Punch (last skill) is active.
+**Before**:
+```typescript
+expect(characters[0]?.slotPosition).toBe(0);
+expect(characters[1]?.slotPosition).toBe(1);
+expect(characters[2]?.slotPosition).toBe(2);
+```
 
-**Scenario**: Light Punch disabled, Move disabled, Heavy Punch enabled and selected.
+**After**:
+```typescript
+expect(characters[0]?.slotPosition).toBe(1);
+expect(characters[1]?.slotPosition).toBe(2);
+expect(characters[2]?.slotPosition).toBe(3);
+```
 
-**Current skill evaluations**:
+#### gameStore-debug-ui.test.ts (lines 156-158)
 
-- Light Punch: `rejected` (disabled)
-- Move: `rejected` (disabled)
-- Heavy Punch: `selected`
+**Before**:
+```typescript
+expect(characters[0]?.slotPosition).toBe(0);
+expect(characters[1]?.slotPosition).toBe(1);
+expect(characters[2]?.slotPosition).toBe(2);
+```
 
-**New behavior**: Primary section shows all three skills (2 rejected + 1 selected). Skipped section is empty.
+**After**:
+```typescript
+expect(characters[0]?.slotPosition).toBe(1);
+expect(characters[1]?.slotPosition).toBe(2);
+expect(characters[2]?.slotPosition).toBe(3);
+```
 
-**Action**: Verify test still passes - should work because no `skipped` skills means no expandable section.
+#### Test data fixtures using `slotPosition: 0`
 
-### New Tests Required
+Many test files use `slotPosition: 0` for the first character. These should be updated to `slotPosition: 1`. The following files contain such fixtures:
 
-See `.tdd/test-designs.md` for detailed test specifications.
+- `src/stores/gameStore-integration.test.ts`
+- `src/stores/gameStore-reset.test.ts`
+- `src/components/RuleEvaluations/rule-evaluations-test-helpers.ts`
+- `src/components/PlayControls/PlayControls.test.tsx`
+- `src/components/BattleViewer/DamageOverlay.test.tsx`
+- `src/components/BattleViewer/hooks/useDamageNumbers.test.ts`
+- `src/components/BattleStatus/BattleStatusBadge.test.tsx`
+- `src/engine/*.test.ts` (multiple engine test files)
 
----
+**Strategy**: Update first character's slotPosition from 0 to 1, second from 1 to 2, etc.
 
-## Step 8: Implementation Order
+## Implementation Order
 
-1. **Create `SkillListItem` component** (extracted from `renderSkillListItems`)
-2. **Modify `SkillPriorityList` filtering logic**
-3. **Update rendering to use new component**
-4. **Remove `start` attribute from collapsed `<ol>`**
-5. **Run existing tests** - verify no regressions
-6. **Add new tests** per test designs
-7. **Verify file line count** - if >400, create follow-up task for extraction
+1. **Write failing tests first** (TDD):
+   - Add test for adding first character gets slotPosition 1
+   - Add test for initBattle assigns 1-based positions
+   - Add integration test that adding character does not throw letterMapping error
 
----
+2. **Fix gameStore.ts**:
+   - Update all three locations (initBattle, addCharacter, addCharacterAtPosition)
+   - Run tests to verify fix
 
-## Decision Log
+3. **Fix RuleEvaluations.tsx**:
+   - Import `slotPositionToLetter` utility
+   - Replace inline calculation with utility call
+   - Remove unused constants
 
-### Decision: Keep `SkillPriorityList` in `RuleEvaluations.tsx`
+4. **Update existing test assertions**:
+   - Update gameStore-characters.test.ts
+   - Update gameStore-debug-ui.test.ts
+   - Update test fixture files
 
-**Context**: File is at 444 lines, over 400-line limit. Considered extraction.
+5. **Run full test suite** to catch any missed 0-based assumptions
 
-**Decision**: Proceed with inline implementation, evaluate extraction separately.
+## Edge Cases to Consider
 
-**Rationale**:
+1. **Empty array passed to initBattle**: No characters, no slotPositions assigned - OK
+2. **Single character**: Should get slotPosition = 1, letter = "A"
+3. **Multiple characters added sequentially**: 1, 2, 3, 4, ... (letters A, B, C, D, ...)
+4. **Characters removed then new ones added**: slotPosition should be `currentCount + 1`, not tracking gaps
 
-- Changes are focused on logic, not adding new features
-- Extraction is orthogonal to the behavior change
-- Extracting now conflates two concerns (behavior + organization)
-- Post-implementation line count can determine if extraction is needed
+## Risks and Mitigations
 
-**Consequences**:
+1. **Risk**: Test files with hardcoded `slotPosition: 0` may be missed
+   - **Mitigation**: Grep for `slotPosition: 0` and review each occurrence
 
-- File may remain over 400 lines
-- Follow-up task may be needed for extraction
-- Behavior change is isolated and testable
+2. **Risk**: Some code may rely on 0-based arithmetic (e.g., array indexing)
+   - **Mitigation**: slotPosition is for display (letter mapping), not array access. Review any usage of `slotPosition` for indexing.
 
----
+3. **Risk**: RuleEvaluations.tsx change may break if character has slotPosition 0 from old data
+   - **Mitigation**: This is a bug fix; old data with slotPosition 0 was already broken in Token.tsx
 
-## Files to Modify
+## Architecture Alignment
 
-1. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx`
-   - Modify `SkillPriorityList` function (lines 120-168)
-   - Modify `renderSkillListItems` function (lines 206-233) - convert to component
+- **Consistent with spec.md**: "First character: A" implies 1-based
+- **Consistent with letterMapping.ts design**: Utility expects 1-based input
+- **Consistent with architecture.md**: Pure game engine logic, testable without React
 
-2. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-skill-priority.test.tsx`
-   - Add new tests for status-based grouping
-   - Verify existing tests still pass
+## New Decision to Document
 
----
+**Decision**: slotPosition is 1-based (first character = 1)
 
-## Handoff Notes
+**Context**: Bug discovered where 0-based slotPosition caused letterMapping error
 
-1. **No new ADRs required** - this is a UI enhancement within existing patterns
-2. **Collapsible Section Pattern** already documented in `.docs/patterns/index.md`
-3. **File size constraint** remains a concern - recommend evaluation after implementation
-4. **Test designs** provided in `.tdd/test-designs.md`
+**Consequences**: 
+- All test fixtures need updating
+- Natural mapping: position 1 = letter A
+- Consistent with spec language
+
+Recommend adding to `.docs/decisions/index.md` after implementation.

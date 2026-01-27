@@ -15,14 +15,14 @@ describe("processTick - character removal", () => {
     const attacker = createCharacter({
       id: "attacker",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: createAttackAction({ x: 1, y: 0 }, 100, 1),
     });
     const target = createCharacter({
       id: "target",
       position: { x: 1, y: 0 },
       hp: 50,
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state = createGameState({
@@ -40,14 +40,14 @@ describe("processTick - character removal", () => {
     const attacker = createCharacter({
       id: "attacker",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: createAttackAction({ x: 1, y: 0 }, 10, 1),
     });
     const target = createCharacter({
       id: "target",
       position: { x: 1, y: 0 },
       hp: 100,
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state = createGameState({
@@ -69,14 +69,14 @@ describe("processTick - character removal", () => {
       id: "charA",
       position: { x: 0, y: 0 },
       hp: 10,
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: createAttackAction({ x: 1, y: 0 }, 25, 1),
     });
     const charB = createCharacter({
       id: "charB",
       position: { x: 1, y: 0 },
       hp: 10,
-      slotPosition: 1,
+      slotPosition: 2,
       currentAction: createAttackAction({ x: 0, y: 0 }, 25, 1),
     });
 

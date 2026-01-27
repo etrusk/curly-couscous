@@ -55,13 +55,13 @@ describe("Movement RNG System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -75,13 +75,13 @@ describe("Movement RNG System", () => {
       const moverA1 = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB1 = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -91,13 +91,13 @@ describe("Movement RNG System", () => {
       const moverA2 = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 2),
       });
       const moverB2 = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 2),
       });
 
@@ -114,13 +114,13 @@ describe("Movement RNG System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -135,19 +135,19 @@ describe("Movement RNG System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverC = createCharacter({
         id: "moverC",
         position: { x: 6, y: 5 },
-        slotPosition: 2,
+        slotPosition: 3,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -162,19 +162,19 @@ describe("Movement RNG System", () => {
       const blocker = createCharacter({
         id: "blocker",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: null,
       });
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 2,
+        slotPosition: 3,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -193,13 +193,13 @@ describe("Movement RNG System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 

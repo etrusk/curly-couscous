@@ -2,52 +2,122 @@
 
 ## Task
 
-Enhance Skill Priority sub-panel UI in Rule Evaluations component to improve transparency of AI decision-making.
+Fix bug: "slotPosition must be positive, got 0" error when clicking "Add Friendly" button.
 
-**Scope**: Modify the `SkillPriorityList` component in `src/components/RuleEvaluations/RuleEvaluations.tsx` to:
-
-1. Always show any higher priority skills that are not satisfied (with their rejection reasons)
-2. Show an expandable section with remaining lower-priority skills
-3. Maintain existing functionality for selected skill highlighting and collapsible sections
+**Error Details**:
+```
+Uncaught Error: slotPosition must be positive, got 0
+    at slotPositionToLetter (letterMapping.ts:16:11)
+    at Token.tsx:79:11
+```
 
 ## Current Phase
 
-COMPLETE
+COMMIT
 
 ## Phase History
 
-- 2026-01-27 INIT: Started task "Enhance Skill Priority sub-panel UI"
-- 2026-01-27 EXPLORE: Completed exploration phase - findings in .tdd/exploration.md
-- 2026-01-27 PLAN: Completed plan phase - implementation plan in .tdd/plan.md, test designs in .tdd/test-designs.md
-- 2026-01-27 WRITE_TESTS: Completed test implementation - 6 new tests added, all 34 RuleEvaluations tests passing
-- 2026-01-27 IMPLEMENT: Completed implementation (GREEN phase) - all tests passing
-- 2026-01-27 REVIEW: Completed review - APPROVED with 0 critical issues
-- 2026-01-27 COMMIT: Completed - documentation commit 1010a7a (implementation was in a4fec2a)
+- 2026-01-27 17:30 INIT: Started task "Fix slotPosition validation error when adding friendly character"
+- 2026-01-27 17:45 EXPLORE: Completed exploration of bug root cause
+  - Identified 0-based vs 1-based indexing mismatch
+  - Documented in `.tdd/exploration.md`
+  - Recommended fix: Change gameStore to use 1-based slotPosition
+- 2026-01-27 18:00 PLAN: Created implementation plan and test designs
+  - Documented plan in `.tdd/plan.md`
+  - Designed 7 new tests in `.tdd/test-designs.md`
+  - Identified 2 existing tests needing assertion updates
+  - Identified ~21 test fixture files needing slotPosition updates
+- 2026-01-27 18:15 TEST_DESIGN_REVIEW: Reviewed and approved test designs
+  - Verified coverage of bug scenario and fix
+  - Verified edge cases (first character, multiple characters, position > 26)
+  - Corrected file paths for RuleEvaluations tests
+  - Added explicit test helper file updates
+  - Clarified setup for slotPosition > 26 test
+  - All tests align with spec.md requirements
+- 2026-01-27 18:30 WRITE_TESTS: Implemented all test specifications (RED phase)
+  - Created `/home/bob/Projects/auto-battler/src/stores/gameStore-slotPosition.test.ts` with 3 new tests
+  - Added 2 integration tests to `/home/bob/Projects/auto-battler/src/stores/gameStore-integration.test.ts`
+  - Added 2 component tests to `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-basic.test.tsx`
+  - Updated assertions in `/home/bob/Projects/auto-battler/src/stores/gameStore-characters.test.ts` (lines 137-139)
+  - Updated assertions in `/home/bob/Projects/auto-battler/src/stores/gameStore-debug-ui.test.ts` (lines 156-158)
+  - Fixed test helper `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-test-helpers.ts` (line 47)
+  - Test run result: 9 failed, 678 passed (687 total)
+  - Failing tests (expected, RED phase):
+    * 3 new slotPosition tests (expecting 1-based, getting 0-based)
+    * 2 integration tests (slotPositionToLetter throws on position 0)
+    * 2 RuleEvaluations tests (letter display not matching expected)
+    * 2 updated assertion tests (expecting 1-based, code still 0-based)
+- 2026-01-27 18:45 IMPLEMENT: Fixed slotPosition implementation to use 1-based indexing (GREEN phase)
+  - **gameStore.ts fixes** (3 locations):
+    * Line 102: Changed `slotPosition: index` to `slotPosition: index + 1` in initBattle
+    * Line 257: Changed `const slotPosition = state.gameState.characters.length` to `length + 1` in addCharacter
+    * Line 343: Changed `const slotPosition = state.gameState.characters.length` to `length + 1` in addCharacterAtPosition
+    * Also updated character name calculation to use `slotPosition` directly instead of `slotPosition + 1`
+  - **RuleEvaluations.tsx refactor**:
+    * Added import for `slotPositionToLetter` utility
+    * Replaced inline letter calculation with utility function call
+    * Removed unused LETTER_A_CHAR_CODE and LETTER_COUNT constants
+  - **Test fixture updates** (142 occurrences across all test files):
+    * Updated all `slotPosition: 0` to `slotPosition: 1`
+    * Updated all `slotPosition: 1` to `slotPosition: 2`
+    * Updated all `slotPosition: 2` to `slotPosition: 3`
+    * And so on for higher values
+    * Used systematic sed replacements with temporary markers to avoid double-replacing
+  - **Moved integration tests**:
+    * Moved 2 integration tests from gameStore-integration.test.ts to gameStore-slotPosition.test.ts
+    * Reason: gameStore-integration.test.ts exceeded 400 line limit (521 lines)
+    * After move: gameStore-integration.test.ts now under limit, slotPosition tests consolidated
+  - **Test results**: All 687 tests passing (GREEN)
+  - **Quality gates**: All passed
+    * `npm run test`: 687 passed
+    * `npm run type-check`: No errors
+    * `npm run lint`: No errors
+- 2026-01-27 19:00 REVIEW: Completed code review
+  - **Verdict**: APPROVED
+  - **Critical issues**: 0
+  - **Important issues**: 0
+  - **Minor issues**: 2 (cosmetic only)
+  - **Spec compliance**: Pass (lines 151-152)
+  - **Pattern compliance**: Pass (removed duplication, uses shared utility)
+  - Findings documented in `.tdd/review-findings.md`
 
 ## Key Decisions
 
-1. **Grouping Logic Change**: Group skills by status (rejected+selected vs skipped) rather than by position relative to selected index
-2. **Maintain Original Indices**: Keep 1-based numbering to preserve user's mental model of skill priority order
-3. **Defer File Extraction**: Do not extract SkillPriorityList now; evaluate post-implementation if >400 lines
-4. **Convert renderSkillListItems to SkillListItem Component**: Improve readability and enable per-item rendering with indices
+1. **slotPosition should be 1-based**: Per spec.md ("First character: A"), slotPosition should start at 1, not 0. The letterMapping utility is correct; the gameStore implementation is wrong.
+
+2. **Use letterMapping utility everywhere**: RuleEvaluations.tsx should use the same `slotPositionToLetter` function as Token.tsx for consistency.
+
+3. **Fix in gameStore, not letterMapping**: The spec clearly indicates 1-based ("First character: A"), so the fix belongs in gameStore, not in changing letterMapping to accept 0-based input.
 
 ## Documentation Used
 
-- `.docs/spec.md`: Progressive disclosure design principle, transparency goal
-- `.docs/architecture.md`: CSS Modules, functional components pattern
-- `.docs/patterns/index.md`: Collapsible Section Pattern with `<details>/<summary>`
-- `.docs/decisions/index.md`: No conflicts with ADR-001
+- `.docs/spec.md` - Lines 151-152 define "First character: A" (implies 1-based)
+- `.docs/architecture.md` - Reviewed project structure
+- `.docs/patterns/index.md` - Reviewed existing patterns
+- `.docs/decisions/index.md` - No conflicts with existing decisions
 
 ## Files Analyzed
 
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx` (444 lines)
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.module.css` (276 lines)
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-skill-priority.test.tsx` (155 lines)
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-basic.test.tsx` (195 lines)
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-next-action.test.tsx` (262 lines)
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-test-helpers.ts` (125 lines)
-- `/home/bob/Projects/auto-battler/src/engine/types.ts` - SkillEvaluationResult, CharacterEvaluationResult types
-- `/home/bob/Projects/auto-battler/src/engine/game-decisions.ts` - evaluateSkillsForCharacter function
+- `/home/bob/Projects/auto-battler/src/utils/letterMapping.ts` - Validation logic expecting 1-based
+- `/home/bob/Projects/auto-battler/src/utils/letterMapping.test.ts` - Tests confirm 1-based expectation
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.tsx` - Uses slotPositionToLetter
+- `/home/bob/Projects/auto-battler/src/stores/gameStore.ts` - Bug location (lines 102, 257, 343)
+- `/home/bob/Projects/auto-battler/src/components/CharacterControls/CharacterControls.tsx` - Button handler
+- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx` - Secondary inconsistency (lines 19-21, 311-314)
+- `/home/bob/Projects/auto-battler/src/engine/types.ts` - Character type definition
+- `/home/bob/Projects/auto-battler/src/stores/gameStore-characters.test.ts` - Test needing update (lines 137-139)
+- `/home/bob/Projects/auto-battler/src/stores/gameStore-debug-ui.test.ts` - Test needing update (lines 156-158)
+- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-test-helpers.ts` - Test helper needing update (line 47)
+- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-basic.test.tsx` - Correct location for RuleEvaluations tests
+
+## Files to Modify (Implementation)
+
+1. `/home/bob/Projects/auto-battler/src/stores/gameStore.ts` - Lines 102, 257, 343
+2. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx` - Lines 1, 19-21, 311-314
+3. `/home/bob/Projects/auto-battler/src/stores/gameStore-characters.test.ts` - Lines 137-139
+4. `/home/bob/Projects/auto-battler/src/stores/gameStore-debug-ui.test.ts` - Lines 156-158
+5. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-test-helpers.ts` - Line 47
+6. ~21 test fixture files with `slotPosition: 0`
 
 ## Blockers
 
@@ -57,78 +127,16 @@ COMPLETE
 
 Count: 1
 
-## Review Summary
+## Test Design Review Summary
 
-**Verdict**: APPROVED
-
-**Findings** (from `.tdd/review-findings.md`):
-- Critical issues: 0
-- Important issues: 0
-- Minor issues: 2 (optional improvements)
-- Spec compliance: Pass
-- Pattern compliance: Pass
-
-**Quality Gates**:
-- [x] All 680 tests passing
-- [x] TypeScript type check passing
-- [x] ESLint passing (0 errors, 0 warnings)
-- [x] File size: 374 code lines (under 400-line limit when excluding blank lines and comments per ESLint config)
+- **Coverage**: Complete - all bug scenarios and edge cases covered
+- **Quality**: Good - clear descriptions, specific assertions, sound justifications
+- **Corrections Made**:
+  1. Fixed RuleEvaluations test file path
+  2. Removed ambiguous file path notation
+  3. Added explicit test helper file updates
+  4. Clarified setup for position > 26 test
 
 ## Documentation Recommendations
 
-[None at this time - no new ADRs needed]
-
-## Context Health
-
-Last checked: 2026-01-27
-Estimated utilization: moderate
-
-## Test Implementation Summary
-
-**File Modified**: `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-skill-priority.test.tsx`
-
-**Tests Added** (6 new tests):
-
-1. `should show rejected skills in primary section even when later skill is selected`
-   - Validates that skills with status "rejected" appear in primary section alongside selected skill
-
-2. `should show skipped skills in expandable section`
-   - Validates that skills with status "skipped" appear in expandable `<details>` element
-
-3. `should preserve original skill indices across sections`
-   - Validates that 1-based indices remain sequential regardless of section placement
-
-4. `should show all rejected skills with no expandable when character is idle`
-   - Validates idle state (no selected skill) shows all rejected skills without expandable
-
-5. `should display multiple rejection reason types correctly`
-   - Validates different rejection reasons (disabled, trigger_failed, out_of_range) display correctly
-
-6. `should not show expandable section when character has only one skill`
-   - Validates edge case of single skill (no expandable section needed)
-
-**Test Results**: All 34 RuleEvaluations tests pass (12 skill-priority, 9 next-action, 13 basic)
-
-## Implementation Summary
-
-**Files Modified**:
-1. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx` (453 lines total, 374 code lines)
-
-**Changes Made**:
-
-1. **Created `SkillListItem` component** (lines 216-242)
-   - Extracted from `renderSkillListItems` helper function
-   - Accepts `evaluation`, `displayIndex`, and `isSelected` as props
-   - Renders individual skill items with proper styling and rejection reasons
-
-2. **Modified `SkillPriorityList` to use status-based grouping** (lines 120-178)
-   - **Primary section**: Filters skills with `status === 'rejected'` OR matching `selectedSkillIndex`
-   - **Expandable section**: Filters skills with `status === 'skipped'`
-   - Tracks original indices using `{ evaluation, originalIndex }` tuples
-   - Removed `start` attribute from collapsed `<ol>` (no longer needed)
-
-**Deviations from Plan**: None. Implementation matches plan exactly.
-
-## Next Steps
-
-Ready for commit. Implementation is approved and all quality gates pass.
+- Add to `.docs/decisions/index.md`: "slotPosition is 1-based to match natural letter mapping (position 1 = A)"

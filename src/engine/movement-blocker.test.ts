@@ -21,13 +21,13 @@ describe("Movement Blocker System", () => {
       const blocker = createCharacter({
         id: "blocker",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: null, // Stationary
       });
       const mover = createCharacter({
         id: "mover",
         position: { x: 4, y: 5 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -42,13 +42,13 @@ describe("Movement Blocker System", () => {
       const blocker = createCharacter({
         id: "blocker",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: null,
       });
       const mover = createCharacter({
         id: "mover",
         position: { x: 4, y: 5 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -62,13 +62,13 @@ describe("Movement Blocker System", () => {
       const blocker = createCharacter({
         id: "blocker",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: null,
       });
       const mover = createCharacter({
         id: "mover",
         position: { x: 4, y: 5 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -83,13 +83,13 @@ describe("Movement Blocker System", () => {
       const blocker = createCharacter({
         id: "blocker",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: null,
       });
       const mover = createCharacter({
         id: "mover",
         position: { x: 4, y: 5 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -104,19 +104,19 @@ describe("Movement Blocker System", () => {
       const blocker = createCharacter({
         id: "blocker",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: null,
       });
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 2,
+        slotPosition: 3,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -139,13 +139,13 @@ describe("Movement Blocker System", () => {
       const blocker = createCharacter({
         id: "blocker",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createAttackAction({ x: 6, y: 5 }, 10, 1), // Attacking but stationary
       });
       const mover = createCharacter({
         id: "mover",
         position: { x: 4, y: 5 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -161,13 +161,13 @@ describe("Movement Blocker System", () => {
       const blocker = createCharacter({
         id: "blocker",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1), // Hold
       });
       const mover = createCharacter({
         id: "mover",
         position: { x: 4, y: 5 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -186,20 +186,20 @@ describe("Movement Blocker System", () => {
       const blockerA = createCharacter({
         id: "blockerA",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: null,
       });
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       // Group 2: unobstructed move to (8,8)
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 7, y: 8 },
-        slotPosition: 2,
+        slotPosition: 3,
         currentAction: createMoveAction({ x: 8, y: 8 }, 1),
       });
 

@@ -21,13 +21,13 @@ describe("Movement Fairness and Edge Cases", () => {
         const moverA = createCharacter({
           id: "moverA",
           position: { x: 4, y: 5 },
-          slotPosition: 0,
+          slotPosition: 1,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         });
         const moverB = createCharacter({
           id: "moverB",
           position: { x: 5, y: 4 },
-          slotPosition: 1,
+          slotPosition: 2,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         });
 
@@ -59,7 +59,7 @@ describe("Movement Fairness and Edge Cases", () => {
         const moverB = createCharacter({
           id: "moverB",
           position: { x: 5, y: 4 },
-          slotPosition: 0, // Low slot position
+          slotPosition: 1, // Low slot position
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         });
 
@@ -85,14 +85,14 @@ describe("Movement Fairness and Edge Cases", () => {
           id: "moverA",
           faction: "friendly",
           position: { x: 4, y: 5 },
-          slotPosition: 0,
+          slotPosition: 1,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         });
         const moverB = createCharacter({
           id: "moverB",
           faction: "enemy",
           position: { x: 5, y: 4 },
-          slotPosition: 1,
+          slotPosition: 2,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         });
 
@@ -126,7 +126,7 @@ describe("Movement Fairness and Edge Cases", () => {
       const mover = createCharacter({
         id: "mover",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 6, y: 5 }, 1),
       });
 
@@ -140,13 +140,13 @@ describe("Movement Fairness and Edge Cases", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -160,13 +160,13 @@ describe("Movement Fairness and Edge Cases", () => {
       const outgoingMover = createCharacter({
         id: "outgoingMover",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 6, y: 5 }, 1), // Moving away
       });
       const incomingMover = createCharacter({
         id: "incomingMover",
         position: { x: 4, y: 5 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1), // Moving into vacating cell
       });
 
@@ -195,19 +195,19 @@ describe("Movement Fairness and Edge Cases", () => {
       const charA = createCharacter({
         id: "charA",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 6, y: 5 }, 1),
       });
       const charB = createCharacter({
         id: "charB",
         position: { x: 4, y: 5 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const charC = createCharacter({
         id: "charC",
         position: { x: 3, y: 5 },
-        slotPosition: 2,
+        slotPosition: 3,
         currentAction: createMoveAction({ x: 4, y: 5 }, 1),
       });
 
@@ -264,7 +264,7 @@ describe("Movement Fairness and Edge Cases", () => {
       const holder = createCharacter({
         id: "holder",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1), // Hold
       });
 

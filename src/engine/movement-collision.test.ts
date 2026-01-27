@@ -17,13 +17,13 @@ describe("Movement Collision System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -39,13 +39,13 @@ describe("Movement Collision System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -59,13 +59,13 @@ describe("Movement Collision System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -81,13 +81,13 @@ describe("Movement Collision System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -105,13 +105,13 @@ describe("Movement Collision System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -131,13 +131,13 @@ describe("Movement Collision System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -165,19 +165,19 @@ describe("Movement Collision System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverC = createCharacter({
         id: "moverC",
         position: { x: 6, y: 5 },
-        slotPosition: 2,
+        slotPosition: 3,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -197,19 +197,19 @@ describe("Movement Collision System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverC = createCharacter({
         id: "moverC",
         position: { x: 6, y: 5 },
-        slotPosition: 2,
+        slotPosition: 3,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -230,25 +230,25 @@ describe("Movement Collision System", () => {
       const moverA = createCharacter({
         id: "moverA",
         position: { x: 4, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
         position: { x: 5, y: 4 },
-        slotPosition: 1,
+        slotPosition: 2,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverC = createCharacter({
         id: "moverC",
         position: { x: 6, y: 5 },
-        slotPosition: 2,
+        slotPosition: 3,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
       const moverD = createCharacter({
         id: "moverD",
         position: { x: 5, y: 6 },
-        slotPosition: 3,
+        slotPosition: 4,
         currentAction: createMoveAction({ x: 5, y: 5 }, 1),
       });
 
@@ -270,19 +270,19 @@ describe("Movement Collision System", () => {
         const moverA = createCharacter({
           id: "moverA",
           position: { x: 4, y: 5 },
-          slotPosition: 0,
+          slotPosition: 1,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         });
         const moverB = createCharacter({
           id: "moverB",
           position: { x: 5, y: 4 },
-          slotPosition: 1,
+          slotPosition: 2,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         });
         const moverC = createCharacter({
           id: "moverC",
           position: { x: 6, y: 5 },
-          slotPosition: 2,
+          slotPosition: 3,
           currentAction: createMoveAction({ x: 5, y: 5 }, 1),
         });
 

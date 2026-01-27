@@ -17,14 +17,14 @@ describe("processTick - combat and movement integration", () => {
     const attacker = createCharacter({
       id: "attacker",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: createAttackAction({ x: 1, y: 0 }, 10, 1),
     });
     const target = createCharacter({
       id: "target",
       position: { x: 1, y: 0 },
       hp: 100,
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state = createGameState({
@@ -44,14 +44,14 @@ describe("processTick - combat and movement integration", () => {
     const attacker = createCharacter({
       id: "attacker",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: createAttackAction({ x: 1, y: 0 }, 10, 5), // Resolves at tick 5
     });
     const target = createCharacter({
       id: "target",
       position: { x: 1, y: 0 },
       hp: 100,
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state = createGameState({
@@ -71,7 +71,7 @@ describe("processTick - combat and movement integration", () => {
     const mover = createCharacter({
       id: "mover",
       position: { x: 5, y: 5 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: createMoveAction({ x: 6, y: 5 }, 2),
     });
 
@@ -91,14 +91,14 @@ describe("processTick - combat and movement integration", () => {
     const attacker = createCharacter({
       id: "attacker",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: createAttackAction({ x: 1, y: 0 }, 100, 1),
     });
     const target = createCharacter({
       id: "target",
       position: { x: 1, y: 0 },
       hp: 50,
-      slotPosition: 1,
+      slotPosition: 2,
       currentAction: createMoveAction({ x: 2, y: 0 }, 1),
     });
 
@@ -120,13 +120,13 @@ describe("processTick - combat and movement integration", () => {
     const moverA = createCharacter({
       id: "moverA",
       position: { x: 4, y: 5 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: createMoveAction({ x: 5, y: 5 }, 1),
     });
     const moverB = createCharacter({
       id: "moverB",
       position: { x: 5, y: 4 },
-      slotPosition: 1,
+      slotPosition: 2,
       currentAction: createMoveAction({ x: 5, y: 5 }, 1),
     });
 

@@ -17,14 +17,14 @@ describe("Reset Functionality", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [createSkill({ id: "attack", damage: 10, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
       hp: 100,
     });
 
@@ -63,14 +63,14 @@ describe("Reset Functionality", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [createSkill({ id: "attack", damage: 10, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
@@ -88,14 +88,14 @@ describe("Reset Functionality", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [createSkill({ id: "heavy-punch", damage: 100, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
       hp: 50,
     });
 
@@ -114,14 +114,14 @@ describe("Reset Functionality", () => {
       id: "char1",
       faction: "friendly",
       position: { x: 5, y: 5 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [createSkill({ id: "move", mode: "towards", range: 0 })],
     });
     const char2 = createCharacter({
       id: "char2",
       faction: "enemy",
       position: { x: 7, y: 5 },
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     useGameStore.getState().actions.initBattle([char1, char2]);
@@ -163,7 +163,7 @@ describe("Reset Functionality", () => {
       id: "char1",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [
         createSkill({ id: "attack", damage: 10, range: 1, tickCost: 2 }),
       ],
@@ -172,7 +172,7 @@ describe("Reset Functionality", () => {
       id: "char2",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     useGameStore.getState().actions.initBattle([char1, char2]);

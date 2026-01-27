@@ -16,7 +16,7 @@ describe("processTick - battle status detection", () => {
       id: "friendly",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: createAttackAction({ x: 1, y: 0 }, 100, 1),
     });
     const enemy = createCharacter({
@@ -24,7 +24,7 @@ describe("processTick - battle status detection", () => {
       faction: "enemy",
       position: { x: 1, y: 0 },
       hp: 50,
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state = createGameState({
@@ -43,13 +43,13 @@ describe("processTick - battle status detection", () => {
       faction: "friendly",
       position: { x: 0, y: 0 },
       hp: 50,
-      slotPosition: 0,
+      slotPosition: 1,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
       currentAction: createAttackAction({ x: 0, y: 0 }, 100, 1),
     });
 
@@ -69,7 +69,7 @@ describe("processTick - battle status detection", () => {
       faction: "friendly",
       position: { x: 0, y: 0 },
       hp: 10,
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: createAttackAction({ x: 1, y: 0 }, 25, 1),
     });
     const enemy = createCharacter({
@@ -77,7 +77,7 @@ describe("processTick - battle status detection", () => {
       faction: "enemy",
       position: { x: 1, y: 0 },
       hp: 10,
-      slotPosition: 1,
+      slotPosition: 2,
       currentAction: createAttackAction({ x: 0, y: 0 }, 25, 1),
     });
 
@@ -96,13 +96,13 @@ describe("processTick - battle status detection", () => {
       id: "friendly",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
       position: { x: 5, y: 5 },
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     const state = createGameState({

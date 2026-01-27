@@ -151,14 +151,14 @@ describe("processTick Integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [createSkill({ id: "light-punch", damage: 10, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
       hp: 100,
     });
 
@@ -179,14 +179,14 @@ describe("processTick Integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [createSkill({ id: "light-punch", damage: 10, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
@@ -208,14 +208,14 @@ describe("processTick Integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [createSkill({ id: "light-punch", damage: 10, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
       hp: 100,
     });
 
@@ -233,14 +233,14 @@ describe("processTick Integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [createSkill({ id: "heavy-punch", damage: 100, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
       hp: 50,
     });
 
@@ -257,14 +257,14 @@ describe("processTick Integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [createSkill({ id: "heavy-punch", damage: 100, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
       hp: 50,
     });
 
@@ -279,14 +279,14 @@ describe("processTick Integration", () => {
       id: "attacker",
       faction: "enemy",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [createSkill({ id: "heavy-punch", damage: 100, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "friendly",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
       hp: 50,
     });
 
@@ -301,7 +301,7 @@ describe("processTick Integration", () => {
       id: "char1",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       hp: 10,
       skills: [createSkill({ id: "attack", damage: 25, range: 1 })],
     });
@@ -309,7 +309,7 @@ describe("processTick Integration", () => {
       id: "char2",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
       hp: 10,
       skills: [createSkill({ id: "attack", damage: 25, range: 1 })],
     });
@@ -325,14 +325,14 @@ describe("processTick Integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [createSkill({ id: "heavy-punch", damage: 100, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
       hp: 50,
     });
 
@@ -372,14 +372,14 @@ describe("Intent Data Integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       currentAction: action,
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
       position: { x: 2, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
@@ -396,7 +396,7 @@ describe("Intent Data Integration", () => {
       id: "attacker",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       skills: [
         createSkill({ id: "light-punch", damage: 10, tickCost: 1, range: 1 }),
       ],
@@ -405,7 +405,7 @@ describe("Intent Data Integration", () => {
       id: "target",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
@@ -431,7 +431,7 @@ describe("Initial State Storage", () => {
       id: "char1",
       faction: "friendly",
       position: { x: 0, y: 0 },
-      slotPosition: 0,
+      slotPosition: 1,
       hp: 100,
       skills: [createSkill({ id: "attack", damage: 10, range: 1 })],
     });
@@ -439,7 +439,7 @@ describe("Initial State Storage", () => {
       id: "char2",
       faction: "enemy",
       position: { x: 1, y: 0 },
-      slotPosition: 1,
+      slotPosition: 2,
       hp: 100,
     });
 

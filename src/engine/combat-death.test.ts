@@ -19,14 +19,14 @@ describe("resolveCombat", () => {
       const attacker = createCharacter({
         id: "attacker",
         position: { x: 0, y: 0 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
       });
       const target = createCharacter({
         id: "target",
         position: { x: 1, y: 0 },
         hp: 10,
-        slotPosition: 1,
+        slotPosition: 2,
       });
 
       const result = resolveCombat([attacker, target], 1);
@@ -43,14 +43,14 @@ describe("resolveCombat", () => {
       const attacker = createCharacter({
         id: "attacker",
         position: { x: 0, y: 0 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createAttackAction({ x: 1, y: 0 }, null, 25, 1),
       });
       const target = createCharacter({
         id: "target",
         position: { x: 1, y: 0 },
         hp: 10,
-        slotPosition: 1,
+        slotPosition: 2,
       });
 
       const result = resolveCombat([attacker, target], 1);
@@ -66,14 +66,14 @@ describe("resolveCombat", () => {
       const attacker = createCharacter({
         id: "attacker",
         position: { x: 0, y: 0 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createAttackAction({ x: 1, y: 0 }, null, 100, 1),
       });
       const target = createCharacter({
         id: "char-1",
         position: { x: 1, y: 0 },
         hp: 50,
-        slotPosition: 1,
+        slotPosition: 2,
       });
 
       const result = resolveCombat([attacker, target], 1);
@@ -88,14 +88,14 @@ describe("resolveCombat", () => {
       const attacker = createCharacter({
         id: "attacker",
         position: { x: 0, y: 0 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createAttackAction({ x: 1, y: 0 }, null, 100, 3),
       });
       const target = createCharacter({
         id: "target",
         position: { x: 1, y: 0 },
         hp: 50,
-        slotPosition: 1,
+        slotPosition: 2,
       });
 
       const result = resolveCombat([attacker, target], 3);
@@ -108,14 +108,14 @@ describe("resolveCombat", () => {
       const attacker = createCharacter({
         id: "attacker",
         position: { x: 0, y: 0 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createAttackAction({ x: 1, y: 0 }, null, 25, 1),
       });
       const target = createCharacter({
         id: "target",
         position: { x: 1, y: 0 },
         hp: 100,
-        slotPosition: 1,
+        slotPosition: 2,
       });
 
       const result = resolveCombat([attacker, target], 1);
@@ -131,14 +131,14 @@ describe("resolveCombat", () => {
       const attacker = createCharacter({
         id: "attacker",
         position: { x: 0, y: 0 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createAttackAction({ x: 1, y: 0 }, null, 100, 1),
       });
       const target = createCharacter({
         id: "target",
         position: { x: 1, y: 0 },
         hp: 50,
-        slotPosition: 1,
+        slotPosition: 2,
       });
 
       const result = resolveCombat([attacker, target], 1);
@@ -157,14 +157,14 @@ describe("resolveCombat", () => {
       const attacker = createCharacter({
         id: "attacker",
         position: { x: 0, y: 0 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createAttackAction({ x: 1, y: 0 }, null, 100, 1),
       });
       const target = createCharacter({
         id: "target",
         position: { x: 1, y: 0 },
         hp: 50,
-        slotPosition: 1,
+        slotPosition: 2,
       });
 
       const result = resolveCombat([attacker, target], 1);

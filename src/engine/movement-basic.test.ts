@@ -21,7 +21,7 @@ describe("Movement Basic System", () => {
       const mover = createCharacter({
         id: "mover",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 6, y: 5 }, 1),
       });
 
@@ -35,7 +35,7 @@ describe("Movement Basic System", () => {
       const mover = createCharacter({
         id: "mover",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 6, y: 5 }, 3),
       });
 
@@ -56,7 +56,7 @@ describe("Movement Basic System", () => {
       const mover = createCharacter({
         id: "mover",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 6, y: 5 }, 1),
       });
 
@@ -69,7 +69,7 @@ describe("Movement Basic System", () => {
       const mover = createCharacter({
         id: "mover",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createMoveAction({ x: 6, y: 5 }, 2),
       });
 
@@ -84,7 +84,7 @@ describe("Movement Basic System", () => {
       const char = createCharacter({
         id: "char",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: null,
       });
 
@@ -100,7 +100,7 @@ describe("Movement Basic System", () => {
       const char = createCharacter({
         id: "char",
         position: { x: 5, y: 5 },
-        slotPosition: 0,
+        slotPosition: 1,
         currentAction: createAttackAction({ x: 6, y: 5 }, 10, 1),
       });
 

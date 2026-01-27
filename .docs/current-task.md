@@ -20,6 +20,7 @@ Started: [YYYY-MM-DD HH:MM]
 
 ## Recent Completions
 
+- 2026-01-27: Unified project status across workflows - Implemented shared `.docs/current-task.md` file used by both Roo and Claude Code workflows. Added workflow identifiers, updated all Claude Code agents and commands to read/write shared status. Maintains workflow separation with ephemeral `.tdd/session.md` state. No cross-contamination verified.
 - 2026-01-27: Skill Priority sub-panel status-based grouping - Modified `SkillPriorityList` to show rejected skills + selected skill in primary section, skipped skills in expandable section. Preserves original 1-based indices. Added 6 tests (680 total passing). Improves AI decision transparency by showing why higher-priority skills were rejected.
 - 2026-01-26: Rule Evaluations show all board characters - Implemented selector `selectAllCharacterEvaluations`, multi-character view with condensed headers, expandable sections. Updated spec.md UI Layout section to reflect "all board characters" behavior.
 - 2026-01-26: Token.test.tsx decomposition - Split 428-line file into token-visual.test.tsx (327 lines) and token-interaction.test.tsx (206 lines), resolving ESLint max-lines violation. All tests pass (664 tests).

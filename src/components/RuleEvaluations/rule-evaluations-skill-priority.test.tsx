@@ -151,4 +151,320 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       screen.getByText(/target out of range \(5 > 1\)/i),
     ).toBeInTheDocument();
   });
+
+  // Test: Rejected skills always visible
+  it("should show rejected skills in primary section even when later skill is selected", () => {
+    // Skills where first two are rejected by trigger failure, third is selected
+    const skills: Skill[] = [
+      {
+        id: "skill-1",
+        name: "Skill One",
+        tickCost: 1,
+        range: 1,
+        damage: 10,
+        enabled: true,
+        triggers: [{ type: "hp_below", value: 50 }], // Will fail at 100 HP
+        selectorOverride: { type: "nearest_enemy" },
+      },
+      {
+        id: "skill-2",
+        name: "Skill Two",
+        tickCost: 1,
+        range: 1,
+        damage: 10,
+        enabled: true,
+        triggers: [{ type: "hp_below", value: 50 }], // Will fail at 100 HP
+        selectorOverride: { type: "nearest_enemy" },
+      },
+      {
+        id: "skill-3",
+        name: "Skill Three",
+        tickCost: 1,
+        range: 1,
+        damage: 10,
+        enabled: true,
+        triggers: [{ type: "enemy_in_range", value: 1 }], // Will succeed
+        selectorOverride: { type: "nearest_enemy" },
+      },
+    ];
+    const character = createCharacter({ skills });
+    const target = createTarget(); // Enemy at (1,0), within range
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+
+    // All rejected skills should be visible in primary section
+    expect(screen.getByText(/1\. Skill One/)).toBeInTheDocument();
+    expect(screen.getByText(/2\. Skill Two/)).toBeInTheDocument();
+    expect(screen.getByText(/3\. Skill Three/)).toBeInTheDocument();
+
+    // Selected skill should have arrow indicator (arrow is in separate span)
+    const selectedArrow = screen.getByText("→");
+    expect(selectedArrow).toBeInTheDocument();
+    expect(screen.getByText(/3\. Skill Three/)).toBeInTheDocument();
+
+    // No expandable section (no skipped skills)
+    const details = container.querySelector("details");
+    expect(details).not.toBeInTheDocument();
+  });
+
+  // Test: Skipped skills in expandable section
+  it("should show skipped skills in expandable section", () => {
+    // Use default character with enemy in range
+    // Light Punch will be selected, Move and Heavy Punch will be skipped
+    const character = createCharacter();
+    const target = createTarget(); // Enemy at (1,0)
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+
+    // Selected skill should be visible with arrow (not inside details)
+    const selectedArrow = screen.getByText("→");
+    expect(selectedArrow).toBeInTheDocument();
+    expect(screen.getByText(/1\. Light Punch/)).toBeInTheDocument();
+
+    // Expandable section should exist
+    const details = container.querySelector("details");
+    expect(details).toBeInTheDocument();
+    expect(screen.getByText(/Show 2 more skills/i)).toBeInTheDocument();
+
+    // When expanded, skipped skills should be visible
+    details?.setAttribute("open", "");
+    expect(screen.getByText(/2\. Move/)).toBeInTheDocument();
+    expect(screen.getByText(/3\. Heavy Punch/)).toBeInTheDocument();
+  });
+
+  // Test: Original indices preserved
+  it("should preserve original skill indices across sections", () => {
+    // Skills where first is selected, rest are skipped
+    const skills: Skill[] = [
+      {
+        id: "skill-a",
+        name: "Alpha Strike",
+        tickCost: 1,
+        range: 1,
+        damage: 10,
+        enabled: true,
+        triggers: [{ type: "enemy_in_range", value: 1 }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+      {
+        id: "skill-b",
+        name: "Beta Move",
+        tickCost: 1,
+        range: 0,
+        mode: "towards",
+        enabled: true,
+        triggers: [{ type: "always" }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+      {
+        id: "skill-c",
+        name: "Gamma Blast",
+        tickCost: 2,
+        range: 2,
+        damage: 25,
+        enabled: true,
+        triggers: [{ type: "always" }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+    ];
+    const character = createCharacter({ skills });
+    const target = createTarget();
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+
+    // Primary section should show first skill with original index
+    expect(screen.getByText(/1\. Alpha Strike/)).toBeInTheDocument();
+
+    // Expandable section should show remaining skills with sequential indices
+    const details = container.querySelector("details");
+    expect(details).toBeInTheDocument();
+
+    details?.setAttribute("open", "");
+    expect(screen.getByText(/2\. Beta Move/)).toBeInTheDocument();
+    expect(screen.getByText(/3\. Gamma Blast/)).toBeInTheDocument();
+  });
+
+  // Test: All skills rejected, no expandable
+  it("should show all rejected skills with no expandable when character is idle", () => {
+    // All skills fail - no enemies, so all attack skills have "no target"
+    const skills: Skill[] = [
+      {
+        id: "light-punch",
+        name: "Light Punch",
+        tickCost: 1,
+        range: 1,
+        damage: 10,
+        enabled: true,
+        triggers: [{ type: "enemy_in_range", value: 1 }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+      {
+        id: "move",
+        name: "Move",
+        tickCost: 1,
+        range: 0,
+        mode: "towards",
+        enabled: false, // Disabled
+        triggers: [{ type: "always" }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+      {
+        id: "heavy-punch",
+        name: "Heavy Punch",
+        tickCost: 2,
+        range: 2,
+        damage: 25,
+        enabled: true,
+        triggers: [{ type: "enemy_in_range", value: 2 }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+    ];
+    const character = createCharacter({ skills });
+    // NO enemy - all attack skills will have "no target"
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character]); // No enemies
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+
+    // All skills should be visible with rejection reasons
+    expect(screen.getByText(/1\. Light Punch/)).toBeInTheDocument();
+    // Light Punch has enemy_in_range trigger, which fails before target check
+    expect(
+      screen.getAllByText(/trigger not met/i).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/2\. Move/)).toBeInTheDocument();
+    expect(screen.getByText(/\[disabled\]/i)).toBeInTheDocument();
+    expect(screen.getByText(/3\. Heavy Punch/)).toBeInTheDocument();
+
+    // No selected arrow (idle state)
+    expect(screen.queryByText(/→/)).not.toBeInTheDocument();
+
+    // No expandable section (no skipped skills)
+    const details = container.querySelector("details");
+    expect(details).not.toBeInTheDocument();
+  });
+
+  // Test: Mixed rejection reasons displayed
+  it("should display multiple rejection reason types correctly", () => {
+    // Skills with different rejection reasons
+    const skills: Skill[] = [
+      {
+        id: "disabled-skill",
+        name: "Disabled Skill",
+        tickCost: 1,
+        range: 1,
+        damage: 10,
+        enabled: false,
+        triggers: [{ type: "always" }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+      {
+        id: "trigger-fail",
+        name: "Trigger Fail Skill",
+        tickCost: 1,
+        range: 1,
+        damage: 10,
+        enabled: true,
+        triggers: [{ type: "hp_below", value: 10 }], // 100 HP, will fail
+        selectorOverride: { type: "nearest_enemy" },
+      },
+      {
+        id: "out-of-range",
+        name: "Out of Range Skill",
+        tickCost: 1,
+        range: 1,
+        damage: 10,
+        enabled: true,
+        triggers: [{ type: "always" }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+      {
+        id: "move",
+        name: "Move",
+        tickCost: 1,
+        range: 0,
+        mode: "towards",
+        enabled: true,
+        triggers: [{ type: "always" }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+    ];
+    // Character at (0,0), enemy at (5,5) - out of range for skills with range 1
+    const character = createCharacter({ skills, position: { x: 0, y: 0 } });
+    const enemy = createCharacter({
+      id: "enemy",
+      name: "Enemy",
+      faction: "enemy",
+      position: { x: 5, y: 5 },
+      skills: [],
+    });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, enemy]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+
+    // Verify each rejection reason is displayed correctly
+    expect(screen.getByText(/1\. Disabled Skill/)).toBeInTheDocument();
+    expect(screen.getByText(/\[disabled\]/i)).toBeInTheDocument();
+
+    expect(screen.getByText(/2\. Trigger Fail Skill/)).toBeInTheDocument();
+    expect(screen.getByText(/trigger not met/i)).toBeInTheDocument();
+
+    expect(screen.getByText(/3\. Out of Range Skill/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/target out of range \(5 > 1\)/i),
+    ).toBeInTheDocument();
+
+    // Move should be selected (arrow is in separate span)
+    const selectedArrow = screen.getByText("→");
+    expect(selectedArrow).toBeInTheDocument();
+    expect(screen.getByText(/4\. Move/)).toBeInTheDocument();
+
+    // No expandable section (no skipped skills)
+    const details = container.querySelector("details");
+    expect(details).not.toBeInTheDocument();
+  });
+
+  // Test: Single skill, no expandable
+  it("should not show expandable section when character has only one skill", () => {
+    const skills: Skill[] = [
+      {
+        id: "only-skill",
+        name: "Only Skill",
+        tickCost: 1,
+        range: 1,
+        damage: 10,
+        enabled: true,
+        triggers: [{ type: "enemy_in_range", value: 1 }],
+        selectorOverride: { type: "nearest_enemy" },
+      },
+    ];
+    const character = createCharacter({ skills });
+    const target = createTarget();
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.selectCharacter(character.id);
+
+    const { container } = render(<RuleEvaluations />);
+
+    // Single skill should be visible with selected arrow (arrow is in separate span)
+    const selectedArrow = screen.getByText("→");
+    expect(selectedArrow).toBeInTheDocument();
+    expect(screen.getByText(/1\. Only Skill/)).toBeInTheDocument();
+
+    // No expandable section (nothing to expand)
+    const details = container.querySelector("details");
+    expect(details).not.toBeInTheDocument();
+  });
 });

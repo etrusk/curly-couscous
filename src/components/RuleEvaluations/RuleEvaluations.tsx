@@ -124,42 +124,52 @@ function SkillPriorityList({
   skillEvaluations: SkillEvaluationResult[];
   selectedSkillIndex: number | null;
 }) {
-  // Skills up to and including selected skill (always shown)
-  const visibleSkills =
-    selectedSkillIndex !== null
-      ? skillEvaluations.slice(0, selectedSkillIndex + 1)
-      : skillEvaluations;
+  // Primary section: rejected skills + selected skill (always visible)
+  const primarySkillsWithIndices = skillEvaluations
+    .map((evaluation, index) => ({ evaluation, originalIndex: index }))
+    .filter(
+      ({ evaluation, originalIndex }) =>
+        evaluation.status === "rejected" ||
+        originalIndex === selectedSkillIndex,
+    );
 
-  // Skills below selected skill (collapsible)
-  const collapsedSkills =
-    selectedSkillIndex !== null
-      ? skillEvaluations.slice(selectedSkillIndex + 1)
-      : [];
+  // Expandable section: skipped skills only
+  const skippedSkillsWithIndices = skillEvaluations
+    .map((evaluation, index) => ({ evaluation, originalIndex: index }))
+    .filter(({ evaluation }) => evaluation.status === "skipped");
 
   return (
     <div className={styles.skillPrioritySection}>
       <h3 className={styles.sectionHeader}>Skill Priority</h3>
+
+      {/* Primary skills: rejected + selected */}
       <ol className={styles.skillList} role="list">
-        {renderSkillListItems(visibleSkills, 0, selectedSkillIndex)}
+        {primarySkillsWithIndices.map(({ evaluation, originalIndex }) => (
+          <SkillListItem
+            key={evaluation.skill.id}
+            evaluation={evaluation}
+            displayIndex={originalIndex + 1}
+            isSelected={originalIndex === selectedSkillIndex}
+          />
+        ))}
       </ol>
 
-      {/* Collapsible lower-priority skills */}
-      {collapsedSkills.length > 0 && (
+      {/* Expandable: skipped skills */}
+      {skippedSkillsWithIndices.length > 0 && (
         <details className={styles.collapsedSkills}>
           <summary className={styles.collapsedSummary}>
-            Show {collapsedSkills.length} more skill
-            {collapsedSkills.length > 1 ? "s" : ""}
+            Show {skippedSkillsWithIndices.length} more skill
+            {skippedSkillsWithIndices.length > 1 ? "s" : ""}
           </summary>
-          <ol
-            className={styles.skillList}
-            role="list"
-            start={(selectedSkillIndex ?? -1) + 2}
-          >
-            {renderSkillListItems(
-              collapsedSkills,
-              (selectedSkillIndex ?? -1) + 1,
-              null,
-            )}
+          <ol className={styles.skillList} role="list">
+            {skippedSkillsWithIndices.map(({ evaluation, originalIndex }) => (
+              <SkillListItem
+                key={evaluation.skill.id}
+                evaluation={evaluation}
+                displayIndex={originalIndex + 1}
+                isSelected={false}
+              />
+            ))}
           </ol>
         </details>
       )}
@@ -201,35 +211,34 @@ function MidActionDisplay({
 }
 
 /**
- * Render skill list items for visible skills.
+ * Render a single skill list item.
  */
-function renderSkillListItems(
-  skills: SkillEvaluationResult[],
-  startIndex: number = 0,
-  selectedIndex: number | null = null,
-) {
-  return skills.map((evalResult, index) => {
-    const absoluteIndex = startIndex + index;
-    const isSelected =
-      selectedIndex !== null && absoluteIndex === selectedIndex;
-    const rejectionReason =
-      evalResult.status === "rejected" ? formatRejectionReason(evalResult) : "";
+function SkillListItem({
+  evaluation,
+  displayIndex,
+  isSelected,
+}: {
+  evaluation: SkillEvaluationResult;
+  displayIndex: number;
+  isSelected: boolean;
+}) {
+  const rejectionReason =
+    evaluation.status === "rejected" ? formatRejectionReason(evaluation) : "";
 
-    return (
-      <li
-        key={evalResult.skill.id}
-        className={`${styles.skillItem} ${isSelected ? styles.activeSkill : ""}`}
-      >
-        <div className={styles.skillName}>
-          {isSelected && <span className={styles.selectedArrow}>→ </span>}
-          {absoluteIndex + 1}. {evalResult.skill.name}
-          {rejectionReason && (
-            <span className={styles.rejectionReason}> — {rejectionReason}</span>
-          )}
-        </div>
-      </li>
-    );
-  });
+  return (
+    <li
+      key={evaluation.skill.id}
+      className={`${styles.skillItem} ${isSelected ? styles.activeSkill : ""}`}
+    >
+      <div className={styles.skillName}>
+        {isSelected && <span className={styles.selectedArrow}>→ </span>}
+        {displayIndex}. {evaluation.skill.name}
+        {rejectionReason && (
+          <span className={styles.rejectionReason}> — {rejectionReason}</span>
+        )}
+      </div>
+    </li>
+  );
 }
 
 /**

@@ -47,26 +47,26 @@ Before starting ANY new workflow:
 ## Workflow Phases
 
 ```
-INIT → EXPLORE → PLAN → DESIGN_TESTS → WRITE_TESTS → VERIFY_FAIL →
-IMPLEMENT → VERIFY_PASS → REVIEW → [FIX if needed] → SYNC_DOCS → COMMIT
+INIT → EXPLORE → PLAN → DESIGN_TESTS → TEST_DESIGN_REVIEW → WRITE_TESTS →
+VERIFY_FAIL → IMPLEMENT → VERIFY_PASS → REVIEW → [FIX if needed] → COMMIT
 ```
 
 ## Phase Definitions
 
-| Phase        | Agent     | Success Criteria                                    |
-| ------------ | --------- | --------------------------------------------------- |
-| INIT         | (self)    | `.tdd/session.md` created with task description     |
-| EXPLORE      | architect | `.tdd/exploration.md` contains codebase analysis    |
-| PLAN         | architect | `.tdd/plan.md` contains implementation plan         |
-| DESIGN_TESTS | architect | `.tdd/test-designs.md` contains test specifications |
-| WRITE_TESTS  | coder     | Tests implemented, all FAIL (red)                   |
-| VERIFY_FAIL  | coder     | Confirmed tests fail for right reasons              |
-| IMPLEMENT    | coder     | Code written, tests PASS (green)                    |
-| VERIFY_PASS  | coder     | All tests pass, quality gates pass                  |
-| REVIEW       | reviewer  | `.tdd/review-findings.md` created                   |
-| FIX          | coder     | All review issues addressed                         |
-| SYNC_DOCS    | coder     | Documentation recommendations noted                 |
-| COMMIT       | coder     | Changes committed with conventional commit message  |
+| Phase              | Agent     | Success Criteria                                    |
+| ------------------ | --------- | --------------------------------------------------- |
+| INIT               | (self)    | `.tdd/session.md` created with task description     |
+| EXPLORE            | architect | `.tdd/exploration.md` contains codebase analysis    |
+| PLAN               | architect | `.tdd/plan.md` contains implementation plan         |
+| DESIGN_TESTS       | architect | `.tdd/test-designs.md` contains test specifications |
+| TEST_DESIGN_REVIEW | architect | Test designs reviewed and approved                  |
+| WRITE_TESTS        | coder     | Tests implemented, all FAIL (red)                   |
+| VERIFY_FAIL        | coder     | Confirmed tests fail for right reasons              |
+| IMPLEMENT          | coder     | Code written, tests PASS (green)                    |
+| VERIFY_PASS        | coder     | All tests pass, quality gates pass                  |
+| REVIEW             | reviewer  | `.tdd/review-findings.md` created                   |
+| FIX                | coder     | All review issues addressed                         |
+| COMMIT             | coder     | Changes committed with conventional commit message  |
 
 ## Routing Logic
 
@@ -118,7 +118,26 @@ Write test designs to .tdd/test-designs.md using the required format.
 Update .tdd/session.md when complete."
 ```
 
-### DESIGN_TESTS Phase Complete → WRITE_TESTS Phase
+### DESIGN_TESTS Phase Complete → TEST_DESIGN_REVIEW Phase
+
+AUTOMATICALLY spawn architect to review test designs:
+
+```
+subagent_type: "architect"
+description: "Review test designs"
+prompt: "TEST_DESIGN_REVIEW phase: Review your test designs in .tdd/test-designs.md.
+
+Check for:
+- Completeness: Do tests cover all edge cases?
+- Clarity: Are test specifications unambiguous?
+- Correctness: Do assertions match expected behavior?
+- Coverage: Are all requirements from .tdd/plan.md tested?
+
+If issues found, update .tdd/test-designs.md.
+Update .tdd/session.md when complete."
+```
+
+### TEST_DESIGN_REVIEW Phase Complete → WRITE_TESTS Phase
 
 AUTOMATICALLY spawn coder for test implementation:
 
@@ -295,14 +314,40 @@ When invoked without a task:
 
 When COMMIT phase succeeds:
 
-1. Output final summary:
+1. Delete ephemeral files:
+
+   ```bash
+   rm -f .tdd/session.md .tdd/exploration.md .tdd/plan.md .tdd/test-designs.md .tdd/review-findings.md .tdd/troubleshooter-report.md
+   ```
+
+2. Update `.docs/current-task.md` with completion (add to Recent Completions)
+
+3. Output final summary:
    - Task completed
    - Files created/modified
    - Tests added
    - Commit hash
    - Documentation recommendations (if any)
 
-2. End with: `TDD WORKFLOW COMPLETE. [commit-hash]`
+4. End with: `TDD WORKFLOW COMPLETE. [commit-hash]`
+
+## Context Management
+
+**Long-term context** (`.docs/` - version controlled):
+
+- Project knowledge persists across all tasks
+- Agents MUST read relevant `.docs/` files before planning
+
+**Per-task context** (`.tdd/*.md` - ephemeral):
+
+- Created fresh per task, deleted after successful commit
+- Prevents context pollution between tasks
+
+**Agent isolation**:
+
+- Each agent runs in isolated context via Task tool
+- Orchestrator reads only `.tdd/session.md` (current phase)
+- Agent contexts automatically discarded after completion
 
 ## CRITICAL EXECUTION RULES
 

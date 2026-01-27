@@ -99,6 +99,10 @@ If your plan introduces a NEW architectural decision:
 
 2. Recommend adding to `.docs/decisions/index.md` in your handoff
 
+## Output Guidelines
+
+Be concise and actionable. Focus on what to do, not lengthy explanations.
+
 ## Handoff Protocol
 
 When your phase is complete:
@@ -118,9 +122,9 @@ When your phase is complete:
 3. End your final message with EXACTLY this format:
    ```
    ARCHITECT PHASE COMPLETE
-   Phase: [EXPLORE|PLAN|DESIGN_TESTS]
+   Phase: [EXPLORE|PLAN|DESIGN_TESTS|TEST_DESIGN_REVIEW]
    Output: [.tdd/exploration.md|.tdd/plan.md|.tdd/test-designs.md]
-   Next: [PLAN|DESIGN_TESTS|WRITE_TESTS]
+   Next: [PLAN|DESIGN_TESTS|TEST_DESIGN_REVIEW|WRITE_TESTS]
    ```
 
 This signals the orchestrator to automatically proceed to the next phase WITHOUT asking permission.

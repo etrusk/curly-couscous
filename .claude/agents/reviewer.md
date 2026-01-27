@@ -144,6 +144,19 @@ Write findings to `.tdd/review-findings.md`:
 [ ] CHANGES REQUESTED - [N] issues require fixes
 ```
 
+## Context Budget
+
+Your output file should be focused and actionable:
+
+- `review-findings.md`: <1500 tokens (critical and important issues only)
+
+**If findings exceed budget**:
+
+1. Group similar issues
+2. Prioritize CRITICAL and IMPORTANT over MINOR
+3. Link to problematic code instead of quoting extensively
+4. Provide concise fix suggestions
+
 ## Handoff Protocol
 
 After review:

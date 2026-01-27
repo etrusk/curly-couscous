@@ -12,14 +12,17 @@ Enhance Skill Priority sub-panel UI in Rule Evaluations component to improve tra
 
 ## Current Phase
 
-WRITE_TESTS
+COMMIT
 
 ## Phase History
 
 - 2026-01-27 INIT: Started task "Enhance Skill Priority sub-panel UI"
 - 2026-01-27 EXPLORE: Completed exploration phase - findings in .tdd/exploration.md
 - 2026-01-27 PLAN: Completed plan phase - implementation plan in .tdd/plan.md, test designs in .tdd/test-designs.md
-- 2026-01-27 WRITE_TESTS: Starting test implementation (RED phase)
+- 2026-01-27 WRITE_TESTS: Completed test implementation - 6 new tests added, all 34 RuleEvaluations tests passing
+- 2026-01-27 IMPLEMENT: Completed implementation (GREEN phase) - all tests passing
+- 2026-01-27 REVIEW: Completed review - APPROVED with 0 critical issues
+- 2026-01-27 COMMIT: Creating commit
 
 ## Key Decisions
 
@@ -52,7 +55,24 @@ WRITE_TESTS
 
 ## Review Cycles
 
-Count: 0
+Count: 1
+
+## Review Summary
+
+**Verdict**: APPROVED
+
+**Findings** (from `.tdd/review-findings.md`):
+- Critical issues: 0
+- Important issues: 0
+- Minor issues: 2 (optional improvements)
+- Spec compliance: Pass
+- Pattern compliance: Pass
+
+**Quality Gates**:
+- [x] All 680 tests passing
+- [x] TypeScript type check passing
+- [x] ESLint passing (0 errors, 0 warnings)
+- [x] File size: 374 code lines (under 400-line limit when excluding blank lines and comments per ESLint config)
 
 ## Documentation Recommendations
 
@@ -63,37 +83,52 @@ Count: 0
 Last checked: 2026-01-27
 Estimated utilization: moderate
 
-## Next Phase
+## Test Implementation Summary
 
-IMPLEMENT (RED) - Coder should implement tests first following designs in .tdd/test-designs.md
+**File Modified**: `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-skill-priority.test.tsx`
 
-## Summary of Plan
+**Tests Added** (6 new tests):
 
-### Core Change
+1. `should show rejected skills in primary section even when later skill is selected`
+   - Validates that skills with status "rejected" appear in primary section alongside selected skill
 
-Replace position-based skill grouping with status-based grouping:
+2. `should show skipped skills in expandable section`
+   - Validates that skills with status "skipped" appear in expandable `<details>` element
 
-- **Primary section**: Skills with `status === 'rejected'` + the selected skill
-- **Expandable section**: Skills with `status === 'skipped'`
+3. `should preserve original skill indices across sections`
+   - Validates that 1-based indices remain sequential regardless of section placement
 
-### Implementation Steps
+4. `should show all rejected skills with no expandable when character is idle`
+   - Validates idle state (no selected skill) shows all rejected skills without expandable
 
-1. Create `SkillListItem` component (extract from `renderSkillListItems`)
-2. Modify `SkillPriorityList` to filter by status instead of slicing by index
-3. Track original indices alongside evaluations using `{ evaluation, originalIndex }` tuples
-4. Remove `start` attribute from collapsed `<ol>` (no longer needed)
-5. Run existing tests to verify no regressions
-6. Add new tests per test designs
+5. `should display multiple rejection reason types correctly`
+   - Validates different rejection reasons (disabled, trigger_failed, out_of_range) display correctly
 
-### Files to Modify
+6. `should not show expandable section when character has only one skill`
+   - Validates edge case of single skill (no expandable section needed)
 
-1. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx`
-2. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-skill-priority.test.tsx`
+**Test Results**: All 34 RuleEvaluations tests pass (12 skill-priority, 9 next-action, 13 basic)
 
-### Edge Cases Covered
+## Implementation Summary
 
-- No selected skill (idle) - all rejected, no expandable
-- First skill selected - only selected visible, rest in expandable
-- Last skill selected - all visible, no expandable
-- Single skill - no expandable
-- Mixed rejection reasons - all displayed correctly
+**Files Modified**:
+1. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx` (453 lines total, 374 code lines)
+
+**Changes Made**:
+
+1. **Created `SkillListItem` component** (lines 216-242)
+   - Extracted from `renderSkillListItems` helper function
+   - Accepts `evaluation`, `displayIndex`, and `isSelected` as props
+   - Renders individual skill items with proper styling and rejection reasons
+
+2. **Modified `SkillPriorityList` to use status-based grouping** (lines 120-178)
+   - **Primary section**: Filters skills with `status === 'rejected'` OR matching `selectedSkillIndex`
+   - **Expandable section**: Filters skills with `status === 'skipped'`
+   - Tracks original indices using `{ evaluation, originalIndex }` tuples
+   - Removed `start` attribute from collapsed `<ol>` (no longer needed)
+
+**Deviations from Plan**: None. Implementation matches plan exactly.
+
+## Next Steps
+
+Ready for commit. Implementation is approved and all quality gates pass.

@@ -29,6 +29,8 @@ describe("Reset Functionality", () => {
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
+    // With new formula, tickCost=1 action created at tick 0 resolves at tick 1
+    useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
 
     // Verify damage was applied
@@ -74,6 +76,8 @@ describe("Reset Functionality", () => {
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
+    // With new formula, tickCost=1 action created at tick 0 resolves at tick 1
+    useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
 
     expect(useGameStore.getState().gameState.history.length).toBeGreaterThan(0);
@@ -100,6 +104,8 @@ describe("Reset Functionality", () => {
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
+    // With new formula, tickCost=1 action created at tick 0 resolves at tick 1
+    useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
 
     expect(useGameStore.getState().gameState.battleStatus).toBe("victory");

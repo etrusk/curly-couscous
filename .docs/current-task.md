@@ -10,7 +10,10 @@
 
 ## Current Focus
 
-[No active task]
+Task: Fix action resolution timing for tickCost=1 actions to resolve at beginning of next tick
+Workflow: claude-code
+Started: 2026-01-27 16:32
+Completion Note: Changed resolvesAtTick formula from tick+tickCost-1 to tick+tickCost. All actions now have 1+ tick visibility before resolution. Light Punch now dodgeable. Updated spec.md (3 sections). All 724 tests passing.
 
 <!-- When starting a task, replace above with:
 Task: [description]
@@ -20,18 +23,12 @@ Started: [YYYY-MM-DD HH:MM]
 
 ## Recent Completions
 
+- 2026-01-27: Critical Immer middleware bug fix - Fixed gameStore.processTick wholesale state replacement breaking Zustand+Immer tracking. Changed to mutate arrays in place using splice(). Bug affected ALL intent lines (attacks and movement), pre-existing issue revealed by movement feature. All 724 tests passing. Commit c38b80f.
 - 2026-01-27: Movement intent line visualization - Added visual movement intent lines (blue dashed) to show where characters plan to move. Modified selectIntentData to include movement actions with ticksRemaining >= 0 (exception to attack rule since movement has no visible damage effect). Extracted 6 movement tests to separate file. All 724 tests passing. Commit adceb43.
 - 2026-01-27: Rule Evaluations action preview + compact debugging - Added action summary to collapsed headers (shows skill + target without expanding). Compact evaluation list on expand (stops at selected skill, debugging-friendly format with parameter names). Added missing --text-on-faction/--accent-primary CSS variables for character icon lettering. Extracted formatters to separate module. 29 new tests, all 716 passing. Commit c0fd64a.
 - 2026-01-27: Fixed slotPosition 0-based bug - Changed gameStore to use 1-based slotPosition (position 1='A', 2='B') fixing "slotPosition must be positive, got 0" error when adding characters. Refactored RuleEvaluations to use shared letterMapping utility. Updated 142 test fixtures. All 687 tests passing. Commit 7b4eb90.
-- 2026-01-27: Unified project status across workflows - Implemented shared `.docs/current-task.md` file used by both Roo and Claude Code workflows. Added workflow identifiers, updated all Claude Code agents and commands to read/write shared status. Maintains workflow separation with ephemeral `.tdd/session.md` state. No cross-contamination verified.
-- 2026-01-27: Skill Priority sub-panel status-based grouping - Modified `SkillPriorityList` to show rejected skills + selected skill in primary section, skipped skills in expandable section. Preserves original 1-based indices. Added 6 tests (680 total passing). Improves AI decision transparency by showing why higher-priority skills were rejected.
-- 2026-01-26: Rule Evaluations show all board characters - Implemented selector `selectAllCharacterEvaluations`, multi-character view with condensed headers, expandable sections. Updated spec.md UI Layout section to reflect "all board characters" behavior.
-- 2026-01-26: Token.test.tsx decomposition - Split 428-line file into token-visual.test.tsx (327 lines) and token-interaction.test.tsx (206 lines), resolving ESLint max-lines violation. All tests pass (664 tests).
-- 2026-01-26: Intent lines visualization fix - Fixed selector to show intent lines for actions with ticksRemaining > 0 (Heavy Punch shows arrow, Light Punch does not). Updated spec.md with visibility rule.
-- 2026-01-26: Character icons alphabetical letters - Added letter display to tokens based on slotPosition (A, B, C...). Implemented letterMapping utility, updated Token component with SVG text, maintained visual design and accessibility.
 
 ## Next Steps
 
 - If only 2 characters, they move erratically in a zig-zag towards each other, should be smoother
 - Sentence-builder UI for SkillsPanel configuration
-- Change Heavy Punch to resolve on 2nd tick

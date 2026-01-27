@@ -223,10 +223,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
     expect(result).toBe(true);
   });
 
-  // TODO: With absolute timing, same-tick actions should be invisible.
-  // Currently the trigger detects them because it doesn't consider resolvesAtTick.
-  // These tests document the current behavior, which may need updating.
-  it("should detect same-tick attack (resolvesAtTick = 0) with current implementation", () => {
+  it("should detect tickCost-1 attack (resolvesAtTick = 1) with new timing", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
@@ -239,7 +236,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
       currentAction: createAction({
         type: "attack",
         targetCell: { x: 5, y: 5 },
-        resolvesAtTick: 0,
+        resolvesAtTick: 1,
       }),
     });
     const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
@@ -249,7 +246,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
     expect(result).toBe(true);
   });
 
-  it("should detect same-tick movement (resolvesAtTick = 0) with current implementation", () => {
+  it("should detect tickCost-1 movement (resolvesAtTick = 1) with new timing", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
@@ -262,7 +259,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
       currentAction: createAction({
         type: "move",
         targetCell: { x: 5, y: 5 },
-        resolvesAtTick: 0,
+        resolvesAtTick: 1,
       }),
     });
     const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };

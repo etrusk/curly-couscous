@@ -118,7 +118,7 @@ describe("computeDecisions - action type inference", () => {
 });
 
 describe("computeDecisions - tick resolution for intent visibility", () => {
-  it("should set resolvesAtTick = currentTick + tickCost - 1 for Light Punch (tickCost 1)", () => {
+  it("should set resolvesAtTick = currentTick + tickCost for Light Punch (tickCost 1)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -147,10 +147,10 @@ describe("computeDecisions - tick resolution for intent visibility", () => {
     expect(decisions).toHaveLength(2); // Both characters make decisions
     const char1Decision = decisions.find((d) => d.characterId === "char1");
     expect(char1Decision!.action.type).toBe("attack");
-    expect(char1Decision!.action.resolvesAtTick).toBe(0); // 0 + 1 - 1 = 0
+    expect(char1Decision!.action.resolvesAtTick).toBe(1); // 0 + 1 = 1
   });
 
-  it("should set resolvesAtTick = currentTick + tickCost - 1 for Heavy Punch (tickCost 2)", () => {
+  it("should set resolvesAtTick = currentTick + tickCost for Heavy Punch (tickCost 2)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -179,6 +179,6 @@ describe("computeDecisions - tick resolution for intent visibility", () => {
     expect(decisions).toHaveLength(2); // Both characters make decisions
     const char1Decision = decisions.find((d) => d.characterId === "char1");
     expect(char1Decision!.action.type).toBe("attack");
-    expect(char1Decision!.action.resolvesAtTick).toBe(1); // 0 + 2 - 1 = 1
+    expect(char1Decision!.action.resolvesAtTick).toBe(2); // 0 + 2 = 2
   });
 });

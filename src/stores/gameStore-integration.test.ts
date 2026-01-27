@@ -165,10 +165,13 @@ describe("processTick Integration", () => {
     useGameStore.getState().actions.initBattle([attacker, target]);
     const initialTick = useGameStore.getState().gameState.tick;
 
+    // Light Punch (tickCost=1) created at tick 0 resolves at tick 1
+    // Need to advance to tick 1 for action to resolve
+    useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
 
     const state = useGameStore.getState().gameState;
-    expect(state.tick).toBe(initialTick + 1);
+    expect(state.tick).toBe(initialTick + 2);
     // Verify target took damage (proves engine was called)
     const updatedTarget = state.characters.find((c) => c.id === "target");
     expect(updatedTarget?.hp).toBeLessThan(100);
@@ -190,6 +193,9 @@ describe("processTick Integration", () => {
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
+    // Light Punch (tickCost=1) created at tick 0 resolves at tick 1
+    // Need to advance to tick 1 for action to resolve
+    useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
 
     const history = useGameStore.getState().gameState.history;
@@ -220,6 +226,9 @@ describe("processTick Integration", () => {
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
+    // Light Punch (tickCost=1) created at tick 0 resolves at tick 1
+    // Need to advance to tick 1 for action to resolve
+    useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
 
     const updatedTarget = useGameStore
@@ -245,6 +254,8 @@ describe("processTick Integration", () => {
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
+    // Heavy Punch (tickCost=1 by default) created at tick 0 resolves at tick 1
+    useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
 
     const characters = useGameStore.getState().gameState.characters;
@@ -269,6 +280,8 @@ describe("processTick Integration", () => {
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
+    // Heavy Punch (tickCost=1 by default) created at tick 0 resolves at tick 1
+    useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
 
     expect(useGameStore.getState().gameState.battleStatus).toBe("victory");
@@ -291,6 +304,8 @@ describe("processTick Integration", () => {
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
+    // Heavy Punch (tickCost=1 by default) created at tick 0 resolves at tick 1
+    useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
 
     expect(useGameStore.getState().gameState.battleStatus).toBe("defeat");
@@ -315,6 +330,8 @@ describe("processTick Integration", () => {
     });
 
     useGameStore.getState().actions.initBattle([char1, char2]);
+    // Both attacks (tickCost=1 by default) created at tick 0 resolve at tick 1
+    useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
 
     expect(useGameStore.getState().gameState.battleStatus).toBe("draw");
@@ -337,13 +354,15 @@ describe("processTick Integration", () => {
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
-    useGameStore.getState().actions.processTick(); // First tick -> victory
+    // Heavy Punch (tickCost=1 by default) created at tick 0 resolves at tick 1
+    useGameStore.getState().actions.processTick();
+    useGameStore.getState().actions.processTick(); // Second tick -> victory
 
-    const tickBeforeSecondCall = useGameStore.getState().gameState.tick;
+    const tickAfterVictory = useGameStore.getState().gameState.tick;
     useGameStore.getState().actions.processTick(); // Should be no-op
 
     // Guard covers all terminal states (!== 'active')
-    expect(useGameStore.getState().gameState.tick).toBe(tickBeforeSecondCall);
+    expect(useGameStore.getState().gameState.tick).toBe(tickAfterVictory);
     expect(useGameStore.getState().gameState.battleStatus).toBe("victory");
   });
 });
@@ -366,7 +385,7 @@ describe("Intent Data Integration", () => {
       targetCell: { x: 2, y: 0 },
       targetCharacter: null,
       startedAtTick: 0,
-      resolvesAtTick: 1, // 0 + 2 - 1 = 1
+      resolvesAtTick: 2, // 0 + 2 = 2
     };
     const attacker = createCharacter({
       id: "attacker",
@@ -383,12 +402,12 @@ describe("Intent Data Integration", () => {
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
-    // At tick 0, action has resolvesAtTick=1, ticksRemaining=1
+    // At tick 0, action has resolvesAtTick=2, ticksRemaining=2
 
     const intentData = selectIntentData(useGameStore.getState());
     expect(intentData).toHaveLength(1);
     expect(intentData[0]?.characterId).toBe("attacker");
-    expect(intentData[0]?.ticksRemaining).toBe(1);
+    expect(intentData[0]?.ticksRemaining).toBe(2);
   });
 
   it("should produce empty intent data after processTick for Light Punch (tickCost 1)", () => {
@@ -409,11 +428,10 @@ describe("Intent Data Integration", () => {
     });
 
     useGameStore.getState().actions.initBattle([attacker, target]);
-    // At tick 0, computeDecisions produces an action with resolvesAtTick = 0 (tickCost 1)
-    // processTick applies decisions, then clearResolvedActions removes it because resolvesAtTick <= tick after processing.
-    // After processTick, tick becomes 1, so any action with resolvesAtTick = 0 has ticksRemaining = -1 (negative)
-    // and is filtered out by selectIntentData (ticksRemaining > 0 filter).
+    // At tick 0, computeDecisions produces an action with resolvesAtTick = 1 (new formula: tick + tickCost)
+    // After first processTick, tick becomes 1, action resolves and is cleared
     // This test verifies intent lines are not shown for already-resolved actions.
+    useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
 
     const intentData = selectIntentData(useGameStore.getState());
@@ -445,7 +463,8 @@ describe("Initial State Storage", () => {
 
     useGameStore.getState().actions.initBattle([char1, char2]);
 
-    // Damage active character
+    // Damage active character (attack has tickCost=1 by default, resolves at tick 1)
+    useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
     const damagedHp = useGameStore
       .getState()

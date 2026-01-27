@@ -32,7 +32,7 @@ export function createAttackAction(
     skill: baseCreateSkill({ id: "test-attack", damage, tickCost }),
     targetCell,
     targetCharacter,
-    startedAtTick: resolveTick - (tickCost - 1),
+    startedAtTick: resolveTick - tickCost,
     resolvesAtTick: resolveTick,
   };
 }
@@ -48,7 +48,7 @@ export function createIdleAction(resolveTick: number = 1): Action {
     skill: baseCreateSkill({ id: "idle", tickCost }),
     targetCell: { x: 0, y: 0 },
     targetCharacter: null,
-    startedAtTick: resolveTick - (tickCost - 1),
+    startedAtTick: resolveTick - tickCost,
     resolvesAtTick: resolveTick,
   };
 }

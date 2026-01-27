@@ -137,6 +137,7 @@ export interface IntentData {
  */
 export const selectIntentData = (state: GameStore): IntentData[] => {
   const { tick, characters } = state.gameState;
+
   const withActions = characters.filter(
     (c): c is Character & { currentAction: Action } => c.currentAction !== null,
   );
@@ -151,9 +152,7 @@ export const selectIntentData = (state: GameStore): IntentData[] => {
 
   const filtered = mapped.filter(
     (intent) =>
-      intent.action.type !== "idle" &&
-      (intent.ticksRemaining > 0 ||
-        (intent.action.type === "move" && intent.ticksRemaining >= 0)),
+      intent.action.type !== "idle" && intent.ticksRemaining >= 0,
   );
 
   return filtered;

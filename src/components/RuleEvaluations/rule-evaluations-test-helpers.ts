@@ -83,7 +83,7 @@ export function createAttackAction(
     skill: {
       id: skillId,
       name: skillName,
-      tickCost: resolvesAtTick - startedAtTick + 1,
+      tickCost: resolvesAtTick - startedAtTick,
       range: 1,
       damage: 10,
       enabled: true,
@@ -110,7 +110,7 @@ export function createMoveAction(
     skill: {
       id: skillId,
       name: skillName,
-      tickCost: resolvesAtTick - startedAtTick + 1,
+      tickCost: resolvesAtTick - startedAtTick,
       range: 0,
       mode,
       enabled: true,
@@ -138,6 +138,6 @@ export function createIdleAction(): Action {
     targetCell: { x: 0, y: 0 },
     targetCharacter: null,
     startedAtTick: 0,
-    resolvesAtTick: 0,
+    resolvesAtTick: 1,
   };
 }

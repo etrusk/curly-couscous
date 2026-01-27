@@ -52,7 +52,7 @@ export function createIdleAction(character: Character, tick: number): Action {
     targetCell: character.position,
     targetCharacter: null,
     startedAtTick: tick,
-    resolvesAtTick: tick + IDLE_SKILL.tickCost - 1,
+    resolvesAtTick: tick + IDLE_SKILL.tickCost,
   };
 }
 
@@ -102,6 +102,6 @@ export function createSkillAction(
     targetCell,
     targetCharacter,
     startedAtTick: tick,
-    resolvesAtTick: tick + skill.tickCost - 1,
+    resolvesAtTick: tick + skill.tickCost,
   };
 }

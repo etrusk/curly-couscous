@@ -436,9 +436,10 @@ describe("PlayControls", () => {
       const playButton = screen.getByRole("button", { name: /play/i });
       await user.click(playButton);
 
-      // Advance one tick - battle should end with victory
+      // With new formula, tickCost=1 action created at tick 0 resolves at tick 1
+      // Need to advance 2 ticks for battle to end with victory
       act(() => {
-        vi.advanceTimersByTime(1000);
+        vi.advanceTimersByTime(2000);
       });
 
       // Battle should now be in victory state

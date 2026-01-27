@@ -72,7 +72,7 @@ export function createAttackAction(
     skill: createSkill({ id: "test-attack", damage, tickCost }),
     targetCell,
     targetCharacter: null,
-    startedAtTick: resolveTick - (tickCost - 1),
+    startedAtTick: resolveTick - tickCost,
     resolvesAtTick: resolveTick,
   };
 }
@@ -90,7 +90,7 @@ export function createMoveAction(
     skill: createSkill({ id: "test-move", mode: "towards", tickCost }),
     targetCell,
     targetCharacter: null,
-    startedAtTick: resolveTick - (tickCost - 1),
+    startedAtTick: resolveTick - tickCost,
     resolvesAtTick: resolveTick,
   };
 }

@@ -41,7 +41,9 @@ describe("processTick decision integration", () => {
       characters: [attacker, target],
     });
 
-    const result = processTick(state);
+    // With new formula, tickCost=1 action created at tick 1 resolves at tick 2
+    let result = processTick(state);
+    result = processTick(result.state);
 
     const updatedTarget = result.state.characters.find(
       (c) => c.id === "target",
@@ -88,7 +90,8 @@ describe("processTick decision integration", () => {
       (c) => c.id === "attacker",
     );
     expect(updatedAttacker?.currentAction).not.toBeNull();
-    expect(updatedAttacker?.currentAction?.resolvesAtTick).toBe(2);
+    // With new formula: tick 1 + tickCost 2 = resolvesAtTick 3
+    expect(updatedAttacker?.currentAction?.resolvesAtTick).toBe(3);
   });
 
   it("mid-action character should continue action, not receive new decision", () => {
@@ -156,19 +159,22 @@ describe("processTick decision integration", () => {
       characters: [attacker, target],
     });
 
+    // With new formula, action created at tick 1 resolves at tick 2
     const result1 = processTick(state1);
-
-    const attackerAfterTick1 = result1.state.characters.find(
-      (c) => c.id === "attacker",
-    );
-    expect(attackerAfterTick1?.currentAction).toBeNull();
-
     const result2 = processTick(result1.state);
 
-    const targetAfterTick2 = result2.state.characters.find(
+    const attackerAfterTick2 = result2.state.characters.find(
+      (c) => c.id === "attacker",
+    );
+    expect(attackerAfterTick2?.currentAction).toBeNull();
+
+    const result3 = processTick(result2.state);
+    const result4 = processTick(result3.state);
+
+    const targetAfterTick4 = result4.state.characters.find(
       (c) => c.id === "target",
     );
-    expect(targetAfterTick2?.hp).toBe(80);
+    expect(targetAfterTick4?.hp).toBe(80);
   });
 
   it("character with no valid skill should idle and be cleared same tick", () => {
@@ -192,7 +198,9 @@ describe("processTick decision integration", () => {
       characters: [character],
     });
 
-    const result = processTick(state);
+    // With new formula, idle action (tickCost=1) created at tick 1 resolves at tick 2
+    let result = processTick(state);
+    result = processTick(result.state);
 
     const updatedChar = result.state.characters.find((c) => c.id === "char1");
     expect(updatedChar?.currentAction).toBeNull();
@@ -246,7 +254,9 @@ describe("cross-module integration", () => {
     expect(targetDecision!.action.type).toBe("idle");
 
     // Then process tick to execute decisions
-    const result = processTick(state);
+    // With new formula, tickCost=1 action created at tick 1 resolves at tick 2
+    let result = processTick(state);
+    result = processTick(result.state);
     const updatedTarget = result.state.characters.find(
       (c) => c.id === "target",
     );
@@ -295,7 +305,9 @@ describe("cross-module integration", () => {
     expect(targetDecision).toBeDefined();
     expect(targetDecision!.action.type).toBe("idle");
 
-    const result = processTick(state);
+    // With new formula, tickCost=1 action created at tick 1 resolves at tick 2
+    let result = processTick(state);
+    result = processTick(result.state);
     const updatedMover = result.state.characters.find((c) => c.id === "mover");
     expect(updatedMover?.position.x).toBeGreaterThan(5);
   });
@@ -337,7 +349,9 @@ describe("cross-module integration", () => {
     const decisions = computeDecisions(state);
     expect(decisions[0]!.action.skill.id).toBe("skill2");
 
-    const result = processTick(state);
+    // With new formula, tickCost=1 action created at tick 1 resolves at tick 2
+    let result = processTick(state);
+    result = processTick(result.state);
     const updatedTarget = result.state.characters.find(
       (c) => c.id === "target",
     );

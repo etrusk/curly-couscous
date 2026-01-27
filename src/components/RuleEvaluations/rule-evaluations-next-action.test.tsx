@@ -35,7 +35,7 @@ describe("RuleEvaluations - Next Action Display", () => {
       targetCell: { x: 1, y: 0 },
       targetCharacter: target,
       startedAtTick: 0,
-      resolvesAtTick: 0,
+      resolvesAtTick: 1,
     };
     const character = createCharacter();
     const { actions } = useGameStore.getState();
@@ -63,7 +63,7 @@ describe("RuleEvaluations - Next Action Display", () => {
       targetCell: { x: 1, y: 0 },
       targetCharacter: null,
       startedAtTick: 0,
-      resolvesAtTick: 0,
+      resolvesAtTick: 1,
     };
     const character = createCharacter();
     const { actions } = useGameStore.getState();
@@ -91,7 +91,7 @@ describe("RuleEvaluations - Next Action Display", () => {
       targetCell: { x: 1, y: 0 },
       targetCharacter: null,
       startedAtTick: 0,
-      resolvesAtTick: 0,
+      resolvesAtTick: 1,
     };
     const character = createCharacter();
     const { actions } = useGameStore.getState();
@@ -119,7 +119,7 @@ describe("RuleEvaluations - Next Action Display", () => {
       targetCell: { x: 0, y: 0 },
       targetCharacter: null,
       startedAtTick: 0,
-      resolvesAtTick: 0,
+      resolvesAtTick: 1,
     };
     const character = createCharacter();
     const { actions } = useGameStore.getState();

@@ -57,7 +57,7 @@ Before starting ANY new workflow:
 
 ```
 INIT → EXPLORE → PLAN → DESIGN_TESTS → TEST_DESIGN_REVIEW → WRITE_TESTS →
-VERIFY_FAIL → IMPLEMENT → VERIFY_PASS → REVIEW → [FIX if needed] → COMMIT
+VERIFY_FAIL → IMPLEMENT → VERIFY_PASS → REVIEW → [FIX if needed] → SYNC_DOCS → COMMIT
 ```
 
 ## Phase Definitions
@@ -75,6 +75,7 @@ VERIFY_FAIL → IMPLEMENT → VERIFY_PASS → REVIEW → [FIX if needed] → COM
 | VERIFY_PASS        | coder     | All tests pass, quality gates pass                  |
 | REVIEW             | reviewer  | `.tdd/review-findings.md` created                   |
 | FIX                | coder     | All review issues addressed                         |
+| SYNC_DOCS          | architect | Documentation synced with implementation            |
 | COMMIT             | coder     | Changes committed with conventional commit message  |
 
 ## Routing Logic
@@ -187,12 +188,12 @@ Write findings to .tdd/review-findings.md.
 Update .tdd/session.md when complete."
 ```
 
-### REVIEW Phase Complete → FIX or COMMIT
+### REVIEW Phase Complete → FIX or SYNC_DOCS
 
 Read `.tdd/review-findings.md`:
 
-- If critical issues found: AUTOMATICALLY spawn coder to fix
-- If no critical issues: AUTOMATICALLY spawn coder to commit
+- If critical issues found: AUTOMATICALLY spawn coder to fix (then return to REVIEW)
+- If no critical issues: AUTOMATICALLY proceed to SYNC_DOCS phase
 
 ```
 # If fixes needed:
@@ -202,13 +203,99 @@ prompt: "FIX phase: Read .tdd/review-findings.md and fix all issues.
 
 Address all critical and important issues.
 Update .tdd/session.md when complete."
+```
 
-# If ready to commit:
+### FIX Phase Complete → REVIEW Phase
+
+After fixes are applied, AUTOMATICALLY spawn reviewer again to verify fixes:
+
+```
+subagent_type: "reviewer"
+description: "Re-review after fixes"
+prompt: "REVIEW phase: Re-review the implementation after fixes.
+
+Read .tdd/review-findings.md to see what was fixed.
+Verify all issues are addressed.
+Write updated findings to .tdd/review-findings.md.
+Update .tdd/session.md when complete."
+```
+
+### REVIEW Phase Complete (no critical issues) → SYNC_DOCS Phase
+
+**This step is mandatory—execute every time.**
+
+AUTOMATICALLY spawn architect for documentation synchronization:
+
+```
+subagent_type: "architect"
+description: "Sync documentation with implementation"
+prompt: "SYNC_DOCS phase: Synchronize documentation with implementation.
+
+**Step 11a: Spec Alignment Check**
+
+Read and compare:
+1. Current implementation (files in .tdd/session.md 'Files Touched')
+2. .docs/spec.md (original specification)
+3. .docs/current-task.md 'Current Focus' (task context)
+4. .tdd/plan.md (planned approach)
+5. .tdd/review-findings.md (review notes)
+
+Answer these questions:
+- [ ] Did human feedback change requirements during implementation?
+- [ ] Were features implemented differently than originally designed?
+- [ ] Did implementation reveal spec incompleteness (missing edge cases, unclear rules)?
+- [ ] Were behavioral details clarified/added during development?
+- [ ] Did architectural decisions deviate from documented spec?
+
+**If YES to any** → proceed to Step 11b
+**If NO to all** → document in .tdd/session.md: 'Verified spec.md alignment—no updates needed' → Update phase to complete
+
+**Step 11b: Update Documents (if needed)**
+
+| Change Type | Target File | Action |
+|-------------|-------------|--------|
+| Behavioral changes, new rules, clarifications | .docs/spec.md | Update affected sections |
+| Design deviations, architectural changes | .docs/architecture.md | Document deviation and rationale |
+| New patterns discovered | .docs/patterns/index.md | Add pattern entry |
+| Significant decisions | .docs/decisions/index.md | Add ADR entry |
+| Failure patterns, lessons learned | .docs/lessons-learned.md | Append finding |
+
+**Substantial changes?** → Note in .tdd/session.md for human review before commit.
+
+**Step 11c: Session State Update**
+
+Update .docs/current-task.md:
+- Prepare completion note for 'Recent Completions' (do NOT move yet - orchestrator does this at COMMIT)
+- Verify context budget (file should stay under 500 tokens)
+
+**Step 11d: Lessons Learned (if applicable)**
+
+If implementation revealed spec problems, append to .docs/lessons-learned.md:
+
+```markdown
+## [Date]: [Brief title]
+
+**Spec gap**: [What the spec didn't cover]
+**Discovery**: [How it was discovered during implementation]
+**Resolution**: [How spec was updated]
+**Prevention**: [How to write better specs for similar features]
+```
+
+Write summary to .tdd/session.md under 'Documentation Updates'.
+Update .tdd/session.md phase to complete."
+```
+
+### SYNC_DOCS Phase Complete → COMMIT Phase
+
+AUTOMATICALLY spawn coder for commit:
+
+```
 subagent_type: "coder"
 description: "Commit changes"
 prompt: "COMMIT phase: Create conventional commit for this work.
 
 Run git status, git diff, git log to understand changes.
+Include ALL changes (implementation + documentation updates).
 Create commit with Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
 Update .tdd/session.md when complete."
 ```
@@ -270,6 +357,10 @@ Recommend next action."
 ## Review Cycles
 
 Count: [0-2]
+
+## Documentation Updates
+
+[SYNC_DOCS phase findings - spec alignment status, files updated, lessons learned]
 
 ## Documentation Recommendations
 
@@ -342,12 +433,14 @@ When COMMIT phase succeeds:
    rm -f .tdd/session.md .tdd/exploration.md .tdd/plan.md .tdd/test-designs.md .tdd/review-findings.md .tdd/troubleshooter-report.md
    ```
 
+   **Note**: Do NOT delete `.docs/` files—these are version-controlled and contain long-term project knowledge.
+
 3. Output final summary:
    - Task completed
-   - Files created/modified
+   - Files created/modified (implementation + documentation)
    - Tests added
    - Commit hash
-   - Documentation recommendations (if any)
+   - Documentation updates made (if any)
 
 4. End with: `TDD WORKFLOW COMPLETE. [commit-hash]`
 

@@ -230,7 +230,7 @@ describe("IntentOverlay", () => {
           targetCell: { x: 5, y: 5 },
           targetCharacter: null,
           startedAtTick: 0,
-          resolvesAtTick: 0,
+          resolvesAtTick: 1,
         };
         const char = createCharacter({
           id: "char1",
@@ -264,7 +264,7 @@ describe("IntentOverlay", () => {
           targetCell: { x: 5, y: 5 },
           targetCharacter: null,
           startedAtTick: 0,
-          resolvesAtTick: 0,
+          resolvesAtTick: 1,
         };
         const char = createCharacter({
           id: "char1",

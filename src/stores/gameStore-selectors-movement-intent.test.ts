@@ -13,7 +13,7 @@ describe("selectIntentData - movement intents", () => {
     useGameStore.getState().actions.reset();
   });
 
-  it("should include movement actions with ticksRemaining=0 (core fix)", () => {
+  it("should include movement actions with ticksRemaining=1 (core fix)", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
@@ -25,7 +25,7 @@ describe("selectIntentData - movement intents", () => {
       targetCell: { x: 5, y: 5 },
       targetCharacter: null,
       startedAtTick: 0,
-      resolvesAtTick: 0,
+      resolvesAtTick: 1,
     };
     const char = createCharacter({
       id: "char1",
@@ -33,13 +33,13 @@ describe("selectIntentData - movement intents", () => {
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
-    // tick = 0 after initBattle, ticksRemaining = 0 - 0 = 0
+    // tick = 0 after initBattle, ticksRemaining = 1 - 0 = 1
 
     const result = selectIntentData(useGameStore.getState());
 
     expect(result).toHaveLength(1);
     expect(result[0]?.characterId).toBe("char1");
-    expect(result[0]?.ticksRemaining).toBe(0);
+    expect(result[0]?.ticksRemaining).toBe(1);
     expect(result[0]?.action.type).toBe("move");
   });
 
@@ -55,7 +55,7 @@ describe("selectIntentData - movement intents", () => {
       targetCell: { x: 6, y: 6 },
       targetCharacter: null,
       startedAtTick: 0,
-      resolvesAtTick: 1,
+      resolvesAtTick: 2,
     };
     const char = createCharacter({
       id: "char1",
@@ -63,12 +63,12 @@ describe("selectIntentData - movement intents", () => {
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
-    // tick = 0 after initBattle, ticksRemaining = 1 - 0 = 1
+    // tick = 0 after initBattle, ticksRemaining = 2 - 0 = 2
 
     const result = selectIntentData(useGameStore.getState());
 
     expect(result).toHaveLength(1);
-    expect(result[0]?.ticksRemaining).toBe(1);
+    expect(result[0]?.ticksRemaining).toBe(2);
     expect(result[0]?.action.type).toBe("move");
   });
 
@@ -84,7 +84,7 @@ describe("selectIntentData - movement intents", () => {
       targetCell: { x: 7, y: 3 },
       targetCharacter: null,
       startedAtTick: 0,
-      resolvesAtTick: 0,
+      resolvesAtTick: 1,
     };
     const char = createCharacter({
       id: "char1",
@@ -100,7 +100,7 @@ describe("selectIntentData - movement intents", () => {
     expect(result[0]?.characterPosition).toEqual({ x: 6, y: 3 });
   });
 
-  it("should filter out attack actions with ticksRemaining=0 (regression prevention)", () => {
+  it("should include attack actions with ticksRemaining=1 (about to execute)", () => {
     const instantAttackSkill = createSkill({
       id: "instant-attack",
       tickCost: 1,
@@ -112,7 +112,7 @@ describe("selectIntentData - movement intents", () => {
       targetCell: { x: 2, y: 2 },
       targetCharacter: null,
       startedAtTick: 0,
-      resolvesAtTick: 0,
+      resolvesAtTick: 1,
     };
     const char = createCharacter({
       id: "char1",
@@ -120,11 +120,14 @@ describe("selectIntentData - movement intents", () => {
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
-    // tick = 0 after initBattle, ticksRemaining = 0 - 0 = 0
+    // tick = 0 after initBattle, ticksRemaining = 1 - 0 = 1
 
     const result = selectIntentData(useGameStore.getState());
 
-    expect(result).toHaveLength(0);
+    // Should show attack with ticksRemaining=1 (about to execute)
+    expect(result).toHaveLength(1);
+    expect(result[0]?.action.type).toBe("attack");
+    expect(result[0]?.ticksRemaining).toBe(1);
   });
 
   it("should include movement intents for both factions", () => {
@@ -139,7 +142,7 @@ describe("selectIntentData - movement intents", () => {
       targetCell: { x: 5, y: 5 },
       targetCharacter: null,
       startedAtTick: 0,
-      resolvesAtTick: 0,
+      resolvesAtTick: 1,
     };
     const enemyAction: Action = {
       type: "move",
@@ -147,7 +150,7 @@ describe("selectIntentData - movement intents", () => {
       targetCell: { x: 7, y: 5 },
       targetCharacter: null,
       startedAtTick: 0,
-      resolvesAtTick: 0,
+      resolvesAtTick: 1,
     };
     const friendlyChar = createCharacter({
       id: "friendly",
@@ -186,7 +189,7 @@ describe("selectIntentData - movement intents", () => {
       targetCell: { x: 5, y: 5 },
       targetCharacter: null,
       startedAtTick: 0,
-      resolvesAtTick: 0,
+      resolvesAtTick: 1,
     };
     const char = createCharacter({
       id: "char1",
@@ -195,9 +198,9 @@ describe("selectIntentData - movement intents", () => {
     useGameStore.getState().actions.initBattle([char]);
     // Manually advance tick beyond resolvesAtTick
     useGameStore.setState((state) => {
-      state.gameState.tick = 1;
+      state.gameState.tick = 2;
     });
-    // ticksRemaining = 0 - 1 = -1
+    // ticksRemaining = 1 - 2 = -1
 
     const result = selectIntentData(useGameStore.getState());
 

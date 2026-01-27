@@ -32,7 +32,7 @@ function createIdleAction(): Action {
     targetCell: { x: 0, y: 0 },
     targetCharacter: null,
     startedAtTick: 0,
-    resolvesAtTick: 0,
+    resolvesAtTick: 1,
   };
 }
 
@@ -53,7 +53,7 @@ describe("RuleEvaluations - Action Summary", () => {
         { x: 1, y: 0 },
         createTarget(),
         0,
-        0
+        1
       );
 
       // We'll test this by rendering and checking if "Light Punch" appears without emoji

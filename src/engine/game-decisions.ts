@@ -100,7 +100,7 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
           targetCell: character.position,
           targetCharacter: null,
           startedAtTick: state.tick,
-          resolvesAtTick: state.tick + skill.tickCost - 1,
+          resolvesAtTick: state.tick + skill.tickCost,
         };
         break;
       }

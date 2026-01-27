@@ -39,7 +39,7 @@ Characters are homogeneous in v0.3. Differentiation comes from skill loadout and
 
 - Tick cost: 1, Range: 1 (melee), Damage: 10
 - Default selector: nearest_enemy
-- Fast but weak. Cannot be dodged (resolves same tick).
+- Fast but weak. 1-tick wind-up visible before resolution.
 
 ### Heavy Punch
 
@@ -72,7 +72,7 @@ Characters are homogeneous in v0.3. Differentiation comes from skill loadout and
 - `hp_below X%`: Own HP below X%
 - `my_cell_targeted_by_enemy`: Enemy has locked-in action targeting this cell
 
-**Note:** `my_cell_targeted_by_enemy` only detects multi-tick actions from previous ticks. Same-tick Light Punches are invisible until resolution.
+**Note:** `my_cell_targeted_by_enemy` detects any pending action targeting the cell. All actions have at least 1 tick of visibility before resolution.
 
 ## Core Game Mechanics
 
@@ -119,7 +119,7 @@ When multiple cells are equidistant to target:
 
 Intent lines visualize pending actions, enabling at-a-glance battlefield reading.
 
-**Visibility:** Intent lines appear for actions with `ticksRemaining > 0` (actions that will resolve in future ticks). Same‑tick actions (e.g., Light Punch with tick cost 1) do not show intent lines because they resolve immediately—players see the damage effect instead.
+**Visibility:** Intent lines appear for all pending actions with `ticksRemaining >= 0`. All actions (including Light Punch with tick cost 1) show intent lines for at least one tick before resolution.
 
 ### Visual Encoding
 

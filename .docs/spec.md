@@ -126,14 +126,18 @@ Battle progresses in discrete ticks. Tick 0 is initial state.
 
 Chebyshev distance (8-directional; diagonals cost 1)
 
-### Movement Tiebreaking
+### Movement System
 
-When multiple cells are equidistant to target:
+**Towards mode:** Uses A\* pathfinding to find the optimal path around obstacles (other characters). Diagonal moves cost sqrt(2) while cardinal moves cost 1.0, producing natural-looking paths without unnecessary zig-zagging. When no path exists, the character stays in place.
 
-1. Prefer horizontal movement (lower X difference)
-2. Then vertical movement (lower Y difference)
+**Away mode:** Uses single-step maximization with tiebreaking hierarchy:
+
+1. Maximize resulting Chebyshev distance from target
+2. Maximize resulting |dx|, then |dy|
 3. Then lower Y coordinate
 4. Then lower X coordinate
+
+**Hold mode:** Character passes their turn (no movement).
 
 ### Collision Resolution
 

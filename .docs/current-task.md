@@ -10,10 +10,13 @@
 
 ## Current Focus
 
-[No active task]
+**Workflow:** TDD (Claude Code)
+**Started:** 2026-01-28
+**Task:** Implement A\* pathfinding algorithm for 8-directional movement on square grid (10x10 to 30x30). Treats characters as obstacles, diagonal movement properly weighted to prevent zig-zagging.
 
 ## Recent Completions
 
+- 2026-01-29: A* pathfinding for smooth movement - Implemented weighted A* pathfinding algorithm with binary heap priority queue for "towards" movement mode. Characters now navigate optimally around obstacles without zig-zagging. Created pathfinding.ts (210 lines), 21 unit tests, 8 integration tests. Updated 6 existing test assertions to reflect A\* behavior. All 851 tests passing. Commit XXXXXXX.
 - 2026-01-28: Movement target lines feature - Added constantly visible movement target lines showing which character each character is moving toward. Features: bidirectional line offset pattern (3px perpendicular), accessibility toggle with localStorage persistence, neutral gray styling across all themes. Created TargetingLine/TargetingLineOverlay components, selectMovementTargetData selector with memoization. All 19 files with tests passing. Commit 0fd9cd8.
 - 2026-01-28: TDD workflow request clarification - Added mandatory request clarification phase to TDD workflow. Ensures scope, acceptance criteria, and constraints are validated before implementation. Aligns with research guidelines on spec-driven development. Added ~50 lines while keeping concise. Commit 2778011.
 - 2026-01-28: TDD workflow improvements - Added HUMAN_VERIFY quality gate phase to TDD workflow between REVIEW and SYNC_DOCS. Documented browser automation verification patterns for UI changes. Updated workflow routing and session template. Merged to main. Commit 4bf90f9.
@@ -26,5 +29,4 @@
 
 ## Next Steps
 
-- If only 2 characters, they move erratically in a zig-zag towards each other, should be smoother
 - Sentence-builder UI for SkillsPanel configuration

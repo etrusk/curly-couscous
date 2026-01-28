@@ -414,7 +414,8 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 1 });
+    // A* pathfinding moves diagonally to target (0,0) which is adjacent
+    expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 0 });
   });
 
   it("should escape from adjacent target at wall (single cell)", () => {

@@ -27,6 +27,7 @@ src/
 │   ├── game.ts       # Core tick processing
 │   ├── combat.ts     # Attack resolution, damage calculation
 │   ├── movement.ts   # Movement, collision resolution
+│   ├── pathfinding.ts # A* pathfinding algorithm with binary heap
 │   ├── selectors.ts  # Target selection strategies
 │   └── triggers.ts   # Trigger condition evaluation
 ├── stores/           # Zustand stores

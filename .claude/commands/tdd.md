@@ -57,33 +57,37 @@ Concerns: [architectural/scope issues if any]
 
 ---
 
-## Browser Automation (When Applicable)
+## Browser Automation (MANDATORY for UI Tasks)
 
-For tasks involving UI implementation or browser-based debugging, use **Claude in Chrome** integration:
+**CRITICAL**: For ANY task involving UI implementation or browser-based debugging, agents MUST use **Claude in Chrome** integration.
 
-**When to use browser automation:**
+**NON-NEGOTIABLE REQUIREMENT**: Skipping browser verification for UI tasks is considered incomplete work and will result in implementation failure. Agents cannot claim completion without browser verification.
 
-- Implementing/modifying visual components (buttons, forms, game UI)
-- Debugging rendering issues, CSS problems, or interaction bugs
-- Verifying browser console errors and DOM state
-- Recording workflows as GIFs for documentation
+**Agents MUST use browser automation for:**
 
-**Automated browser verification (agents perform automatically):**
+- ANY implementation/modification of visual components (buttons, forms, game UI)
+- ANY debugging of rendering issues, CSS problems, or interaction bugs
+- ALL browser console error verification and DOM state inspection
+- Recording workflows as GIFs for documentation (when appropriate)
 
-1. **During IMPLEMENT (coder agent)**: After writing UI code, automatically:
+**Automated browser verification (agents MUST perform):**
+
+1. **During IMPLEMENT (coder agent)**: MUST ALWAYS perform after writing ANY UI code:
    - Start dev server if needed (`npm run dev`)
    - Navigate to relevant page
    - Verify component renders without console errors
    - Check basic interactions work (clicks, form inputs)
    - Document findings in `.tdd/session.md` under "Browser Verification"
+   - **NEVER skip this step - failure to verify is considered incomplete implementation**
 
-2. **During FIX (coder agent)**: For UI-related bugs:
+2. **During FIX (coder agent)**: MUST be performed for ALL UI-related bugs:
    - Read browser console for errors
    - Inspect DOM state and element properties
    - Test problematic interactions
    - Verify fixes resolve console errors
+   - **NEVER attempt UI bug fixes without browser verification**
 
-3. **During troubleshooting**: Live debugging with browser context
+3. **During troubleshooting**: MUST use live debugging with browser context for ANY UI-related issues
 
 **Human verification (HUMAN_VERIFY phase):**
 
@@ -146,22 +150,22 @@ After EVERY agent completion, output:
 
 ## Phase Routing
 
-| Phase              | Agent     | Task Prompt Template                                                                                                                   | Route To               |
-| ------------------ | --------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                                                  | EXPLORE                |
-| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index}.md`. Write findings to `.tdd/exploration.md`. Update session.                           | PLAN                   |
-| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                                              | DESIGN_TESTS           |
-| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                                      | TEST_DESIGN_REVIEW     |
-| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Fix if needed. Update session.                         | WRITE_TESTS            |
-| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests (should FAIL). Update session.                                                            | IMPLEMENT              |
-| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run quality gates. **If UI changes:** verify in browser. Update session. | REVIEW                 |
-| REVIEW             | reviewer  | Read `.tdd/plan.md`, `.docs/{spec,patterns/index}.md`. Write findings to `.tdd/review-findings.md`. Update session.                    | FIX or HUMAN_VERIFY    |
-| FIX                | coder     | Read `.tdd/review-findings.md`. Fix all critical/important issues. **Use browser debugging if UI-related.** Update session.            | REVIEW (re-review)     |
-| HUMAN_VERIFY       | (self)    | See HUMAN_VERIFY section below.                                                                                                        | SYNC_DOCS or FIX       |
-| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                                           | COMMIT                 |
-| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                                             | Cleanup and completion |
+| Phase              | Agent     | Task Prompt Template                                                                                                                            | Route To               |
+| ------------------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                                                           | EXPLORE                |
+| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index}.md`. Write findings to `.tdd/exploration.md`. Update session.                                    | PLAN                   |
+| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                                                       | DESIGN_TESTS           |
+| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                                               | TEST_DESIGN_REVIEW     |
+| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Fix if needed. Update session.                                  | WRITE_TESTS            |
+| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests (should FAIL). Update session.                                                                     | IMPLEMENT              |
+| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run quality gates. **MUST verify in browser for ANY UI changes.** Update session. | REVIEW                 |
+| REVIEW             | reviewer  | Read `.tdd/plan.md`, `.docs/{spec,patterns/index}.md`. Write findings to `.tdd/review-findings.md`. Update session.                             | FIX or HUMAN_VERIFY    |
+| FIX                | coder     | Read `.tdd/review-findings.md`. Fix all critical/important issues. **MUST use browser debugging for ANY UI-related issues.** Update session.    | REVIEW (re-review)     |
+| HUMAN_VERIFY       | (self)    | See HUMAN_VERIFY section below.                                                                                                                 | SYNC_DOCS or FIX       |
+| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                                                    | COMMIT                 |
+| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                                                      | Cleanup and completion |
 
-**Stuck/Troubleshooting**: If coder reports STUCK, spawn troubleshooter agent for root cause diagnosis. For UI bugs, troubleshooter should use browser automation to read console errors and DOM state.
+**Stuck/Troubleshooting**: If coder reports STUCK, spawn troubleshooter agent for root cause diagnosis. For UI bugs, troubleshooter MUST ALWAYS use browser automation to read console errors and DOM state.
 
 ---
 
@@ -423,7 +427,10 @@ When coder completes COMMIT:
 
 ## Browser Verification
 
-[If applicable: browser testing performed, interactions verified, console errors checked, GIF recorded]
+**REQUIRED for ALL UI tasks - agents MUST document this section**
+
+[For UI tasks: browser testing performed, interactions verified, console errors checked, GIF recorded]
+[For non-UI tasks: "Not applicable - no UI changes"]
 
 ## Human Verification
 

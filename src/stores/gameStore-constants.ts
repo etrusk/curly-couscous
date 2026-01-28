@@ -11,8 +11,10 @@ import type { Skill } from "../engine/types";
 export const GRID_SIZE = 12;
 
 /**
- * Helper function to create consistent position keys.
+ * Helper function to create consistent position keys for game state.
  * Uses hyphen format: "x-y"
+ * NOTE: This differs from pathfinding.positionKey which uses "x,y" format.
+ * Keep these separate - they serve different modules and should not be mixed.
  */
 export const positionKey = (x: number, y: number): string => `${x}-${y}`;
 

@@ -4,9 +4,14 @@
  */
 
 import { Character, Position } from "./types";
+import { findPath, positionKey } from "./pathfinding";
+import { GRID_SIZE } from "../stores/gameStore-constants";
 
 /**
  * Compute move destination with tiebreaking rules for 8-direction movement.
+ *
+ * For "towards" mode: Uses A* pathfinding to navigate around obstacles (other characters).
+ * For "away" mode: Uses tiebreaking hierarchy for single-step maximization.
  *
  * Tiebreaking hierarchy (when multiple cells equally optimal):
  * 1. For "towards": minimize resulting Chebyshev distance to target
@@ -19,6 +24,7 @@ import { Character, Position } from "./types";
  * @param mover - Character that is moving
  * @param target - Target character to move towards/away from
  * @param mode - Movement mode ('towards' or 'away')
+ * @param allCharacters - All characters on the battlefield
  * @returns Destination position (1 cell away from mover)
  */
 export function computeMoveDestination(
@@ -35,7 +41,31 @@ export function computeMoveDestination(
     return mover.position;
   }
 
-  // Generate all 8 possible adjacent cells (including diagonals)
+  // For "towards" mode, use A* pathfinding
+  if (mode === "towards") {
+    // Build obstacle set from all characters except mover and target
+    // (target position should be reachable for melee combat)
+    const obstacles = buildObstacleSet(allCharacters, mover.id, target.id);
+
+    // Find path using A* with current grid size
+    const path = findPath(
+      mover.position,
+      target.position,
+      GRID_SIZE,
+      GRID_SIZE,
+      obstacles,
+    );
+
+    // If path found and has at least 2 positions (start + first step)
+    if (path.length > 1) {
+      return path[1]!; // First step from path (path[0] is current position)
+    }
+
+    // No path found or already at target - stay in place
+    return mover.position;
+  }
+
+  // For "away" mode, use existing tiebreaking logic
   const candidates = generateValidCandidates(mover, allCharacters, mode);
 
   // If no valid candidates (should never happen unless mover is outside grid)
@@ -45,6 +75,24 @@ export function computeMoveDestination(
 
   // Evaluate each candidate using tiebreaking hierarchy
   return selectBestCandidate(candidates, target, mode);
+}
+
+/**
+ * Build set of obstacle positions from characters, excluding specified IDs.
+ * Typically excludes mover and target to allow pathfinding to reach the target.
+ */
+function buildObstacleSet(
+  characters: Character[],
+  ...excludeIds: string[]
+): Set<string> {
+  const excludeSet = new Set(excludeIds);
+  const obstacles = new Set<string>();
+  for (const c of characters) {
+    if (!excludeSet.has(c.id)) {
+      obstacles.add(positionKey(c.position));
+    }
+  }
+  return obstacles;
 }
 
 /**
@@ -91,9 +139,9 @@ export function generateValidCandidates(
     // Only consider cells within grid bounds
     if (
       candidate.x >= 0 &&
-      candidate.x < 12 &&
+      candidate.x < GRID_SIZE &&
       candidate.y >= 0 &&
-      candidate.y < 12
+      candidate.y < GRID_SIZE
     ) {
       // Filter out occupied diagonal cells
       if (isDiagonal(dir) && isOccupied(candidate)) {

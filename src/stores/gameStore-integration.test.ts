@@ -410,7 +410,7 @@ describe("Intent Data Integration", () => {
     expect(intentData[0]?.ticksRemaining).toBe(2);
   });
 
-  it("should produce empty intent data after processTick for Light Punch (tickCost 1)", () => {
+  it("should show preview intent data after action resolves for Light Punch (tickCost 1)", () => {
     const attacker = createCharacter({
       id: "attacker",
       faction: "friendly",
@@ -430,12 +430,14 @@ describe("Intent Data Integration", () => {
     useGameStore.getState().actions.initBattle([attacker, target]);
     // At tick 0, computeDecisions produces an action with resolvesAtTick = 1 (new formula: tick + tickCost)
     // After first processTick, tick becomes 1, action resolves and is cleared
-    // This test verifies intent lines are not shown for already-resolved actions.
+    // After second processTick, tick becomes 2, character is idle and shows preview
     useGameStore.getState().actions.processTick();
     useGameStore.getState().actions.processTick();
 
     const intentData = selectIntentData(useGameStore.getState());
-    expect(intentData).toHaveLength(0);
+    // With preview feature, idle attacker shows intent line for next action
+    expect(intentData).toHaveLength(1);
+    expect(intentData[0]?.characterId).toBe("attacker");
   });
 });
 

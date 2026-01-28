@@ -124,6 +124,11 @@ export interface IntentData {
  * Select pending actions for intent line visualization.
  * Used by IntentOverlay to render lines from characters to their targets.
  *
+ * Includes both committed actions (characters with currentAction) and preview
+ * decisions (idle characters without currentAction). Preview decisions show
+ * what a character will do next, enabling intent lines at tick 0 and when
+ * an action resolves.
+ *
  * Filters out:
  * - Idle actions (type "idle")
  * - Actions with ticksRemaining < 0 (already resolved)
@@ -138,23 +143,53 @@ export interface IntentData {
 export const selectIntentData = (state: GameStore): IntentData[] => {
   const { tick, characters } = state.gameState;
 
+  // 1. Characters with committed actions (existing logic)
   const withActions = characters.filter(
     (c): c is Character & { currentAction: Action } => c.currentAction !== null,
   );
 
-  const mapped = withActions.map((c) => ({
-    characterId: c.id,
-    characterPosition: c.position,
-    faction: c.faction,
-    action: c.currentAction,
-    ticksRemaining: c.currentAction.resolvesAtTick - tick,
-  }));
+  const committed: IntentData[] = withActions
+    .map((c) => ({
+      characterId: c.id,
+      characterPosition: c.position,
+      faction: c.faction,
+      action: c.currentAction,
+      ticksRemaining: c.currentAction.resolvesAtTick - tick,
+    }))
+    .filter(
+      (intent) => intent.action.type !== "idle" && intent.ticksRemaining >= 0,
+    );
 
-  const filtered = mapped.filter(
-    (intent) => intent.action.type !== "idle" && intent.ticksRemaining >= 0,
+  // 2. Idle characters - compute preview decisions
+  const idleCharacterIds = new Set(
+    characters
+      .filter((c) => c.currentAction === null && c.hp > 0)
+      .map((c) => c.id),
   );
 
-  return filtered;
+  // Early exit if no idle characters
+  if (idleCharacterIds.size === 0) {
+    return committed;
+  }
+
+  const decisions = computeDecisions(state.gameState);
+
+  const previews: IntentData[] = decisions
+    .filter((d) => idleCharacterIds.has(d.characterId))
+    .filter((d) => d.action.type !== "idle")
+    .map((d) => {
+      const character = characters.find((c) => c.id === d.characterId)!;
+      return {
+        characterId: d.characterId,
+        characterPosition: character.position,
+        faction: character.faction,
+        action: d.action,
+        ticksRemaining: d.action.resolvesAtTick - tick,
+      };
+    })
+    .filter((intent) => intent.ticksRemaining >= 0);
+
+  return [...committed, ...previews];
 };
 
 /**

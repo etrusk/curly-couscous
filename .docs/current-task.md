@@ -10,7 +10,7 @@
 
 ## Current Focus
 
-[No active task]
+2026-01-28 (Claude Code TDD): Movement targeting should show intent lines when target changed - Implementing intent line display when movement targets are changed, including first selection at step 1 (no special casing)
 
 ## Recent Completions
 

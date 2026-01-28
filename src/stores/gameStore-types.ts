@@ -11,6 +11,7 @@ import type {
   Faction,
   Position,
 } from "../engine/types";
+import type { MovementTargetData } from "./gameStore-selectors";
 
 /**
  * Selection mode for click-to-place functionality.
@@ -36,6 +37,7 @@ export interface GameStore {
 
   // Selectors
   selectIsGridFull: () => boolean;
+  selectMovementTargetData: () => MovementTargetData[];
 
   // Actions to mutate state
   actions: {

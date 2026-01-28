@@ -10,8 +10,10 @@ export type Theme = "light" | "dark" | "high-contrast";
 interface AccessibilityState {
   theme: Theme;
   highContrast: boolean;
+  showTargetLines: boolean;
   setTheme: (theme: Theme) => void;
   setHighContrast: (enabled: boolean) => void;
+  setShowTargetLines: (enabled: boolean) => void;
 }
 
 /**
@@ -58,6 +60,17 @@ function getInitialTheme(): Theme {
 function getInitialHighContrast(): boolean {
   if (isLocalStorageAvailable()) {
     const stored = localStorage.getItem("high-contrast");
+    return stored === "true";
+  }
+  return false;
+}
+
+/**
+ * Get initial show target lines preference from localStorage
+ */
+function getInitialShowTargetLines(): boolean {
+  if (isLocalStorageAvailable()) {
+    const stored = localStorage.getItem("show-target-lines");
     return stored === "true";
   }
   return false;
@@ -112,11 +125,25 @@ function persistHighContrast(enabled: boolean): void {
 }
 
 /**
+ * Persist show target lines preference to localStorage if available
+ */
+function persistShowTargetLines(enabled: boolean): void {
+  if (isLocalStorageAvailable()) {
+    try {
+      localStorage.setItem("show-target-lines", String(enabled));
+    } catch {
+      // Silently fail if localStorage is unavailable
+    }
+  }
+}
+
+/**
  * Create accessibility store with theme and high-contrast management
  */
 export const useAccessibilityStore = create<AccessibilityState>((set) => {
   const initialTheme = getInitialTheme();
   const initialHighContrast = getInitialHighContrast();
+  const initialShowTargetLines = getInitialShowTargetLines();
 
   // Apply initial theme and high-contrast on store creation
   applyTheme(initialTheme);
@@ -139,6 +166,7 @@ export const useAccessibilityStore = create<AccessibilityState>((set) => {
   return {
     theme: initialTheme,
     highContrast: initialHighContrast,
+    showTargetLines: initialShowTargetLines,
 
     setTheme: (theme: Theme) => {
       set({ theme });
@@ -150,6 +178,11 @@ export const useAccessibilityStore = create<AccessibilityState>((set) => {
       set({ highContrast: enabled });
       applyHighContrast(enabled);
       persistHighContrast(enabled);
+    },
+
+    setShowTargetLines: (enabled: boolean) => {
+      set({ showTargetLines: enabled });
+      persistShowTargetLines(enabled);
     },
   };
 });

@@ -1,0 +1,8 @@
+/**
+ * TargetingLine styles
+ * Minimal styling - animations optional
+ */
+
+.targetingLine {
+  transition: opacity 0.2s ease;
+}

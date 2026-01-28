@@ -5,6 +5,7 @@
 
 import { Grid } from "./Grid";
 import { IntentOverlay } from "./IntentOverlay";
+import { TargetingLineOverlay } from "./TargetingLineOverlay";
 import { DamageOverlay } from "./DamageOverlay";
 import {
   useGameStore,
@@ -70,6 +71,11 @@ export function BattleViewer({
           clickableCells={clickableCells}
         />
         <IntentOverlay
+          gridWidth={gridWidth}
+          gridHeight={gridHeight}
+          cellSize={cellSize}
+        />
+        <TargetingLineOverlay
           gridWidth={gridWidth}
           gridHeight={gridHeight}
           cellSize={cellSize}

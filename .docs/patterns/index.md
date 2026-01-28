@@ -8,9 +8,9 @@ LLM-optimized index of implementation patterns successfully applied in this code
 
 ## Patterns
 
-| Pattern                            | Description | File |
-| ---------------------------------- | ----------- | ---- |
-| _(No implementation patterns yet)_ |             |      |
+| Pattern                   | Description                                                  | File                                                           |
+| ------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
+| Bidirectional Line Offset | Perpendicular offset for overlapping bidirectional SVG lines | [bidirectional-line-offset.md](./bidirectional-line-offset.md) |
 
 **Note**: Progressive disclosure patterns (collapsible sections, nested tooltips) are documented as design principles in `spec.md` rather than implementation patterns.
 

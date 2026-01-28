@@ -19,6 +19,31 @@
   margin: 0;
 }
 
+.headerControls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.toggleLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 .gridContainer {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr; /* 50%, 25%, 25% */

@@ -16,6 +16,7 @@ import {
   computeDecisions,
   evaluateSkillsForCharacter as _evaluateSkillsForCharacter,
 } from "../engine/game";
+import { evaluateSelector } from "../engine/selectors";
 
 // ============================================================================
 // Basic Selectors
@@ -211,6 +212,76 @@ export const selectRecentDamageEvents = (state: GameStore): DamageEvent[] => {
     (e): e is DamageEvent => e.type === "damage" && e.tick === tick,
   );
 };
+
+/**
+ * Data needed for targeting line rendering.
+ */
+export interface MovementTargetData {
+  fromId: string;
+  fromPosition: Position;
+  toPosition: Position;
+  toId: string;
+}
+
+/**
+ * Select movement target data for targeting lines.
+ * Shows which character each character is moving toward based on their Move skill selector.
+ *
+ * Evaluates the Move skill's selector for each living character to determine their movement target.
+ * Returns data connecting each character to their target position.
+ *
+ * Memoized to avoid re-computation when characters haven't changed.
+ *
+ * @param state - The game store state
+ * @returns Array of movement target data for rendering targeting lines
+ */
+export const selectMovementTargetData = (() => {
+  let lastCharacters: Character[] | null = null;
+  let lastResult: MovementTargetData[] | null = null;
+
+  return (state: GameStore): MovementTargetData[] => {
+    const { characters } = state.gameState;
+
+    // If characters reference hasn't changed, return cached result
+    if (characters === lastCharacters && lastResult !== null) {
+      return lastResult;
+    }
+
+    // Filter living characters
+    const living = characters.filter((c) => c.hp > 0);
+
+    // Compute fresh result
+    const result = living
+      .map((character) => {
+        // Find Move skill (skill with mode property)
+        const moveSkill = character.skills.find((s) => s.mode !== undefined);
+        if (!moveSkill) return null;
+
+        // Get selector (default to nearest_enemy if no override)
+        const selector = moveSkill.selectorOverride ?? {
+          type: "nearest_enemy",
+        };
+
+        // Evaluate selector to find target
+        const target = evaluateSelector(selector, character, characters);
+        if (!target || target.id === character.id) return null;
+
+        return {
+          fromId: character.id,
+          fromPosition: character.position,
+          toPosition: target.position,
+          toId: target.id,
+        };
+      })
+      .filter((data): data is MovementTargetData => data !== null);
+
+    // Update cache
+    lastCharacters = characters;
+    lastResult = result;
+
+    return result;
+  };
+})();
 
 // ============================================================================
 // SkillsPanel Selectors

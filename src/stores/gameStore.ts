@@ -43,12 +43,20 @@ import {
   selectIsGridFull as selectorIsGridFull,
   selectSelectionMode,
   selectClickableCells,
+  selectMovementTargetData,
   type TokenData,
   type IntentData,
+  type MovementTargetData,
 } from "./gameStore-selectors";
 
 // Re-export all selectors and types for external use
-export type { GameStore, SelectionMode, TokenData, IntentData };
+export type {
+  GameStore,
+  SelectionMode,
+  TokenData,
+  IntentData,
+  MovementTargetData,
+};
 export {
   selectCharacters,
   selectTick,
@@ -70,6 +78,7 @@ export {
   selectorIsGridFull as selectIsGridFull,
   selectSelectionMode,
   selectClickableCells,
+  selectMovementTargetData,
 };
 
 // ============================================================================
@@ -88,6 +97,7 @@ export const useGameStore = create<GameStore>()(
 
     // Selectors
     selectIsGridFull: () => get().gameState.characters.length >= 144,
+    selectMovementTargetData: () => selectMovementTargetData(get()),
 
     // Actions
     actions: {
@@ -141,7 +151,9 @@ export const useGameStore = create<GameStore>()(
 
           // Immer workaround: Clone using JSON serialization
           // Note: Cannot use structuredClone inside Immer draft context
-          const clonedCharacters = JSON.parse(JSON.stringify(result.state.characters)) as Character[];
+          const clonedCharacters = JSON.parse(
+            JSON.stringify(result.state.characters),
+          ) as Character[];
           state.gameState.characters.length = 0;
           state.gameState.characters.push(...clonedCharacters);
 

@@ -14,6 +14,7 @@
 
 ## Recent Completions
 
+- 2026-01-28: Movement target lines feature - Added constantly visible movement target lines showing which character each character is moving toward. Features: bidirectional line offset pattern (3px perpendicular), accessibility toggle with localStorage persistence, neutral gray styling across all themes. Created TargetingLine/TargetingLineOverlay components, selectMovementTargetData selector with memoization. All 19 files with tests passing. Commit 0fd9cd8.
 - 2026-01-28: TDD workflow request clarification - Added mandatory request clarification phase to TDD workflow. Ensures scope, acceptance criteria, and constraints are validated before implementation. Aligns with research guidelines on spec-driven development. Added ~50 lines while keeping concise. Commit 2778011.
 - 2026-01-28: TDD workflow improvements - Added HUMAN_VERIFY quality gate phase to TDD workflow between REVIEW and SYNC_DOCS. Documented browser automation verification patterns for UI changes. Updated workflow routing and session template. Merged to main. Commit 4bf90f9.
 - 2026-01-28: IntentOverlay subscription fix - Fixed Zustand subscription bug where IntentOverlay component did not re-render when characters added via addCharacter/addCharacterAtPosition. Root cause: complex selector logic prevented Zustand from detecting dependency on characters array. Solution: Added explicit selectCharacters subscription in IntentOverlay. 8 new tests added. All tests passing. Commit 090290b.

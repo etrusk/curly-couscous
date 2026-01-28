@@ -20,6 +20,43 @@ Do NOT read implementation files directly.
 
 ---
 
+## Request Clarification (MANDATORY for new workflows)
+
+**For NEW workflows only**, analyze and clarify the request BEFORE starting INIT:
+
+**Analyze:**
+
+- What/why/where/scope/complexity
+- Missing: acceptance criteria, constraints, edge cases
+- Alternatives: simpler approaches, phased implementation, architectural concerns
+- Examples: "Add dark mode" → too broad, suggest phase 1 (toggle) vs phase 2 (styling). "Fix bug" → which bug, reproduction steps?
+
+**Present to human:**
+
+```
+Understanding: [what needs to be done, scope, complexity]
+Questions: [ambiguities requiring answers]
+Alternatives: [if multiple valid approaches exist]
+Concerns: [architectural/scope issues if any]
+```
+
+**Wait for confirmation.** Then document in `.tdd/session.md`:
+
+```markdown
+## Confirmed Scope
+
+[2-4 sentence summary]
+
+## Acceptance Criteria
+
+- [criterion 1]
+- [criterion 2]
+```
+
+**Skip when:** resuming session, human provided detailed spec, or task is trivial (note reason and proceed).
+
+---
+
 ## Browser Automation (When Applicable)
 
 For tasks involving UI implementation or browser-based debugging, use **Claude in Chrome** integration:
@@ -131,7 +168,7 @@ After EVERY agent completion, output:
 ## INIT Phase
 
 ```
-1. Create .tdd/session.md with task description
+1. Create .tdd/session.md with task, confirmed scope, acceptance criteria
 2. Update phase to EXPLORE
 3. Output summary to user
 4. IMMEDIATELY spawn architect agent (no permission needed)
@@ -152,6 +189,9 @@ After EVERY agent completion, output:
 subagent_type: "architect"
 description: "Explore codebase for TDD task"
 prompt: "EXPLORE phase: Explore the codebase for this task: [task description].
+
+Scope: [from clarification]
+Acceptance criteria: [from clarification]
 
 Read .docs/spec.md, .docs/architecture.md, .docs/patterns/index.md first.
 Write findings to .tdd/exploration.md.
@@ -346,12 +386,26 @@ When coder completes COMMIT:
 
 [Description from /tdd invocation]
 
+## Confirmed Scope
+
+[2-4 sentences summarizing what was agreed during Request Clarification]
+
+## Acceptance Criteria
+
+- [criterion 1 from clarification phase]
+- [criterion 2 from clarification phase]
+
+## Constraints
+
+- [constraint 1 if any]
+
 ## Current Phase
 
 [EXPLORE | PLAN | DESIGN_TESTS | ...]
 
 ## Phase History
 
+- [timestamp] CLARIFICATION: Analyzed request, confirmed scope
 - [timestamp] INIT: Started task "[description]"
 - [timestamp] EXPLORE: Completed. Found [summary].
 
@@ -422,10 +476,11 @@ If context exceeds ~50% utilization, summarize phase history and continue.
 
 **New workflow** (`/tdd Implement user authentication`):
 
-1. Update `.docs/current-task.md` "Current Focus" with task + workflow + timestamp
-2. Create `.tdd/session.md` with task description
-3. Set phase = EXPLORE
-4. Route to architect
+1. Request Clarification (see section above - get human confirmation)
+2. Pre-Workflow Validation (check sessions, project status, docs)
+3. Update `.docs/current-task.md` "Current Focus" with task + workflow + timestamp
+4. Create `.tdd/session.md` with task + scope + criteria (INIT phase)
+5. Route to architect (EXPLORE phase)
 
 **Resume workflow** (`/tdd`):
 

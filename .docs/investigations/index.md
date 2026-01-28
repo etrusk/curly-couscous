@@ -8,10 +8,11 @@ LLM-optimized index of debugging sessions, root cause analyses, and lessons lear
 
 ## Investigations
 
-| ID      | Issue                                       | Date       | Status   | File                                                                             |
-| ------- | ------------------------------------------- | ---------- | -------- | -------------------------------------------------------------------------------- |
-| INV-001 | Intent Lines Not Rendering After Timing Fix | 2026-01-27 | Resolved | [inv-001-intent-lines-not-rendering.md](./inv-001-intent-lines-not-rendering.md) |
-| INV-002 | TDD Command Context Bloat                   | 2026-01-27 | Resolved | [inv-002-tdd-command-context-bloat.md](./inv-002-tdd-command-context-bloat.md)   |
+| ID      | Issue                                       | Date       | Status   | File                                                                                                 |
+| ------- | ------------------------------------------- | ---------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| INV-001 | Intent Lines Not Rendering After Timing Fix | 2026-01-27 | Resolved | [inv-001-intent-lines-not-rendering.md](./inv-001-intent-lines-not-rendering.md)                     |
+| INV-002 | TDD Command Context Bloat                   | 2026-01-27 | Resolved | [inv-002-tdd-command-context-bloat.md](./inv-002-tdd-command-context-bloat.md)                       |
+| INV-003 | Missing Movement Lines Investigation        | 2026-01-28 | Resolved | [inv-003-missing-movement-lines-investigation.md](./inv-003-missing-movement-lines-investigation.md) |
 
 ## Adding New Investigations
 

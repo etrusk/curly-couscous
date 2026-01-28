@@ -10,15 +10,20 @@
 
 ## Current Focus
 
-2026-01-28 (Claude Code TDD): Movement targeting should show intent lines when target changed - Implementing intent line display when movement targets are changed, including first selection at step 1 (no special casing)
+**Workflow**: Claude Code TDD
+**Started**: 2026-01-28
+**Task**: Fix movement targeting line issues - (1) Missing tick 0/1 movement targeting lines with 1 friendly + 1 enemy, (2) Tick 0 shows movement intent but pressing step does nothing, first movement only happens on tick 2
+
+**Status**: COMPLETING - Investigation found NO BUG. User issue caused by adjacent character placement (attacks triggered instead of movement) and tick counter displaying post-resolution state. Added 6 tests verifying DEFAULT_SKILLS behavior. Created INV-003 documenting findings.
 
 ## Recent Completions
+
+- 2026-01-28: Preview intent lines for idle characters - Modified selectIntentData to compute and display preview decisions for characters without currentAction (at tick 0 or after action resolves). Enables immediate visibility when movement targets are changed. Created 13 tests for preview behavior. All 766 tests passing. Commit a5d5913.
 
 - 2026-01-27: Documentation and refactoring follow-up - Added ADR-002 documenting uniform filtering architectural decision. Updated INV-001 to clarify movement exception was incorrect (spec always required ticksRemaining >= 0 for all actions). Refactored duplicate posEqual() helper to use existing positionsEqual() from engine/types.ts. All 753 tests passing. Commit c4564b4.
 - 2026-01-27: Intent lines fixes - Unified action filtering (removed movement exception, all actions now ticksRemaining >= 0). Added 4px perpendicular offset for bidirectional attacks (prevents overlap). Split test files to comply with 400-line limit (2 files → 7 organized files). Fixed 4 issues: Light attack visibility, movement special treatment, movement targeting visibility, overlapping Heavy attack lines. All 753 tests passing. Commit 049fb6e.
 - 2026-01-27: Intent lines not rendering bug fix - Fixed selectIntentData filter broken by commit 44d5cf4 "simplification". Restored proper logic: attacks filtered when ticksRemaining <= 0, movement shown even at ticksRemaining = 0 (movement exception documented in spec). Added 2 regression tests. Documented in investigations/index.md (INV-001). All 732 tests passing.
 - 2026-01-27: Intent line styling improvements - Reduced stroke widths (3/4px -> 2/2.5px), tightened dash pattern ("8 4" -> "4 2"), added round line caps, switched markers to fixed userSpaceOnUse units for consistent sizing. Split IntentLine.test.tsx to comply with 400-line limit. All 730 tests passing. Commit 92e873c.
-- 2026-01-27: Action resolution timing fix - Changed resolvesAtTick formula from tick+tickCost-1 to tick+tickCost. All actions now have 1+ tick visibility before resolution. Light Punch now dodgeable. Updated spec.md (3 sections), tdd.md (added SYNC_DOCS phase). All 724 tests passing. Commit 44d5cf4.
 
 ## Next Steps
 

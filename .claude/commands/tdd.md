@@ -20,6 +20,37 @@ Do NOT read implementation files directly.
 
 ---
 
+## Browser Automation (When Applicable)
+
+For tasks involving UI implementation or browser-based debugging, use **Claude in Chrome** integration:
+
+**When to use browser automation:**
+
+- Implementing/modifying visual components (buttons, forms, game UI)
+- Debugging rendering issues, CSS problems, or interaction bugs
+- Verifying browser console errors and DOM state
+- Recording workflows as GIFs for documentation
+
+**How to integrate:**
+
+1. During IMPLEMENT: After code changes, verify in browser (navigate, test interactions)
+2. During VERIFY_PASS: Run browser-based integration tests if applicable
+3. During FIX: Read console errors and DOM state to diagnose issues
+4. During troubleshooting: Live debugging with browser context
+
+**Key capabilities:**
+
+- Navigate pages, click elements, fill forms
+- Read console errors and network requests
+- Inspect DOM state and accessibility tree
+- Record sessions as GIFs
+
+**Safety note:** Browser automation requires explicit user permission for sensitive actions (form submissions, downloads, account operations). Agents should request approval when needed.
+
+**Availability:** Requires Claude in Chrome extension (beta, Google Chrome only).
+
+---
+
 ## Pre-Workflow Validation
 
 Before starting ANY new workflow:
@@ -62,21 +93,21 @@ After EVERY agent completion, output:
 
 ## Phase Routing
 
-| Phase              | Agent     | Task Prompt Template                                                                                                | Route To               |
-| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                               | EXPLORE                |
-| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index}.md`. Write findings to `.tdd/exploration.md`. Update session.        | PLAN                   |
-| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                           | DESIGN_TESTS           |
-| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                   | TEST_DESIGN_REVIEW     |
-| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Fix if needed. Update session.      | WRITE_TESTS            |
-| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests (should FAIL). Update session.                                         | IMPLEMENT              |
-| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run quality gates. Update session.                    | REVIEW                 |
-| REVIEW             | reviewer  | Read `.tdd/plan.md`, `.docs/{spec,patterns/index}.md`. Write findings to `.tdd/review-findings.md`. Update session. | FIX or SYNC_DOCS       |
-| FIX                | coder     | Read `.tdd/review-findings.md`. Fix all critical/important issues. Update session.                                  | REVIEW (re-review)     |
-| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                        | COMMIT                 |
-| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                          | Cleanup and completion |
+| Phase              | Agent     | Task Prompt Template                                                                                                                   | Route To               |
+| ------------------ | --------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                                                  | EXPLORE                |
+| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index}.md`. Write findings to `.tdd/exploration.md`. Update session.                           | PLAN                   |
+| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                                              | DESIGN_TESTS           |
+| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                                      | TEST_DESIGN_REVIEW     |
+| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Fix if needed. Update session.                         | WRITE_TESTS            |
+| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests (should FAIL). Update session.                                                            | IMPLEMENT              |
+| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run quality gates. **If UI changes:** verify in browser. Update session. | REVIEW                 |
+| REVIEW             | reviewer  | Read `.tdd/plan.md`, `.docs/{spec,patterns/index}.md`. Write findings to `.tdd/review-findings.md`. Update session.                    | FIX or SYNC_DOCS       |
+| FIX                | coder     | Read `.tdd/review-findings.md`. Fix all critical/important issues. **Use browser debugging if UI-related.** Update session.            | REVIEW (re-review)     |
+| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                                           | COMMIT                 |
+| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                                             | Cleanup and completion |
 
-**Stuck/Troubleshooting**: If coder reports STUCK, spawn troubleshooter agent for root cause diagnosis.
+**Stuck/Troubleshooting**: If coder reports STUCK, spawn troubleshooter agent for root cause diagnosis. For UI bugs, troubleshooter should use browser automation to read console errors and DOM state.
 
 ---
 
@@ -270,6 +301,10 @@ When coder completes COMMIT:
 ## Files Touched
 
 - [path/to/file.ts] (created | modified)
+
+## Browser Verification
+
+[If applicable: browser testing performed, interactions verified, console errors checked, GIF recorded]
 
 ## Blockers
 

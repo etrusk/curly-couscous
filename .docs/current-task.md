@@ -14,6 +14,7 @@
 
 ## Recent Completions
 
+- 2026-01-28: TDD workflow request clarification - Added mandatory request clarification phase to TDD workflow. Ensures scope, acceptance criteria, and constraints are validated before implementation. Aligns with research guidelines on spec-driven development. Added ~50 lines while keeping concise. Commit 2778011.
 - 2026-01-28: TDD workflow improvements - Added HUMAN_VERIFY quality gate phase to TDD workflow between REVIEW and SYNC_DOCS. Documented browser automation verification patterns for UI changes. Updated workflow routing and session template. Merged to main. Commit 4bf90f9.
 - 2026-01-28: IntentOverlay subscription fix - Fixed Zustand subscription bug where IntentOverlay component did not re-render when characters added via addCharacter/addCharacterAtPosition. Root cause: complex selector logic prevented Zustand from detecting dependency on characters array. Solution: Added explicit selectCharacters subscription in IntentOverlay. 8 new tests added. All tests passing. Commit 090290b.
 - 2026-01-28: Movement targeting line investigation - Investigated reported missing movement lines. Found NO BUG - user issue caused by adjacent character placement (attacks triggered instead of movement) and tick counter displaying post-resolution state. Added 6 DEFAULT_SKILLS integration tests to verify correct behavior. Documented findings in INV-003. All 772 tests passing. Commit 55c876e.

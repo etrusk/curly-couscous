@@ -174,20 +174,28 @@ export const selectIntentData = (state: GameStore): IntentData[] => {
 
   const decisions = computeDecisions(state.gameState);
 
-  const previews: IntentData[] = decisions
-    .filter((d) => idleCharacterIds.has(d.characterId))
-    .filter((d) => d.action.type !== "idle")
-    .map((d) => {
-      const character = characters.find((c) => c.id === d.characterId)!;
-      return {
-        characterId: d.characterId,
-        characterPosition: character.position,
-        faction: character.faction,
-        action: d.action,
-        ticksRemaining: d.action.resolvesAtTick - tick,
-      };
-    })
-    .filter((intent) => intent.ticksRemaining >= 0);
+  const afterIdleFilter = decisions.filter((d) =>
+    idleCharacterIds.has(d.characterId),
+  );
+
+  const afterTypeFilter = afterIdleFilter.filter(
+    (d) => d.action.type !== "idle",
+  );
+
+  const mapped = afterTypeFilter.map((d) => {
+    const character = characters.find((c) => c.id === d.characterId)!;
+    return {
+      characterId: d.characterId,
+      characterPosition: character.position,
+      faction: character.faction,
+      action: d.action,
+      ticksRemaining: d.action.resolvesAtTick - tick,
+    };
+  });
+
+  const previews: IntentData[] = mapped.filter(
+    (intent) => intent.ticksRemaining >= 0,
+  );
 
   return [...committed, ...previews];
 };

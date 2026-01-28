@@ -3,7 +3,11 @@
  * Positioned absolutely over the battle grid.
  */
 
-import { useGameStore, selectIntentData } from "../../stores/gameStore";
+import {
+  useGameStore,
+  selectIntentData,
+  selectCharacters,
+} from "../../stores/gameStore";
 import type { IntentData } from "../../stores/gameStore-selectors";
 import { positionsEqual } from "../../engine/types";
 import { IntentLine } from "./IntentLine";
@@ -84,8 +88,16 @@ export function IntentOverlay({
   gridHeight,
   cellSize,
 }: IntentOverlayProps) {
+  // Subscribe to characters to force re-render when characters change
+  // This fixes a Zustand subscription issue where selectIntentData doesn't
+  // properly detect character additions via the addCharacter action.
+  const characters = useGameStore(selectCharacters);
+
   // Subscribe to intent data for line rendering
   const intents = useGameStore(selectIntentData);
+
+  // Ensure characters subscription is not optimized away
+  void characters.length;
 
   // Detect bidirectional attacks and compute offsets
   const offsets = detectBidirectionalAttacks(intents);

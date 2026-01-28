@@ -10,14 +10,12 @@
 
 ## Current Focus
 
-**Workflow**: Claude Code TDD
-**Started**: 2026-01-28
-**Task**: Fix movement targeting line issues - (1) Missing tick 0/1 movement targeting lines with 1 friendly + 1 enemy, (2) Tick 0 shows movement intent but pressing step does nothing, first movement only happens on tick 2
-
-**Status**: COMPLETING - Investigation found NO BUG. User issue caused by adjacent character placement (attacks triggered instead of movement) and tick counter displaying post-resolution state. Added 6 tests verifying DEFAULT_SKILLS behavior. Created INV-003 documenting findings.
+[No active task]
 
 ## Recent Completions
 
+- 2026-01-28: IntentOverlay subscription fix - Fixed Zustand subscription bug where IntentOverlay component did not re-render when characters added via addCharacter/addCharacterAtPosition. Root cause: complex selector logic prevented Zustand from detecting dependency on characters array. Solution: Added explicit selectCharacters subscription in IntentOverlay. 8 new tests added. All tests passing. Commit 090290b.
+- 2026-01-28: Movement targeting line investigation - Investigated reported missing movement lines. Found NO BUG - user issue caused by adjacent character placement (attacks triggered instead of movement) and tick counter displaying post-resolution state. Added 6 DEFAULT_SKILLS integration tests to verify correct behavior. Documented findings in INV-003. All 772 tests passing. Commit 55c876e.
 - 2026-01-28: Preview intent lines for idle characters - Modified selectIntentData to compute and display preview decisions for characters without currentAction (at tick 0 or after action resolves). Enables immediate visibility when movement targets are changed. Created 13 tests for preview behavior. All 766 tests passing. Commit a5d5913.
 
 - 2026-01-27: Documentation and refactoring follow-up - Added ADR-002 documenting uniform filtering architectural decision. Updated INV-001 to clarify movement exception was incorrect (spec always required ticksRemaining >= 0 for all actions). Refactored duplicate posEqual() helper to use existing positionsEqual() from engine/types.ts. All 753 tests passing. Commit c4564b4.

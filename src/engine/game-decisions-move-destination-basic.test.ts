@@ -73,35 +73,6 @@ describe("computeDecisions - move destination", () => {
     );
   });
 
-  it("should set targetCell to current position for hold mode", () => {
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { x: 8, y: 5 },
-    });
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
-      position: { x: 5, y: 5 },
-      skills: [
-        createSkill({
-          id: "skill1",
-          mode: "hold",
-          triggers: [{ type: "always" }],
-        }),
-      ],
-    });
-    const state = createGameState({
-      tick: 1,
-      characters: [character, enemy],
-    });
-
-    const decisions = computeDecisions(state);
-
-    expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 5, y: 5 });
-  });
-
   it("should set targetCharacter to null for move actions", () => {
     const enemy = createCharacter({
       id: "enemy",
@@ -152,30 +123,6 @@ describe("computeDecisions - move destination", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("idle");
-  });
-
-  it("should allow hold mode without valid target", () => {
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
-      position: { x: 5, y: 5 },
-      skills: [
-        createSkill({
-          id: "skill1",
-          mode: "hold",
-          triggers: [{ type: "always" }],
-        }),
-      ],
-    });
-    const state = createGameState({
-      tick: 1,
-      characters: [character],
-    });
-
-    const decisions = computeDecisions(state);
-
-    expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 5, y: 5 });
   });
 
   it("should prefer diagonal movement when dx === dy (diagonal tiebreaking)", () => {

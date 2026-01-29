@@ -81,6 +81,15 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
         continue;
       }
 
+      // Graceful degradation for legacy "hold" mode
+      if ((skill.mode as string) === "hold") {
+        console.warn(
+          `[game-decisions] Deprecated "hold" mode found on skill "${skill.name}". ` +
+            `Treating as disabled.`,
+        );
+        continue;
+      }
+
       // 4. Check all triggers (AND logic)
       const allTriggersPass = skill.triggers.every((trigger) =>
         evaluateTrigger(trigger, character, state.characters),
@@ -91,19 +100,6 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
       }
 
       // 5. Skill triggers passed - now validate target and range
-      // Special case: hold mode doesn't need a target
-      if (skill.mode === "hold") {
-        // Create move action targeting own cell
-        action = {
-          type: "move",
-          skill,
-          targetCell: character.position,
-          targetCharacter: null,
-          startedAtTick: state.tick,
-          resolvesAtTick: state.tick + skill.tickCost,
-        };
-        break;
-      }
 
       // 6. Use selector to find target
       const selector = skill.selectorOverride ?? DEFAULT_SELECTOR;
@@ -201,6 +197,21 @@ export function evaluateSkillsForCharacter(
       continue;
     }
 
+    // Graceful degradation for legacy "hold" mode
+    if ((skill.mode as string) === "hold") {
+      console.warn(
+        `[game-decisions] Deprecated "hold" mode found on skill "${skill.name}". ` +
+          `Treating as disabled.`,
+      );
+      evaluations.push({
+        skill,
+        status: "rejected",
+        rejectionReason: "disabled",
+      });
+      currentIndex++;
+      continue;
+    }
+
     // Check triggers
     const failedTriggers = skill.triggers.filter(
       (t) => !evaluateTrigger(t, character, allCharacters),
@@ -212,14 +223,6 @@ export function evaluateSkillsForCharacter(
         rejectionReason: "trigger_failed",
         failedTriggers,
       });
-      currentIndex++;
-      continue;
-    }
-
-    // Special case: hold mode doesn't need target
-    if (skill.mode === "hold") {
-      evaluations.push({ skill, status: "selected" });
-      selectedIndex = currentIndex;
       currentIndex++;
       continue;
     }

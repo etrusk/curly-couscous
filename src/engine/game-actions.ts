@@ -83,16 +83,12 @@ export function createSkillAction(
     targetCharacter = target;
   } else {
     // Move: compute destination
-    if (skill.mode === "hold") {
-      targetCell = character.position;
-    } else {
-      targetCell = computeMoveDestination(
-        character,
-        target,
-        skill.mode!,
-        allCharacters,
-      );
-    }
+    targetCell = computeMoveDestination(
+      character,
+      target,
+      skill.mode!,
+      allCharacters,
+    );
     targetCharacter = null;
   }
 

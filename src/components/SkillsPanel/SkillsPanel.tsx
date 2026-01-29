@@ -161,10 +161,7 @@ export function SkillsPanel() {
   };
 
   // Type assertion acceptable for 80/20 - select values are guaranteed to match mode types
-  const handleModeChange = (
-    skillId: string,
-    mode: "towards" | "away" | "hold",
-  ) => {
+  const handleModeChange = (skillId: string, mode: "towards" | "away") => {
     updateSkill(selectedCharacter.id, skillId, { mode });
   };
 
@@ -267,7 +264,7 @@ export function SkillsPanel() {
                     >
                       <option value="enemy">Enemy</option>
                       <option value="ally">Ally</option>
-                      <option value="self">Self</option>
+                      {!isMove && <option value="self">Self</option>}
                     </select>
                   </label>
 
@@ -288,29 +285,26 @@ export function SkillsPanel() {
                       <option value="lowest_hp">Lowest HP</option>
                     </select>
                   </label>
-                </div>
 
-                {isMove && (
-                  <div className={styles.controlRow}>
-                    <label>
+                  {isMove && (
+                    <label className={styles.modeLabel}>
                       Mode:
                       <select
                         value={skill.mode}
                         onChange={(e) =>
                           handleModeChange(
                             skill.id,
-                            e.target.value as "towards" | "away" | "hold",
+                            e.target.value as "towards" | "away",
                           )
                         }
                         aria-label="Mode"
                       >
                         <option value="towards">Towards</option>
                         <option value="away">Away</option>
-                        <option value="hold">Hold</option>
                       </select>
                     </label>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 <div className={styles.priorityButtons}>
                   <button

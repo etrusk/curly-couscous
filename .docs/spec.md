@@ -76,7 +76,7 @@ Characters are homogeneous in v0.3. Differentiation comes from skill loadout and
 
 - Tick cost: 1, Distance: 1 cell
 - Default selector: nearest_enemy
-- Modes: **towards** (closer), **away** (farther), **hold** (pass)
+- Modes: **towards** (closer), **away** (farther)
 
 ## Targeting System
 
@@ -136,8 +136,6 @@ Chebyshev distance (8-directional; diagonals cost 1)
 2. Maximize resulting |dx|, then |dy|
 3. Then lower Y coordinate
 4. Then lower X coordinate
-
-**Hold mode:** Character passes their turn (no movement).
 
 ### Collision Resolution
 

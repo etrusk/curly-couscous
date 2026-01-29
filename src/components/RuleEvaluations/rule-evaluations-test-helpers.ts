@@ -100,7 +100,7 @@ export function createAttackAction(
 export function createMoveAction(
   skillId: string,
   skillName: string,
-  mode: "towards" | "away" | "hold",
+  mode: "towards" | "away",
   targetCell: { x: number; y: number },
   startedAtTick: number,
   resolvesAtTick: number,

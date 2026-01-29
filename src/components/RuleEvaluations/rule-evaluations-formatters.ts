@@ -115,8 +115,6 @@ export function formatActionDisplay(action: Action | null): string {
     return "🚶 Move towards";
   } else if (mode === "away") {
     return "🚶 Move away";
-  } else if (mode === "hold") {
-    return "🚶 Move (hold)";
   }
 
   return "Unknown action";

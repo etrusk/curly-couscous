@@ -894,7 +894,7 @@ describe("SkillsPanel", () => {
       expect(screen.getByText(/towards/i)).toBeInTheDocument();
     });
 
-    it("should show all mode options in dropdown", async () => {
+    it("should show only towards and away mode options in dropdown", async () => {
       const user = userEvent.setup();
       const skill1 = createSkill({ id: "move", name: "Move", mode: "towards" });
       const char1 = createCharacter({ id: "char1", skills: [skill1] });
@@ -906,12 +906,14 @@ describe("SkillsPanel", () => {
       const modeSelect = screen.getByRole("combobox", { name: /mode/i });
       await user.click(modeSelect);
 
-      // All mode options should be available
+      // Only towards and away mode options should be available
       expect(
         screen.getByRole("option", { name: /towards/i }),
       ).toBeInTheDocument();
       expect(screen.getByRole("option", { name: /away/i })).toBeInTheDocument();
-      expect(screen.getByRole("option", { name: /hold/i })).toBeInTheDocument();
+      expect(
+        screen.queryByRole("option", { name: /hold/i }),
+      ).not.toBeInTheDocument();
     });
 
     it("should call updateSkill when mode is changed", async () => {
@@ -945,6 +947,89 @@ describe("SkillsPanel", () => {
       expect(
         screen.queryByRole("combobox", { name: /mode/i }),
       ).not.toBeInTheDocument();
+    });
+
+    it("should render mode dropdown on same row as target and selection dropdowns", () => {
+      const skill1 = createSkill({ id: "move", name: "Move", mode: "towards" });
+      const char1 = createCharacter({ id: "char1", skills: [skill1] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      const targetDropdown = screen.getByRole("combobox", {
+        name: /target category/i,
+      });
+      const selectionDropdown = screen.getByRole("combobox", {
+        name: /selection strategy/i,
+      });
+      const modeDropdown = screen.getByRole("combobox", { name: /mode/i });
+
+      // All three dropdowns should share the same parent container
+      // Dropdowns are inside labels, labels are in the same div
+      const targetLabel = targetDropdown.parentElement;
+      const selectionLabel = selectionDropdown.parentElement;
+      const modeLabel = modeDropdown.parentElement;
+
+      const targetRow = targetLabel?.parentElement;
+      const selectionRow = selectionLabel?.parentElement;
+      const modeRow = modeLabel?.parentElement;
+
+      expect(targetRow).toBe(selectionRow);
+      expect(selectionRow).toBe(modeRow);
+      expect(targetRow).not.toBeNull();
+    });
+
+    it("should exclude self option from target dropdown for move skills", async () => {
+      const user = userEvent.setup();
+      const skill1 = createSkill({ id: "move", name: "Move", mode: "towards" });
+      const char1 = createCharacter({ id: "char1", skills: [skill1] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      const categoryDropdown = screen.getByRole("combobox", {
+        name: /target category/i,
+      });
+      await user.click(categoryDropdown);
+
+      // Enemy and Ally should be available, but not Self
+      expect(
+        screen.getByRole("option", { name: /^enemy$/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("option", { name: /^ally$/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("option", { name: /^self$/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("should include self option in target dropdown for non-move skills", async () => {
+      const user = userEvent.setup();
+      const skill1 = createSkill({ id: "skill1", name: "Heal", damage: 10 });
+      const char1 = createCharacter({ id: "char1", skills: [skill1] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      const categoryDropdown = screen.getByRole("combobox", {
+        name: /target category/i,
+      });
+      await user.click(categoryDropdown);
+
+      // All three options should be available for non-Move skills
+      expect(
+        screen.getByRole("option", { name: /^enemy$/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("option", { name: /^ally$/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("option", { name: /^self$/i }),
+      ).toBeInTheDocument();
     });
   });
 

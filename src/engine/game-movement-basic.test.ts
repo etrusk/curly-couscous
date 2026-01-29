@@ -75,13 +75,6 @@ describe("computeMoveDestination - basic move destination", () => {
     expect(targetCell).toEqual({ x: 5, y: 5 });
   });
 
-  it("should handle hold mode (not applicable to computeMoveDestination)", () => {
-    // Note: hold mode is handled at a higher level (skill evaluation)
-    // computeMoveDestination only handles "towards" and "away" modes
-    // This test is a placeholder to show we're aware of the distinction
-    expect(true).toBe(true);
-  });
-
   it("should prefer diagonal movement when dx === dy (diagonal tiebreaking)", () => {
     const enemy = createCharacter({
       id: "enemy",

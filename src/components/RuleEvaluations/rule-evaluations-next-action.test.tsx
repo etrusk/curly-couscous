@@ -103,34 +103,6 @@ describe("RuleEvaluations - Next Action Display", () => {
     expect(screen.getByText(/🚶 Move away/i)).toBeInTheDocument();
   });
 
-  // Test 8: Move action with hold mode
-  it("should display move action with mode hold", () => {
-    const moveAction: Action = {
-      type: "move",
-      skill: {
-        id: "move",
-        name: "Move",
-        tickCost: 1,
-        range: 0,
-        mode: "hold",
-        enabled: true,
-        triggers: [{ type: "always" }],
-      },
-      targetCell: { x: 0, y: 0 },
-      targetCharacter: null,
-      startedAtTick: 0,
-      resolvesAtTick: 1,
-    };
-    const character = createCharacter();
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-    actions.updateCharacter(character.id, { currentAction: moveAction });
-    actions.selectCharacter(character.id);
-
-    render(<RuleEvaluations />);
-    expect(screen.getByText(/🚶 Move \(hold\)/i)).toBeInTheDocument();
-  });
-
   // Test 9: Same-tick resolution
   it('should display "Resolves: this tick" for same-tick actions', () => {
     const target = createTarget();

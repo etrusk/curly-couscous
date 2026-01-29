@@ -56,7 +56,7 @@ export interface Skill {
   tickCost: number;
   range: number;
   damage?: number;
-  mode?: "towards" | "away" | "hold"; // for Move skill
+  mode?: "towards" | "away"; // for Move skill
   enabled: boolean;
   triggers: Trigger[];
   selectorOverride?: Selector;

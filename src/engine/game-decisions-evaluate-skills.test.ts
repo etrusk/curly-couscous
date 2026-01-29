@@ -2,7 +2,11 @@
  * Tests for evaluateSkillsForCharacter logic.
  */
 
-import { describe, it, expect } from "vitest";
+/* eslint-disable max-lines */
+// File exceeds 400 lines due to comprehensive test coverage for skill evaluation logic
+// including graceful degradation tests. Cohesive grouping justified for test clarity.
+
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { evaluateSkillsForCharacter } from "./game-decisions";
 import {
   createCharacter,
@@ -302,28 +306,6 @@ describe("evaluateSkillsForCharacter", () => {
     });
   });
 
-  describe("hold mode", () => {
-    it("should select hold mode skill without needing a target", () => {
-      const character = createCharacter({
-        id: "char1",
-        position: { x: 5, y: 5 },
-        skills: [
-          createSkill({
-            id: "skill1",
-            mode: "hold",
-            triggers: [{ type: "always" }],
-          }),
-        ],
-      });
-
-      const result = evaluateSkillsForCharacter(character, [character]);
-
-      expect(result.skillEvaluations).toHaveLength(1);
-      expect(result.skillEvaluations[0]!.status).toBe("selected");
-      expect(result.selectedSkillIndex).toBe(0);
-    });
-  });
-
   describe("no valid skill (idle)", () => {
     it("should return null selectedSkillIndex when no skills are valid", () => {
       const character = createCharacter({
@@ -409,6 +391,66 @@ describe("evaluateSkillsForCharacter", () => {
       expect(result.skillEvaluations[2]!.rejectionReason).toBe("out_of_range");
       expect(result.skillEvaluations[3]!.status).toBe("selected");
       expect(result.selectedSkillIndex).toBe(3);
+    });
+  });
+
+  describe("graceful degradation for legacy hold mode", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("should skip hold mode skill with console warning", () => {
+      const character = createCharacter({
+        id: "char1",
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: "skill1",
+            mode: "hold" as "towards" | "away",
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const consoleWarnSpy = vi.spyOn(console, "warn");
+
+      const result = evaluateSkillsForCharacter(character, [character]);
+
+      expect(result.selectedSkillIndex).toBeNull();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/hold.*deprecated|deprecated.*hold/i),
+      );
+    });
+
+    it("should fallback to next skill when first has deprecated hold mode", () => {
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { x: 6, y: 5 },
+      });
+      const character = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { x: 5, y: 5 },
+        skills: [
+          createSkill({
+            id: "skill1",
+            mode: "hold" as "towards" | "away",
+            triggers: [{ type: "always" }],
+          }),
+          createSkill({
+            id: "skill2",
+            damage: 10,
+            range: 5,
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character, enemy]);
+
+      expect(result.selectedSkillIndex).toBe(1);
+      expect(result.skillEvaluations[1]!.status).toBe("selected");
     });
   });
 });

@@ -24,8 +24,8 @@ describe("RuleEvaluations - Basic Rendering", () => {
     expect(screen.getByText(/No characters on the board/i)).toBeInTheDocument();
   });
 
-  // Test 2: Character name in header
-  it("should show character name in header when selected", () => {
+  // Test 2: Character letter in header
+  it("should show character letter in header when selected", () => {
     const character = createCharacter({ name: "TestWarrior" });
     const { actions } = useGameStore.getState();
     actions.initBattle([character]);
@@ -33,7 +33,7 @@ describe("RuleEvaluations - Basic Rendering", () => {
 
     render(<RuleEvaluations />);
     expect(
-      screen.getByRole("heading", { name: /Rule Evaluations: TestWarrior/i }),
+      screen.getByRole("heading", { name: /Rule Evaluations: A/i }),
     ).toBeInTheDocument();
   });
 
@@ -70,7 +70,7 @@ describe("RuleEvaluations - Basic Rendering", () => {
 
     render(<RuleEvaluations />);
     const panel = screen.getByRole("region", {
-      name: /Rule Evaluations: TestChar/i,
+      name: /Rule Evaluations: A/i,
     });
     expect(panel).toBeInTheDocument();
   });
@@ -138,9 +138,9 @@ describe("RuleEvaluations - Basic Rendering", () => {
     // No character selected
 
     render(<RuleEvaluations />);
-    // Should show both character names in condensed headers
-    expect(screen.getByText(/Alpha/i)).toBeInTheDocument();
-    expect(screen.getByText(/Beta/i)).toBeInTheDocument();
+    // Should show both character letters in condensed headers (badge only)
+    expect(screen.getByText("A")).toBeInTheDocument();
+    expect(screen.getByText("B")).toBeInTheDocument();
     // Should not show placeholder "Click a character"
     expect(
       screen.queryByText(/Click a character on the grid to see AI decisions/i),
@@ -155,8 +155,10 @@ describe("RuleEvaluations - Basic Rendering", () => {
     // No character selected
 
     const { container } = render(<RuleEvaluations />);
-    // Find expand button (the character header button contains the character name)
-    const expandButton = screen.getByRole("button", { name: /Alpha/i });
+    // Find expand button (the character header button contains the character letter)
+    const expandButton = screen.getByRole("button", {
+      name: /Toggle details for A/i,
+    });
     // Click it
     await userEvent.click(expandButton);
     // Should show compact evaluation list (ordered list of skill evaluations)
@@ -175,8 +177,8 @@ describe("RuleEvaluations - Basic Rendering", () => {
     render(<RuleEvaluations />);
     const regions = screen.getAllByRole("region");
     expect(regions).toHaveLength(2);
-    expect(regions[0]).toHaveAccessibleName(/Rule Evaluations: Alpha/i);
-    expect(regions[1]).toHaveAccessibleName(/Rule Evaluations: Beta/i);
+    expect(regions[0]).toHaveAccessibleName(/Rule Evaluations: A/i);
+    expect(regions[1]).toHaveAccessibleName(/Rule Evaluations: B/i);
   });
 
   // Test 27: Performance with many characters (limit to 10)
@@ -188,9 +190,12 @@ describe("RuleEvaluations - Basic Rendering", () => {
     actions.initBattle(characters);
 
     render(<RuleEvaluations />);
-    // Should render all 10 character headers
+    // Should render all 10 character headers with letters A-J
+    const expectedLetters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
     for (let i = 0; i < 10; i++) {
-      expect(screen.getByText(new RegExp(`Char${i}`, "i"))).toBeInTheDocument();
+      expect(
+        screen.getAllByText(expectedLetters[i]!).length,
+      ).toBeGreaterThanOrEqual(1);
     }
   });
 
@@ -202,9 +207,8 @@ describe("RuleEvaluations - Basic Rendering", () => {
     // Don't select character - render MultiCharacterView to show letters
 
     render(<RuleEvaluations />);
-    // Character section should display letter "A" in the multi-character view
-    // The letter appears in the character header button
-    expect(screen.getByText(/^A$/)).toBeInTheDocument();
+    // Character section should display letter "A" in the multi-character view (badge only)
+    expect(screen.getByText("A")).toBeInTheDocument();
   });
 
   // Test: RuleEvaluations-handles-positions-beyond-26
@@ -226,6 +230,51 @@ describe("RuleEvaluations - Basic Rendering", () => {
     // Don't select character - render MultiCharacterView to show letters
     render(<RuleEvaluations />);
     // Should display "AA" for position 27 in multi-character view
-    expect(screen.getByText(/^AA$/)).toBeInTheDocument();
+    // The letter appears twice: badge span + name span
+    expect(screen.getAllByText("AA").length).toBeGreaterThanOrEqual(1);
+  });
+
+  // Test: mid-action-display-uses-letter-notation
+  it("should display letter notation in mid-action view header", () => {
+    const target = createTarget();
+    const attackAction = {
+      type: "attack" as const,
+      skill: {
+        id: "light-punch",
+        name: "Light Punch",
+        tickCost: 3,
+        range: 1,
+        damage: 10,
+        enabled: true,
+        triggers: [{ type: "enemy_in_range" as const, value: 1 }],
+      },
+      targetCell: { x: 1, y: 0 },
+      targetCharacter: target,
+      startedAtTick: 0,
+      resolvesAtTick: 3,
+    };
+    const character = createCharacter({ name: "Fighter" });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+    actions.updateCharacter(character.id, { currentAction: attackAction });
+    // Set tick to 1 to be mid-action (between startedAtTick 0 and resolvesAtTick 3)
+    useGameStore.setState((state) => ({
+      ...state,
+      gameState: { ...state.gameState, tick: 1 },
+    }));
+    actions.selectCharacter(character.id);
+
+    render(<RuleEvaluations />);
+    // Should show letter "A" in the header (not "Fighter")
+    expect(
+      screen.getByRole("heading", { name: /Rule Evaluations: A/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("region", { name: /Rule Evaluations: A/i }),
+    ).toBeInTheDocument();
+    // Character name should NOT appear in the header
+    expect(
+      screen.queryByRole("heading", { name: /Fighter/i }),
+    ).not.toBeInTheDocument();
   });
 });

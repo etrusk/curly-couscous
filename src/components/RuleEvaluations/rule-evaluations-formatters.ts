@@ -1,4 +1,9 @@
-import type { Action, SkillEvaluationResult, Trigger } from "../../engine/types";
+import type {
+  Action,
+  SkillEvaluationResult,
+  Trigger,
+} from "../../engine/types";
+import { slotPositionToLetter } from "../../utils/letterMapping";
 
 /**
  * Format action summary for collapsed header (skill name only, no emoji).
@@ -33,7 +38,9 @@ export function formatTrigger(trigger: Trigger): string {
 /**
  * Format rejection reason for debugging display (compact format).
  */
-export function formatRejectionReasonCompact(result: SkillEvaluationResult): string {
+export function formatRejectionReasonCompact(
+  result: SkillEvaluationResult,
+): string {
   switch (result.rejectionReason) {
     case "disabled":
       return "disabled";
@@ -57,7 +64,9 @@ export function formatRejectionReasonCompact(result: SkillEvaluationResult): str
  */
 export function formatEvaluationStatus(result: SkillEvaluationResult): string {
   if (result.status === "selected") {
-    const targetInfo = result.target ? ` -> ${result.target.name}` : "";
+    const targetInfo = result.target
+      ? ` -> ${slotPositionToLetter(result.target.slotPosition)}`
+      : "";
     return `SELECTED${targetInfo}`;
   }
   return `rejected (${formatRejectionReasonCompact(result)})`;
@@ -94,7 +103,9 @@ export function formatActionDisplay(action: Action | null): string {
   }
 
   if (action.type === "attack") {
-    const targetName = action.targetCharacter?.name || "Unknown target";
+    const targetName = action.targetCharacter
+      ? slotPositionToLetter(action.targetCharacter.slotPosition)
+      : "Unknown target";
     return `⚔️ ${action.skill.name} → ${targetName}`;
   }
 
@@ -114,7 +125,10 @@ export function formatActionDisplay(action: Action | null): string {
 /**
  * Format resolution timing text.
  */
-export function formatResolutionText(action: Action, currentTick: number): string {
+export function formatResolutionText(
+  action: Action,
+  currentTick: number,
+): string {
   const ticksRemaining = action.resolvesAtTick - currentTick;
   if (ticksRemaining === 0) {
     return "Resolves: this tick";

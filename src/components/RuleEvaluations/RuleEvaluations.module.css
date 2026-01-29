@@ -216,12 +216,6 @@
   /* No additional styles, just a marker */
 }
 
-.characterName {
-  font-weight: 500;
-  font-size: 0.875rem;
-  color: var(--content-primary);
-}
-
 .actionSummary {
   color: var(--content-secondary);
   font-size: 0.8125rem;

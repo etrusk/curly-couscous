@@ -44,7 +44,7 @@ describe("RuleEvaluations - Next Action Display", () => {
     actions.selectCharacter(character.id);
 
     render(<RuleEvaluations />);
-    expect(screen.getByText(/⚔️ Light Punch → Enemy1/i)).toBeInTheDocument();
+    expect(screen.getByText(/⚔️ Light Punch → B/i)).toBeInTheDocument();
   });
 
   // Test 6: Move action with towards mode
@@ -243,7 +243,7 @@ describe("RuleEvaluations - Next Action Display", () => {
 
     render(<RuleEvaluations />);
     // Character should preview Light Punch (first enabled skill with enemy in range)
-    expect(screen.getByText(/⚔️ Light Punch → Enemy1/i)).toBeInTheDocument();
+    expect(screen.getByText(/⚔️ Light Punch → B/i)).toBeInTheDocument();
   });
 
   // Test 16: Section header renamed to "Next Action"

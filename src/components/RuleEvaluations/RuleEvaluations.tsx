@@ -69,7 +69,9 @@ function CompactEvaluationList({
   // Filter: only rejected + selected (stop at selectedSkillIndex)
   const relevantEvaluations = skillEvaluations.slice(
     0,
-    selectedSkillIndex !== null ? selectedSkillIndex + 1 : skillEvaluations.length
+    selectedSkillIndex !== null
+      ? selectedSkillIndex + 1
+      : skillEvaluations.length,
   );
 
   return (
@@ -230,11 +232,14 @@ function renderSelectedCharacterContent(
     allCharacters,
   );
 
+  // Compute letter notation for character
+  const letter = slotPositionToLetter(selectedCharacter.slotPosition);
+
   // Handle mid-action display
   if (evaluation.isMidAction && evaluation.currentAction) {
     return (
       <MidActionDisplay
-        characterName={selectedCharacter.name}
+        characterName={letter}
         action={evaluation.currentAction}
         currentTick={currentTick}
       />
@@ -245,11 +250,9 @@ function renderSelectedCharacterContent(
     <div
       className={styles.panel}
       role="region"
-      aria-label={`Rule Evaluations: ${selectedCharacter.name}`}
+      aria-label={`Rule Evaluations: ${letter}`}
     >
-      <h2 className={styles.header}>
-        Rule Evaluations: {selectedCharacter.name}
-      </h2>
+      <h2 className={styles.header}>Rule Evaluations: {letter}</h2>
 
       <NextActionDisplay nextAction={nextAction} currentTick={currentTick} />
       <SkillPriorityList
@@ -290,20 +293,19 @@ function CharacterSection({
     <section
       className={styles.characterSection}
       role="region"
-      aria-label={`Rule Evaluations: ${character.name}`}
+      aria-label={`Rule Evaluations: ${letter}`}
     >
       <button
         className={styles.characterHeader}
         onClick={onToggle}
         aria-expanded={isExpanded}
         aria-controls={`character-details-${character.id}`}
-        aria-label={`Toggle details for ${character.name}`}
+        aria-label={`Toggle details for ${letter}`}
       >
         <div className={styles.characterHeaderContent}>
           <span className={`${styles.characterLetter} ${factionClass}`}>
             {letter}
           </span>
-          <span className={styles.characterName}>{character.name}</span>
           <span className={styles.actionSummary}>→ {actionSummary}</span>
           <span className={styles.characterHp}>
             HP: {character.hp}/{character.maxHp}

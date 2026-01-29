@@ -4,6 +4,7 @@
  * and the integration of these features in the UI.
  */
 
+/* eslint-disable max-lines */
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -53,7 +54,7 @@ describe("RuleEvaluations - Action Summary", () => {
         { x: 1, y: 0 },
         createTarget(),
         0,
-        1
+        1,
       );
 
       // We'll test this by rendering and checking if "Light Punch" appears without emoji
@@ -65,9 +66,13 @@ describe("RuleEvaluations - Action Summary", () => {
       render(<RuleEvaluations />);
 
       // Should show skill name without emoji
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       expect(headerButton.textContent).toContain("Light Punch");
-      expect(headerButton.textContent).not.toMatch(/[\u{1F44A}\u{1F4A5}\u{1F528}]/u); // No emojis
+      expect(headerButton.textContent).not.toMatch(
+        /[\u{1F44A}\u{1F4A5}\u{1F528}]/u,
+      ); // No emojis
       expect(headerButton.textContent).not.toContain("Enemy1"); // No target name
     });
 
@@ -78,7 +83,7 @@ describe("RuleEvaluations - Action Summary", () => {
         "towards",
         { x: 1, y: 0 },
         0,
-        0
+        0,
       );
 
       const character = createCharacter({ currentAction: action });
@@ -87,7 +92,9 @@ describe("RuleEvaluations - Action Summary", () => {
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       expect(headerButton.textContent).toContain("Move");
       expect(headerButton.textContent).not.toContain("towards"); // No mode details
       expect(headerButton.textContent).not.toContain("away");
@@ -102,7 +109,9 @@ describe("RuleEvaluations - Action Summary", () => {
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       expect(headerButton.textContent).toContain("Idle");
       expect(headerButton.textContent).not.toContain("💤"); // No emoji
     });
@@ -115,7 +124,9 @@ describe("RuleEvaluations - Action Summary", () => {
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       expect(headerButton.textContent).toContain("Idle");
     });
   });
@@ -133,11 +144,13 @@ describe("RuleEvaluations - Action Summary", () => {
 
       render(<RuleEvaluations />);
 
-      // Character name should be visible
-      expect(screen.getByText(/Fighter/)).toBeInTheDocument();
+      // Character letter should be visible (badge only)
+      expect(screen.getByText("A")).toBeInTheDocument();
 
       // Action summary "Light Punch" should appear (default skill when enemy in range)
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       expect(headerButton.textContent).toContain("Light Punch");
 
       // HP info should still be present
@@ -173,13 +186,18 @@ describe("RuleEvaluations - Action Summary", () => {
         },
       ];
 
-      const character = createCharacter({ skills: attackOnlySkills, currentAction: null });
+      const character = createCharacter({
+        skills: attackOnlySkills,
+        currentAction: null,
+      });
       const { actions } = useGameStore.getState();
       actions.initBattle([character]); // No enemies
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       expect(headerButton.textContent).toContain("Idle");
     });
   });
@@ -236,7 +254,10 @@ describe("RuleEvaluations - Action Summary", () => {
       const enemy = createTarget();
       enemy.position = { x: 2, y: 0 }; // Range 2
 
-      const character = createCharacter({ skills: customSkills, currentAction: null });
+      const character = createCharacter({
+        skills: customSkills,
+        currentAction: null,
+      });
       character.position = { x: 0, y: 0 };
 
       const { actions } = useGameStore.getState();
@@ -245,11 +266,15 @@ describe("RuleEvaluations - Action Summary", () => {
       const { container } = render(<RuleEvaluations />);
 
       // Expand the character section (click the header button)
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
       // Get the expanded details section
-      const detailsSection = container.querySelector('[id^="character-details-"]');
+      const detailsSection = container.querySelector(
+        '[id^="character-details-"]',
+      );
       expect(detailsSection).toBeInTheDocument();
 
       // Skill1 (Heavy Punch) should be visible with rejection reason
@@ -281,7 +306,9 @@ describe("RuleEvaluations - Action Summary", () => {
       const { container } = render(<RuleEvaluations />);
 
       // Expand the character section
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
       // No <details> element should exist within expanded content
@@ -303,7 +330,9 @@ describe("RuleEvaluations - Action Summary", () => {
       const { container } = render(<RuleEvaluations />);
 
       // Expand the character section
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
       // In compact format, we use <ol> which is inherently 1-based
@@ -325,7 +354,9 @@ describe("RuleEvaluations - Action Summary", () => {
       const { container } = render(<RuleEvaluations />);
 
       // Expand the character section
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
       // Should have an <ol> element
@@ -357,13 +388,18 @@ describe("RuleEvaluations - Action Summary", () => {
         },
       ];
 
-      const character = createCharacter({ skills: customSkills, currentAction: null });
+      const character = createCharacter({
+        skills: customSkills,
+        currentAction: null,
+      });
       const { actions } = useGameStore.getState();
       actions.initBattle([character]); // No enemies - trigger will fail
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
       // Should show "enemy_in_range(2)" in rejection reason
@@ -381,7 +417,9 @@ describe("RuleEvaluations - Action Summary", () => {
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
       // The Move skill has "always" trigger and should be visible
@@ -417,7 +455,9 @@ describe("RuleEvaluations - Action Summary", () => {
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
       // Should show "hp_below(50)" in rejection reason
@@ -452,7 +492,9 @@ describe("RuleEvaluations - Action Summary", () => {
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
       // Should show "trigger_failed" with trigger details
@@ -491,11 +533,14 @@ describe("RuleEvaluations - Action Summary", () => {
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
       // Should show "out_of_range" with distance and range
-      const content = screen.getByText(/Short Attack/).parentElement?.textContent;
+      const content =
+        screen.getByText(/Short Attack/).parentElement?.textContent;
       expect(content).toContain("out_of_range");
       expect(content).toContain("5"); // distance
       expect(content).toContain("2"); // range
@@ -526,7 +571,9 @@ describe("RuleEvaluations - Action Summary", () => {
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
       // Should show "disabled"
@@ -558,7 +605,9 @@ describe("RuleEvaluations - Action Summary", () => {
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
       // Should show "no_target"
@@ -580,13 +629,15 @@ describe("RuleEvaluations - Action Summary", () => {
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
-      // Should show "SELECTED" with target name
+      // Should show "SELECTED" with target letter
       expect(screen.getByText(/SELECTED/i)).toBeInTheDocument();
       const content = screen.getByText(/SELECTED/i).parentElement?.textContent;
-      expect(content).toContain("Enemy1");
+      expect(content).toMatch(/SELECTED.*B/);
       expect(content).toMatch(/[-→>]/); // Arrow separator
     });
 
@@ -604,11 +655,15 @@ describe("RuleEvaluations - Action Summary", () => {
 
       const { container } = render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
       await user.click(headerButton);
 
       // Get the expanded details section
-      const detailsSection = container.querySelector('[id^="character-details-"]');
+      const detailsSection = container.querySelector(
+        '[id^="character-details-"]',
+      );
       expect(detailsSection).toBeInTheDocument();
 
       // Should show all three rejected skills
@@ -637,7 +692,9 @@ describe("RuleEvaluations - Action Summary", () => {
 
       render(<RuleEvaluations />);
 
-      const headerButton = screen.getByRole("button", { name: /Fighter/i });
+      const headerButton = screen.getByRole("button", {
+        name: /Toggle details for A/i,
+      });
 
       // Action summary text should be in button's content (accessible)
       expect(headerButton.textContent).toContain("Light Punch");

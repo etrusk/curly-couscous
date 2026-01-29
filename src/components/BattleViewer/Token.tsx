@@ -24,6 +24,12 @@ export interface TokenProps {
   maxHp: number;
   /** Slot position (1-based) used for letter mapping (A, B, C, ...) */
   slotPosition: number;
+  /** Callback when mouse enters token */
+  onMouseEnter?: (id: string, rect: DOMRect) => void;
+  /** Callback when mouse leaves token */
+  onMouseLeave?: () => void;
+  /** Tooltip ID for aria-describedby when tooltip visible */
+  tooltipId?: string;
 }
 
 // Token size constants
@@ -36,7 +42,16 @@ const HP_BAR_Y = TOKEN_SIZE + 2; // Below the token
 /**
  * Token component renders character as faction-specific shape with HP bar.
  */
-export function Token({ id, faction, hp, maxHp, slotPosition }: TokenProps) {
+export function Token({
+  id,
+  faction,
+  hp,
+  maxHp,
+  slotPosition,
+  onMouseEnter,
+  onMouseLeave,
+  tooltipId,
+}: TokenProps) {
   // Selection state and actions
   const selectedCharacterId = useGameStore(selectSelectedCharacterId);
   const { selectCharacter } = useGameStore(selectActions);
@@ -59,6 +74,16 @@ export function Token({ id, faction, hp, maxHp, slotPosition }: TokenProps) {
       handleClick();
       e.preventDefault();
     }
+  };
+
+  // Hover handlers for tooltip
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    onMouseEnter?.(id, rect);
+  };
+
+  const handleMouseLeaveLocal = () => {
+    onMouseLeave?.();
   };
 
   // Use CSS variables for faction colors (theme-aware)
@@ -98,8 +123,11 @@ export function Token({ id, faction, hp, maxHp, slotPosition }: TokenProps) {
       data-testid={`token-${id}`}
       role="img"
       aria-label={ariaLabel}
+      aria-describedby={tooltipId}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeaveLocal}
       tabIndex={0}
     >
       {/* Pattern definition for enemy diagonal stripes (colorblind support) */}

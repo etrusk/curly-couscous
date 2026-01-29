@@ -1,5 +1,5 @@
 ---
-name: status
+name: tdd-status
 description: Check current TDD workflow state and project documentation status
 ---
 

@@ -10,7 +10,9 @@
 
 ## Current Focus
 
-[No active task]
+**Task:** Move rule evaluations from RuleEvaluations panel to mouseover popups on character icons
+**Workflow:** Claude Code TDD
+**Started:** 2026-01-29
 
 ## Recent Completions
 

@@ -14,12 +14,29 @@ export interface CellProps {
   character?: TokenData;
   onClick?: (x: number, y: number) => void;
   isClickable?: boolean;
+  onTokenHover?: (id: string, rect: DOMRect) => void;
+  onTokenLeave?: () => void;
+  hoveredTokenId?: string;
 }
 
-export function Cell({ x, y, character, onClick, isClickable }: CellProps) {
+export function Cell({
+  x,
+  y,
+  character,
+  onClick,
+  isClickable,
+  onTokenHover,
+  onTokenLeave,
+  hoveredTokenId,
+}: CellProps) {
   const handleClick = useCallback(() => {
     onClick?.(x, y);
   }, [onClick, x, y]);
+
+  const tooltipId =
+    character && hoveredTokenId === character.id
+      ? `tooltip-${character.id}`
+      : undefined;
 
   return (
     <div
@@ -38,6 +55,9 @@ export function Cell({ x, y, character, onClick, isClickable }: CellProps) {
           hp={character.hp}
           maxHp={character.maxHp}
           slotPosition={character.slotPosition}
+          onMouseEnter={onTokenHover}
+          onMouseLeave={onTokenLeave}
+          tooltipId={tooltipId}
         />
       )}
     </div>

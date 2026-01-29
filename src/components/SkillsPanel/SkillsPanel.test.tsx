@@ -38,14 +38,14 @@ describe("SkillsPanel", () => {
   });
 
   describe("Character Display", () => {
-    it("should display selected character name", () => {
+    it("should display selected character letter notation", () => {
       const char1 = createCharacter({ id: "char1", name: "Hero" });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
       render(<SkillsPanel />);
 
-      expect(screen.getByText(/hero/i)).toBeInTheDocument();
+      expect(screen.getByText(/Skills & Priority: A/i)).toBeInTheDocument();
     });
 
     it("should display all skills for selected character", () => {

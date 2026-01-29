@@ -13,6 +13,9 @@ export interface GridProps {
   characters?: TokenData[];
   onCellClick?: (x: number, y: number) => void;
   clickableCells?: Set<string>;
+  onTokenHover?: (id: string, rect: DOMRect) => void;
+  onTokenLeave?: () => void;
+  hoveredTokenId?: string;
 }
 
 export function Grid({
@@ -21,6 +24,9 @@ export function Grid({
   characters = [],
   onCellClick,
   clickableCells,
+  onTokenHover,
+  onTokenLeave,
+  hoveredTokenId,
 }: GridProps) {
   // Create a map of position -> character for O(1) lookup
   const characterMap = new Map<string, TokenData>();
@@ -44,6 +50,9 @@ export function Grid({
           character={character}
           onClick={onCellClick}
           isClickable={isClickable}
+          onTokenHover={onTokenHover}
+          onTokenLeave={onTokenLeave}
+          hoveredTokenId={hoveredTokenId}
         />,
       );
     }

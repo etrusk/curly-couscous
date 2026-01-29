@@ -17,6 +17,7 @@
 - **CSS Custom Property Theming**: Theme switching via `:root` data attributes (Phase 5 - planned)
 - **Functional Components with Hooks**: Custom hooks for shared logic
 - **Selector-based Subscriptions**: Zustand selectors for fine-grained re-renders
+- **Local State for UI Concerns**: Transient UI state (hover, tooltips) uses local React state, not Zustand (ADR-004)
 
 ## Project Structure
 
@@ -36,9 +37,10 @@ src/
 #   ├── uiStore.ts    # UI state (selected, modes, visibility)
 #   └── accessibilityStore.ts
 ├── components/       # React components (view layer)
-│   ├── BattleViewer/ # Grid, Cell, Token, IntentLine, IntentOverlay (flat structure)
-│   ├── SkillsPanel/  # Sentence-builder UI (planned)
-│   ├── RuleEvaluations/ # (planned)
+│   ├── BattleViewer/ # Grid, Cell, Token, IntentLine, IntentOverlay, CharacterTooltip
+│   ├── SkillsPanel/  # Skill configuration with category/strategy dropdowns
+│   ├── RuleEvaluations/ # Formatters and display components (used by CharacterTooltip)
+│   ├── EmptyPanel/   # Placeholder panel preserving grid layout
 │   ├── EventLog/     # (planned)
 │   └── common/       # (planned)
 ├── hooks/            # Custom React hooks
@@ -64,7 +66,7 @@ src/
 
 ## Accessibility Requirements
 
-- Shape redundancy: Circle (friendly), Diamond (enemy) ✅
-- Pattern fills: Solid (friendly), Diagonal stripes (enemy) ✅
+- Shape redundancy: Circle (friendly), Diamond (enemy)
+- Pattern fills: Solid (friendly), Diagonal stripes (enemy)
 - High contrast mode option (Phase 5 - planned)
 - UI scale: 75% to 150% (Phase 5 - planned)

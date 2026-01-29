@@ -8,11 +8,12 @@ LLM-optimized index of significant architectural and design decisions.
 
 ## Decisions
 
-| ID      | Title                                              | Date       | Status   | File                                                                             |
-| ------- | -------------------------------------------------- | ---------- | -------- | -------------------------------------------------------------------------------- |
-| ADR-001 | Spike and Stabilize Pattern for Discovery          | 2026-01-03 | Accepted | [adr-001-spike-and-stabilize.md](./adr-001-spike-and-stabilize.md)               |
-| ADR-002 | Uniform Intent Line Filtering for All Action Types | 2026-01-27 | Accepted | [adr-002-uniform-intent-filtering.md](./adr-002-uniform-intent-filtering.md)     |
-| ADR-003 | Weighted A\* for Pathfinding, Chebyshev for Range  | 2026-01-29 | Accepted | [adr-003-weighted-astar-pathfinding.md](./adr-003-weighted-astar-pathfinding.md) |
+| ID      | Title                                              | Date       | Status   | File                                                                               |
+| ------- | -------------------------------------------------- | ---------- | -------- | ---------------------------------------------------------------------------------- |
+| ADR-001 | Spike and Stabilize Pattern for Discovery          | 2026-01-03 | Accepted | [adr-001-spike-and-stabilize.md](./adr-001-spike-and-stabilize.md)                 |
+| ADR-002 | Uniform Intent Line Filtering for All Action Types | 2026-01-27 | Accepted | [adr-002-uniform-intent-filtering.md](./adr-002-uniform-intent-filtering.md)       |
+| ADR-003 | Weighted A\* for Pathfinding, Chebyshev for Range  | 2026-01-29 | Accepted | [adr-003-weighted-astar-pathfinding.md](./adr-003-weighted-astar-pathfinding.md)   |
+| ADR-004 | Local React State for UI-Only Concerns             | 2026-01-29 | Accepted | [adr-004-local-state-for-ui-concerns.md](./adr-004-local-state-for-ui-concerns.md) |
 
 ## Adding New ADRs
 

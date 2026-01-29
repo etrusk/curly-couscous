@@ -4,6 +4,7 @@ import {
   selectActions,
 } from "../../stores/gameStore";
 import type { Trigger, Selector } from "../../engine/types";
+import { slotPositionToLetter } from "../../utils/letterMapping";
 import styles from "./SkillsPanel.module.css";
 
 // Default fallbacks extracted to module-level constants to avoid recreating on every render
@@ -168,7 +169,8 @@ export function SkillsPanel() {
   return (
     <div className={styles.panel}>
       <h2 className={styles.header}>
-        Skills & Priority: {selectedCharacter.name}
+        Skills & Priority:{" "}
+        {slotPositionToLetter(selectedCharacter.slotPosition)}
       </h2>
 
       <div className={styles.skillsList}>

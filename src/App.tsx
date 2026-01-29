@@ -4,7 +4,7 @@ import { PlayControls } from "./components/PlayControls";
 import { CharacterControls } from "./components/CharacterControls";
 import { BattleStatusBadge } from "./components/BattleStatus";
 import { SkillsPanel } from "./components/SkillsPanel";
-import { RuleEvaluations } from "./components/RuleEvaluations";
+import { EmptyPanel } from "./components/EmptyPanel";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { useGameStore, selectActions } from "./stores/gameStore";
 import { useAccessibilityStore } from "./stores/accessibilityStore";
@@ -54,7 +54,7 @@ function App() {
           <SkillsPanel />
         </div>
         <div className="ruleEvaluations">
-          <RuleEvaluations />
+          <EmptyPanel />
         </div>
       </div>
     </div>

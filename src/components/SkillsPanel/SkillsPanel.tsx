@@ -10,6 +10,67 @@ import styles from "./SkillsPanel.module.css";
 const DEFAULT_TRIGGER: Trigger = { type: "always" };
 const DEFAULT_SELECTOR: Selector = { type: "nearest_enemy" };
 
+// Type definitions for decomposed selector
+type TargetCategory = "enemy" | "ally" | "self";
+type TargetStrategy = "nearest" | "lowest_hp";
+
+/**
+ * Decompose a Selector type into category and strategy.
+ * Returns { category, strategy } where strategy is "nearest" for "self".
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function decomposeSelector(type: Selector["type"]): {
+  category: TargetCategory;
+  strategy: TargetStrategy;
+} {
+  if (type === "self") {
+    return { category: "self", strategy: "nearest" };
+  }
+  // "nearest_enemy" → ["nearest", "enemy"]
+  // "lowest_hp_ally" → ["lowest", "hp", "ally"] - need special handling
+  if (type.startsWith("lowest_hp_")) {
+    const category = type.replace("lowest_hp_", "") as TargetCategory;
+    return { category, strategy: "lowest_hp" };
+  }
+  const category = type.replace("nearest_", "") as TargetCategory;
+  return { category, strategy: "nearest" };
+}
+
+/**
+ * Compose category and strategy into a Selector type.
+ * Returns "self" when category is "self", ignoring strategy.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function composeSelector(
+  category: TargetCategory,
+  strategy: TargetStrategy,
+): Selector["type"] {
+  if (category === "self") {
+    return "self";
+  }
+  const composed = `${strategy}_${category}` as Selector["type"];
+
+  // Validation: ensure composed value is valid
+  const validTypes: Selector["type"][] = [
+    "nearest_enemy",
+    "nearest_ally",
+    "lowest_hp_enemy",
+    "lowest_hp_ally",
+    "self",
+  ];
+  if (!validTypes.includes(composed)) {
+    console.error("[composeSelector] Invalid composed selector:", {
+      category,
+      strategy,
+      composed,
+    });
+    // Fallback to nearest_enemy if invalid
+    return "nearest_enemy";
+  }
+
+  return composed;
+}
+
 export function SkillsPanel() {
   const selectedCharacter = useGameStore(selectSelectedCharacter);
   const { updateSkill, moveSkillUp, moveSkillDown } =
@@ -65,13 +126,37 @@ export function SkillsPanel() {
     updateSkill(selectedCharacter.id, skillId, { triggers: newTriggers });
   };
 
-  // Type assertion acceptable for 80/20 - select values are guaranteed to match Selector['type']
-  const handleSelectorChange = (
-    skillId: string,
-    selectorType: Selector["type"],
-  ) => {
+  const handleCategoryChange = (skillId: string, category: TargetCategory) => {
+    // Get current selector to preserve strategy when switching categories
+    const skill = selectedCharacter.skills.find((s) => s.id === skillId);
+    if (!skill) {
+      console.error("[handleCategoryChange] Skill not found:", skillId);
+      return;
+    }
+
+    const currentSelector = skill.selectorOverride || DEFAULT_SELECTOR;
+    const { strategy } = decomposeSelector(currentSelector.type);
+
+    const newType = composeSelector(category, strategy);
     updateSkill(selectedCharacter.id, skillId, {
-      selectorOverride: { type: selectorType },
+      selectorOverride: { type: newType },
+    });
+  };
+
+  const handleStrategyChange = (skillId: string, strategy: TargetStrategy) => {
+    // Get current selector to preserve category when switching strategies
+    const skill = selectedCharacter.skills.find((s) => s.id === skillId);
+    if (!skill) {
+      console.error("[handleStrategyChange] Skill not found:", skillId);
+      return;
+    }
+
+    const currentSelector = skill.selectorOverride || DEFAULT_SELECTOR;
+    const { category } = decomposeSelector(currentSelector.type);
+
+    const newType = composeSelector(category, strategy);
+    updateSkill(selectedCharacter.id, skillId, {
+      selectorOverride: { type: newType },
     });
   };
 
@@ -98,6 +183,8 @@ export function SkillsPanel() {
             trigger.type === "hp_below";
           const selector = skill.selectorOverride || DEFAULT_SELECTOR;
           const isMove = skill.mode !== undefined;
+
+          const decomposed = decomposeSelector(selector.type);
 
           return (
             <div key={skill.id} className={styles.skillRow}>
@@ -167,22 +254,38 @@ export function SkillsPanel() {
 
                 <div className={styles.controlRow}>
                   <label>
-                    Selector:
+                    Target:
                     <select
-                      value={selector.type}
+                      value={decomposed.category}
                       onChange={(e) =>
-                        handleSelectorChange(
+                        handleCategoryChange(
                           skill.id,
-                          e.target.value as Selector["type"],
+                          e.target.value as TargetCategory,
                         )
                       }
-                      aria-label="Selector"
+                      aria-label="Target category"
                     >
-                      <option value="nearest_enemy">Nearest Enemy</option>
-                      <option value="nearest_ally">Nearest Ally</option>
-                      <option value="lowest_hp_enemy">Lowest HP Enemy</option>
-                      <option value="lowest_hp_ally">Lowest HP Ally</option>
+                      <option value="enemy">Enemy</option>
+                      <option value="ally">Ally</option>
                       <option value="self">Self</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Selection:
+                    <select
+                      value={decomposed.strategy}
+                      onChange={(e) =>
+                        handleStrategyChange(
+                          skill.id,
+                          e.target.value as TargetStrategy,
+                        )
+                      }
+                      aria-label="Selection strategy"
+                      disabled={decomposed.category === "self"}
+                    >
+                      <option value="nearest">Nearest</option>
+                      <option value="lowest_hp">Lowest HP</option>
                     </select>
                   </label>
                 </div>

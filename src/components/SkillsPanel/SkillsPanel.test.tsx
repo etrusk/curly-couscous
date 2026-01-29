@@ -2,6 +2,7 @@
  * Tests for SkillsPanel component.
  * Following TDD workflow - these tests are written before implementation.
  */
+/* eslint-disable max-lines */
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
@@ -248,89 +249,636 @@ describe("SkillsPanel", () => {
     });
   });
 
-  describe("Selector Dropdown", () => {
-    it("should display current selector type", () => {
-      const skill1 = createSkill({
-        id: "skill1",
-        selectorOverride: { type: "lowest_hp_enemy" },
+  describe("Target Selector Dropdowns", () => {
+    describe("Helper Functions", () => {
+      it("decomposeSelector correctly parses 'nearest_enemy'", async () => {
+        const { decomposeSelector } = await import("./SkillsPanel");
+        const result = decomposeSelector("nearest_enemy");
+        expect(result).toEqual({ category: "enemy", strategy: "nearest" });
       });
-      const char1 = createCharacter({ id: "char1", skills: [skill1] });
-      useGameStore.getState().actions.initBattle([char1]);
-      useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<SkillsPanel />);
+      it("decomposeSelector correctly parses 'nearest_ally'", async () => {
+        const { decomposeSelector } = await import("./SkillsPanel");
+        const result = decomposeSelector("nearest_ally");
+        expect(result).toEqual({ category: "ally", strategy: "nearest" });
+      });
 
-      expect(screen.getByText(/lowest hp enemy/i)).toBeInTheDocument();
+      it("decomposeSelector correctly parses 'lowest_hp_enemy'", async () => {
+        const { decomposeSelector } = await import("./SkillsPanel");
+        const result = decomposeSelector("lowest_hp_enemy");
+        expect(result).toEqual({ category: "enemy", strategy: "lowest_hp" });
+      });
+
+      it("decomposeSelector correctly parses 'lowest_hp_ally'", async () => {
+        const { decomposeSelector } = await import("./SkillsPanel");
+        const result = decomposeSelector("lowest_hp_ally");
+        expect(result).toEqual({ category: "ally", strategy: "lowest_hp" });
+      });
+
+      it("decomposeSelector correctly handles 'self' special case", async () => {
+        const { decomposeSelector } = await import("./SkillsPanel");
+        const result = decomposeSelector("self");
+        expect(result).toEqual({ category: "self", strategy: "nearest" });
+      });
+
+      it("composeSelector correctly combines enemy+nearest", async () => {
+        const { composeSelector } = await import("./SkillsPanel");
+        const result = composeSelector("enemy", "nearest");
+        expect(result).toBe("nearest_enemy");
+      });
+
+      it("composeSelector correctly combines ally+nearest", async () => {
+        const { composeSelector } = await import("./SkillsPanel");
+        const result = composeSelector("ally", "nearest");
+        expect(result).toBe("nearest_ally");
+      });
+
+      it("composeSelector correctly combines enemy+lowest_hp", async () => {
+        const { composeSelector } = await import("./SkillsPanel");
+        const result = composeSelector("enemy", "lowest_hp");
+        expect(result).toBe("lowest_hp_enemy");
+      });
+
+      it("composeSelector correctly combines ally+lowest_hp", async () => {
+        const { composeSelector } = await import("./SkillsPanel");
+        const result = composeSelector("ally", "lowest_hp");
+        expect(result).toBe("lowest_hp_ally");
+      });
+
+      it("composeSelector returns 'self' regardless of strategy", async () => {
+        const { composeSelector } = await import("./SkillsPanel");
+        const result1 = composeSelector("self", "nearest");
+        const result2 = composeSelector("self", "lowest_hp");
+        expect(result1).toBe("self");
+        expect(result2).toBe("self");
+      });
+
+      it("roundtrip decompose then compose returns original type", async () => {
+        const { decomposeSelector, composeSelector } =
+          await import("./SkillsPanel");
+        const selectorTypes: Array<
+          | "nearest_enemy"
+          | "nearest_ally"
+          | "lowest_hp_enemy"
+          | "lowest_hp_ally"
+          | "self"
+        > = [
+          "nearest_enemy",
+          "nearest_ally",
+          "lowest_hp_enemy",
+          "lowest_hp_ally",
+          "self",
+        ];
+
+        selectorTypes.forEach((type) => {
+          const { category, strategy } = decomposeSelector(type);
+          const roundtrip = composeSelector(category, strategy);
+          expect(roundtrip).toBe(type);
+        });
+      });
     });
 
-    it("should show all selector options in dropdown", async () => {
-      const user = userEvent.setup();
-      const skill1 = createSkill({ id: "skill1" });
-      const char1 = createCharacter({ id: "char1", skills: [skill1] });
-      useGameStore.getState().actions.initBattle([char1]);
-      useGameStore.getState().actions.selectCharacter("char1");
+    describe("UI Rendering", () => {
+      it("renders two dropdowns for target selection", () => {
+        const skill1 = createSkill({ id: "skill1" });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<SkillsPanel />);
+        render(<SkillsPanel />);
 
-      const selectorSelect = screen.getByRole("combobox", {
-        name: /selector/i,
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+
+        expect(categoryDropdown).toBeInTheDocument();
+        expect(strategyDropdown).toBeInTheDocument();
       });
-      await user.click(selectorSelect);
 
-      // All selector types should be available
-      expect(
-        screen.getByRole("option", { name: /nearest enemy/i }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("option", { name: /nearest ally/i }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("option", { name: /lowest hp enemy/i }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("option", { name: /lowest hp ally/i }),
-      ).toBeInTheDocument();
-      expect(screen.getByRole("option", { name: /self/i })).toBeInTheDocument();
+      it("category dropdown shows correct initial value", () => {
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "lowest_hp_ally" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        expect(categoryDropdown).toHaveValue("ally");
+      });
+
+      it("strategy dropdown shows correct initial value", () => {
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "lowest_hp_enemy" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+        expect(strategyDropdown).toHaveValue("lowest_hp");
+      });
+
+      it("category dropdown shows all options", async () => {
+        const user = userEvent.setup();
+        const skill1 = createSkill({ id: "skill1" });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        await user.click(categoryDropdown);
+
+        expect(
+          screen.getByRole("option", { name: /^enemy$/i }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole("option", { name: /^ally$/i }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole("option", { name: /^self$/i }),
+        ).toBeInTheDocument();
+      });
+
+      it("strategy dropdown shows all options", async () => {
+        const user = userEvent.setup();
+        const skill1 = createSkill({ id: "skill1" });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+        await user.click(strategyDropdown);
+
+        expect(
+          screen.getByRole("option", { name: /^nearest$/i }),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole("option", { name: /^lowest hp$/i }),
+        ).toBeInTheDocument();
+      });
     });
 
-    it("should call updateSkill when selector is changed", async () => {
-      const user = userEvent.setup();
-      const skill1 = createSkill({
-        id: "skill1",
-        selectorOverride: { type: "nearest_enemy" },
+    describe("Strategy Dropdown Disabled State", () => {
+      it("strategy dropdown is disabled when self is selected", () => {
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "self" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+        expect(strategyDropdown).toBeDisabled();
       });
-      const char1 = createCharacter({ id: "char1", skills: [skill1] });
-      useGameStore.getState().actions.initBattle([char1]);
-      useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<SkillsPanel />);
+      it("strategy dropdown is enabled when enemy is selected", () => {
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "nearest_enemy" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
 
-      const selectorSelect = screen.getByRole("combobox", {
-        name: /selector/i,
+        render(<SkillsPanel />);
+
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+        expect(strategyDropdown).not.toBeDisabled();
       });
-      await user.selectOptions(selectorSelect, "lowest_hp_enemy");
 
-      // After implementation, selector should be updated
-      const updatedChar = useGameStore
-        .getState()
-        .gameState.characters.find((c) => c.id === "char1");
-      const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-      expect(updatedSkill?.selectorOverride?.type).toBe("lowest_hp_enemy");
+      it("strategy dropdown is enabled when ally is selected", () => {
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "lowest_hp_ally" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+        expect(strategyDropdown).not.toBeDisabled();
+      });
     });
 
-    it("should display default selector when selectorOverride is undefined", () => {
-      const skill1 = createSkill({ id: "skill1", selectorOverride: undefined });
-      const char1 = createCharacter({ id: "char1", skills: [skill1] });
-      useGameStore.getState().actions.initBattle([char1]);
-      useGameStore.getState().actions.selectCharacter("char1");
+    describe("User Interactions", () => {
+      it("changing category from enemy to ally updates selector", async () => {
+        const user = userEvent.setup();
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "nearest_enemy" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<SkillsPanel />);
+        render(<SkillsPanel />);
 
-      // Should show default (nearest_enemy) or indicate default somehow
-      const selectorSelect = screen.getByRole("combobox", {
-        name: /selector/i,
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        await user.selectOptions(categoryDropdown, "ally");
+
+        const updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("nearest_ally");
       });
-      expect(selectorSelect).toBeInTheDocument();
+
+      it("changing category from ally to self updates selector", async () => {
+        const user = userEvent.setup();
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "lowest_hp_ally" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        await user.selectOptions(categoryDropdown, "self");
+
+        const updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("self");
+      });
+
+      it("changing strategy from nearest to lowest_hp updates selector", async () => {
+        const user = userEvent.setup();
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "nearest_enemy" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+        await user.selectOptions(strategyDropdown, "lowest_hp");
+
+        const updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("lowest_hp_enemy");
+      });
+
+      it("changing strategy from lowest_hp to nearest updates selector", async () => {
+        const user = userEvent.setup();
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "lowest_hp_ally" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+        await user.selectOptions(strategyDropdown, "nearest");
+
+        const updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("nearest_ally");
+      });
+
+      it("changing from self to enemy enables strategy dropdown", async () => {
+        const user = userEvent.setup();
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "self" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+
+        await user.selectOptions(categoryDropdown, "enemy");
+
+        expect(strategyDropdown).not.toBeDisabled();
+
+        const updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("nearest_enemy");
+      });
+
+      it("changing from self to ally enables strategy dropdown", async () => {
+        const user = userEvent.setup();
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "self" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+
+        await user.selectOptions(categoryDropdown, "ally");
+
+        expect(strategyDropdown).not.toBeDisabled();
+
+        const updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("nearest_ally");
+      });
+
+      it("changing to self sets correct selector and disables strategy", async () => {
+        const user = userEvent.setup();
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "lowest_hp_enemy" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+
+        await user.selectOptions(categoryDropdown, "self");
+
+        expect(strategyDropdown).toBeDisabled();
+
+        const updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("self");
+      });
+
+      // eslint-disable-next-line complexity
+      it("all category/strategy combinations produce correct types", async () => {
+        const user = userEvent.setup();
+        const skill1 = createSkill({ id: "skill1" });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+
+        // Test enemy + nearest
+        await user.selectOptions(categoryDropdown, "enemy");
+        await user.selectOptions(strategyDropdown, "nearest");
+        let updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        let updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("nearest_enemy");
+
+        // Test enemy + lowest_hp
+        await user.selectOptions(strategyDropdown, "lowest_hp");
+        updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("lowest_hp_enemy");
+
+        // Test ally + nearest
+        await user.selectOptions(categoryDropdown, "ally");
+        await user.selectOptions(strategyDropdown, "nearest");
+        updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("nearest_ally");
+
+        // Test ally + lowest_hp
+        await user.selectOptions(strategyDropdown, "lowest_hp");
+        updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("lowest_hp_ally");
+
+        // Test self + nearest (strategy ignored)
+        await user.selectOptions(categoryDropdown, "self");
+        await user.selectOptions(strategyDropdown, "nearest");
+        updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("self");
+
+        // Test self + lowest_hp (strategy ignored)
+        await user.selectOptions(strategyDropdown, "lowest_hp");
+        updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride?.type).toBe("self");
+      });
+    });
+
+    describe("Backward Compatibility", () => {
+      it("existing nearest_enemy displays correctly", () => {
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "nearest_enemy" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+
+        expect(categoryDropdown).toHaveValue("enemy");
+        expect(strategyDropdown).toHaveValue("nearest");
+        expect(strategyDropdown).not.toBeDisabled();
+      });
+
+      it("existing lowest_hp_ally displays correctly", () => {
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "lowest_hp_ally" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+
+        expect(categoryDropdown).toHaveValue("ally");
+        expect(strategyDropdown).toHaveValue("lowest_hp");
+        expect(strategyDropdown).not.toBeDisabled();
+      });
+
+      it("existing self displays correctly", () => {
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: { type: "self" },
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+
+        expect(categoryDropdown).toHaveValue("self");
+        expect(strategyDropdown).toHaveValue("nearest");
+        expect(strategyDropdown).toBeDisabled();
+      });
+
+      it("default selector displays correctly when undefined", () => {
+        const skill1 = createSkill({
+          id: "skill1",
+          selectorOverride: undefined,
+        });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+
+        expect(categoryDropdown).toHaveValue("enemy");
+        expect(strategyDropdown).toHaveValue("nearest");
+        expect(strategyDropdown).not.toBeDisabled();
+      });
+
+      it("store updates work with new handlers", async () => {
+        const user = userEvent.setup();
+        const skill1 = createSkill({ id: "skill1" });
+        const char1 = createCharacter({ id: "char1", skills: [skill1] });
+        useGameStore.getState().actions.initBattle([char1]);
+        useGameStore.getState().actions.selectCharacter("char1");
+
+        render(<SkillsPanel />);
+
+        const categoryDropdown = screen.getByRole("combobox", {
+          name: /target category/i,
+        });
+        const strategyDropdown = screen.getByRole("combobox", {
+          name: /selection strategy/i,
+        });
+
+        // Change category to ally
+        await user.selectOptions(categoryDropdown, "ally");
+        let updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        let updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride).toEqual({
+          type: "nearest_ally",
+        });
+
+        // Change strategy to lowest_hp
+        await user.selectOptions(strategyDropdown, "lowest_hp");
+        updatedChar = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
+        expect(updatedSkill?.selectorOverride).toEqual({
+          type: "lowest_hp_ally",
+        });
+      });
     });
   });
 

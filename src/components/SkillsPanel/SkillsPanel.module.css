@@ -108,6 +108,12 @@
   outline-offset: 2px;
 }
 
+.controlRow select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--surface-secondary);
+}
+
 .controlRow input[type="number"] {
   width: 4rem;
 }

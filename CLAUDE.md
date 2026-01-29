@@ -38,6 +38,7 @@ This project maintains documentation in `.docs/`:
 - **patterns/index.md**: LLM-optimized index of patterns (details in `patterns/*.md`)
 - **decisions/index.md**: LLM-optimized index of ADRs (details in `decisions/*.md`)
 - **investigations/index.md**: LLM-optimized index of debugging sessions (details in `investigations/*.md`)
+- **lessons-learned/index.md**: LLM-optimized index of lessons (details in `lessons-learned/*.md`)
 - **current-task.md**: Project status (shared by both Roo and Claude Code workflows)
 
 **Index files are lightweight pointers. Read specific detail files (e.g., `patterns/collapsible-section.md`) when needed.**

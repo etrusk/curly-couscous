@@ -86,12 +86,7 @@ If skipping, document reason in session.md and proceed to INIT.
 **Automated browser verification (agents MUST perform):**
 
 1. **During IMPLEMENT (coder agent)**: MUST ALWAYS perform after writing ANY UI code:
-   - **Verify dev server status**: Check if already running with `curl -s http://localhost:5173 > /dev/null && echo "Running" || echo "Not running"`
-   - **Start dev server** ONLY if not running:
-     - Use Bash tool with `run_in_background=true` parameter
-     - Command: `npm run dev`
-     - Wait 3-5 seconds for server startup before attempting browser navigation
-     - If navigation fails, check dev server output for port conflicts or startup errors
+   - **Assume dev server is running**: The development server is assumed to be running at `http://localhost:5173`
    - **Navigate to relevant page**:
      - Check `.tdd/plan.md` for mentioned routes/pages
      - If implementing new component, navigate to page that uses it
@@ -123,9 +118,18 @@ When browser verification is required, agents MUST:
 
 1. **Always attempt** to use browser tools (start with `tabs_context_mcp`)
 2. **If browser automation succeeds**: Document automated verification results in session.md, proceed to next phase
-3. **If browser extension not connected**: Report as BLOCKER to orchestrator with actual error message
-4. **Confirm browser availability** by attempting the tools first before reporting unavailability
-5. **Orchestrator escalates** browser connection failures to HUMAN_VERIFY phase with manual verification guidance
+3. **If browser tools fail or error**:
+   - **STOP immediately** - do not proceed with implementation phase
+   - **Document as BLOCKER** in `.tdd/session.md` under "Blockers" section:
+     ```markdown
+     ## Blockers
+
+     - Browser automation failed: [exact error message from tool]
+     - Cannot complete automated verification for UI changes
+     ```
+   - **Report to orchestrator**: Include actual error message in phase output
+   - **Orchestrator MUST escalate** to HUMAN_VERIFY phase immediately with manual verification guidance
+   - Do NOT attempt to work around browser tool failures - escalation to human is required
 
 **Human verification (HUMAN_VERIFY phase - CONDITIONAL):**
 
@@ -232,20 +236,20 @@ This calibrated communication helps the orchestrator make better routing decisio
 
 ## Phase Routing
 
-| Phase              | Agent     | Task Prompt Template                                                                                                                                                                                                                | Route To                                       |
-| ------------------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                                                                                                                                               | EXPLORE                                        |
-| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index}.md`. Write findings to `.tdd/exploration.md`. Update session.                                                                                                                        | PLAN                                           |
-| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                                                                                                                                           | DESIGN_TESTS                                   |
-| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                                                                                                                                   | TEST_DESIGN_REVIEW                             |
-| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Fix if any issues found (missing test cases for acceptance criteria, unclear descriptions, missing edge cases, pattern violations). Update session. | WRITE_TESTS                                    |
-| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests. Run tests and verify they FAIL (red phase). Update session.                                                                                                                           | IMPLEMENT                                      |
-| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run tests and verify they PASS (green phase). Run quality gates (lint, type-check). **MUST verify in browser for ANY UI changes.** Update session.                    | REVIEW                                         |
-| REVIEW             | reviewer  | Read `.tdd/plan.md`, `.docs/{spec,patterns/index}.md`. Write findings to `.tdd/review-findings.md`. Update session.                                                                                                                 | FIX or SYNC_DOCS or HUMAN_VERIFY (conditional) |
-| FIX                | coder     | Read `.tdd/review-findings.md`. Fix all critical/important issues. **MUST use browser debugging for ANY UI-related issues.** Update session.                                                                                        | REVIEW (re-review)                             |
-| HUMAN_VERIFY       | (self)    | **CONDITIONAL**: Only if automated browser verification failed or unavailable. See HUMAN_VERIFY section below.                                                                                                                      | SYNC_DOCS or FIX                               |
-| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                                                                                                                                        | COMMIT                                         |
-| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                                                                                                                                          | Cleanup and completion                         |
+| Phase              | Agent     | Task Prompt Template                                                                                                                                                                                                                                                                                        | Route To                                       |
+| ------------------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                                                                                                                                                                                                                       | EXPLORE                                        |
+| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index,lessons-learned/index}.md`. Write findings to `.tdd/exploration.md`. Update session.                                                                                                                                                                          | PLAN                                           |
+| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                                                                                                                                                                                                                   | DESIGN_TESTS                                   |
+| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                                                                                                                                                                                                           | TEST_DESIGN_REVIEW                             |
+| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Fix if any issues found (missing test cases for acceptance criteria, unclear descriptions, missing edge cases, pattern violations). Update session.                                                                         | WRITE_TESTS                                    |
+| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests. Run tests and verify they FAIL (red phase). Update session.                                                                                                                                                                                                   | IMPLEMENT                                      |
+| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run tests and verify they PASS (green phase). Run quality gates (lint, type-check). **MUST verify in browser for ANY UI changes (assumes dev server running on :5173). If browser tools fail, document as BLOCKER and stop.** Update session. | REVIEW (or escalate if BLOCKED)                |
+| REVIEW             | reviewer  | Read `.tdd/plan.md`, `.docs/{spec,patterns/index}.md`. Write findings to `.tdd/review-findings.md`. Update session.                                                                                                                                                                                         | FIX or SYNC_DOCS or HUMAN_VERIFY (conditional) |
+| FIX                | coder     | Read `.tdd/review-findings.md`. Fix all critical/important issues. **MUST use browser debugging for ANY UI-related issues.** Update session.                                                                                                                                                                | REVIEW (re-review)                             |
+| HUMAN_VERIFY       | (self)    | **CONDITIONAL**: Only if automated browser verification failed or unavailable. See HUMAN_VERIFY section below.                                                                                                                                                                                              | SYNC_DOCS or FIX                               |
+| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                                                                                                                                                                                                                | COMMIT                                         |
+| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                                                                                                                                                                                                                  | Cleanup and completion                         |
 
 **Stuck/Troubleshooting**: If coder reports STUCK (documented in session.md Blockers section), spawn troubleshooter agent for root cause diagnosis. For UI bugs, troubleshooter MUST attempt browser automation to read console errors and DOM state. If browser unavailable, report as BLOCKER for orchestrator to escalate.
 
@@ -309,7 +313,7 @@ This calibrated communication helps the orchestrator make better routing decisio
 
 - Fixing typos in documentation
 - Adding examples to existing sections
-- Appending to `lessons-learned.md`
+- Adding lessons to `lessons-learned/` directory
 - Minor clarifications that don't change meaning
 
 ### Review Cycle Limit
@@ -354,7 +358,7 @@ prompt: "EXPLORE phase: Explore the codebase for this task: [task description].
 Scope: [from clarification]
 Acceptance criteria: [from clarification]
 
-Read .docs/spec.md, .docs/architecture.md, .docs/patterns/index.md first.
+Read .docs/spec.md, .docs/architecture.md, .docs/patterns/index.md, .docs/lessons-learned/index.md first.
 Write findings to .tdd/exploration.md.
 Update .tdd/session.md when complete."
 ```
@@ -401,7 +405,7 @@ Please manually verify the implementation works as expected.
 For UI changes:
 
 ```
-The dev server is running at http://localhost:5173 (started during IMPLEMENT phase).
+The dev server is assumed to be running at http://localhost:5173.
 
 Please verify:
 1. Navigate to [URL from plan.md or browser verification section]
@@ -493,7 +497,7 @@ Answer:
 | Design deviations, architectural changes  | .docs/architecture.md        | Document + rationale|
 | New patterns discovered                   | .docs/patterns/index.md      | Add pattern         |
 | Significant decisions                     | .docs/decisions/index.md     | Add ADR             |
-| Failure patterns, lessons learned         | .docs/lessons-learned.md     | Append finding      |
+| Failure patterns, lessons learned         | .docs/lessons-learned/       | Create lesson file + update index |
 
 **If substantial changes made** (changing acceptance criteria, modifying architectural decisions, removing/changing patterns, adding ADRs):
 - Note in .tdd/session.md under 'Documentation Updates': 'SUBSTANTIAL CHANGES - Human review recommended before commit'
@@ -633,7 +637,7 @@ GIF recorded: [yes - multi-step workflow | no - simple change | N/A]
 
 [If SUCCESS: "Automated verification passed - proceeding to SYNC_DOCS"]
 [If FAILED: "Automated verification failed: [reason]. Escalating to HUMAN_VERIFY."]
-[If BLOCKED: "Browser extension not connected: [actual error message]. Escalating to HUMAN_VERIFY."]
+[If BLOCKED: "Browser tools encountered errors: [actual error message]. BLOCKER - stopping implementation and escalating to HUMAN_VERIFY."]
 [For non-UI tasks: "NOT_APPLICABLE - no UI changes"]
 
 ## Human Verification (Conditional)
@@ -723,23 +727,23 @@ The TDD workflow instructions are living documentation that should improve based
    - What specific scenario wasn't covered?
    - What assumption did the agent make that was incorrect?
 
-3. **After workflow completion**, if significant instruction gaps were identified, append findings to `.docs/lessons-learned.md`:
+3. **After workflow completion**, if significant instruction gaps were identified, create a new lesson in `.docs/lessons-learned/`:
 
-   ````markdown
-   ## TDD Workflow Improvement - [YYYY-MM-DD]
+   Create `lesson-NNN-[descriptive-slug].md`:
 
-   **Phase:** [phase name, e.g., EXPLORE, IMPLEMENT]
-   **Issue:** [What went wrong - be specific about the failure mode]
-   **Root cause:** [Why it happened - e.g., "Instructions didn't cover scenario where spec.md missing"]
-   **Proposed improvement:** [Specific text change or addition to .claude/commands/tdd.md]
+   ```markdown
+   # Lesson NNN: [Title]
 
-   Example:
+   **Date:** [YYYY-MM-DD]
 
-   ```diff
-   - Old instruction: "Read .docs/spec.md for requirements"
-   + New instruction: "Read .docs/spec.md if it exists. If missing, note in exploration.md and proceed with codebase exploration only"
+   **Context:** [What went wrong - be specific about the failure mode]
+
+   **Lesson:** [Why it happened and what should be done differently]
+
+   **Impact:** [Consequences and how this improves future workflows]
    ```
-   ````
+
+   Then update `.docs/lessons-learned/index.md` YAML frontmatter with new entry.
 
    ```
 
@@ -753,7 +757,7 @@ The TDD workflow instructions are living documentation that should improve based
 
 **Human responsibilities:**
 
-- Review accumulated lessons-learned.md periodically
+- Review accumulated lessons in `lessons-learned/` directory periodically
 - Update `.claude/commands/tdd.md` with proven improvements
 - Version control prompt changes to track what works
 - Test prompt changes on representative tasks before deploying broadly

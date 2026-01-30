@@ -4,6 +4,7 @@
  */
 
 import type { Skill } from "../engine/types";
+import { getDefaultSkills } from "../engine/skill-registry";
 
 /**
  * Grid size (12×12 grid).
@@ -33,39 +34,9 @@ export function getNextCharacterIdCounter(): number {
 
 /**
  * Default skills assigned to newly added characters.
+ * Derived from the centralized skill registry.
  */
-export const DEFAULT_SKILLS: Skill[] = [
-  {
-    id: "light-punch",
-    name: "Light Punch",
-    tickCost: 1,
-    range: 1,
-    damage: 10,
-    enabled: true,
-    triggers: [{ type: "always" }],
-    selectorOverride: { type: "nearest_enemy" },
-  },
-  {
-    id: "heavy-punch",
-    name: "Heavy Punch",
-    tickCost: 2,
-    range: 2,
-    damage: 25,
-    enabled: true,
-    triggers: [{ type: "always" }],
-    selectorOverride: { type: "nearest_enemy" },
-  },
-  {
-    id: "move-towards",
-    name: "Move Towards",
-    tickCost: 1,
-    range: 1,
-    mode: "towards",
-    enabled: true,
-    triggers: [{ type: "always" }],
-    selectorOverride: { type: "nearest_enemy" },
-  },
-];
+export const DEFAULT_SKILLS: Skill[] = getDefaultSkills();
 
 /**
  * Initial game state for reset.

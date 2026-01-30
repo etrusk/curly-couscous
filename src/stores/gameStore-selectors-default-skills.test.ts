@@ -55,7 +55,17 @@ describe("selectIntentData - DEFAULT_SKILLS integration", () => {
     const { actions } = useGameStore.getState();
     actions.addCharacter("friendly"); // Places at (0,0)
     actions.addCharacter("enemy"); // Places at (1,0) - next available
+
+    // Assign Light Punch to both characters (now they start with only Move)
+    const characters = useGameStore.getState().gameState.characters;
+    actions.assignSkillToCharacter(characters[0]!.id, "light-punch");
+    actions.assignSkillToCharacter(characters[1]!.id, "light-punch");
     // Chebyshev distance = 1, within Light Punch range
+
+    // Verify skills were assigned
+    const charsAfterAssign = useGameStore.getState().gameState.characters;
+    expect(charsAfterAssign[0]?.skills).toHaveLength(2);
+    expect(charsAfterAssign[1]?.skills).toHaveLength(2);
 
     const result = selectIntentData(useGameStore.getState());
 
@@ -83,6 +93,13 @@ describe("selectIntentData - DEFAULT_SKILLS integration", () => {
     const { actions } = useGameStore.getState();
     actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
     actions.addCharacterAtPosition("enemy", { x: 2, y: 0 });
+
+    // Assign Light Punch and Heavy Punch to both characters
+    const characters = useGameStore.getState().gameState.characters;
+    actions.assignSkillToCharacter(characters[0]!.id, "light-punch");
+    actions.assignSkillToCharacter(characters[0]!.id, "heavy-punch");
+    actions.assignSkillToCharacter(characters[1]!.id, "light-punch");
+    actions.assignSkillToCharacter(characters[1]!.id, "heavy-punch");
     // Chebyshev distance = 2
     // Outside Light Punch (range=1), within Heavy Punch (range=2)
 

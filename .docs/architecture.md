@@ -12,6 +12,7 @@
 ## Key Patterns
 
 - **Pure Game Engine**: Core game logic in `/src/engine/` with no React dependencies
+- **Centralized Skill Registry**: All skill definitions in `src/engine/skill-registry.ts` (ADR-005)
 - **Data-Driven Targeting**: Selectors and triggers as declarative data interfaces (not functions)
 - **Command Pattern**: State mutations via named actions for history/undo support
 - **CSS Custom Property Theming**: Theme switching via `:root` data attributes (Phase 5 - planned)
@@ -30,7 +31,8 @@ src/
 │   ├── movement.ts   # Movement, collision resolution
 │   ├── pathfinding.ts # A* pathfinding algorithm with binary heap
 │   ├── selectors.ts  # Target selection strategies
-│   └── triggers.ts   # Trigger condition evaluation
+│   ├── triggers.ts   # Trigger condition evaluation
+│   └── skill-registry.ts # Centralized skill definitions (ADR-005)
 ├── stores/           # Zustand stores
 │   └── gameStore.ts  # Game state + selectors (BattleViewer selectors included)
 #   Future stores (planned):
@@ -39,8 +41,8 @@ src/
 ├── components/       # React components (view layer)
 │   ├── BattleViewer/ # Grid, Cell, Token, IntentLine, IntentOverlay, CharacterTooltip
 │   ├── SkillsPanel/  # Skill configuration with category/strategy dropdowns
+│   ├── InventoryPanel/ # Skill inventory with assign/remove for selected friendly characters
 │   ├── RuleEvaluations/ # Formatters and display components (used by CharacterTooltip)
-│   ├── EmptyPanel/   # Placeholder panel preserving grid layout
 │   ├── EventLog/     # (planned)
 │   └── common/       # (planned)
 ├── hooks/            # Custom React hooks

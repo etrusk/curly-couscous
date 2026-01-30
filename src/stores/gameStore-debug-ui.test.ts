@@ -158,22 +158,23 @@ describe("addCharacterAtPosition", () => {
     expect(characters[2]?.slotPosition).toBe(3);
   });
 
-  it("addCharacterAtPosition should create character with default skills", () => {
+  it("addCharacterAtPosition should create character with only innate skills", () => {
     useGameStore
       .getState()
       .actions.addCharacterAtPosition("friendly", { x: 5, y: 5 });
 
     const character = useGameStore.getState().gameState.characters[0];
-    expect(character?.skills).toHaveLength(3);
+    // Characters now start with only innate skills
+    expect(character?.skills).toHaveLength(1);
 
-    character?.skills.forEach((skill) => {
-      expect(skill).toHaveProperty("id");
-      expect(skill).toHaveProperty("name");
-      expect(skill).toHaveProperty("tickCost");
-      expect(skill).toHaveProperty("range");
-      expect(skill).toHaveProperty("enabled");
-      expect(skill).toHaveProperty("triggers");
-    });
+    const skill = character?.skills[0];
+    expect(skill?.id).toBe("move-towards");
+    expect(skill).toHaveProperty("id");
+    expect(skill).toHaveProperty("name");
+    expect(skill).toHaveProperty("tickCost");
+    expect(skill).toHaveProperty("range");
+    expect(skill).toHaveProperty("enabled");
+    expect(skill).toHaveProperty("triggers");
   });
 
   it("addCharacterAtPosition should create character with 100 HP", () => {

@@ -83,4 +83,13 @@ describe("App - Empty Arena Start", () => {
     expect(addEnemyButton).toBeInTheDocument();
     expect(removeButton).toBeInTheDocument();
   });
+
+  it("should render InventoryPanel in grid", () => {
+    render(<App />);
+
+    const inventoryHeading = screen.getByRole("heading", {
+      name: /inventory/i,
+    });
+    expect(inventoryHeading).toBeInTheDocument();
+  });
 });

@@ -70,6 +70,8 @@ export interface GameStore {
     ) => void;
     moveSkillUp: (charId: string, skillIndex: number) => void;
     moveSkillDown: (charId: string, skillIndex: number) => void;
+    assignSkillToCharacter: (charId: string, skillId: string) => void;
+    removeSkillFromCharacter: (charId: string, skillId: string) => void;
 
     // Character add/remove
     addCharacter: (faction: Faction) => boolean;

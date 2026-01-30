@@ -10,7 +10,9 @@
 
 ## Current Focus
 
-[No active task]
+**Workflow:** TDD (Claude Code)
+**Started:** 2026-01-30
+**Task:** Replace Rule Evaluations panel with Inventory panel showing skills for selected friendly characters
 
 ## Recent Completions
 

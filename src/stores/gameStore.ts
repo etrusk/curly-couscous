@@ -9,6 +9,10 @@ import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { processTick as engineProcessTick } from "../engine/game";
 import type { Character } from "../engine/types";
+import {
+  SKILL_REGISTRY,
+  createSkillFromDefinition,
+} from "../engine/skill-registry";
 
 // Import from decomposed modules
 import {
@@ -257,6 +261,58 @@ export const useGameStore = create<GameStore>()(
             skills[skillIndex] = b;
             skills[skillIndex + 1] = a;
           }
+        }),
+
+      assignSkillToCharacter: (charId, skillId) =>
+        set((state) => {
+          const character = state.gameState.characters.find(
+            (c) => c.id === charId,
+          );
+          if (!character) {
+            return;
+          }
+
+          // Check if character already has this skill
+          const hasSkill = character.skills.some((s) => s.id === skillId);
+          if (hasSkill) {
+            return;
+          }
+
+          // Find skill definition in registry
+          const skillDef = SKILL_REGISTRY.find((s) => s.id === skillId);
+          if (!skillDef) {
+            return;
+          }
+
+          // Add skill to beginning of list (highest priority)
+          character.skills.unshift(createSkillFromDefinition(skillDef));
+        }),
+
+      removeSkillFromCharacter: (charId, skillId) =>
+        set((state) => {
+          const character = state.gameState.characters.find(
+            (c) => c.id === charId,
+          );
+          if (!character) {
+            return;
+          }
+
+          // Find skill in character's skill list
+          const skillIndex = character.skills.findIndex(
+            (s) => s.id === skillId,
+          );
+          if (skillIndex === -1) {
+            return;
+          }
+
+          // Check if skill is innate - cannot remove innate skills
+          const skillDef = SKILL_REGISTRY.find((s) => s.id === skillId);
+          if (skillDef?.innate) {
+            return;
+          }
+
+          // Remove skill
+          character.skills.splice(skillIndex, 1);
         }),
 
       addCharacter: (faction) => {

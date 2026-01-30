@@ -89,22 +89,22 @@ describe("addCharacter", () => {
     expect(samePosition).toBe(false);
   });
 
-  it("should assign default skills (3 skills with expected structure)", () => {
+  it("should assign only innate skills (Move)", () => {
     useGameStore.getState().actions.initBattle([]);
 
     useGameStore.getState().actions.addCharacter("friendly");
 
     const character = useGameStore.getState().gameState.characters[0];
-    expect(character?.skills).toHaveLength(3);
+    // Characters now start with only innate skills
+    expect(character?.skills).toHaveLength(1);
 
-    character?.skills.forEach((skill) => {
-      expect(skill).toHaveProperty("id");
-      expect(skill).toHaveProperty("name");
-      expect(skill).toHaveProperty("tickCost");
-      expect(skill).toHaveProperty("range");
-      expect(skill).toHaveProperty("enabled");
-      expect(skill).toHaveProperty("triggers");
-    });
+    const skill = character?.skills[0];
+    expect(skill?.id).toBe("move-towards");
+    expect(skill?.name).toBe("Move Towards");
+    expect(skill).toHaveProperty("tickCost");
+    expect(skill).toHaveProperty("range");
+    expect(skill).toHaveProperty("enabled");
+    expect(skill).toHaveProperty("triggers");
   });
 
   it("should set HP and maxHP to 100", () => {

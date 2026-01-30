@@ -71,7 +71,8 @@ describe("selectAllCharacterEvaluations", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]?.isMidAction).toBe(false);
-    expect(result[0]?.skillEvaluations).toHaveLength(3); // Default 3 skills
+    // DEFAULT_SKILLS now only contains innate skills (Move)
+    expect(result[0]?.skillEvaluations).toHaveLength(1);
     // Should have selectedSkillIndex maybe null if no valid skill
     expect(result[0]?.selectedSkillIndex).toBeDefined();
   });

@@ -60,23 +60,53 @@ Characters are homogeneous in v0.3. Differentiation comes from skill loadout and
 
 ## Starting Skills
 
+### Innate vs Assignable Skills
+
+Skills are classified as **innate** or **assignable**:
+
+- **Innate skills** are automatically granted to new characters and cannot be removed. Move is the only innate skill.
+- **Assignable skills** must be manually assigned from the Inventory panel. They can be added to or removed from characters freely.
+
+New characters start with only innate skills. Players build their skill loadout by assigning skills from the shared inventory.
+
 ### Light Punch
 
 - Tick cost: 1, Range: 1 (melee), Damage: 10
 - Default selector: nearest_enemy
 - Fast but weak. 1-tick wind-up visible before resolution.
+- **Assignable** (not innate)
 
 ### Heavy Punch
 
 - Tick cost: 2, Range: 2, Damage: 25
 - Default selector: nearest_enemy
 - Slow but powerful. 2-tick wind-up creates dodge window.
+- **Assignable** (not innate)
 
 ### Move
 
 - Tick cost: 1, Distance: 1 cell
 - Default selector: nearest_enemy
 - Modes: **towards** (closer), **away** (farther)
+- **Innate** (automatically assigned, cannot be removed)
+
+## Skill Assignment
+
+Skills are a shared resource pool -- any friendly character can use any skill from the inventory. Assignment is per-character: each character maintains their own skill list with independent priority ordering.
+
+**Assigning a skill:**
+
+- Skills are assigned from the Inventory panel via an "Assign" button
+- Newly assigned skills are added to the top of the character's skill list (highest priority)
+- A skill can only be assigned once per character (no duplicates)
+
+**Removing a skill:**
+
+- Non-innate skills can be removed via a "Remove" button in the Inventory panel
+- Innate skills cannot be removed
+- Removing a skill removes it from the character's skill list immediately
+
+**Skill registry:** All skill definitions are centralized in `src/engine/skill-registry.ts` (ADR-005). Adding or removing a skill from the game requires editing only this one file.
 
 ## Targeting System
 
@@ -212,7 +242,7 @@ Four-panel structure (v0.3 implementation):
 
 1. **Battle Viewer (50% width):** 12×12 grid with tokens, intent lines, damage numbers. Hovering over character tokens displays rule evaluation tooltips.
 2. **Skills Panel (25% width):** Sentence-builder UI for skill configuration (triggers, selectors, priority)
-3. **Rule Evaluations (25% width):** Empty placeholder panel preserving layout structure. Displays "Hover over characters to see evaluations" message.
+3. **Inventory Panel (25% width):** Displays all available skills from the centralized skill registry. Visible content only when a friendly character is selected; otherwise shows placeholder message. Skills can be assigned to or removed from the selected character.
 4. **Event Log (bottom):** Planned for future release
 
 ### Character Tooltip
@@ -230,3 +260,24 @@ Tooltip positioning:
 - 100ms leave delay allows hovering on tooltip content itself
 
 Characters referenced by letter notation (A, B, C) matching battlefield tokens.
+
+### Inventory Panel
+
+The Inventory panel shows all skills available in the game, sourced from the centralized skill registry.
+
+**Visibility states:**
+
+| State                       | Header      | Body                                                                |
+| --------------------------- | ----------- | ------------------------------------------------------------------- |
+| No character selected       | "Inventory" | Placeholder: "Select a friendly character to view available skills" |
+| Enemy character selected    | "Inventory" | Placeholder: "Select a friendly character to view available skills" |
+| Friendly character selected | "Inventory" | Skill list with assign/remove controls                              |
+
+**Skill list items show:**
+
+- Skill name
+- "Innate" badge for innate skills
+- Stats (tick cost, range, damage or mode)
+- "Assigned" badge + "Remove" button (for assigned non-innate skills)
+- "Assigned" badge only (for assigned innate skills -- cannot be removed)
+- "Assign" button (for unassigned skills)

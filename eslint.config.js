@@ -3,6 +3,8 @@ import tseslint from 'typescript-eslint';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import security from 'eslint-plugin-security';
+import noSecrets from 'eslint-plugin-no-secrets';
 
 export default tseslint.config(
   eslint.configs.recommended,
@@ -27,6 +29,8 @@ export default tseslint.config(
       react,
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
+      security,
+      'no-secrets': noSecrets,
     },
     rules: {
       // Type-aware async rules
@@ -69,6 +73,21 @@ export default tseslint.config(
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-case-declarations': 'error',
       'max-lines': ['error', { max: 400, skipBlankLines: true, skipComments: true }],
+
+      // Security - focus on high-signal vulnerabilities
+      'no-secrets/no-secrets': 'error',
+      'security/detect-eval-with-expression': 'error',
+      'security/detect-non-literal-require': 'error',
+      'security/detect-unsafe-regex': 'error',
+      'security/detect-buffer-noassert': 'error',
+      'security/detect-child-process': 'warn',
+      'security/detect-disable-mustache-escape': 'error',
+      'security/detect-no-csrf-before-method-override': 'error',
+      'security/detect-non-literal-fs-filename': 'warn',
+      'security/detect-pseudoRandomBytes': 'warn',
+      // Disable noisy rules with high false-positive rate
+      'security/detect-object-injection': 'off',
+      'security/detect-non-literal-regexp': 'off',
     },
   },
   {

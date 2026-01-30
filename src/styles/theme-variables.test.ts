@@ -14,7 +14,7 @@ function getThemeCssContent(): string {
   // @ts-expect-error - __dirname is available in vitest Node environment
   // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
   const themeCssPath = join(__dirname, "theme.css");
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, security/detect-non-literal-fs-filename
   return readFileSync(themeCssPath, "utf-8");
 }
 
@@ -38,11 +38,11 @@ describe("Theme Variables", () => {
       const themeCssContent = getThemeCssContent();
       // Light theme is :root[data-theme="light"] { ... }
       const lightBlockMatch = themeCssContent.match(
-        /:root\[data-theme="light"\]\s*\{([^}]+)\}/s
+        /:root\[data-theme="light"\]\s*\{([^}]+)\}/s,
       );
       if (!lightBlockMatch) {
         throw new Error(
-          'Could not find :root[data-theme="light"] block in theme.css'
+          'Could not find :root[data-theme="light"] block in theme.css',
         );
       }
       const lightBlock = lightBlockMatch[1];
@@ -55,11 +55,11 @@ describe("Theme Variables", () => {
       const themeCssContent = getThemeCssContent();
       // High contrast theme is :root[data-theme="high-contrast"] { ... }
       const highContrastBlockMatch = themeCssContent.match(
-        /:root\[data-theme="high-contrast"\]\s*\{([^}]+)\}/s
+        /:root\[data-theme="high-contrast"\]\s*\{([^}]+)\}/s,
       );
       if (!highContrastBlockMatch) {
         throw new Error(
-          'Could not find :root[data-theme="high-contrast"] block in theme.css'
+          'Could not find :root[data-theme="high-contrast"] block in theme.css',
         );
       }
       const highContrastBlock = highContrastBlockMatch[1];
@@ -85,11 +85,11 @@ describe("Theme Variables", () => {
     it("should be defined in light theme", () => {
       const themeCssContent = getThemeCssContent();
       const lightBlockMatch = themeCssContent.match(
-        /:root\[data-theme="light"\]\s*\{([^}]+)\}/s
+        /:root\[data-theme="light"\]\s*\{([^}]+)\}/s,
       );
       if (!lightBlockMatch) {
         throw new Error(
-          'Could not find :root[data-theme="light"] block in theme.css'
+          'Could not find :root[data-theme="light"] block in theme.css',
         );
       }
       const lightBlock = lightBlockMatch[1];
@@ -101,11 +101,11 @@ describe("Theme Variables", () => {
     it("should be defined in high-contrast theme", () => {
       const themeCssContent = getThemeCssContent();
       const highContrastBlockMatch = themeCssContent.match(
-        /:root\[data-theme="high-contrast"\]\s*\{([^}]+)\}/s
+        /:root\[data-theme="high-contrast"\]\s*\{([^}]+)\}/s,
       );
       if (!highContrastBlockMatch) {
         throw new Error(
-          'Could not find :root[data-theme="high-contrast"] block in theme.css'
+          'Could not find :root[data-theme="high-contrast"] block in theme.css',
         );
       }
       const highContrastBlock = highContrastBlockMatch[1];

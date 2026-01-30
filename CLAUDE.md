@@ -27,6 +27,7 @@ npm run test:watch    # TDD mode
 npm run lint          # Run ESLint with auto-fix
 npm run type-check    # TypeScript type checking
 npm run format        # Format with Prettier
+npm run security:check # Security scan (audit + lint with security rules)
 ```
 
 ## Documentation Structure

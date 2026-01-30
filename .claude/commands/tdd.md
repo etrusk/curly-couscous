@@ -387,22 +387,22 @@ This calibrated communication helps the orchestrator make better routing decisio
 
 ## Phase Routing
 
-| Phase              | Agent     | Task Prompt Template                                                                                                                                                                                                                                               | Route To                                                    |
-| ------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                                                                                                                                                                              | EXPLORE                                                     |
-| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index,lessons-learned/index}.md` for context. Note: Human-confirmed acceptance criteria in session.md are authoritative; if spec.md conflicts, follow session.md. Write findings to `.tdd/exploration.md`. Update session. | PLAN                                                        |
-| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                                                                                                                                                                          | DESIGN_TESTS                                                |
-| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                                                                                                                                                                  | TEST_DESIGN_REVIEW                                          |
-| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Fix if any issues found (missing test cases for acceptance criteria, unclear descriptions, missing edge cases, pattern violations). Update session.                                | WRITE_TESTS                                                 |
-| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests. Run tests and verify they FAIL (red phase). Update session.                                                                                                                                                          | IMPLEMENT                                                   |
-| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run tests and verify they PASS (green phase). Run quality gates (lint, type-check). **For UI changes: Perform browser verification using MCP tools (never curl/bash).** Update session.              | REVIEW (or escalate if BLOCKED)                             |
-| REVIEW             | reviewer  | Read `.tdd/{session,plan}.md` (primary source of truth), `.docs/{spec,patterns/index}.md` (context). Validate against human-confirmed acceptance criteria in session.md. Write findings to `.tdd/review-findings.md`. Update session.                              | ANALYZE_FIX or HUMAN_VERIFY (conditional) or HUMAN_APPROVAL |
-| ANALYZE_FIX        | architect | Read `.tdd/review-findings.md`. Verify issues are valid, determine root causes, create fix plan in `.tdd/fix-plan.md`. Include specific file changes needed, patterns to follow, potential risks. Update session.                                                  | FIX                                                         |
-| FIX                | coder     | Read `.tdd/fix-plan.md`. Implement fixes following architect's plan. **MUST use browser debugging for ANY UI-related issues.** Update session.                                                                                                                     | REVIEW (re-review)                                          |
-| HUMAN_VERIFY       | (self)    | **CONDITIONAL**: Only if automated browser verification failed or unavailable. See HUMAN_VERIFY section below.                                                                                                                                                     | HUMAN_APPROVAL or FIX                                       |
-| HUMAN_APPROVAL     | (self)    | **MANDATORY**: Request human approval before proceeding with documentation sync and commit. See HUMAN_APPROVAL section below.                                                                                                                                      | SYNC_DOCS or FIX                                            |
-| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                                                                                                                                                                       | COMMIT                                                      |
-| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                                                                                                                                                                         | Cleanup and completion                                      |
+| Phase              | Agent     | Task Prompt Template                                                                                                                                                                                                                                                                                                                         | Route To                                                    |
+| ------------------ | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                                                                                                                                                                                                                                                        | EXPLORE                                                     |
+| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index,lessons-learned/index}.md` for context. Note: Human-confirmed acceptance criteria in session.md are authoritative; if spec.md conflicts, follow session.md. Write findings to `.tdd/exploration.md`. Update session.                                                                           | PLAN                                                        |
+| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                                                                                                                                                                                                                                                    | DESIGN_TESTS                                                |
+| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                                                                                                                                                                                                                                            | TEST_DESIGN_REVIEW                                          |
+| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Verify tests detect faults (not just exercise paths). Fix if any issues found (missing test cases for acceptance criteria, unclear descriptions, missing edge cases, pattern violations). Update session.                                                    | WRITE_TESTS                                                 |
+| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests. Run tests and verify they FAIL (red phase). Update session.                                                                                                                                                                                                                                    | IMPLEMENT                                                   |
+| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run tests and verify they PASS (green phase). Run quality gates (lint, type-check, security scan). **For UI changes: Perform browser verification using MCP tools (never curl/bash).** Update session.                                                                         | REVIEW (or escalate if BLOCKED)                             |
+| REVIEW             | reviewer  | Read `.tdd/{session,plan}.md` (primary source of truth), `.docs/{spec,patterns/index}.md` (context). Validate against human-confirmed acceptance criteria in session.md. Verify implementation satisfies requirements independently of test mechanics (not just passing tests). Write findings to `.tdd/review-findings.md`. Update session. | ANALYZE_FIX or HUMAN_VERIFY (conditional) or HUMAN_APPROVAL |
+| ANALYZE_FIX        | architect | Read `.tdd/review-findings.md`. Verify issues are valid, determine root causes, create fix plan in `.tdd/fix-plan.md`. Include specific file changes needed, patterns to follow, potential risks. Update session.                                                                                                                            | FIX                                                         |
+| FIX                | coder     | Read `.tdd/fix-plan.md`. Implement fixes following architect's plan. **MUST use browser debugging for ANY UI-related issues.** Update session.                                                                                                                                                                                               | REVIEW (re-review)                                          |
+| HUMAN_VERIFY       | (self)    | **CONDITIONAL**: Only if automated browser verification failed or unavailable. See HUMAN_VERIFY section below.                                                                                                                                                                                                                               | HUMAN_APPROVAL or FIX                                       |
+| HUMAN_APPROVAL     | (self)    | **MANDATORY**: Request human approval before proceeding with documentation sync and commit. See HUMAN_APPROVAL section below.                                                                                                                                                                                                                | SYNC_DOCS or FIX                                            |
+| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                                                                                                                                                                                                                                                 | COMMIT                                                      |
+| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                                                                                                                                                                                                                                                   | Cleanup and completion                                      |
 
 **Stuck/Troubleshooting**: If coder reports STUCK (documented in session.md Blockers section), spawn troubleshooter agent for root cause diagnosis. For UI bugs, troubleshooter MUST attempt browser automation to read console errors and DOM state. If browser unavailable, report as BLOCKER for orchestrator to escalate.
 
@@ -423,8 +423,9 @@ This calibrated communication helps the orchestrator make better routing decisio
 - Tests failing
 - TypeScript type errors
 - ESLint errors (not warnings)
-- Security vulnerabilities
+- Security vulnerabilities (ESLint security rules, npm audit moderate+, hardcoded secrets)
 - Violations of human-confirmed task requirements (from `.tdd/session.md` acceptance criteria, which override `.docs/spec.md` if conflicting)
+- Implementation overfits to tests without meeting actual user requirements
 - Violations of established patterns from `.docs/patterns/index.md`
 - Browser console errors (for UI changes)
 - Broken functionality
@@ -750,7 +751,7 @@ When coder completes COMMIT:
 3. **Delete ephemeral files**:
 
    ```bash
-   rm -f .tdd/session.md .tdd/exploration.md .tdd/plan.md .tdd/test-designs.md .tdd/review-findings.md .tdd/fix-plan.md .tdd/troubleshooter-report.md
+   rm -f .tdd/session.md .tdd/exploration.md .tdd/plan.md .tdd/test-designs.md .tdd/review-findings.md .tdd/fix-plan.md .tdd/troubleshooter-report.md .tdd/orchestrator-context.md
    ```
 
    **Note**: Do NOT delete `.docs/` files—version-controlled project knowledge.
@@ -896,6 +897,16 @@ Count: [0-2]
 
 As the orchestrator, maintain a lightweight context focused on routing decisions. This prevents token exhaustion and keeps you efficient at phase transitions.
 
+**Context Health Monitoring:**
+
+You receive token usage updates via system warnings (e.g., "Token usage: 70000/200000; 130000 remaining").
+
+- **Target maximum**: 100K tokens working context
+- **Warning threshold**: 50K tokens (25% utilization) - begin condensing summaries
+- **Critical threshold**: 75K tokens (37.5% utilization) - offload to session, start fresh
+- **Hard limit**: Never exceed 100K tokens
+- **Research note**: Models show sudden (not gradual) degradation around 130K tokens despite claiming 200K+ capacity
+
 **Keep your context focused on:**
 
 - Task description
@@ -910,16 +921,54 @@ As the orchestrator, maintain a lightweight context focused on routing decisions
 - Making implementation decisions (agents apply their specialized expertise)
 - Evaluating agent outputs (trust agent expertise; only escalate on blockers)
 
-- Task description
-- Current phase
-- Phase transition history (1-2 sentences per phase)
-- Agent handoff summaries
+**When context exceeds 50K tokens:**
 
-If context exceeds 50% utilization (100,000 tokens used), summarize phase history by:
+Summarize phase history by:
 
 - Condensing detailed agent outputs into one-line summaries
 - Removing redundant information
 - Preserving key decisions and current state
+
+**When context reaches 75K tokens:**
+
+1. Write comprehensive state to `.tdd/orchestrator-context.md`:
+
+   ```markdown
+   # Orchestrator Context Snapshot
+
+   ## Task
+
+   [Full task description]
+
+   ## Current Phase
+
+   [Current phase]
+
+   ## Phase History (Detailed)
+
+   [All phase transitions with full context]
+
+   ## Key Decisions
+
+   [All architectural and routing decisions]
+
+   ## Next Actions
+
+   [What needs to happen next]
+   ```
+
+2. Output to user:
+
+   ```
+   ⚠️  Context threshold reached (75K tokens). Offloading full state to .tdd/orchestrator-context.md.
+
+   Continuing with fresh context. Current phase: [PHASE]
+   ```
+
+3. Continue workflow with minimal context:
+   - Read `.tdd/session.md` for current phase
+   - Read `.tdd/orchestrator-context.md` only if decision needs historical context
+   - Spawn next agent as normal
 
 ---
 

@@ -128,6 +128,13 @@ If skipping, document reason in session.md and proceed to INIT.
 
 ## Browser Automation (MANDATORY for UI Tasks)
 
+**CRITICAL RULES - READ FIRST:**
+
+1. **NEVER start the dev server** - it is ALWAYS running externally at `http://localhost:5173`
+2. **ALWAYS attempt browser tools FIRST** - do not assume they won't work
+3. **Document actual errors** - "blocked by permissions" without tool evidence is INVALID
+4. **BLOCKER means STOP** - do not proceed with workarounds or assumptions
+
 **CRITICAL**: For ANY task involving UI implementation or browser-based debugging, agents MUST use **Claude in Chrome** integration for AUTOMATED verification.
 
 **Automated browser verification is required for all UI tasks.** Agents mark implementation complete only after successfully verifying behavior in the browser and documenting findings. Human verification is ONLY required if automated verification fails or browser automation is unavailable.
@@ -146,22 +153,26 @@ If skipping, document reason in session.md and proceed to INIT.
 **Automated browser verification (agents MUST perform):**
 
 1. **During IMPLEMENT (coder agent)**: MUST ALWAYS perform after writing ANY UI code:
-   - **Assume dev server is running**: The development server is assumed to be running at `http://localhost:5173`
-   - **Navigate to relevant page**:
-     - Check `.tdd/plan.md` for mentioned routes/pages
-     - If implementing new component, navigate to page that uses it
-     - If modifying existing page, navigate to that page's route
-     - Default fallback: `http://localhost:5173/` (root page)
-     - Document the URL navigated to in Browser Verification section
-   - **Verify component renders without console errors**: Use browser console inspection
-   - **Test interactions relevant to changes**:
-     - If added button: Click it and verify expected action occurs
-     - If added form field: Enter text and verify it appears/validates correctly
-     - If added toggle/checkbox: Click it and verify state changes
-     - Check browser console shows zero errors after interactions
-     - Document which interactions were tested in Browser Verification section
-   - **Document findings** in `.tdd/session.md` under "Browser Verification"
-   - **Always complete browser verification** before marking implementation phase as done
+
+   **MANDATORY BROWSER VERIFICATION PROTOCOL:**
+
+   **Step 1: NEVER start dev server**
+   - Dev server is ALWAYS running externally at `http://localhost:5173`
+   - DO NOT run `npm run dev` or any dev server command
+   - If you cannot reach localhost:5173, document as BLOCKER with actual error
+
+   **Step 2: Attempt browser automation (REQUIRED - not optional)**
+
+   ```
+   a. Call tabs_context_mcp with createIfEmpty: true
+   b. If successful: Proceed to Step 3
+   c. If error: Document EXACT error message in BLOCKER format (see examples below)
+   ```
+
+   **Step 3: Verify in browser and document**
+   - Navigate to relevant page (check plan.md for routes, fallback: `http://localhost:5173/`)
+   - Check console for errors, test relevant interactions (buttons, inputs, state changes)
+   - Document in session.md: URL, interactions tested, console errors, visual rendering, status (SUCCESS/FAILED/BLOCKED with evidence)
 
 2. **During FIX (coder agent)**: MUST be performed for ALL UI-related bugs:
    - Read browser console for errors
@@ -174,24 +185,44 @@ If skipping, document reason in session.md and proceed to INIT.
 
 **Browser availability check (agents MUST perform):**
 
-When browser verification is required, agents MUST:
+When browser verification is required, agents MUST follow this protocol:
 
 1. **Always attempt** to use browser tools (start with `tabs_context_mcp`)
-2. **If browser automation succeeds**: Document automated verification results in session.md, proceed to next phase
+   - DO NOT assume tools won't work
+   - DO NOT write "blocked by permissions" without attempting
+   - Capture the actual error message if tools fail
+
+2. **If browser automation succeeds**:
+   - Document automated verification results in session.md
+   - Include specific evidence (console errors: none, interactions tested: [list])
+   - Proceed to next phase
+
 3. **If browser tools fail or error**:
    - **STOP immediately** - do not proceed with implementation phase
-   - **Document as BLOCKER** in `.tdd/session.md` under "Blockers" section:
+   - **Document as BLOCKER** in `.tdd/session.md` under "Blockers" section with ACTUAL error:
 
-     ```markdown
-     ## Blockers
+**CORRECT BLOCKER documentation (with actual error):**
 
-     - Browser automation failed: [exact error message from tool]
-     - Cannot complete automated verification for UI changes
-     ```
+```markdown
+## Blockers
 
-   - **Report to orchestrator**: Include actual error message in phase output
-   - **Orchestrator MUST escalate** to HUMAN_VERIFY phase immediately with manual verification guidance
-   - Do NOT attempt to work around browser tool failures - escalation to human is required
+- Browser automation BLOCKED: tabs_context_mcp returned "Error: Extension not available in this environment"
+- Attempted at: [timestamp]
+- Cannot complete automated verification for UI changes
+```
+
+**INCORRECT BLOCKER documentation (no evidence):**
+
+```markdown
+## Blockers
+
+- Browser automation blocked by permissions ❌ NO - missing actual error
+- Automated tools not available ❌ NO - no evidence of attempt
+```
+
+- **Report to orchestrator**: Include actual error message in phase output
+- **Orchestrator MUST escalate** to HUMAN_VERIFY phase immediately with manual verification guidance
+- Do NOT attempt to work around browser tool failures - escalation to human is required
 
 **Human verification (HUMAN_VERIFY phase - CONDITIONAL):**
 
@@ -211,6 +242,39 @@ When browser verification is required, agents MUST:
 **Safety note:** Browser automation requires explicit user permission for sensitive actions (form submissions, downloads, account operations). Agents should request approval when needed.
 
 **Availability:** Requires Claude in Chrome extension (beta, Google Chrome only).
+
+**Common Browser Verification Failures:**
+
+❌ **Agent wrote without attempting tools:**
+
+```
+Automation Status: BLOCKED (permissions)
+```
+
+This is INVALID - no evidence of tabs_context_mcp attempt.
+
+✓ **Agent attempted tools and captured error:**
+
+```
+Automation Status: BLOCKED
+Tool attempted: tabs_context_mcp with createIfEmpty: true
+Error received: "Error: MCP server claude-in-chrome not available"
+Timestamp: 2026-01-30T14:23:45Z
+```
+
+This is VALID - actual error captured, proper escalation to HUMAN_VERIFY.
+
+✓ **Agent successfully verified:**
+
+```
+Automation Status: SUCCESS
+URL tested: http://localhost:5173/
+Tool used: tabs_context_mcp (tab ID: 123)
+Interactions tested: Clicked "Add Skill" button, verified modal opens, console errors: none
+Visual rendering: Skill panel displays correctly with 3 equipped slots
+```
+
+This is VALID - specific evidence provided.
 
 ---
 
@@ -251,10 +315,12 @@ Before starting ANY new workflow:
 ## Workflow Phases
 
 ```
-INIT → EXPLORE → PLAN → DESIGN_TESTS → TEST_DESIGN_REVIEW → WRITE_TESTS → IMPLEMENT → REVIEW → [FIX if needed] → [HUMAN_VERIFY if automated verification failed] → HUMAN_APPROVAL → SYNC_DOCS → COMMIT
+INIT → EXPLORE → PLAN → DESIGN_TESTS → TEST_DESIGN_REVIEW → WRITE_TESTS → IMPLEMENT → REVIEW → [ANALYZE_FIX → FIX if issues found] → [HUMAN_VERIFY if automated verification failed] → HUMAN_APPROVAL → SYNC_DOCS → COMMIT
 ```
 
 **Note**: Test verification is handled within phases (WRITE_TESTS verifies tests fail, IMPLEMENT verifies tests pass), not as separate phases.
+
+**Note**: When issues are found in REVIEW, architect first analyzes and plans fixes (ANALYZE_FIX), then coder implements (FIX). This prevents blind fixes without understanding root causes.
 
 **Note**: HUMAN_VERIFY is only triggered if automated browser verification fails or is unavailable. HUMAN_APPROVAL is mandatory and always occurs after implementation/verification complete, before documentation sync and commit.
 
@@ -306,21 +372,22 @@ This calibrated communication helps the orchestrator make better routing decisio
 
 ## Phase Routing
 
-| Phase              | Agent     | Task Prompt Template                                                                                                                                                                                                                                                                                        | Route To                                            |
-| ------------------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                                                                                                                                                                                                                       | EXPLORE                                             |
-| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index,lessons-learned/index}.md`. Write findings to `.tdd/exploration.md`. Update session.                                                                                                                                                                          | PLAN                                                |
-| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                                                                                                                                                                                                                   | DESIGN_TESTS                                        |
-| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                                                                                                                                                                                                           | TEST_DESIGN_REVIEW                                  |
-| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Fix if any issues found (missing test cases for acceptance criteria, unclear descriptions, missing edge cases, pattern violations). Update session.                                                                         | WRITE_TESTS                                         |
-| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests. Run tests and verify they FAIL (red phase). Update session.                                                                                                                                                                                                   | IMPLEMENT                                           |
-| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run tests and verify they PASS (green phase). Run quality gates (lint, type-check). **MUST verify in browser for ANY UI changes (assumes dev server running on :5173). If browser tools fail, document as BLOCKER and stop.** Update session. | REVIEW (or escalate if BLOCKED)                     |
-| REVIEW             | reviewer  | Read `.tdd/plan.md`, `.docs/{spec,patterns/index}.md`. Write findings to `.tdd/review-findings.md`. Update session.                                                                                                                                                                                         | FIX or HUMAN_VERIFY (conditional) or HUMAN_APPROVAL |
-| FIX                | coder     | Read `.tdd/review-findings.md`. Fix all critical/important issues. **MUST use browser debugging for ANY UI-related issues.** Update session.                                                                                                                                                                | REVIEW (re-review)                                  |
-| HUMAN_VERIFY       | (self)    | **CONDITIONAL**: Only if automated browser verification failed or unavailable. See HUMAN_VERIFY section below.                                                                                                                                                                                              | HUMAN_APPROVAL or FIX                               |
-| HUMAN_APPROVAL     | (self)    | **MANDATORY**: Request human approval before proceeding with documentation sync and commit. See HUMAN_APPROVAL section below.                                                                                                                                                                               | SYNC_DOCS or FIX                                    |
-| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                                                                                                                                                                                                                | COMMIT                                              |
-| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                                                                                                                                                                                                                  | Cleanup and completion                              |
+| Phase              | Agent     | Task Prompt Template                                                                                                                                                                                                                                                                                                                                                                      | Route To                                                    |
+| ------------------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                                                                                                                                                                                                                                                                                                     | EXPLORE                                                     |
+| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index,lessons-learned/index}.md`. Write findings to `.tdd/exploration.md`. Update session.                                                                                                                                                                                                                                                        | PLAN                                                        |
+| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                                                                                                                                                                                                                                                                                                 | DESIGN_TESTS                                                |
+| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                                                                                                                                                                                                                                                                                         | TEST_DESIGN_REVIEW                                          |
+| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Fix if any issues found (missing test cases for acceptance criteria, unclear descriptions, missing edge cases, pattern violations). Update session.                                                                                                                                                       | WRITE_TESTS                                                 |
+| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests. Run tests and verify they FAIL (red phase). Update session.                                                                                                                                                                                                                                                                                 | IMPLEMENT                                                   |
+| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run tests and verify they PASS (green phase). Run quality gates (lint, type-check). **MUST verify in browser for ANY UI changes: (1) NEVER start dev server—always running on :5173, (2) ALWAYS attempt tabs_context_mcp first, (3) Document actual errors if tools fail, (4) BLOCKER = STOP immediately.** Update session. | REVIEW (or escalate if BLOCKED)                             |
+| REVIEW             | reviewer  | Read `.tdd/plan.md`, `.docs/{spec,patterns/index}.md`. Write findings to `.tdd/review-findings.md`. Update session.                                                                                                                                                                                                                                                                       | ANALYZE_FIX or HUMAN_VERIFY (conditional) or HUMAN_APPROVAL |
+| ANALYZE_FIX        | architect | Read `.tdd/review-findings.md`. Verify issues are valid, determine root causes, create fix plan in `.tdd/fix-plan.md`. Include specific file changes needed, patterns to follow, potential risks. Update session.                                                                                                                                                                         | FIX                                                         |
+| FIX                | coder     | Read `.tdd/fix-plan.md`. Implement fixes following architect's plan. **MUST use browser debugging for ANY UI-related issues.** Update session.                                                                                                                                                                                                                                            | REVIEW (re-review)                                          |
+| HUMAN_VERIFY       | (self)    | **CONDITIONAL**: Only if automated browser verification failed or unavailable. See HUMAN_VERIFY section below.                                                                                                                                                                                                                                                                            | HUMAN_APPROVAL or FIX                                       |
+| HUMAN_APPROVAL     | (self)    | **MANDATORY**: Request human approval before proceeding with documentation sync and commit. See HUMAN_APPROVAL section below.                                                                                                                                                                                                                                                             | SYNC_DOCS or FIX                                            |
+| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                                                                                                                                                                                                                                                                                              | COMMIT                                                      |
+| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                                                                                                                                                                                                                                                                                                | Cleanup and completion                                      |
 
 **Stuck/Troubleshooting**: If coder reports STUCK (documented in session.md Blockers section), spawn troubleshooter agent for root cause diagnosis. For UI bugs, troubleshooter MUST attempt browser automation to read console errors and DOM state. If browser unavailable, report as BLOCKER for orchestrator to escalate.
 
@@ -328,15 +395,15 @@ This calibrated communication helps the orchestrator make better routing decisio
 
 1. Spawn troubleshooter agent with context from session.md
 2. Read troubleshooter output from `.tdd/troubleshooter-report.md`
-3. If root cause identified → Spawn coder for FIX with troubleshooter findings
+3. If root cause identified → Spawn architect for ANALYZE_FIX with troubleshooter findings
 4. If root cause unclear after troubleshooting → ESCALATE to human with full context
 5. Maximum 1 troubleshooting cycle per FIX phase
 
 ## Decision Criteria
 
-### Critical Issues (REVIEW → FIX routing)
+### Critical Issues (REVIEW → ANALYZE_FIX routing)
 
-**MUST route to FIX phase if ANY of these found:**
+**MUST route to ANALYZE_FIX phase if ANY of these found:**
 
 - Tests failing
 - TypeScript type errors
@@ -346,6 +413,8 @@ This calibrated communication helps the orchestrator make better routing decisio
 - Violations of established patterns from `.docs/patterns/index.md`
 - Browser console errors (for UI changes)
 - Broken functionality
+
+Architect will analyze issues, verify root causes, and create fix plan before coder implements.
 
 **CAN proceed to HUMAN_APPROVAL (or HUMAN_VERIFY as fallback) if only these found:**
 
@@ -444,10 +513,10 @@ For each subsequent phase completion:
 2. **Read phase output** (`.tdd/exploration.md`, `.tdd/plan.md`, etc.)
 3. **Route per table above** (AUTOMATICALLY spawn next agent)
 
-**Example REVIEW → FIX/HUMAN_VERIFY/HUMAN_APPROVAL routing**:
+**Example REVIEW → ANALYZE_FIX/HUMAN_VERIFY/HUMAN_APPROVAL routing**:
 
 - Read `.tdd/review-findings.md`
-- If critical issues found → Spawn coder for FIX (returns to REVIEW after)
+- If critical issues found → Spawn architect for ANALYZE_FIX (architect creates fix plan, then coder implements in FIX phase, returns to REVIEW after)
 - If no critical issues AND automated browser verification succeeded (for UI tasks) → Proceed directly to HUMAN_APPROVAL
 - If no critical issues BUT automated browser verification failed or unavailable → Proceed to HUMAN_VERIFY (then HUMAN_APPROVAL)
 
@@ -528,7 +597,7 @@ Issues: [Any problems discovered, if applicable]
 **After human responds:**
 
 - If verified → Output summary and proceed to HUMAN_APPROVAL
-- If issues → Document in `.tdd/review-findings.md` and spawn coder for FIX
+- If issues → Document in `.tdd/review-findings.md` and spawn architect for ANALYZE_FIX
 
 ---
 
@@ -576,7 +645,7 @@ Feedback: [Any additional notes from human]
 **After human responds:**
 
 - If approved → Output summary and spawn architect for SYNC_DOCS
-- If rejected/changes requested → Document in `.tdd/review-findings.md` and spawn coder for FIX
+- If rejected/changes requested → Document in `.tdd/review-findings.md` and spawn architect for ANALYZE_FIX
 
 ---
 
@@ -661,7 +730,7 @@ When coder completes COMMIT:
 3. **Delete ephemeral files**:
 
    ```bash
-   rm -f .tdd/session.md .tdd/exploration.md .tdd/plan.md .tdd/test-designs.md .tdd/review-findings.md .tdd/troubleshooter-report.md
+   rm -f .tdd/session.md .tdd/exploration.md .tdd/plan.md .tdd/test-designs.md .tdd/review-findings.md .tdd/fix-plan.md .tdd/troubleshooter-report.md
    ```
 
    **Note**: Do NOT delete `.docs/` files—version-controlled project knowledge.

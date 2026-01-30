@@ -12,8 +12,7 @@ export function InventoryPanel() {
     useGameStore(selectActions);
 
   // Determine if we should show the skill list or placeholder
-  const shouldShowSkills =
-    selectedCharacter && selectedCharacter.faction === "friendly";
+  const shouldShowSkills = selectedCharacter;
 
   const handleAssignSkill = (skillId: string) => {
     if (selectedCharacter) {
@@ -33,7 +32,7 @@ export function InventoryPanel() {
 
       {!shouldShowSkills ? (
         <p className={styles.placeholder}>
-          Select a friendly character to view available skills
+          Select a character to view available skills
         </p>
       ) : (
         <div className={styles.skillsList}>
@@ -46,14 +45,6 @@ export function InventoryPanel() {
               <div key={skill.id} className={styles.skillItem}>
                 <div className={styles.skillName}>
                   <h3>{skill.name}</h3>
-                  {skill.innate && (
-                    <span
-                      className={styles.innateBadge}
-                      aria-label="Innate skill"
-                    >
-                      Innate
-                    </span>
-                  )}
                 </div>
                 <div className={styles.skillStats}>
                   Tick Cost: {skill.tickCost} | Range: {skill.range}

@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { InventoryPanel } from "./InventoryPanel";
 import { useGameStore } from "../../stores/gameStore";
-import { createCharacter } from "../../engine/game-test-helpers";
+import { createCharacter, createSkill } from "../../engine/game-test-helpers";
 import { SKILL_REGISTRY } from "../../engine/skill-registry";
 import { act } from "react";
 
@@ -39,24 +39,7 @@ describe("InventoryPanel", () => {
       render(<InventoryPanel />);
 
       expect(
-        screen.getByText(
-          /select a friendly character to view available skills/i,
-        ),
-      ).toBeInTheDocument();
-      expect(screen.queryByText(/light punch/i)).not.toBeInTheDocument();
-    });
-
-    it("shows placeholder when enemy selected", () => {
-      const enemy = createCharacter({ id: "enemy1", faction: "enemy" });
-      useGameStore.getState().actions.initBattle([enemy]);
-      useGameStore.getState().actions.selectCharacter("enemy1");
-
-      render(<InventoryPanel />);
-
-      expect(
-        screen.getByText(
-          /select a friendly character to view available skills/i,
-        ),
+        screen.getByText(/select a character to view available skills/i),
       ).toBeInTheDocument();
       expect(screen.queryByText(/light punch/i)).not.toBeInTheDocument();
     });
@@ -74,10 +57,47 @@ describe("InventoryPanel", () => {
       expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
       expect(screen.getByText(/^move$/i)).toBeInTheDocument();
       expect(
-        screen.queryByText(
-          /select a friendly character to view available skills/i,
-        ),
+        screen.queryByText(/select a character to view available skills/i),
       ).not.toBeInTheDocument();
+    });
+
+    it("shows skills when enemy selected", () => {
+      const moveSkill = createSkill({
+        id: "move-towards",
+        name: "Move",
+        mode: "towards",
+      });
+      const enemy = createCharacter({
+        id: "enemy1",
+        faction: "enemy",
+        skills: [moveSkill],
+      });
+      useGameStore.getState().actions.initBattle([enemy]);
+      useGameStore.getState().actions.selectCharacter("enemy1");
+
+      render(<InventoryPanel />);
+
+      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
+      expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
+      expect(screen.getByText(/^move$/i)).toBeInTheDocument();
+      expect(
+        screen.queryByText(/select a character to view available skills/i),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /assign light punch/i }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/assigned/i)).toBeInTheDocument();
+    });
+
+    it("no innate badge displayed for any skill", () => {
+      const friendly = createCharacter({ id: "char1" });
+      useGameStore.getState().actions.initBattle([friendly]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<InventoryPanel />);
+
+      expect(screen.queryByText(/innate/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/innate skill/i)).not.toBeInTheDocument();
     });
 
     it("displays skill stats tick cost", () => {
@@ -131,60 +151,6 @@ describe("InventoryPanel", () => {
       expect(screen.getByText(/mode: towards/i)).toBeInTheDocument();
     });
 
-    it("shows innate badge for move", () => {
-      const friendly = createCharacter({ id: "char1" });
-      useGameStore.getState().actions.initBattle([friendly]);
-      useGameStore.getState().actions.selectCharacter("char1");
-
-      render(<InventoryPanel />);
-
-      const innateBadges = screen.getAllByText(/innate/i);
-      expect(innateBadges).toHaveLength(1);
-    });
-
-    it("no innate badge for attack skills", () => {
-      const friendly = createCharacter({ id: "char1" });
-      useGameStore.getState().actions.initBattle([friendly]);
-      useGameStore.getState().actions.selectCharacter("char1");
-
-      render(<InventoryPanel />);
-
-      // Find all elements containing "Light Punch" text
-      const lightPunchElements = screen
-        .getAllByText(/light punch/i)
-        .map((el) => {
-          // Get the parent container for each skill item
-          let parent = el.parentElement;
-          while (parent && !parent.className.includes("skillItem")) {
-            parent = parent.parentElement;
-          }
-          return parent;
-        })
-        .filter((el) => el !== null);
-
-      // None of the Light Punch containers should contain "Innate"
-      lightPunchElements.forEach((container) => {
-        expect(container?.textContent).not.toMatch(/innate/i);
-      });
-
-      // Find all elements containing "Heavy Punch" text
-      const heavyPunchElements = screen
-        .getAllByText(/heavy punch/i)
-        .map((el) => {
-          let parent = el.parentElement;
-          while (parent && !parent.className.includes("skillItem")) {
-            parent = parent.parentElement;
-          }
-          return parent;
-        })
-        .filter((el) => el !== null);
-
-      // None of the Heavy Punch containers should contain "Innate"
-      heavyPunchElements.forEach((container) => {
-        expect(container?.textContent).not.toMatch(/innate/i);
-      });
-    });
-
     it("displays skills from registry not hardcoded", () => {
       const friendly = createCharacter({ id: "char1" });
       useGameStore.getState().actions.initBattle([friendly]);
@@ -217,9 +183,7 @@ describe("InventoryPanel", () => {
 
       // Initially shows placeholder
       expect(
-        screen.getByText(
-          /select a friendly character to view available skills/i,
-        ),
+        screen.getByText(/select a character to view available skills/i),
       ).toBeInTheDocument();
 
       // Select character
@@ -230,9 +194,7 @@ describe("InventoryPanel", () => {
       // Now shows skills
       expect(screen.getByText(/light punch/i)).toBeInTheDocument();
       expect(
-        screen.queryByText(
-          /select a friendly character to view available skills/i,
-        ),
+        screen.queryByText(/select a character to view available skills/i),
       ).not.toBeInTheDocument();
     });
 
@@ -253,39 +215,12 @@ describe("InventoryPanel", () => {
 
       // Now shows placeholder
       expect(
-        screen.getByText(
-          /select a friendly character to view available skills/i,
-        ),
+        screen.getByText(/select a character to view available skills/i),
       ).toBeInTheDocument();
       expect(screen.queryByText(/light punch/i)).not.toBeInTheDocument();
     });
 
-    it("transitions from skills to placeholder on enemy selection", () => {
-      const friendly = createCharacter({ id: "char1" });
-      const enemy = createCharacter({ id: "enemy1", faction: "enemy" });
-      useGameStore.getState().actions.initBattle([friendly, enemy]);
-      useGameStore.getState().actions.selectCharacter("char1");
-
-      render(<InventoryPanel />);
-
-      // Initially shows skills
-      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
-
-      // Select enemy character
-      act(() => {
-        useGameStore.getState().actions.selectCharacter("enemy1");
-      });
-
-      // Now shows placeholder
-      expect(
-        screen.getByText(
-          /select a friendly character to view available skills/i,
-        ),
-      ).toBeInTheDocument();
-      expect(screen.queryByText(/light punch/i)).not.toBeInTheDocument();
-    });
-
-    it("transitions from enemy to skills on friendly selection", () => {
+    it("transitions between enemy and friendly shows skills for both", () => {
       const friendly = createCharacter({ id: "char1" });
       const enemy = createCharacter({ id: "enemy1", faction: "enemy" });
       useGameStore.getState().actions.initBattle([friendly, enemy]);
@@ -293,24 +228,18 @@ describe("InventoryPanel", () => {
 
       render(<InventoryPanel />);
 
-      // Initially shows placeholder
-      expect(
-        screen.getByText(
-          /select a friendly character to view available skills/i,
-        ),
-      ).toBeInTheDocument();
+      // Enemy selected - shows skills
+      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
 
-      // Select friendly character
+      // Switch to friendly
       act(() => {
         useGameStore.getState().actions.selectCharacter("char1");
       });
 
-      // Now shows skills
+      // Friendly selected - shows skills
       expect(screen.getByText(/light punch/i)).toBeInTheDocument();
       expect(
-        screen.queryByText(
-          /select a friendly character to view available skills/i,
-        ),
+        screen.queryByText(/select a character to view available skills/i),
       ).not.toBeInTheDocument();
     });
   });

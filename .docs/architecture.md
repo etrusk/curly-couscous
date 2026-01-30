@@ -41,7 +41,7 @@ src/
 ├── components/       # React components (view layer)
 │   ├── BattleViewer/ # Grid, Cell, Token, IntentLine, IntentOverlay, CharacterTooltip
 │   ├── SkillsPanel/  # Skill configuration with category/strategy dropdowns
-│   ├── InventoryPanel/ # Skill inventory with assign/remove for selected friendly characters
+│   ├── InventoryPanel/ # Skill inventory with assign/remove for selected characters
 │   ├── RuleEvaluations/ # Formatters and display components (used by CharacterTooltip)
 │   ├── EventLog/     # (planned)
 │   └── common/       # (planned)

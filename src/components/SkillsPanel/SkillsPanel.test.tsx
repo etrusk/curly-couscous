@@ -81,6 +81,57 @@ describe("SkillsPanel", () => {
     });
   });
 
+  describe("Innate Skill Badge", () => {
+    it("shows innate badge for innate skills", () => {
+      const moveSkill = createSkill({
+        id: "move-towards",
+        name: "Move Towards",
+        mode: "towards",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      expect(screen.getByText(/innate/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/innate skill/i)).toBeInTheDocument();
+    });
+
+    it("does not show innate badge for non-innate skills", () => {
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+        damage: 10,
+      });
+      const char1 = createCharacter({ id: "char1", skills: [lightPunch] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      expect(screen.queryByText(/innate/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/innate skill/i)).not.toBeInTheDocument();
+    });
+
+    it("innate badge has accessible label", () => {
+      const moveSkill = createSkill({
+        id: "move-towards",
+        name: "Move Towards",
+        mode: "towards",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      const innateBadge = screen.getByLabelText("Innate skill");
+      expect(innateBadge).toBeInTheDocument();
+      expect(innateBadge).toHaveTextContent("Innate");
+    });
+  });
+
   describe("Enable/Disable Toggle", () => {
     it("should show enabled checkbox checked when skill is enabled", () => {
       const skill1 = createSkill({

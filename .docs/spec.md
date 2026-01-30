@@ -92,7 +92,7 @@ New characters start with only innate skills. Players build their skill loadout 
 
 ## Skill Assignment
 
-Skills are a shared resource pool -- any friendly character can use any skill from the inventory. Assignment is per-character: each character maintains their own skill list with independent priority ordering.
+Skills are a shared resource pool -- any character can use any skill from the inventory. Assignment is per-character: each character maintains their own skill list with independent priority ordering.
 
 **Assigning a skill:**
 
@@ -241,8 +241,8 @@ Character tokens display alphabetical letters for visual distinction, making it 
 Four-panel structure (v0.3 implementation):
 
 1. **Battle Viewer (50% width):** 12×12 grid with tokens, intent lines, damage numbers. Hovering over character tokens displays rule evaluation tooltips.
-2. **Skills Panel (25% width):** Sentence-builder UI for skill configuration (triggers, selectors, priority)
-3. **Inventory Panel (25% width):** Displays all available skills from the centralized skill registry. Visible content only when a friendly character is selected; otherwise shows placeholder message. Skills can be assigned to or removed from the selected character.
+2. **Skills Panel (25% width):** Sentence-builder UI for skill configuration (triggers, selectors, priority). Innate skills display an "Innate" badge next to the skill name.
+3. **Inventory Panel (25% width):** Displays all available skills from the centralized skill registry. Visible content when any character is selected; otherwise shows placeholder message. Skills can be assigned to or removed from the selected character.
 4. **Event Log (bottom):** Planned for future release
 
 ### Character Tooltip
@@ -267,16 +267,14 @@ The Inventory panel shows all skills available in the game, sourced from the cen
 
 **Visibility states:**
 
-| State                       | Header      | Body                                                                |
-| --------------------------- | ----------- | ------------------------------------------------------------------- |
-| No character selected       | "Inventory" | Placeholder: "Select a friendly character to view available skills" |
-| Enemy character selected    | "Inventory" | Placeholder: "Select a friendly character to view available skills" |
-| Friendly character selected | "Inventory" | Skill list with assign/remove controls                              |
+| State                 | Header      | Body                                                       |
+| --------------------- | ----------- | ---------------------------------------------------------- |
+| No character selected | "Inventory" | Placeholder: "Select a character to view available skills" |
+| Character selected    | "Inventory" | Skill list with assign/remove controls                     |
 
 **Skill list items show:**
 
 - Skill name
-- "Innate" badge for innate skills
 - Stats (tick cost, range, damage or mode)
 - "Assigned" badge + "Remove" button (for assigned non-innate skills)
 - "Assigned" badge only (for assigned innate skills -- cannot be removed)

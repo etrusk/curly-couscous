@@ -4,6 +4,7 @@ import {
   selectActions,
 } from "../../stores/gameStore";
 import type { Trigger, Selector } from "../../engine/types";
+import { SKILL_REGISTRY } from "../../engine/skill-registry";
 import { slotPositionToLetter } from "../../utils/letterMapping";
 import styles from "./SkillsPanel.module.css";
 
@@ -202,6 +203,14 @@ export function SkillsPanel() {
                 >
                   <h3>{skill.name}</h3>
                 </label>
+                {SKILL_REGISTRY.find((def) => def.id === skill.id)?.innate && (
+                  <span
+                    className={styles.innateBadge}
+                    aria-label="Innate skill"
+                  >
+                    Innate
+                  </span>
+                )}
               </div>
 
               <div className={styles.skillControls}>

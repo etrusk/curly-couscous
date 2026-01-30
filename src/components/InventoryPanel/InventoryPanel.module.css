@@ -58,17 +58,6 @@
   color: var(--content-primary);
 }
 
-.innateBadge {
-  display: inline-block;
-  padding: 0.125rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--content-primary);
-  background-color: var(--surface-tertiary);
-  border: 1px solid var(--border-default);
-  border-radius: 12px;
-}
-
 .skillStats {
   font-size: 0.875rem;
   color: var(--content-secondary);

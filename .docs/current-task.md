@@ -10,7 +10,7 @@
 
 ## Current Focus
 
-[No active task]
+2026-01-30 (Claude Code TDD): Remove innate skills from Inventory panel UI, add visual distinction for innate skills in Skills panel, grant enemies same skill inventory system as friendlies (3 slots, assign/remove, battle integration)
 
 ## Recent Completions
 

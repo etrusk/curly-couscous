@@ -9,6 +9,11 @@ tools:
   - Grep
   - Glob
   - Bash
+  - mcp__claude-in-chrome__tabs_context_mcp
+  - mcp__claude-in-chrome__navigate
+  - mcp__claude-in-chrome__read_page
+  - mcp__claude-in-chrome__computer
+  - mcp__claude-in-chrome__read_console_messages
 ---
 
 # Coder Agent
@@ -116,6 +121,43 @@ npm run test
 npm run lint
 npm run type-check
 ```
+
+## Browser Verification (UI changes only)
+
+For IMPLEMENT phase with UI changes, MUST verify in browser:
+
+**CRITICAL: Dev server is ALWAYS running at http://localhost:5173 - NEVER start it**
+
+**Step 1: Get browser context**
+
+```
+Call mcp__claude-in-chrome__tabs_context_mcp with createIfEmpty: true
+```
+
+**Step 2: Navigate and verify**
+
+- Use returned tab ID to navigate to http://localhost:5173/
+- Take screenshot to verify page loaded
+- Check console for errors using read_console_messages
+- Test relevant interactions (buttons, inputs, etc.)
+- Document results in session.md "Browser Verification (Automated)" section
+
+**DO NOT use curl/wget/bash commands** to check localhost - use browser automation tools only.
+
+Document results as:
+
+```markdown
+## Browser Verification (Automated)
+
+Automation Status: SUCCESS
+URL tested: http://localhost:5173/
+Tab ID: [tab-id]
+Interactions tested: [list specific interactions]
+Console errors: [none | list errors]
+Visual rendering: [description]
+```
+
+If browser tools fail, document ACTUAL error and set status to BLOCKED.
 
 ## Security Checklist
 

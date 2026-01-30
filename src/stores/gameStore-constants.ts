@@ -12,6 +12,13 @@ import { getDefaultSkills } from "../engine/skill-registry";
 export const GRID_SIZE = 12;
 
 /**
+ * Maximum number of skill slots per character.
+ * Currently fixed at 3 (includes innate skills).
+ * Future: Will be upgraded to per-character property when unlock mechanics are added.
+ */
+export const MAX_SKILL_SLOTS = 3;
+
+/**
  * Helper function to create consistent position keys for game state.
  * Uses hyphen format: "x-y"
  * NOTE: This differs from pathfinding.positionKey which uses "x,y" format.

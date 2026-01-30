@@ -102,9 +102,9 @@ Skills are a shared resource pool -- any character can use any skill from the in
 
 **Removing a skill:**
 
-- Non-innate skills can be removed via a "Remove" button in the Inventory panel
-- Innate skills cannot be removed
-- Removing a skill removes it from the character's skill list immediately
+- Non-innate skills can be removed via an "Unassign" button in the Skills & Priority panel
+- Innate skills cannot be removed (no Unassign button shown)
+- Removing a skill returns it to the inventory immediately
 
 **Skill registry:** All skill definitions are centralized in `src/engine/skill-registry.ts` (ADR-005). Adding or removing a skill from the game requires editing only this one file.
 
@@ -241,7 +241,7 @@ Character tokens display alphabetical letters for visual distinction, making it 
 Four-panel structure (v0.3 implementation):
 
 1. **Battle Viewer (50% width):** 12×12 grid with tokens, intent lines, damage numbers. Hovering over character tokens displays rule evaluation tooltips.
-2. **Skills Panel (25% width):** Sentence-builder UI for skill configuration (triggers, selectors, priority). Innate skills display an "Innate" badge next to the skill name.
+2. **Skills Panel (25% width):** Sentence-builder UI for skill configuration (triggers, selectors, priority). Innate skills display an "Innate" badge next to the skill name. Non-innate skills display an "Unassign" button to return them to the inventory.
 3. **Inventory Panel (25% width):** Displays all available skills from the centralized skill registry. Visible content when any character is selected; otherwise shows placeholder message. Skills can be assigned to or removed from the selected character.
 4. **Event Log (bottom):** Planned for future release
 
@@ -276,6 +276,6 @@ The Inventory panel shows all skills available in the game, sourced from the cen
 
 - Skill name
 - Stats (tick cost, range, damage or mode)
-- "Assigned" badge + "Remove" button (for assigned non-innate skills)
-- "Assigned" badge only (for assigned innate skills -- cannot be removed)
-- "Assign" button (for unassigned skills)
+- "Assign" button (disabled when all skill slots are full)
+
+The inventory panel only shows unassigned, non-innate skills. Assigned skills and innate skills are not displayed. To unassign a skill, use the "Unassign" button in the Skills & Priority panel.

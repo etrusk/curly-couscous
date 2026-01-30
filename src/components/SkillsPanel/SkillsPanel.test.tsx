@@ -1160,4 +1160,117 @@ describe("SkillsPanel", () => {
       expect(updatedChar?.skills[1]?.id).toBe("skill1");
     });
   });
+
+  describe("Unassign Button", () => {
+    it("shows unassign button for non-innate skills", () => {
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+        damage: 10,
+      });
+      const character = createCharacter({ id: "char1", skills: [lightPunch] });
+      useGameStore.getState().actions.initBattle([character]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      const unassignButton = screen.getByRole("button", {
+        name: /unassign light punch/i,
+      });
+      expect(unassignButton).toBeInTheDocument();
+      expect(unassignButton).toHaveTextContent("Unassign");
+    });
+
+    it("does not show unassign button for innate skills", () => {
+      const moveSkill = createSkill({
+        id: "move-towards",
+        name: "Move Towards",
+        mode: "towards",
+      });
+      const character = createCharacter({ id: "char1", skills: [moveSkill] });
+      useGameStore.getState().actions.initBattle([character]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      // No Unassign button for any skill
+      expect(screen.queryByRole("button", { name: /unassign/i })).toBeNull();
+      // The skill itself is still rendered
+      expect(screen.getByText(/move towards/i)).toBeInTheDocument();
+      // Innate badge is present
+      expect(screen.getByLabelText(/innate skill/i)).toBeInTheDocument();
+    });
+
+    it("clicking unassign removes skill from character", async () => {
+      const user = userEvent.setup();
+      const moveSkill = createSkill({
+        id: "move-towards",
+        name: "Move Towards",
+        mode: "towards",
+      });
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+        damage: 10,
+      });
+      const character = createCharacter({
+        id: "char1",
+        skills: [moveSkill, lightPunch],
+      });
+      useGameStore.getState().actions.initBattle([character]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      // Click the Unassign button for Light Punch
+      await user.click(
+        screen.getByRole("button", { name: /unassign light punch/i }),
+      );
+
+      // After click: Light Punch removed from SkillsPanel
+      expect(screen.queryByText(/light punch/i)).toBeNull();
+      // Move remains
+      expect(screen.getByText(/move towards/i)).toBeInTheDocument();
+      // Character has only 1 skill (Move)
+      const updatedChar = useGameStore
+        .getState()
+        .gameState.characters.find((c) => c.id === "char1");
+      expect(updatedChar?.skills.length).toBe(1);
+    });
+
+    it("unassign button not shown when both innate and non-innate skills present", () => {
+      const moveSkill = createSkill({
+        id: "move-towards",
+        name: "Move Towards",
+        mode: "towards",
+      });
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+        damage: 10,
+      });
+      const character = createCharacter({
+        id: "char1",
+        skills: [moveSkill, lightPunch],
+      });
+      useGameStore.getState().actions.initBattle([character]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      // Unassign button appears for Light Punch
+      expect(
+        screen.getByRole("button", { name: /unassign light punch/i }),
+      ).toBeInTheDocument();
+      // No Unassign button for Move
+      expect(
+        screen.queryByRole("button", { name: /unassign move/i }),
+      ).toBeNull();
+      // Exactly 1 button with "Unassign" text
+      const unassignButtons = screen.getAllByRole("button", {
+        name: /unassign/i,
+      });
+      expect(unassignButtons).toHaveLength(1);
+    });
+  });
 });

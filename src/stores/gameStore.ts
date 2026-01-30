@@ -19,6 +19,7 @@ import {
   getNextCharacterIdCounter,
   DEFAULT_SKILLS,
   initialGameState,
+  MAX_SKILL_SLOTS,
 } from "./gameStore-constants";
 import {
   findNextAvailablePosition,
@@ -275,6 +276,11 @@ export const useGameStore = create<GameStore>()(
           // Check if character already has this skill
           const hasSkill = character.skills.some((s) => s.id === skillId);
           if (hasSkill) {
+            return;
+          }
+
+          // Check if character has room for another skill
+          if (character.skills.length >= MAX_SKILL_SLOTS) {
             return;
           }
 

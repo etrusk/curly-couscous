@@ -147,11 +147,9 @@ describe("updateSkill", () => {
     useGameStore.getState().actions.initBattle([char1]);
 
     expect(() => {
-      useGameStore
-        .getState()
-        .actions.updateSkill("char1", "skill1", {
-          foo: "bar",
-        } as unknown as Partial<Skill>);
+      useGameStore.getState().actions.updateSkill("char1", "skill1", {
+        foo: "bar",
+      } as unknown as Partial<Skill>);
     }).not.toThrow();
 
     const updatedChar = useGameStore
@@ -168,11 +166,9 @@ describe("updateSkill", () => {
     useGameStore.getState().actions.initBattle([char1]);
 
     expect(() => {
-      useGameStore
-        .getState()
-        .actions.updateSkill("char1", "skill1", {
-          enabled: null,
-        } as unknown as Partial<Skill>);
+      useGameStore.getState().actions.updateSkill("char1", "skill1", {
+        enabled: null,
+      } as unknown as Partial<Skill>);
     }).not.toThrow();
 
     const updatedChar = useGameStore
@@ -376,5 +372,103 @@ describe("moveSkillDown", () => {
     expect(() => {
       useGameStore.getState().actions.moveSkillDown("char1", 5);
     }).not.toThrow();
+  });
+});
+
+describe("assignSkillToCharacter - slot capacity", () => {
+  beforeEach(() => {
+    useGameStore.getState().actions.reset();
+  });
+
+  it("should assign skill when character has fewer skills than MAX_SKILL_SLOTS", () => {
+    const skill1 = createSkill({ id: "move-towards" });
+    const char1 = createCharacter({ id: "char1", skills: [skill1] });
+    useGameStore.getState().actions.initBattle([char1]);
+
+    useGameStore
+      .getState()
+      .actions.assignSkillToCharacter("char1", "light-punch");
+
+    const updatedChar = useGameStore
+      .getState()
+      .gameState.characters.find((c) => c.id === "char1");
+    expect(updatedChar?.skills.length).toBe(2);
+    expect(updatedChar?.skills.some((s) => s.id === "light-punch")).toBe(true);
+  });
+
+  it("should not assign skill when character already has MAX_SKILL_SLOTS skills", () => {
+    const s1 = createSkill({ id: "s1" });
+    const s2 = createSkill({ id: "s2" });
+    const s3 = createSkill({ id: "s3" });
+    const char1 = createCharacter({ id: "char1", skills: [s1, s2, s3] });
+    useGameStore.getState().actions.initBattle([char1]);
+
+    useGameStore
+      .getState()
+      .actions.assignSkillToCharacter("char1", "light-punch");
+
+    const updatedChar = useGameStore
+      .getState()
+      .gameState.characters.find((c) => c.id === "char1");
+    expect(updatedChar?.skills.length).toBe(3);
+    expect(updatedChar?.skills.some((s) => s.id === "light-punch")).toBe(false);
+  });
+
+  it("should count innate skills toward slot limit", () => {
+    const moveSkill = createSkill({ id: "move-towards" });
+    const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
+    useGameStore.getState().actions.initBattle([char1]);
+
+    useGameStore
+      .getState()
+      .actions.assignSkillToCharacter("char1", "light-punch");
+    useGameStore
+      .getState()
+      .actions.assignSkillToCharacter("char1", "heavy-punch");
+
+    const updatedChar = useGameStore
+      .getState()
+      .gameState.characters.find((c) => c.id === "char1");
+    expect(updatedChar?.skills.length).toBe(3);
+    expect(updatedChar?.skills.some((s) => s.id === "move-towards")).toBe(true);
+    expect(updatedChar?.skills.some((s) => s.id === "light-punch")).toBe(true);
+    expect(updatedChar?.skills.some((s) => s.id === "heavy-punch")).toBe(true);
+  });
+
+  it("should allow assignment after skill removal from full character", () => {
+    const moveSkill = createSkill({ id: "move-towards" });
+    const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
+    useGameStore.getState().actions.initBattle([char1]);
+
+    useGameStore
+      .getState()
+      .actions.assignSkillToCharacter("char1", "light-punch");
+    useGameStore
+      .getState()
+      .actions.assignSkillToCharacter("char1", "heavy-punch");
+
+    let updatedChar = useGameStore
+      .getState()
+      .gameState.characters.find((c) => c.id === "char1");
+    expect(updatedChar?.skills.length).toBe(3);
+
+    useGameStore
+      .getState()
+      .actions.removeSkillFromCharacter("char1", "light-punch");
+
+    updatedChar = useGameStore
+      .getState()
+      .gameState.characters.find((c) => c.id === "char1");
+    expect(updatedChar?.skills.length).toBe(2);
+
+    useGameStore
+      .getState()
+      .actions.assignSkillToCharacter("char1", "light-punch");
+
+    updatedChar = useGameStore
+      .getState()
+      .gameState.characters.find((c) => c.id === "char1");
+    expect(updatedChar?.skills.length).toBe(3);
+    expect(updatedChar?.skills.some((s) => s.id === "light-punch")).toBe(true);
   });
 });

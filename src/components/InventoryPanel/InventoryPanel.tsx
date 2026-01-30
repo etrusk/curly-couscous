@@ -4,25 +4,23 @@ import {
   selectActions,
 } from "../../stores/gameStore";
 import { SKILL_REGISTRY } from "../../engine/skill-registry";
+import { MAX_SKILL_SLOTS } from "../../stores/gameStore-constants";
 import styles from "./InventoryPanel.module.css";
 
 export function InventoryPanel() {
   const selectedCharacter = useGameStore(selectSelectedCharacter);
-  const { assignSkillToCharacter, removeSkillFromCharacter } =
-    useGameStore(selectActions);
+  const { assignSkillToCharacter } = useGameStore(selectActions);
 
   // Determine if we should show the skill list or placeholder
   const shouldShowSkills = selectedCharacter;
 
+  // Check if character has all slots filled
+  const slotsAreFull =
+    selectedCharacter && selectedCharacter.skills.length >= MAX_SKILL_SLOTS;
+
   const handleAssignSkill = (skillId: string) => {
     if (selectedCharacter) {
       assignSkillToCharacter(selectedCharacter.id, skillId);
-    }
-  };
-
-  const handleRemoveSkill = (skillId: string) => {
-    if (selectedCharacter) {
-      removeSkillFromCharacter(selectedCharacter.id, skillId);
     }
   };
 
@@ -36,11 +34,13 @@ export function InventoryPanel() {
         </p>
       ) : (
         <div className={styles.skillsList}>
-          {SKILL_REGISTRY.map((skill) => {
+          {SKILL_REGISTRY.filter((skill) => {
+            if (skill.innate) return false;
             const isAssigned = selectedCharacter.skills.some(
               (s) => s.id === skill.id,
             );
-
+            return !isAssigned;
+          }).map((skill) => {
             return (
               <div key={skill.id} className={styles.skillItem}>
                 <div className={styles.skillName}>
@@ -52,28 +52,14 @@ export function InventoryPanel() {
                   {skill.mode !== undefined && ` | Mode: ${skill.mode}`}
                 </div>
                 <div className={styles.skillActions}>
-                  {isAssigned ? (
-                    <>
-                      <span className={styles.assignedBadge}>Assigned</span>
-                      {!skill.innate && (
-                        <button
-                          onClick={() => handleRemoveSkill(skill.id)}
-                          className={styles.removeButton}
-                          aria-label={`Remove ${skill.name} from character`}
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => handleAssignSkill(skill.id)}
-                      className={styles.assignButton}
-                      aria-label={`Assign ${skill.name} to character`}
-                    >
-                      Assign
-                    </button>
-                  )}
+                  <button
+                    onClick={() => handleAssignSkill(skill.id)}
+                    className={styles.assignButton}
+                    aria-label={`Assign ${skill.name} to character`}
+                    disabled={slotsAreFull}
+                  >
+                    Assign
+                  </button>
                 </div>
               </div>
             );

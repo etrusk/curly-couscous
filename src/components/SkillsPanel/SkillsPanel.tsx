@@ -75,7 +75,7 @@ export function composeSelector(
 
 export function SkillsPanel() {
   const selectedCharacter = useGameStore(selectSelectedCharacter);
-  const { updateSkill, moveSkillUp, moveSkillDown } =
+  const { updateSkill, moveSkillUp, moveSkillDown, removeSkillFromCharacter } =
     useGameStore(selectActions);
 
   if (!selectedCharacter) {
@@ -91,6 +91,10 @@ export function SkillsPanel() {
 
   const handleEnabledToggle = (skillId: string, currentEnabled: boolean) => {
     updateSkill(selectedCharacter.id, skillId, { enabled: !currentEnabled });
+  };
+
+  const handleUnassignSkill = (skillId: string) => {
+    removeSkillFromCharacter(selectedCharacter.id, skillId);
   };
 
   // Type assertion acceptable for 80/20 - select values are guaranteed to match Trigger['type']
@@ -183,6 +187,8 @@ export function SkillsPanel() {
             trigger.type === "hp_below";
           const selector = skill.selectorOverride || DEFAULT_SELECTOR;
           const isMove = skill.mode !== undefined;
+          const isInnate = !!SKILL_REGISTRY.find((def) => def.id === skill.id)
+            ?.innate;
 
           const decomposed = decomposeSelector(selector.type);
 
@@ -203,13 +209,22 @@ export function SkillsPanel() {
                 >
                   <h3>{skill.name}</h3>
                 </label>
-                {SKILL_REGISTRY.find((def) => def.id === skill.id)?.innate && (
+                {isInnate && (
                   <span
                     className={styles.innateBadge}
                     aria-label="Innate skill"
                   >
                     Innate
                   </span>
+                )}
+                {!isInnate && (
+                  <button
+                    onClick={() => handleUnassignSkill(skill.id)}
+                    className={styles.unassignButton}
+                    aria-label={`Unassign ${skill.name}`}
+                  >
+                    Unassign
+                  </button>
                 )}
               </div>
 

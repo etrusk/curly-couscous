@@ -5,6 +5,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { InventoryPanel } from "./InventoryPanel";
 import { useGameStore } from "../../stores/gameStore";
 import { createCharacter, createSkill } from "../../engine/game-test-helpers";
@@ -55,7 +56,7 @@ describe("InventoryPanel", () => {
 
       expect(screen.getByText(/light punch/i)).toBeInTheDocument();
       expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
-      expect(screen.getByText(/^move$/i)).toBeInTheDocument();
+      expect(screen.queryByText(/^move$/i)).not.toBeInTheDocument();
       expect(
         screen.queryByText(/select a character to view available skills/i),
       ).not.toBeInTheDocument();
@@ -79,14 +80,13 @@ describe("InventoryPanel", () => {
 
       expect(screen.getByText(/light punch/i)).toBeInTheDocument();
       expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
-      expect(screen.getByText(/^move$/i)).toBeInTheDocument();
+      expect(screen.queryByText(/^move$/i)).not.toBeInTheDocument();
       expect(
         screen.queryByText(/select a character to view available skills/i),
       ).not.toBeInTheDocument();
       expect(
         screen.getByRole("button", { name: /assign light punch/i }),
       ).toBeInTheDocument();
-      expect(screen.getByText(/assigned/i)).toBeInTheDocument();
     });
 
     it("no innate badge displayed for any skill", () => {
@@ -107,9 +107,8 @@ describe("InventoryPanel", () => {
 
       render(<InventoryPanel />);
 
-      // Two skills have tick cost 1 (Light Punch and Move)
-      const tickCost1Elements = screen.getAllByText(/tick cost: 1/i);
-      expect(tickCost1Elements.length).toBeGreaterThanOrEqual(1);
+      // One skill has tick cost 1 (Light Punch)
+      expect(screen.getByText(/tick cost: 1/i)).toBeInTheDocument();
 
       // One skill has tick cost 2 (Heavy Punch)
       expect(screen.getByText(/tick cost: 2/i)).toBeInTheDocument();
@@ -122,9 +121,8 @@ describe("InventoryPanel", () => {
 
       render(<InventoryPanel />);
 
-      // Two skills have range 1 (Light Punch and Move)
-      const range1Elements = screen.getAllByText(/range: 1/i);
-      expect(range1Elements.length).toBeGreaterThanOrEqual(1);
+      // One skill has range 1 (Light Punch)
+      expect(screen.getByText(/range: 1/i)).toBeInTheDocument();
 
       // One skill has range 2 (Heavy Punch)
       expect(screen.getByText(/range: 2/i)).toBeInTheDocument();
@@ -141,16 +139,6 @@ describe("InventoryPanel", () => {
       expect(screen.getByText(/damage: 25/i)).toBeInTheDocument();
     });
 
-    it("displays skill mode for move", () => {
-      const friendly = createCharacter({ id: "char1" });
-      useGameStore.getState().actions.initBattle([friendly]);
-      useGameStore.getState().actions.selectCharacter("char1");
-
-      render(<InventoryPanel />);
-
-      expect(screen.getByText(/mode: towards/i)).toBeInTheDocument();
-    });
-
     it("displays skills from registry not hardcoded", () => {
       const friendly = createCharacter({ id: "char1" });
       useGameStore.getState().actions.initBattle([friendly]);
@@ -158,19 +146,28 @@ describe("InventoryPanel", () => {
 
       render(<InventoryPanel />);
 
-      // Verify all skill names from SKILL_REGISTRY appear in the document
-      SKILL_REGISTRY.forEach((skill) => {
+      // Verify all non-innate skill names from SKILL_REGISTRY appear in the document
+      SKILL_REGISTRY.filter((s) => !s.innate).forEach((skill) => {
         expect(
           screen.getByText(new RegExp(skill.name, "i")),
         ).toBeInTheDocument();
       });
 
-      // Total count matches registry length (all skills are present)
+      // Verify innate skills do NOT appear
+      SKILL_REGISTRY.filter((s) => s.innate).forEach((skill) => {
+        expect(
+          screen.queryByText(new RegExp(skill.name, "i")),
+        ).not.toBeInTheDocument();
+      });
+
+      // Total count matches non-innate registry length
       const skillNameCount = SKILL_REGISTRY.filter((skill) => {
         return screen.queryByText(new RegExp(skill.name, "i")) !== null;
       }).length;
 
-      expect(skillNameCount).toBe(SKILL_REGISTRY.length);
+      expect(skillNameCount).toBe(
+        SKILL_REGISTRY.filter((s) => !s.innate).length,
+      );
     });
   });
 
@@ -241,6 +238,145 @@ describe("InventoryPanel", () => {
       expect(
         screen.queryByText(/select a character to view available skills/i),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Innate Skill Filtering", () => {
+    it("does not show innate skills in inventory", () => {
+      const moveSkill = createSkill({
+        id: "move-towards",
+        name: "Move",
+        mode: "towards",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<InventoryPanel />);
+
+      expect(screen.queryByText(/^move$/i)).not.toBeInTheDocument();
+      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
+      expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("Slot Capacity", () => {
+    it("disables assign button when all slots are full", () => {
+      const s1 = createSkill({ id: "s1" });
+      const s2 = createSkill({ id: "s2" });
+      const s3 = createSkill({ id: "s3" });
+      const char1 = createCharacter({ id: "char1", skills: [s1, s2, s3] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<InventoryPanel />);
+
+      const assignLightPunchButton = screen.getByRole("button", {
+        name: /assign light punch/i,
+      });
+      expect(assignLightPunchButton).toBeInTheDocument();
+      expect(assignLightPunchButton).toBeDisabled();
+
+      const assignHeavyPunchButton = screen.getByRole("button", {
+        name: /assign heavy punch/i,
+      });
+      expect(assignHeavyPunchButton).toBeDisabled();
+    });
+
+    it("does not change skills when assign action called at capacity", () => {
+      const s1 = createSkill({ id: "s1" });
+      const s2 = createSkill({ id: "s2" });
+      const s3 = createSkill({ id: "s3" });
+      const char1 = createCharacter({ id: "char1", skills: [s1, s2, s3] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<InventoryPanel />);
+
+      act(() => {
+        useGameStore
+          .getState()
+          .actions.assignSkillToCharacter("char1", "light-punch");
+      });
+
+      const updatedChar = useGameStore
+        .getState()
+        .gameState.characters.find((c) => c.id === "char1");
+      expect(updatedChar?.skills.length).toBe(3);
+      expect(updatedChar?.skills.some((s) => s.id === "light-punch")).toBe(
+        false,
+      );
+    });
+  });
+
+  describe("Assigned Skill Filtering", () => {
+    it("hides assigned skills from inventory", () => {
+      const character = createCharacter({ id: "char1" });
+      useGameStore.getState().actions.initBattle([character]);
+      useGameStore
+        .getState()
+        .actions.assignSkillToCharacter("char1", "light-punch");
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<InventoryPanel />);
+
+      // Assigned skill is hidden
+      expect(screen.queryByText(/light punch/i)).toBeNull();
+      // Unassigned skill still visible
+      expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
+      // No "Assign Light Punch" button exists
+      expect(
+        screen.queryByRole("button", { name: /assign light punch/i }),
+      ).toBeNull();
+    });
+
+    it("shows skill again after unassignment", () => {
+      const character = createCharacter({ id: "char1" });
+      useGameStore.getState().actions.initBattle([character]);
+      useGameStore
+        .getState()
+        .actions.assignSkillToCharacter("char1", "light-punch");
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<InventoryPanel />);
+
+      // Before removal: Light Punch is NOT visible
+      expect(screen.queryByText(/light punch/i)).toBeNull();
+
+      // Remove the skill
+      act(() => {
+        useGameStore
+          .getState()
+          .actions.removeSkillFromCharacter("char1", "light-punch");
+      });
+
+      // After removal: Light Punch is visible
+      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /assign light punch/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("assign button click removes skill from inventory", async () => {
+      const user = userEvent.setup();
+      const character = createCharacter({ id: "char1" });
+      useGameStore.getState().actions.initBattle([character]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<InventoryPanel />);
+
+      // Before click: Light Punch is visible
+      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
+
+      // Click the Assign button
+      await user.click(
+        screen.getByRole("button", { name: /assign light punch/i }),
+      );
+
+      // After click: Light Punch disappears
+      expect(screen.queryByText(/light punch/i)).toBeNull();
+      // Heavy Punch remains visible
+      expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
     });
   });
 });

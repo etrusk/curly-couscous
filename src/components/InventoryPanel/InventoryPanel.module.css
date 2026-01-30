@@ -71,46 +71,21 @@
   gap: 0.5rem;
 }
 
-.assignedBadge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--content-success, #22c55e);
-  background-color: var(--surface-success, rgba(34, 197, 94, 0.1));
-  border: 1px solid var(--border-success, #22c55e);
-  border-radius: 4px;
-}
-
-.assignButton,
-.removeButton {
+.assignButton {
   padding: 0.25rem 0.75rem;
   font-size: 0.875rem;
   font-weight: 500;
+  color: var(--content-primary);
+  background-color: var(--surface-tertiary);
   border: 1px solid var(--border-default);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.assignButton {
-  color: var(--content-primary);
-  background-color: var(--surface-tertiary);
-}
-
 .assignButton:hover {
   background-color: var(--surface-secondary);
   border-color: var(--border-emphasis);
-}
-
-.removeButton {
-  color: var(--content-error, #ef4444);
-  background-color: var(--surface-error, rgba(239, 68, 68, 0.1));
-  border-color: var(--border-error, #ef4444);
-}
-
-.removeButton:hover {
-  background-color: var(--surface-error-hover, rgba(239, 68, 68, 0.2));
 }
 
 /* High contrast mode support */

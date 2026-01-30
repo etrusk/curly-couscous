@@ -238,17 +238,25 @@ Before starting ANY new workflow:
 
 4. **Create .tdd/ directory**: `mkdir -p .tdd`
 
+5. **Create feature branch** (new workflows only):
+   - Resuming workflow → Skip (stay on existing branch)
+   - New workflow → Create branch from main:
+     ```bash
+     git checkout -b feature/[slug-from-task-description]
+     ```
+   - Branch name: lowercase, hyphens, descriptive (e.g., `feature/add-dark-mode`)
+
 ---
 
 ## Workflow Phases
 
 ```
-INIT → EXPLORE → PLAN → DESIGN_TESTS → TEST_DESIGN_REVIEW → WRITE_TESTS → IMPLEMENT → REVIEW → [FIX if needed] → [HUMAN_VERIFY if automated verification failed] → SYNC_DOCS → COMMIT
+INIT → EXPLORE → PLAN → DESIGN_TESTS → TEST_DESIGN_REVIEW → WRITE_TESTS → IMPLEMENT → REVIEW → [FIX if needed] → [HUMAN_VERIFY if automated verification failed] → HUMAN_APPROVAL → SYNC_DOCS → COMMIT
 ```
 
 **Note**: Test verification is handled within phases (WRITE_TESTS verifies tests fail, IMPLEMENT verifies tests pass), not as separate phases.
 
-**Note**: HUMAN_VERIFY is only triggered if automated browser verification fails or is unavailable. Successful automated verification proceeds directly to SYNC_DOCS.
+**Note**: HUMAN_VERIFY is only triggered if automated browser verification fails or is unavailable. HUMAN_APPROVAL is mandatory and always occurs after implementation/verification complete, before documentation sync and commit.
 
 ---
 
@@ -298,20 +306,21 @@ This calibrated communication helps the orchestrator make better routing decisio
 
 ## Phase Routing
 
-| Phase              | Agent     | Task Prompt Template                                                                                                                                                                                                                                                                                        | Route To                                       |
-| ------------------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                                                                                                                                                                                                                       | EXPLORE                                        |
-| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index,lessons-learned/index}.md`. Write findings to `.tdd/exploration.md`. Update session.                                                                                                                                                                          | PLAN                                           |
-| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                                                                                                                                                                                                                   | DESIGN_TESTS                                   |
-| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                                                                                                                                                                                                           | TEST_DESIGN_REVIEW                             |
-| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Fix if any issues found (missing test cases for acceptance criteria, unclear descriptions, missing edge cases, pattern violations). Update session.                                                                         | WRITE_TESTS                                    |
-| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests. Run tests and verify they FAIL (red phase). Update session.                                                                                                                                                                                                   | IMPLEMENT                                      |
-| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run tests and verify they PASS (green phase). Run quality gates (lint, type-check). **MUST verify in browser for ANY UI changes (assumes dev server running on :5173). If browser tools fail, document as BLOCKER and stop.** Update session. | REVIEW (or escalate if BLOCKED)                |
-| REVIEW             | reviewer  | Read `.tdd/plan.md`, `.docs/{spec,patterns/index}.md`. Write findings to `.tdd/review-findings.md`. Update session.                                                                                                                                                                                         | FIX or SYNC_DOCS or HUMAN_VERIFY (conditional) |
-| FIX                | coder     | Read `.tdd/review-findings.md`. Fix all critical/important issues. **MUST use browser debugging for ANY UI-related issues.** Update session.                                                                                                                                                                | REVIEW (re-review)                             |
-| HUMAN_VERIFY       | (self)    | **CONDITIONAL**: Only if automated browser verification failed or unavailable. See HUMAN_VERIFY section below.                                                                                                                                                                                              | SYNC_DOCS or FIX                               |
-| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                                                                                                                                                                                                                | COMMIT                                         |
-| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                                                                                                                                                                                                                  | Cleanup and completion                         |
+| Phase              | Agent     | Task Prompt Template                                                                                                                                                                                                                                                                                        | Route To                                            |
+| ------------------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                                                                                                                                                                                                                       | EXPLORE                                             |
+| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index,lessons-learned/index}.md`. Write findings to `.tdd/exploration.md`. Update session.                                                                                                                                                                          | PLAN                                                |
+| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                                                                                                                                                                                                                   | DESIGN_TESTS                                        |
+| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                                                                                                                                                                                                           | TEST_DESIGN_REVIEW                                  |
+| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Fix if any issues found (missing test cases for acceptance criteria, unclear descriptions, missing edge cases, pattern violations). Update session.                                                                         | WRITE_TESTS                                         |
+| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests. Run tests and verify they FAIL (red phase). Update session.                                                                                                                                                                                                   | IMPLEMENT                                           |
+| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run tests and verify they PASS (green phase). Run quality gates (lint, type-check). **MUST verify in browser for ANY UI changes (assumes dev server running on :5173). If browser tools fail, document as BLOCKER and stop.** Update session. | REVIEW (or escalate if BLOCKED)                     |
+| REVIEW             | reviewer  | Read `.tdd/plan.md`, `.docs/{spec,patterns/index}.md`. Write findings to `.tdd/review-findings.md`. Update session.                                                                                                                                                                                         | FIX or HUMAN_VERIFY (conditional) or HUMAN_APPROVAL |
+| FIX                | coder     | Read `.tdd/review-findings.md`. Fix all critical/important issues. **MUST use browser debugging for ANY UI-related issues.** Update session.                                                                                                                                                                | REVIEW (re-review)                                  |
+| HUMAN_VERIFY       | (self)    | **CONDITIONAL**: Only if automated browser verification failed or unavailable. See HUMAN_VERIFY section below.                                                                                                                                                                                              | HUMAN_APPROVAL or FIX                               |
+| HUMAN_APPROVAL     | (self)    | **MANDATORY**: Request human approval before proceeding with documentation sync and commit. See HUMAN_APPROVAL section below.                                                                                                                                                                               | SYNC_DOCS or FIX                                    |
+| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                                                                                                                                                                                                                | COMMIT                                              |
+| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                                                                                                                                                                                                                  | Cleanup and completion                              |
 
 **Stuck/Troubleshooting**: If coder reports STUCK (documented in session.md Blockers section), spawn troubleshooter agent for root cause diagnosis. For UI bugs, troubleshooter MUST attempt browser automation to read console errors and DOM state. If browser unavailable, report as BLOCKER for orchestrator to escalate.
 
@@ -338,7 +347,7 @@ This calibrated communication helps the orchestrator make better routing decisio
 - Browser console errors (for UI changes)
 - Broken functionality
 
-**CAN proceed to SYNC_DOCS (or HUMAN_VERIFY as fallback) if only these found:**
+**CAN proceed to HUMAN_APPROVAL (or HUMAN_VERIFY as fallback) if only these found:**
 
 - Code style suggestions (non-blocking)
 - Performance optimization opportunities
@@ -346,15 +355,15 @@ This calibrated communication helps the orchestrator make better routing decisio
 - Documentation improvements
 - ESLint warnings (not errors)
 
-### Automated Verification Success (REVIEW → SYNC_DOCS routing)
+### Automated Verification Success (REVIEW → HUMAN_APPROVAL routing)
 
-**MUST route directly to SYNC_DOCS if ALL of these true:**
+**MUST route directly to HUMAN_APPROVAL if ALL of these true:**
 
 - No critical issues found in REVIEW
 - For UI tasks: Automated browser verification completed successfully (documented in session.md Browser Verification section)
 - For non-UI tasks: All tests passing and quality gates passed
 
-**MUST route to HUMAN_VERIFY if ANY of these true:**
+**MUST route to HUMAN_VERIFY (then HUMAN_APPROVAL) if ANY of these true:**
 
 - Automated browser verification failed (for UI tasks)
 - Browser automation unavailable (for UI tasks)
@@ -435,18 +444,18 @@ For each subsequent phase completion:
 2. **Read phase output** (`.tdd/exploration.md`, `.tdd/plan.md`, etc.)
 3. **Route per table above** (AUTOMATICALLY spawn next agent)
 
-**Example REVIEW → FIX/SYNC_DOCS/HUMAN_VERIFY routing**:
+**Example REVIEW → FIX/HUMAN_VERIFY/HUMAN_APPROVAL routing**:
 
 - Read `.tdd/review-findings.md`
 - If critical issues found → Spawn coder for FIX (returns to REVIEW after)
-- If no critical issues AND automated browser verification succeeded (for UI tasks) → Proceed directly to SYNC_DOCS
-- If no critical issues BUT automated browser verification failed or unavailable → Proceed to HUMAN_VERIFY
+- If no critical issues AND automated browser verification succeeded (for UI tasks) → Proceed directly to HUMAN_APPROVAL
+- If no critical issues BUT automated browser verification failed or unavailable → Proceed to HUMAN_VERIFY (then HUMAN_APPROVAL)
 
 ---
 
 ## HUMAN_VERIFY Phase (Conditional Quality Gate)
 
-**CONDITIONAL PHASE**: This phase is ONLY triggered when automated browser verification fails or is unavailable. If automated verification succeeds, skip this phase and proceed directly to SYNC_DOCS.
+**CONDITIONAL PHASE**: This phase is ONLY triggered when automated browser verification fails or is unavailable. If automated verification succeeds, skip this phase and proceed directly to HUMAN_APPROVAL.
 
 **When triggered**: Automated browser verification failed OR browser automation unavailable OR non-UI task requiring manual validation.
 
@@ -476,7 +485,7 @@ Please verify:
 4. Verify visual appearance matches requirements
 
 Once verified, respond:
-- "verified" or "looks good" → Continue to SYNC_DOCS
+- "verified" or "looks good" → Continue to HUMAN_APPROVAL
 - "issue: [description]" → Return to FIX phase
 ```
 
@@ -489,7 +498,7 @@ Please verify the bug is fixed:
 3. Test related functionality to ensure no regressions
 
 Once verified, respond:
-- "verified" or "looks good" → Continue to SYNC_DOCS
+- "verified" or "looks good" → Continue to HUMAN_APPROVAL
 - "issue: [description]" → Return to FIX phase
 ```
 
@@ -502,7 +511,7 @@ Please verify the feature works as expected:
 3. Verify all acceptance criteria are met
 
 Once verified, respond:
-- "verified" or "looks good" → Continue to SYNC_DOCS
+- "verified" or "looks good" → Continue to HUMAN_APPROVAL
 - "issue: [description]" → Return to FIX phase
 ```
 
@@ -518,8 +527,56 @@ Issues: [Any problems discovered, if applicable]
 
 **After human responds:**
 
-- If verified → Output summary and spawn architect for SYNC_DOCS
+- If verified → Output summary and proceed to HUMAN_APPROVAL
 - If issues → Document in `.tdd/review-findings.md` and spawn coder for FIX
+
+---
+
+## HUMAN_APPROVAL Phase (Mandatory Quality Gate)
+
+**MANDATORY PHASE**: This phase is ALWAYS executed after implementation and verification are complete, before documentation sync and commit.
+
+**Purpose**: Human approval checkpoint to confirm implementation meets requirements before finalizing documentation and committing changes.
+
+When implementation and verification are complete (REVIEW passed, and either automated browser verification succeeded OR HUMAN_VERIFY completed), PAUSE and request approval:
+
+```
+✓ Implementation complete
+  → All tests passing
+  → Review approved (no critical issues)
+  → [Automated browser verification passed | Manual verification completed]
+  → Ready for documentation sync and commit
+
+Please review the implementation and approve to proceed.
+```
+
+**Provide summary:**
+
+```
+Implementation Summary:
+- Files modified: [list from session.md]
+- Tests added: [count and files]
+- Key changes: [2-3 bullet points from plan.md]
+
+To approve and proceed with documentation sync + commit, respond:
+- "approved" or "lgtm" or "proceed" → Continue to SYNC_DOCS → COMMIT
+- "issue: [description]" → Return to FIX phase
+- "changes: [description]" → Return to FIX phase with guidance
+```
+
+**Update `.tdd/session.md`:**
+
+```markdown
+## Human Approval
+
+Status: [PENDING | APPROVED | REJECTED]
+Feedback: [Any additional notes from human]
+```
+
+**After human responds:**
+
+- If approved → Output summary and spawn architect for SYNC_DOCS
+- If rejected/changes requested → Document in `.tdd/review-findings.md` and spawn coder for FIX
 
 ---
 
@@ -635,6 +692,7 @@ When coder completes COMMIT:
    ✓ Review approved
    [If UI changes: ✓ Automated browser verification passed]
    [If human verification triggered: ✓ Human verification passed]
+   ✓ Human approval granted
    ═══════════════════════════════════════
    ```
 
@@ -712,6 +770,13 @@ Tested: [What the human verified]
 Issues: [Any problems discovered, if applicable]
 
 [If SKIPPED: "Automated browser verification succeeded - human verification not required"]
+
+## Human Approval (Mandatory)
+
+**Always populated - required checkpoint before SYNC_DOCS**
+
+Status: [PENDING | APPROVED | REJECTED]
+Feedback: [Any additional notes from human]
 
 ## Blockers
 
@@ -855,33 +920,43 @@ This empirical iteration ensures the workflow improves over time based on real u
 
 ## CRITICAL EXECUTION RULES
 
-**Execute phases fully autonomously:**
+**Execute phases autonomously until human checkpoint:**
 
 1. Proceed to the next phase automatically upon completion of the current phase
 2. Use Task tool to spawn next agent immediately when phase completes
-3. Continue executing until reaching COMMIT phase or encountering a blocker requiring ESCALATE
-4. Maintain forward momentum through all phases
-5. Automated browser verification replaces mandatory human verification for UI tasks
+3. Continue executing until reaching HUMAN_APPROVAL phase (mandatory checkpoint) or encountering a blocker
+4. Maintain forward momentum through implementation, review, and verification phases
+5. PAUSE at HUMAN_APPROVAL for mandatory approval before documentation sync and commit
+
+**MANDATORY human approval (HUMAN_APPROVAL phase):**
+
+HUMAN_APPROVAL is ALWAYS triggered after implementation and verification complete:
+
+- Occurs after REVIEW passes (no critical issues)
+- Occurs after HUMAN_VERIFY completes (if triggered) OR automated browser verification succeeds
+- Workflow MUST pause and wait for human approval before proceeding to SYNC_DOCS
+- Human confirms implementation meets requirements before documentation sync and commit
 
 **CONDITIONAL human verification (HUMAN_VERIFY phase):**
 
-Human verification is ONLY triggered when:
+HUMAN_VERIFY is ONLY triggered when:
 
 - Automated browser verification fails for UI tasks
 - Browser automation is unavailable for UI tasks
 - Non-UI tasks require manual validation (rare)
 
-If automated browser verification succeeds, skip HUMAN_VERIFY and proceed directly to SYNC_DOCS.
+If automated browser verification succeeds, skip HUMAN_VERIFY and proceed directly to HUMAN_APPROVAL.
 
 **Phase completion workflow:**
 
 1. Read agent output from completed phase
 2. Update `.tdd/session.md` with phase completion and findings
 3. Determine next phase based on routing table:
-   - If REVIEW passed AND automated browser verification succeeded → Route to SYNC_DOCS
-   - If REVIEW passed BUT automated verification failed/unavailable → Route to HUMAN_VERIFY
+   - If REVIEW passed AND automated browser verification succeeded → Route to HUMAN_APPROVAL (PAUSE)
+   - If REVIEW passed BUT automated verification failed/unavailable → Route to HUMAN_VERIFY then HUMAN_APPROVAL (PAUSE)
    - Otherwise → Route per standard routing table
-4. Immediately spawn next agent with Task tool
-5. Repeat until workflow reaches completion
+4. If not at HUMAN_APPROVAL checkpoint, immediately spawn next agent with Task tool
+5. If at HUMAN_APPROVAL checkpoint, PAUSE and wait for human response
+6. After approval, continue to SYNC_DOCS → COMMIT
 
-**Execute the entire workflow autonomously. Human verification is a fallback mechanism, not a mandatory gate.**
+**Execute autonomously until HUMAN_APPROVAL checkpoint. Then pause for mandatory approval.**

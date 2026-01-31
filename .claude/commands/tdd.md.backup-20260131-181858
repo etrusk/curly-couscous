@@ -1,0 +1,1296 @@
+---
+name: tdd
+description: Execute full TDD workflow for a feature or bugfix. Orchestrates all phases automatically.
+version: 2.0.0
+---
+
+# TDD Workflow Orchestrator
+
+Your goal is to orchestrate Test-Driven Development by routing between specialized agents. This lightweight routing approach prevents context accumulation and keeps each agent focused on its specific expertise. Execute the workflow COMPLETELY AUTONOMOUSLY—proceed through phases automatically without asking permission.
+
+**Your job:**
+
+1. Read `.tdd/session.md` for current state
+2. Spawn appropriate agent via Task tool
+3. Update `.tdd/session.md` "Current Phase" field when transitioning phases
+4. Continue to next phase IMMEDIATELY
+
+**Note**: Agents update session.md with their phase results and findings. Orchestrator updates the "Current Phase" field when routing to next phase.
+
+**CRITICAL**: Use Task tool to spawn agents. Execute the next phase automatically upon completion of the previous phase.
+
+**Read implementation files only through agent outputs.** This keeps your context focused on orchestration rather than accumulating implementation details.
+
+---
+
+## CRITICAL EXECUTION RULES
+
+**Execute phases autonomously until human checkpoint:**
+
+1. Proceed to the next phase automatically upon completion of the current phase
+2. Use Task tool to spawn next agent immediately when phase completes
+3. Continue executing until reaching HUMAN_APPROVAL phase (mandatory checkpoint) or encountering a blocker
+4. Maintain forward momentum through implementation, review, and verification phases
+5. PAUSE at HUMAN_APPROVAL for mandatory approval before documentation sync and commit
+
+**MANDATORY human approval (HUMAN_APPROVAL phase):**
+
+HUMAN_APPROVAL is ALWAYS triggered after implementation and verification complete:
+
+- Occurs after REVIEW passes (no critical issues)
+- Occurs after HUMAN_VERIFY completes (if triggered) OR automated browser verification succeeds
+- Workflow MUST pause and wait for human approval before proceeding to SYNC_DOCS
+- Human confirms implementation meets requirements before documentation sync and commit
+
+**CONDITIONAL human verification (HUMAN_VERIFY phase):**
+
+HUMAN_VERIFY is ONLY triggered when:
+
+- Automated browser verification fails for UI tasks
+- Browser automation is unavailable for UI tasks
+- Non-UI tasks require manual validation (rare)
+
+If automated browser verification succeeds, skip HUMAN_VERIFY and proceed directly to HUMAN_APPROVAL.
+
+**Phase completion workflow:**
+
+1. Read agent output from completed phase
+2. Update `.tdd/session.md` with phase completion and findings
+3. Determine next phase based on routing table:
+   - If REVIEW passed AND automated browser verification succeeded → Route to HUMAN_APPROVAL (PAUSE)
+   - If REVIEW passed BUT automated verification failed/unavailable → Route to HUMAN_VERIFY then HUMAN_APPROVAL (PAUSE)
+   - Otherwise → Route per standard routing table
+4. If not at HUMAN_APPROVAL checkpoint, immediately spawn next agent with Task tool
+5. If at HUMAN_APPROVAL checkpoint, PAUSE and wait for human response
+6. After approval, continue to SYNC_DOCS → COMMIT
+
+**Context compaction discipline:**
+
+- Compact proactively at phase boundaries when context exceeds 40K tokens
+- Always update session.md BEFORE compacting—compaction without current state causes workflow amnesia
+- After compaction, re-read Phase Routing table and Decision Criteria before proceeding
+- If uncertain whether to compact: check token count, if >50K compact; if <30K continue; if 30-50K use judgment based on phase complexity ahead
+- If routing logic is unclear, re-read the workflow document first, then compact if needed
+
+**Execute autonomously until HUMAN_APPROVAL checkpoint. Then pause for mandatory approval.**
+
+---
+
+## Phase Routing
+
+| Phase              | Agent     | Task Prompt Template                                                                                                                                                                                                                                                                                                                         | Route To                                                    |
+| ------------------ | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| INIT               | (self)    | Create `.tdd/session.md` with task, set phase=EXPLORE                                                                                                                                                                                                                                                                                        | EXPLORE                                                     |
+| EXPLORE            | architect | Read `.docs/{spec,architecture,patterns/index,lessons-learned/index}.md` for context. Note: Human-confirmed acceptance criteria in session.md are authoritative; if spec.md conflicts, follow session.md. Write findings to `.tdd/exploration.md`. Update session.                                                                           | PLAN                                                        |
+| PLAN               | architect | Read `.tdd/exploration.md`. Create implementation plan in `.tdd/plan.md`. Update session.                                                                                                                                                                                                                                                    | DESIGN_TESTS                                                |
+| DESIGN_TESTS       | architect | Read `.tdd/plan.md`. Design test specs in `.tdd/test-designs.md`. Update session.                                                                                                                                                                                                                                                            | TEST_DESIGN_REVIEW                                          |
+| TEST_DESIGN_REVIEW | architect | Review `.tdd/test-designs.md` for completeness, clarity, correctness, coverage. Verify tests detect faults (not just exercise paths). Fix if any issues found (missing test cases for acceptance criteria, unclear descriptions, missing edge cases, pattern violations). Update session.                                                    | WRITE_TESTS                                                 |
+| WRITE_TESTS        | coder     | Read `.tdd/test-designs.md`. Implement tests. Run tests and verify they FAIL (red phase). Update session.                                                                                                                                                                                                                                    | IMPLEMENT                                                   |
+| IMPLEMENT          | coder     | Read `.tdd/{test-designs,plan}.md`. Write code to pass tests. Run tests and verify they PASS (green phase). Run quality gates (lint, type-check, security scan). **For UI changes: Perform browser verification using MCP tools (never curl/bash).** Update session.                                                                         | REVIEW (or escalate if BLOCKED)                             |
+| REVIEW             | reviewer  | Read `.tdd/{session,plan}.md` (primary source of truth), `.docs/{spec,patterns/index}.md` (context). Validate against human-confirmed acceptance criteria in session.md. Verify implementation satisfies requirements independently of test mechanics (not just passing tests). Write findings to `.tdd/review-findings.md`. Update session. | ANALYZE_FIX or HUMAN_VERIFY (conditional) or HUMAN_APPROVAL |
+| ANALYZE_FIX        | architect | Read `.tdd/review-findings.md`. Verify issues are valid, determine root causes, create fix plan in `.tdd/fix-plan.md`. Include specific file changes needed, patterns to follow, potential risks. Update session.                                                                                                                            | FIX                                                         |
+| FIX                | coder     | Read `.tdd/fix-plan.md`. Implement fixes following architect's plan. **MUST use browser debugging for ANY UI-related issues.** Update session.                                                                                                                                                                                               | REVIEW (re-review)                                          |
+| HUMAN_VERIFY       | (self)    | **CONDITIONAL**: Only if automated browser verification failed or unavailable. See HUMAN_VERIFY section below.                                                                                                                                                                                                                               | HUMAN_APPROVAL or FIX                                       |
+| HUMAN_APPROVAL     | (self)    | **MANDATORY**: Request human approval before proceeding with documentation sync and commit. See HUMAN_APPROVAL section below.                                                                                                                                                                                                                | SYNC_DOCS or FIX                                            |
+| SYNC_DOCS          | architect | See SYNC_DOCS section below. Update session.                                                                                                                                                                                                                                                                                                 | COMMIT                                                      |
+| COMMIT             | coder     | Run `git status/diff/log`. Commit ALL changes with Co-Authored-By trailer. Update session.                                                                                                                                                                                                                                                   | Cleanup and completion                                      |
+
+**Stuck/Troubleshooting**: If coder reports STUCK (documented in session.md Blockers section), spawn troubleshooter agent for root cause diagnosis (10-exchange limit). For UI bugs, troubleshooter MUST attempt browser automation to read console errors and DOM state. If browser unavailable, report as BLOCKER for orchestrator to escalate.
+
+**Troubleshooting Protocol**:
+
+1. Spawn troubleshooter agent with context from session.md
+2. Troubleshooter has **10-exchange hard limit** — if root cause not identified within 10 exchanges, report findings and escalate
+3. Read troubleshooter output from `.tdd/troubleshooter-report.md`
+4. If root cause identified → Spawn architect for ANALYZE_FIX with troubleshooter findings
+5. If root cause unclear after 10 exchanges → ESCALATE to human with full context
+6. Maximum 1 troubleshooting cycle per FIX phase
+
+---
+
+## Decision Criteria
+
+### Critical Issues (REVIEW → ANALYZE_FIX routing)
+
+**MUST route to ANALYZE_FIX phase if ANY of these found:**
+
+- Tests failing
+- TypeScript type errors
+- ESLint errors (not warnings)
+- Security vulnerabilities (ESLint security rules, npm audit moderate+, hardcoded secrets)
+- Violations of human-confirmed task requirements (from `.tdd/session.md` acceptance criteria, which override `.docs/spec.md` if conflicting)
+- Implementation overfits to tests without meeting actual user requirements
+- Violations of established patterns from `.docs/patterns/index.md`
+- Browser console errors (for UI changes)
+- Broken functionality
+
+Architect will analyze issues, verify root causes, and create fix plan before coder implements.
+
+**CAN proceed to HUMAN_APPROVAL (or HUMAN_VERIFY as fallback) if only these found:**
+
+- Code style suggestions (non-blocking)
+- Performance optimization opportunities
+- Additional test coverage suggestions
+- Documentation improvements
+- ESLint warnings (not errors)
+
+### Automated Verification Success (REVIEW → HUMAN_APPROVAL routing)
+
+**MUST route directly to HUMAN_APPROVAL if ALL of these true:**
+
+- No critical issues found in REVIEW
+- For UI tasks: Automated browser verification completed successfully (documented in session.md Browser Verification section)
+- For non-UI tasks: All tests passing and quality gates passed
+
+**MUST route to HUMAN_VERIFY (then HUMAN_APPROVAL) if ANY of these true:**
+
+- Automated browser verification failed (for UI tasks)
+- Browser automation unavailable (for UI tasks)
+- Complex end-to-end scenarios requiring manual validation
+- Human explicitly requested verification
+
+### Substantial Documentation Changes (SYNC_DOCS)
+
+**Require human review before commit:**
+
+- Changing acceptance criteria in `spec.md`
+- Modifying architectural decisions in `architecture.md`
+- Removing or significantly changing patterns
+- Adding new ADRs
+- Changing behavioral specifications
+
+**Auto-commit OK:**
+
+- Fixing typos in documentation
+- Adding examples to existing sections
+- Adding lessons to `lessons-learned/` directory
+- Minor clarifications that don't change meaning
+
+### Review Cycle Limit
+
+Maximum 2 FIX → REVIEW cycles allowed per workflow.
+
+If 3rd cycle needed → ESCALATE to human:
+
+```
+⚠️  Implementation has gone through 2 review cycles with persistent issues. Manual intervention required.
+
+Issues: [summary from review-findings.md]
+```
+
+---
+
+## Request Clarification (MANDATORY for new workflows)
+
+**For NEW workflows only**, engage in structured exploration BEFORE starting INIT.
+
+### Clarification Flow
+
+**1. State Initial Understanding**
+
+Present what you understand about the request:
+
+- Core goal (what needs to be done)
+- Apparent scope (where changes will occur)
+- Perceived complexity (simple fix vs feature vs architectural change)
+
+Example: "I understand you want to add a dark mode toggle. This appears to be a UI feature affecting the entire application's color scheme."
+
+**2. Identify Ambiguities**
+
+List specific unknowns that need clarification:
+
+- Missing acceptance criteria
+- Unclear constraints or boundaries
+- Edge cases not specified
+- Context needed for decision-making
+
+Ask questions ONE CATEGORY AT A TIME, wait for answers.
+
+**3. Explore Alternatives**
+
+Present different approaches with trade-offs:
+
+- Simpler vs more comprehensive solutions
+- Phased implementation options
+- Architectural choices and their implications
+
+Use conversational comparison: "We could approach this as [Option A] which would [pros/cons], or [Option B] which would [pros/cons]. What matters most to you?"
+
+**4. Make Recommendation**
+
+Based on the discussion, recommend a specific approach:
+
+- Why this approach fits the requirements
+- What will be delivered
+- What's explicitly out of scope
+
+**5. Confirm Scope**
+
+Wait for explicit confirmation. Then summarize in session.md:
+
+```markdown
+## Confirmed Scope
+
+[2-4 sentence summary incorporating human feedback]
+
+## Acceptance Criteria
+
+- [criterion 1 - specific and testable]
+- [criterion 2 - specific and testable]
+```
+
+**IMPORTANT**: Once confirmed, these acceptance criteria become the authoritative requirements for this workflow. If they conflict with `.docs/spec.md`, the human-confirmed criteria take precedence. The spec will be updated during SYNC_DOCS to reflect what was actually agreed upon.
+
+### Conversation Pattern
+
+❌ **Don't do this (data dump):**
+
+```
+Understanding: Add dark mode
+Questions: 1. Which pages? 2. User preference storage? 3. Default theme?
+Alternatives: CSS variables vs Tailwind vs styled-components
+Concerns: Existing inline styles might conflict
+```
+
+✓ **Do this (exploration):**
+
+```
+I understand you want to add dark mode to the application.
+
+First, let me clarify the scope: Should this affect all pages or start with specific sections? And should the preference persist across sessions?
+
+[Wait for response]
+
+Based on your answers, I see two main approaches:
+1. **Minimal toggle**: Add a theme toggle that switches CSS variables, starting with the main UI components. Simpler, faster to implement.
+2. **Comprehensive theming**: Full theme system with user preference persistence, covering all components. More robust but larger scope.
+
+Which aligns better with your goals?
+
+[Wait for response]
+
+I recommend starting with approach 1 for these reasons: [rationale]. This would deliver [specific outcomes] while keeping [specific things] out of scope for now. Does this match your expectations?
+
+[Wait for confirmation, then proceed to INIT]
+```
+
+**Skip clarification when:**
+
+- Resuming existing session (session.md exists)
+- Human provided detailed spec with clear acceptance criteria
+- Task is trivial: single-line bug fix, typo correction, adding missing import, or formatting-only change
+
+If skipping, document reason in session.md and proceed to INIT.
+
+---
+
+## Browser Automation (MANDATORY for UI Tasks)
+
+**CRITICAL RULES - READ FIRST:**
+
+1. **Use the dev server already running** at `http://localhost:5173` (started externally)
+2. **Attempt browser tools first** and document actual results before any other action
+3. **Document actual errors** with specific error messages from tool attempts
+4. **Escalate BLOCKER status immediately** to HUMAN_VERIFY with full error context
+
+**CRITICAL**: For ANY task involving UI implementation or browser-based debugging, agents MUST use **Claude in Chrome** integration for AUTOMATED verification.
+
+**Automated browser verification is required for all UI tasks.** Agents mark implementation complete only after successfully verifying behavior in the browser and documenting findings. Human verification is ONLY required if automated verification fails or browser automation is unavailable.
+
+**Agents MUST use browser automation for:**
+
+- ANY implementation/modification of visual components (buttons, forms, game UI)
+- ANY debugging of rendering issues, CSS problems, or interaction bugs
+- ALL browser console error verification and DOM state inspection
+- Recording workflows as GIFs for documentation when:
+  - Implementing multi-step user workflows (e.g., form submission flow)
+  - Demonstrating complex interactions (e.g., drag-and-drop, animations)
+  - Documenting a bug fix that required browser debugging
+  - Skip GIF for simple single-interaction changes or non-visual changes
+
+**Automated browser verification (agents MUST perform):**
+
+1. **During IMPLEMENT (coder agent)**:
+
+   **CODER AGENT RESPONSIBILITIES:**
+   - Implement code changes to make tests pass
+   - Run tests and verify they PASS (green phase)
+   - Run quality gates (lint, type-check)
+   - **For UI changes**: Perform automated browser verification
+   - Document implementation and verification results in session.md
+
+   **BROWSER VERIFICATION PROTOCOL (UI tasks only):**
+
+   **CRITICAL: Dev server is ALWAYS running at http://localhost:5173**
+
+   **Step 1: Get browser context**
+
+   ```
+   Call mcp__claude-in-chrome__tabs_context_mcp with createIfEmpty: true
+   ```
+
+   **Step 2: Verify in browser**
+   - Navigate to relevant page (check plan.md for routes, fallback: `http://localhost:5173/`)
+   - Take screenshot to verify page loaded
+   - Check console for errors using read_console_messages
+   - Test relevant interactions (buttons, inputs, state changes)
+   - Document in session.md: URL, tab ID, interactions tested, console errors, visual rendering
+
+   **CRITICAL: Use ONLY browser automation tools (MCP tools for all network operations)**
+   - ✓ CORRECT: `mcp__claude-in-chrome__tabs_context_mcp` with `createIfEmpty: true`
+   - ✓ CORRECT: `mcp__claude-in-chrome__navigate`, `mcp__claude-in-chrome__read_page`, `mcp__claude-in-chrome__computer`
+   - ✗ WRONG: `curl http://localhost:5173` (will be blocked by permissions)
+   - ✗ WRONG: `wget`, `nc`, or any bash network commands (will be blocked)
+   - ✗ WRONG: Any bash command to check if server is running
+
+   If browser tools fail, document ACTUAL error message (not "blocked by permissions" without evidence) and set Automation Status to BLOCKED.
+
+2. **During FIX (coder agent)**: MUST be performed for ALL UI-related bugs:
+   - Read browser console for errors
+   - Inspect DOM state and element properties
+   - Test problematic interactions
+   - Verify fixes resolve console errors
+   - **Always use browser verification for UI bug fixes** to confirm the issue is resolved
+
+3. **During troubleshooting**: MUST use live debugging with browser context for ANY UI-related issues
+
+**Browser availability check (agents MUST perform):**
+
+When browser verification is required, agents MUST follow this protocol:
+
+1. **Always attempt** to use browser tools (start with `tabs_context_mcp`)
+   - Always attempt browser tools first and document actual results
+   - Capture the actual error message if tools fail
+
+2. **If browser automation succeeds**:
+   - Document automated verification results in session.md
+   - Include specific evidence (console errors: none, interactions tested: [list])
+   - Proceed to next phase
+
+3. **If browser tools fail or error**:
+   - **When BLOCKED, escalate to HUMAN_VERIFY immediately**
+   - **Document as BLOCKER** in `.tdd/session.md` under "Blockers" section with ACTUAL error:
+
+**CORRECT BLOCKER documentation (with actual error):**
+
+```markdown
+## Blockers
+
+- Browser automation BLOCKED: tabs_context_mcp returned "Error: Extension not available in this environment"
+- Attempted at: [timestamp]
+- Cannot complete automated verification for UI changes
+```
+
+**INCORRECT BLOCKER documentation (no evidence):**
+
+```markdown
+## Blockers
+
+- Browser automation blocked by permissions ❌ NO - missing actual error
+- Automated tools not available ❌ NO - no evidence of attempt
+```
+
+- **Report to orchestrator**: Include actual error message in phase output
+- **Orchestrator MUST escalate** to HUMAN_VERIFY phase immediately with manual verification guidance
+- When browser tools fail, escalate to human immediately
+
+**Human verification (HUMAN_VERIFY phase - CONDITIONAL):**
+
+- **Only triggered if**: Automated browser verification fails OR browser automation is unavailable
+- Orchestrator provides specific manual test guidance for the user
+- User verifies end-to-end functionality, visual appearance, edge cases
+- User confirms implementation meets requirements
+- **If automated verification succeeded**: Skip HUMAN_VERIFY entirely and proceed to SYNC_DOCS
+
+**Key capabilities:**
+
+- Navigate pages, click elements, fill forms
+- Read console errors and network requests
+- Inspect DOM state and accessibility tree
+- Record sessions as GIFs
+
+**Safety note:** Browser automation requires explicit user permission for sensitive actions (form submissions, downloads, account operations). Agents should request approval when needed.
+
+**Availability:** Requires Claude in Chrome extension (beta, Google Chrome only).
+
+**Common Browser Verification Failures:**
+
+❌ **Agent wrote without attempting tools:**
+
+```
+Automation Status: BLOCKED (permissions)
+```
+
+This is INVALID - no evidence of tabs_context_mcp attempt.
+
+✓ **Agent attempted tools and captured error:**
+
+```
+Automation Status: BLOCKED
+Tool attempted: tabs_context_mcp with createIfEmpty: true
+Error received: "Error: MCP server claude-in-chrome not available"
+Timestamp: 2026-01-30T14:23:45Z
+```
+
+This is VALID - actual error captured, proper escalation to HUMAN_VERIFY.
+
+✓ **Agent successfully verified:**
+
+```
+Automation Status: SUCCESS
+URL tested: http://localhost:5173/
+Tool used: tabs_context_mcp (tab ID: 123)
+Interactions tested: Clicked "Add Skill" button, verified modal opens, console errors: none
+Visual rendering: Skill panel displays correctly with 3 equipped slots
+```
+
+This is VALID - specific evidence provided.
+
+---
+
+## Pre-Workflow Validation
+
+Before starting ANY new workflow:
+
+1. **Check existing session**: `cat .tdd/session.md 2>/dev/null || echo "NO_SESSION"`
+   - Session exists with incomplete phase → Resume from current phase
+   - No session → Create new session
+
+2. **Check project status**: `cat .docs/current-task.md 2>/dev/null || echo "NO_CURRENT_TASK"`
+   - Read "Current Focus" for context from prior sessions
+   - If another workflow active (Current Focus is not "[No active task]"):
+     - Output: `⚠️  Another workflow is active: [task from current-task.md]. Starting a new workflow may cause conflicts.`
+     - Ask: `Proceed anyway? (yes/no)`
+     - If yes → Continue with new workflow (will overwrite Current Focus)
+     - If no → Abort and output: `Use '/tdd' without arguments to resume the existing workflow.`
+
+3. **Verify documentation** (informational only): `ls .docs/spec.md .docs/architecture.md 2>/dev/null`
+   - If missing: Note in output. Agents will handle gracefully by:
+     - Noting in `.tdd/exploration.md`: "Missing [file] - proceeding with codebase exploration only"
+     - Relying on code patterns and existing implementations for guidance
+     - Considering documentation creation recommendation in session.md
+
+4. **Create .tdd/ directory**: `mkdir -p .tdd`
+
+5. **Create feature branch** (new workflows only):
+   - Resuming workflow → Skip (stay on existing branch)
+   - New workflow → Create branch from main:
+     ```bash
+     git checkout -b feature/[slug-from-task-description]
+     ```
+   - Branch name: lowercase, hyphens, descriptive (e.g., `feature/add-dark-mode`)
+
+---
+
+## Workflow Phases
+
+```
+INIT → EXPLORE → PLAN → DESIGN_TESTS → TEST_DESIGN_REVIEW → WRITE_TESTS → IMPLEMENT → REVIEW → [ANALYZE_FIX → FIX if issues found] → [HUMAN_VERIFY if automated verification failed] → HUMAN_APPROVAL → SYNC_DOCS → COMMIT
+```
+
+**Note**: Test verification is handled within phases (WRITE_TESTS verifies tests fail, IMPLEMENT verifies tests pass), not as separate phases.
+
+**Note**: When issues are found in REVIEW, architect first analyzes and plans fixes (ANALYZE_FIX), then coder implements (FIX). This prevents blind fixes without understanding root causes.
+
+**Note**: HUMAN_VERIFY is only triggered if automated browser verification fails or is unavailable. HUMAN_APPROVAL is mandatory and always occurs after implementation/verification complete, before documentation sync and commit.
+
+---
+
+## Agent Summary Format
+
+After EVERY agent completion, output:
+
+```
+✓ [AGENT_TYPE] completed [PHASE] [Agent: ~XK tokens]
+  → [2-4 bullet points of key actions/findings]
+  → Orchestrator: XK/100K tokens (X% utilization)
+  → Next: [NEXT_PHASE]
+```
+
+**Token reporting:**
+- Agent token estimate: Read from agent output metrics if provided, otherwise estimate based on typical phase complexity
+- Orchestrator utilization: Current working context size / 100K limit
+- Alert user if orchestrator exceeds 50K (warning) or 75K (critical)
+
+---
+
+## Agent Communication Guidelines
+
+**All agents must include context metrics in their phase output files:**
+
+At the end of each phase output file (`.tdd/exploration.md`, `.tdd/plan.md`, etc.), include:
+
+```markdown
+---
+
+## Agent Metrics
+
+- Estimated token usage: ~XK tokens
+- Files read: [count]
+- Key files analyzed: [list top 3-5 most important files]
+```
+
+This helps the orchestrator track context consumption and make informed routing decisions.
+
+**All agents should express uncertainty appropriately:**
+
+When findings are based on direct observation (reading code, test results, documentation):
+
+- State findings directly: "The component uses Zustand for state management"
+- Reference specific locations: "See `src/stores/authStore.ts:45`"
+
+When inferring or deducing from incomplete information:
+
+- Use qualifying language: "This appears to use X pattern based on Y"
+- Be explicit about confidence: "The code likely handles this case, though it's not explicitly tested"
+- Note what would increase certainty: "Confirming this would require checking Z"
+
+When information is unavailable or ambiguous:
+
+- State the gap clearly: "The acceptance criteria don't specify behavior for edge case X"
+- Suggest how to resolve: "Recommend clarifying with human" or "Documented assumption in session.md"
+- Distinguish between verified facts and assumptions
+
+**Agents should document:**
+
+- What they observed directly (code, tests, docs)
+- What they inferred and why
+- What remains uncertain or requires clarification
+- Assumptions made when proceeding despite uncertainty
+
+This calibrated communication helps the orchestrator make better routing decisions and alerts humans to areas needing clarification.
+
+### Confidence Calibration
+
+Agents must use calibrated language matching their actual certainty:
+
+| Confidence | Language Pattern | When to Use |
+|------------|------------------|-------------|
+| Verified (>90%) | "The component uses X" / "X is Y" | Direct observation in code/docs this session |
+| High (70-90%) | "This appears to use X based on Y" | Strong inference from multiple signals |
+| Moderate (50-70%) | "X likely handles this, though not explicitly tested/documented" | Reasonable deduction, incomplete evidence |
+| Low (<50%) | "Uncertain — could be X or Y" / "Cannot determine without Z" | Multiple valid interpretations, insufficient evidence |
+
+**Examples**:
+- ✅ Verified: "The SkillPanel component uses Zustand (see `src/stores/skillStore.ts:12`)"
+- ✅ High: "This appears to follow the repository pattern based on the `/repositories` folder structure and naming conventions"
+- ✅ Moderate: "The auth flow likely handles token refresh, though I didn't find explicit tests for this"
+- ✅ Low: "Cannot determine the intended behavior for concurrent edits — spec.md is silent and no tests exist"
+- ❌ Uncalibrated: "The component handles edge cases properly" (unverified claim without evidence)
+
+**When confidence is Moderate or lower**, agents should:
+1. State the uncertainty explicitly
+2. Note what evidence would increase confidence
+3. Flag for human attention if the uncertainty affects implementation decisions
+
+---
+
+## Abstention Triggers
+
+Agents MUST stop and escalate to orchestrator (not proceed with assumptions) when:
+
+- **API/method uncertainty**: Cannot verify a method or API exists after reading relevant files
+- **Ambiguous requirements**: Acceptance criteria could be interpreted multiple ways with different implementations
+- **Missing architectural guidance**: Implementation requires design decisions not covered in plan.md
+- **Domain knowledge gaps**: Test design requires domain expertise not present in spec.md or codebase
+- **Conflicting information**: Documentation conflicts with code, or spec.md conflicts with session.md in ways not explicitly resolved
+
+**Escalation format**:
+```
+⚠️ ABSTAIN: [category from list above]
+Specific uncertainty: [what exactly is unclear]
+Options considered: [2-3 possible interpretations or approaches]
+Information needed: [what would resolve the uncertainty]
+Recommendation: [if any, or "requires human decision"]
+```
+
+**Agents must NOT**:
+- Assume the "obvious" interpretation when multiple exist
+- Proceed with implementation when design is ambiguous
+- Invent APIs or patterns not verified in codebase
+- Make architectural decisions outside their delegated scope
+
+**Orchestrator response to abstention**:
+- If information exists in other files → provide it and continue
+- If human clarification needed → escalate with agent's analysis
+- If assumption is safe to document → approve with explicit assumption logged in session.md
+
+---
+
+## Phase Transitions
+
+For each subsequent phase completion:
+
+1. **Output agent summary** (see format above with token metrics)
+2. **Read phase output** (`.tdd/exploration.md`, `.tdd/plan.md`, etc.)
+3. **Update context metrics** in `.tdd/session.md`:
+   - Extract agent token usage from phase output metrics section
+   - Track peak orchestrator context
+   - Increment agent invocation count
+4. **Route per table above** (AUTOMATICALLY spawn next agent)
+
+**Example REVIEW → ANALYZE_FIX/HUMAN_VERIFY/HUMAN_APPROVAL routing**:
+
+- Read `.tdd/review-findings.md` and extract agent metrics
+- Update `.tdd/session.md` context metrics
+- Output agent summary with token usage
+- If critical issues found → Spawn architect for ANALYZE_FIX (architect creates fix plan, then coder implements in FIX phase, returns to REVIEW after)
+- If no critical issues AND automated browser verification succeeded (for UI tasks) → Proceed directly to HUMAN_APPROVAL
+- If no critical issues BUT automated browser verification failed or unavailable → Proceed to HUMAN_VERIFY (then HUMAN_APPROVAL)
+
+---
+
+## INIT Phase
+
+```
+1. Create .tdd/session.md with task, confirmed scope, acceptance criteria
+2. Update phase to EXPLORE
+3. Output summary to user
+4. IMMEDIATELY spawn architect agent (no permission needed)
+```
+
+**Summary**:
+
+```
+✓ Orchestrator initialized TDD workflow [Agent: ~2K tokens]
+  → Task: [task description]
+  → Created .tdd/session.md
+  → Orchestrator: 5K/100K tokens (5% utilization)
+  → Next: EXPLORE
+```
+
+**Task tool**:
+
+```
+subagent_type: "architect"
+description: "Explore codebase for TDD task"
+prompt: "EXPLORE phase: Explore the codebase for this task: [task description].
+
+Scope: [from clarification]
+Acceptance criteria: [from clarification]
+
+IMPORTANT: These acceptance criteria are authoritative. If .docs/spec.md conflicts, follow the acceptance criteria above.
+
+Read .docs/spec.md, .docs/architecture.md, .docs/patterns/index.md, .docs/lessons-learned/index.md for context.
+Write findings to .tdd/exploration.md.
+Update .tdd/session.md when complete."
+```
+
+---
+
+## HUMAN_VERIFY Phase (Conditional Quality Gate)
+
+**CONDITIONAL PHASE**: This phase is ONLY triggered when automated browser verification fails or is unavailable. If automated verification succeeds, skip this phase and proceed directly to HUMAN_APPROVAL.
+
+**When triggered**: Automated browser verification failed OR browser automation unavailable OR non-UI task requiring manual validation.
+
+When REVIEW passes (no critical issues) but automated verification could not be completed, PAUSE and request human verification:
+
+```
+✓ Reviewer approved implementation
+  → All tests passing
+  → No critical issues found
+  → Automated browser verification: [FAILED | UNAVAILABLE | N/A for non-UI task]
+  → Requesting manual verification as fallback
+
+Please manually verify the implementation works as expected.
+```
+
+**Provide guidance based on task type:**
+
+For UI changes:
+
+```
+The dev server is assumed to be running at http://localhost:5173.
+
+Please verify:
+1. Navigate to [URL from plan.md or browser verification section]
+2. Test the following interactions: [list specific interactions from plan.md]
+3. Check browser console for errors (should be zero)
+4. Verify visual appearance matches requirements
+
+Once verified, respond:
+- "verified" or "looks good" → Continue to HUMAN_APPROVAL
+- "issue: [description]" → Return to FIX phase
+```
+
+For bug fixes:
+
+```
+Please verify the bug is fixed:
+1. Reproduce the original bug using these steps: [steps from plan.md]
+2. Confirm the bug no longer occurs
+3. Test related functionality to ensure no regressions
+
+Once verified, respond:
+- "verified" or "looks good" → Continue to HUMAN_APPROVAL
+- "issue: [description]" → Return to FIX phase
+```
+
+For new features:
+
+```
+Please verify the feature works as expected:
+1. Test happy path: [from plan.md and acceptance criteria]
+2. Test edge cases: [from plan.md]
+3. Verify all acceptance criteria are met
+
+Once verified, respond:
+- "verified" or "looks good" → Continue to HUMAN_APPROVAL
+- "issue: [description]" → Return to FIX phase
+```
+
+**Update `.tdd/session.md`:**
+
+```markdown
+## Human Verification
+
+Status: [PENDING | VERIFIED | ISSUES_FOUND]
+Tested: [What the human verified]
+Issues: [Any problems discovered, if applicable]
+```
+
+**After human responds:**
+
+- If verified → Output summary and proceed to HUMAN_APPROVAL
+- If issues → Document in `.tdd/review-findings.md` and spawn architect for ANALYZE_FIX
+
+---
+
+## HUMAN_APPROVAL Phase (Mandatory Quality Gate)
+
+**MANDATORY PHASE**: This phase is ALWAYS executed after implementation and verification are complete, before documentation sync and commit.
+
+**Purpose**: Human approval checkpoint to confirm implementation meets requirements before finalizing documentation and committing changes.
+
+When implementation and verification are complete (REVIEW passed, and either automated browser verification succeeded OR HUMAN_VERIFY completed), PAUSE and request approval:
+
+```
+✓ Implementation complete
+  → All tests passing
+  → Review approved (no critical issues)
+  → [Automated browser verification passed | Manual verification completed]
+  → Ready for documentation sync and commit
+
+Please review the implementation and approve to proceed.
+```
+
+**Provide summary:**
+
+```
+Implementation Summary:
+- Files modified: [list from session.md]
+- Tests added: [count and files]
+- Key changes: [2-3 bullet points from plan.md]
+
+To approve and proceed with documentation sync + commit, respond:
+- "approved" or "lgtm" or "proceed" → Continue to SYNC_DOCS → COMMIT
+- "issue: [description]" → Return to FIX phase
+- "changes: [description]" → Return to FIX phase with guidance
+```
+
+**Update `.tdd/session.md`:**
+
+```markdown
+## Human Approval
+
+Status: [PENDING | APPROVED | REJECTED]
+Feedback: [Any additional notes from human]
+```
+
+**After human responds:**
+
+- If approved → Output summary and spawn architect for SYNC_DOCS
+- If rejected/changes requested → Document in `.tdd/review-findings.md` and spawn architect for ANALYZE_FIX
+
+---
+
+## SYNC_DOCS Phase (Mandatory)
+
+**AUTOMATICALLY spawn architect**:
+
+```
+subagent_type: "architect"
+description: "Sync documentation with implementation"
+prompt: "SYNC_DOCS phase: Synchronize documentation with implementation.
+
+**1. Spec Alignment Check**
+
+Read and compare:
+- Current implementation (files in .tdd/session.md 'Files Touched')
+- .tdd/session.md 'Confirmed Scope' and 'Acceptance Criteria' (authoritative requirements)
+- .docs/spec.md (original specification)
+- .docs/current-task.md 'Current Focus' (task context)
+- .tdd/plan.md (planned approach)
+- .tdd/review-findings.md (review notes)
+
+**IMPORTANT**: Human-confirmed task requirements in session.md are authoritative. Update spec.md to match what was agreed upon, not the other way around.
+
+Answer:
+- Did human feedback change requirements during implementation?
+- Were features implemented differently than originally designed?
+- Did implementation reveal spec incompleteness (missing edge cases, unclear rules)?
+- Were behavioral details clarified/added during development?
+- Did architectural decisions deviate from documented spec?
+
+**If YES to any** → proceed to step 2
+**If NO to all** → document 'Verified spec.md alignment—no updates needed' → Skip to step 4
+
+**2. Update Documents (only if misalignment found)**
+
+| Change Type                               | Target File                  | Action              |
+| ----------------------------------------- | ---------------------------- | ------------------- |
+| Behavioral changes, new rules             | .docs/spec.md                | Update sections     |
+| Design deviations, architectural changes  | .docs/architecture.md        | Document + rationale|
+| New patterns discovered                   | .docs/patterns/index.md      | Add pattern         |
+| Significant decisions                     | .docs/decisions/index.md     | Add ADR             |
+| Failure patterns, lessons learned         | .docs/lessons-learned/       | Create lesson file + update index |
+
+**If substantial changes made** (changing acceptance criteria, modifying architectural decisions, removing/changing patterns, adding ADRs):
+- Note in .tdd/session.md under 'Documentation Updates': 'SUBSTANTIAL CHANGES - Human review recommended before commit'
+- List which files were updated and why
+
+**3. Prepare Completion Summary**
+
+Write completion summary to .tdd/session.md under 'Completion Summary' section:
+- Format: 'Completed [task]. [Key changes]. [Tests added]. [Docs updated].'
+- Keep concise (1-3 sentences)
+- Do NOT modify .docs/current-task.md (orchestrator does this at COMMIT)
+- Verify .docs/current-task.md context budget (should stay under 500 tokens total)
+
+**4. Finalize**
+
+Write summary to .tdd/session.md under 'Documentation Updates'.
+Update .tdd/session.md phase to complete."
+```
+
+---
+
+## COMMIT Phase → Completion
+
+When coder completes COMMIT:
+
+1. **Output agent summary**:
+
+   ```
+   ✓ Coder completed COMMIT
+     → Committed [N] files
+     → Commit message: [message]
+     → Commit hash: [hash]
+     → Next: Cleanup and final summary
+   ```
+
+2. **Update `.docs/current-task.md`**:
+   - Read completion summary from `.tdd/session.md` "Completion Summary" section
+   - Move "Current Focus" to "Recent Completions" with timestamp and completion summary
+   - Set "Current Focus" to `[No active task]`
+   - Prune old completions if file exceeds 500 tokens (keep most recent 3-5 completions)
+
+3. **Delete ephemeral files**:
+
+   ```bash
+   rm -f .tdd/session.md .tdd/exploration.md .tdd/plan.md .tdd/test-designs.md .tdd/review-findings.md .tdd/fix-plan.md .tdd/troubleshooter-report.md .tdd/orchestrator-context.md
+   ```
+
+   **Note**: Do NOT delete `.docs/` files—version-controlled project knowledge.
+   **Note**: If any other `.tdd/*.md` files exist not in the above list, they may be orphaned from a previous session. You can safely delete them.
+
+4. **Output final workflow summary**:
+
+   ```
+   ═══════════════════════════════════════
+   TDD WORKFLOW COMPLETE
+   ═══════════════════════════════════════
+
+   Task: [task description]
+   Commit: [commit-hash]
+
+   Implementation:
+   → Files created: [list]
+   → Files modified: [list]
+   → Tests added: [count] tests in [files]
+
+   Documentation:
+   → [files updated or "No documentation updates needed"]
+
+   Quality Gates:
+   ✓ Tests pass
+   ✓ Lint pass
+   ✓ Type check pass
+   ✓ Review approved
+   [If UI changes: ✓ Automated browser verification passed]
+   [If human verification triggered: ✓ Human verification passed]
+   ✓ Human approval granted
+
+   Context Efficiency:
+   → Peak orchestrator context: XK/100K tokens (X%)
+   → Total agent invocations: [count]
+   → Context offloads: [count if any, or "none"]
+   ═══════════════════════════════════════
+   ```
+
+---
+
+## Session State Format
+
+`.tdd/session.md` template (ephemeral - deleted after commit):
+
+```markdown
+# TDD Session
+
+## Task
+
+[Description from /tdd invocation]
+
+## Confirmed Scope
+
+[2-4 sentences summarizing what was agreed during Request Clarification]
+
+## Acceptance Criteria
+
+- [criterion 1 from clarification phase]
+- [criterion 2 from clarification phase]
+
+## Constraints
+
+- [constraint 1 if any]
+
+## Current Phase
+
+[EXPLORE | PLAN | DESIGN_TESTS | ...]
+
+## Phase History
+
+- [timestamp] CLARIFICATION: Analyzed request, confirmed scope
+- [timestamp] INIT: Started task "[description]"
+- [timestamp] EXPLORE: Completed. Found [summary].
+
+## Key Decisions
+
+- [Decision 1]
+
+## Documentation Used
+
+- .docs/spec.md: [sections referenced]
+
+## Files Touched
+
+- [path/to/file.ts] (created | modified)
+
+## Browser Verification (Automated)
+
+**REQUIRED for ALL UI tasks - agents MUST document this section**
+
+Automation Status: [SUCCESS | FAILED | BLOCKED | NOT_APPLICABLE]
+URL tested: [URL navigated to]
+Interactions tested: [list of interactions performed]
+Console errors: [none | list of errors found]
+Visual rendering: [verified correct | issues found: description]
+GIF recorded: [yes - multi-step workflow | no - simple change | N/A]
+
+[If SUCCESS: "Automated verification passed - proceeding to SYNC_DOCS"]
+[If FAILED: "Automated verification failed: [reason]. Escalating to HUMAN_VERIFY."]
+[If BLOCKED: "Browser tools encountered errors: [actual error message]. BLOCKER - stopping implementation and escalating to HUMAN_VERIFY."]
+[For non-UI tasks: "NOT_APPLICABLE - no UI changes"]
+
+## Human Verification (Conditional)
+
+**Only populated if HUMAN_VERIFY phase triggered**
+
+Status: [PENDING | VERIFIED | ISSUES_FOUND | SKIPPED]
+Reason for human verification: [automated verification failed | browser unavailable | explicit request]
+Tested: [What the human verified]
+Issues: [Any problems discovered, if applicable]
+
+[If SKIPPED: "Automated browser verification succeeded - human verification not required"]
+
+## Human Approval (Mandatory)
+
+**Always populated - required checkpoint before SYNC_DOCS**
+
+Status: [PENDING | APPROVED | REJECTED]
+Feedback: [Any additional notes from human]
+
+## Blockers
+
+- [Any issues preventing progress]
+
+## Review Cycles
+
+Count: [0-2]
+
+## Context Metrics
+
+Peak orchestrator context: [XK tokens]
+Agent invocations: [count]
+Context offloads: [count or 0]
+
+## Documentation Updates
+
+[SYNC_DOCS phase findings]
+
+## Completion Summary
+
+[One-line summary prepared by architect during SYNC_DOCS, used by orchestrator to update current-task.md]
+
+## Documentation Recommendations
+
+- [ ] Pattern to add: [description]
+```
+
+**Note**: `.tdd/session.md` is workflow-specific ephemeral state. Long-term project status lives in `.docs/current-task.md` (shared with Roo workflow).
+
+---
+
+## Context Preservation
+
+As the orchestrator, maintain a lightweight context focused on routing decisions. This prevents token exhaustion and keeps you efficient at phase transitions.
+
+**Context Health Monitoring:**
+
+You receive token usage updates via system warnings (e.g., "Token usage: 70000/200000; 130000 remaining").
+
+- **Target maximum**: 100K tokens working context
+- **Warning threshold**: 50K tokens (50% utilization) - begin condensing summaries, **report to user**
+- **Critical threshold**: 75K tokens (75% utilization) - offload to session, start fresh, **report to user**
+- **Hard limit**: Never exceed 100K tokens
+- **Research note**: Models show sudden (not gradual) degradation around 130K tokens despite claiming 200K+ capacity
+
+**User visibility:**
+- Report orchestrator context size in EVERY agent summary (see Agent Summary Format above)
+- At 50K threshold, output: `⚠️  Orchestrator context at 50K tokens (50% utilization). Condensing summaries to maintain efficiency.` Consider using `/compact` at this threshold.
+- At 75K threshold, output: `⚠️  Context threshold reached (75K tokens). Offloading full state to .tdd/orchestrator-context.md.` Use `/compact` immediately or offload to file.
+
+**Keep your context focused on:**
+
+- Task description
+- Current phase
+- Phase transition history (1-2 sentences per phase)
+- Agent handoff summaries
+
+**Delegate to agents:**
+
+- Reading implementation files (architect/coder/reviewer agents handle this)
+- Accumulating detailed code knowledge (preserved in agent outputs)
+- Making implementation decisions (agents apply their specialized expertise)
+- Evaluating agent outputs (trust agent expertise; only escalate on blockers)
+
+**When context exceeds 50K tokens:**
+
+Summarize phase history by:
+
+- Condensing detailed agent outputs into one-line summaries
+- Removing redundant information
+- Preserving key decisions and current state
+
+**When context reaches 75K tokens:**
+
+1. Write comprehensive state to `.tdd/orchestrator-context.md`:
+
+   ```markdown
+   # Orchestrator Context Snapshot
+
+   ## Task
+
+   [Full task description]
+
+   ## Current Phase
+
+   [Current phase]
+
+   ## Phase History (Detailed)
+
+   [All phase transitions with full context]
+
+   ## Key Decisions
+
+   [All architectural and routing decisions]
+
+   ## Next Actions
+
+   [What needs to happen next]
+   ```
+
+2. Output to user:
+
+   ```
+   ⚠️  Context threshold reached (75K tokens). Offloading full state to .tdd/orchestrator-context.md.
+
+   Continuing with fresh context. Current phase: [PHASE]
+   ```
+
+3. Continue workflow with minimal context:
+   - Read `.tdd/session.md` for current phase
+   - Read `.tdd/orchestrator-context.md` only if decision needs historical context
+   - Spawn next agent as normal
+
+### Compaction Protocol
+
+Use `/compact` to reset context while preserving workflow state. This is distinct from the manual state offload to `orchestrator-context.md`.
+
+**When to compact:**
+
+| Trigger | Action |
+|---------|--------|
+| Context exceeds 50K tokens | `/compact preserve: current phase, session.md location, pending decisions` |
+| After IMPLEMENT phase completes (if context >30K) | `/compact preserve: implementation summary, test results, files modified` |
+| Debug/troubleshooting exceeds 8 exchanges without resolution | `/compact preserve: root cause findings, attempted fixes, remaining hypotheses` |
+| Phase transition after extended agent work | `/compact preserve: phase output location, routing decision, blockers` |
+
+**Compaction command templates:**
+
+For mid-workflow compaction:
+```
+/compact Preserve: Current phase is [PHASE]. Session state in .tdd/session.md. Key decisions: [list]. Next action: spawn [agent] for [phase].
+```
+
+For post-implementation compaction:
+```
+/compact Preserve: IMPLEMENT complete. Tests: [pass/fail]. Files modified: [list]. Quality gates: [status]. Ready for REVIEW phase.
+```
+
+**After every /compact:**
+1. Verify `.tdd/session.md` reflects current phase and state
+2. Re-read the Phase Routing table before spawning next agent
+3. If behavior seems degraded post-compact, escalate to human
+
+**Signs compaction is needed (act immediately - use `/compact`):**
+- You reference a phase you're not currently in
+- You spawn an agent with incorrect or outdated context
+- You make a routing decision that contradicts the Decision Criteria
+- You repeat instructions verbatim that you already gave
+
+When you notice these signs, immediately use `/compact` with appropriate preservation instructions.
+
+**Complete current agent execution before compacting:**
+- Mid-agent-execution (wait for agent to complete)
+- During HUMAN_VERIFY or HUMAN_APPROVAL (preserve full context for human)
+- If session.md hasn't been updated with current phase results
+
+---
+
+## Workflow Improvement Protocol
+
+The TDD workflow instructions are living documentation that should improve based on empirical evidence of what works and what doesn't.
+
+**When agents encounter repeated issues or blockers:**
+
+1. **Document the failure pattern** in `.tdd/session.md` under "Blockers" section:
+
+   ```markdown
+   ## Blockers
+
+   - [Phase] Unclear instructions for [specific scenario]
+   - Repeatedly hit issue: [description]
+   ```
+
+2. **Note which instructions were insufficient:**
+   - Which phase had unclear guidance?
+   - What specific scenario wasn't covered?
+   - What assumption did the agent make that was incorrect?
+
+3. **After workflow completion**, if significant instruction gaps were identified, create a new lesson in `.docs/lessons-learned/`:
+
+   Create `lesson-NNN-[descriptive-slug].md`:
+
+   ```markdown
+   # Lesson NNN: [Title]
+
+   **Date:** [YYYY-MM-DD]
+
+   **Context:** [What went wrong - be specific about the failure mode]
+
+   **Lesson:** [Why it happened and what should be done differently]
+
+   **Impact:** [Consequences and how this improves future workflows]
+   ```
+
+   Then update `.docs/lessons-learned/index.md` YAML frontmatter with new entry.
+
+   ```
+
+   ```
+
+**Orchestrator responsibilities:**
+
+- Track patterns across multiple workflows (are the same phases consistently problematic?)
+- Escalate instruction gaps to human when they block progress
+- Note in session.md when agent behavior suggests instruction ambiguity
+
+**Human responsibilities:**
+
+- Review accumulated lessons in `lessons-learned/` directory periodically
+- Update `.claude/commands/tdd.md` with proven improvements
+- Version control prompt changes to track what works
+- Test prompt changes on representative tasks before deploying broadly
+
+**Metrics to consider tracking:**
+
+- Which phases most frequently require troubleshooter intervention?
+- How many FIX → REVIEW cycles typically occur?
+- Which acceptance criteria types lead to test design issues?
+- What percentage of workflows complete without escalation?
+
+This empirical iteration ensures the workflow improves over time based on real usage patterns rather than theoretical assumptions.
+
+---
+
+## Starting/Resuming Workflow
+
+**New workflow** (`/tdd Implement user authentication`):
+
+1. Request Clarification (see section above - get human confirmation)
+2. Pre-Workflow Validation (check sessions, project status, docs)
+3. Update `.docs/current-task.md` "Current Focus" with task + workflow + timestamp
+4. Create `.tdd/session.md` with task + scope + criteria (INIT phase)
+5. Route to architect (EXPLORE phase)
+
+**Resume workflow** (`/tdd`):
+
+1. Read `.tdd/session.md`
+2. Determine current phase
+3. Continue from that phase
+
+---
+
+## Quick Reference (Routing Summary)
+
+| After Phase | Route To | Condition |
+|-------------|----------|-----------|
+| EXPLORE | PLAN | Always |
+| PLAN | DESIGN_TESTS | Always |
+| DESIGN_TESTS | TEST_DESIGN_REVIEW | Always |
+| TEST_DESIGN_REVIEW | WRITE_TESTS | Always |
+| WRITE_TESTS | IMPLEMENT | Tests fail (red phase verified) |
+| IMPLEMENT | REVIEW | Tests pass + quality gates pass |
+| REVIEW | ANALYZE_FIX | Critical issues found |
+| REVIEW | HUMAN_VERIFY | No critical issues BUT browser verification failed/unavailable |
+| REVIEW | HUMAN_APPROVAL | No critical issues AND (browser verification passed OR non-UI task) |
+| ANALYZE_FIX | FIX | Always |
+| FIX | REVIEW | Always (re-review) |
+| HUMAN_VERIFY | HUMAN_APPROVAL | Verified |
+| HUMAN_VERIFY | FIX | Issues found |
+| HUMAN_APPROVAL | SYNC_DOCS | Approved |
+| HUMAN_APPROVAL | FIX | Rejected/changes requested |
+| SYNC_DOCS | COMMIT | Always |
+
+---
+
+## Critical Constraints Summary
+
+These constraints are non-negotiable and override any conflicting instructions elsewhere in this document:
+
+1. **Human approval MANDATORY** at HUMAN_APPROVAL phase before SYNC_DOCS and COMMIT
+2. **Browser verification REQUIRED** for all UI tasks — use MCP tools, escalate if unavailable
+3. **Maximum 2 review cycles** — escalate to human on 3rd cycle attempt
+4. **Troubleshooter limit: 10 exchanges** — escalate if root cause not found within budget
+5. **Token budget enforcement**:
+   - session.md: under 500 tokens
+   - Orchestrator working context: under 100K tokens
+   - Compact at 50K, offload at 75K
+6. **File size limits** — flag at 300 lines, mandatory decomposition at 400 lines
+7. **Acceptance criteria authority** — session.md human-confirmed criteria override spec.md if conflicting
+8. **Abstention over assumption** — when uncertain, escalate rather than guess
+
+**If any agent encounters conflict between these constraints and other instructions, these constraints take precedence.**

@@ -92,13 +92,14 @@ New characters start with only innate skills. Players build their skill loadout 
 
 ## Skill Assignment
 
-Skills are a shared resource pool -- any character can use any skill from the inventory. Assignment is per-character: each character maintains their own skill list with independent priority ordering.
+Skills are a shared resource pool with faction exclusivity -- each assignable skill can only be assigned to one character per faction. Cross-faction sharing is allowed (a friendly and an enemy can have the same skill). Assignment is per-character: each character maintains their own skill list with independent priority ordering.
 
 **Assigning a skill:**
 
 - Skills are assigned from the Inventory panel via an "Assign" button
 - Newly assigned skills are added to the top of the character's skill list (highest priority)
 - A skill can only be assigned once per character (no duplicates)
+- A skill can only be assigned to one character per faction (faction exclusivity). Assigning a skill to one friendly removes it from inventory for all friendlies, but it remains available for enemies.
 
 **Removing a skill:**
 
@@ -278,4 +279,4 @@ The Inventory panel shows all skills available in the game, sourced from the cen
 - Stats (tick cost, range, damage or mode)
 - "Assign" button (disabled when all skill slots are full)
 
-The inventory panel only shows unassigned, non-innate skills. Assigned skills and innate skills are not displayed. To unassign a skill, use the "Unassign" button in the Skills & Priority panel.
+The inventory panel only shows non-innate skills that are not assigned to any character of the selected character's faction. Skills assigned to characters of the opposite faction are still shown. To unassign a skill, use the "Unassign" button in the Skills & Priority panel.

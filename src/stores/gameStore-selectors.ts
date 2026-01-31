@@ -17,6 +17,7 @@ import {
   evaluateSkillsForCharacter as _evaluateSkillsForCharacter,
 } from "../engine/game";
 import { evaluateSelector } from "../engine/selectors";
+import { SKILL_REGISTRY } from "../engine/skill-registry";
 
 // ============================================================================
 // Basic Selectors
@@ -66,6 +67,34 @@ export const selectCharacterById = (id: string) => (state: GameStore) =>
 export const selectCharactersByFaction =
   (faction: "friendly" | "enemy") => (state: GameStore) =>
     state.gameState.characters.filter((c) => c.faction === faction);
+
+// ============================================================================
+// Skill Inventory Helpers
+// ============================================================================
+
+/**
+ * Compute the set of assignable skill IDs currently assigned to any character
+ * of the given faction. Used by both the store action (enforcement) and
+ * InventoryPanel (display filtering).
+ *
+ * Innate skills are excluded because they are never part of the assignment flow.
+ */
+export function getFactionAssignedSkillIds(
+  characters: Character[],
+  faction: Faction,
+): Set<string> {
+  const ids = new Set<string>();
+  for (const char of characters) {
+    if (char.faction !== faction) continue;
+    for (const skill of char.skills) {
+      // Skip innate skills - they don't consume inventory slots
+      const def = SKILL_REGISTRY.find((d) => d.id === skill.id);
+      if (def?.innate) continue;
+      ids.add(skill.id);
+    }
+  }
+  return ids;
+}
 
 /**
  * Select living characters.

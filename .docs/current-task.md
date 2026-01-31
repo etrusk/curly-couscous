@@ -10,7 +10,7 @@
 
 ## Current Focus
 
-[No active task]
+TDD Workflow: Skill exclusivity between same-faction characters (started 2026-01-31)
 
 ## Recent Completions
 

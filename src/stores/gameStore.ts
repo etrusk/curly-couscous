@@ -49,6 +49,7 @@ import {
   selectSelectionMode,
   selectClickableCells,
   selectMovementTargetData,
+  getFactionAssignedSkillIds,
   type TokenData,
   type IntentData,
   type MovementTargetData,
@@ -84,6 +85,7 @@ export {
   selectSelectionMode,
   selectClickableCells,
   selectMovementTargetData,
+  getFactionAssignedSkillIds,
 };
 
 // ============================================================================
@@ -287,6 +289,15 @@ export const useGameStore = create<GameStore>()(
           // Find skill definition in registry
           const skillDef = SKILL_REGISTRY.find((s) => s.id === skillId);
           if (!skillDef) {
+            return;
+          }
+
+          // Check if any same-faction character already has this skill
+          const factionSkills = getFactionAssignedSkillIds(
+            state.gameState.characters,
+            character.faction,
+          );
+          if (factionSkills.has(skillId)) {
             return;
           }
 

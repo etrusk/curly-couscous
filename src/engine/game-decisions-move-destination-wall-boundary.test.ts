@@ -185,7 +185,7 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     expect(decisions[0]!.action.targetCell).toEqual({ x: 4, y: 11 });
   });
 
-  it("should stay in place at corner (0,0) when fleeing from diagonal target (1,1)", () => {
+  it("should escape corner (0,0) when fleeing from diagonal target (1,1)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -211,10 +211,11 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 0 });
+    // (0,1) scores 4 (dist=1, routes=4) vs stay (0,0) scores 2 (dist=1, routes=2)
+    expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 1 });
   });
 
-  it("should stay in place at corner (11,11) when fleeing from diagonal target (10,10)", () => {
+  it("should escape corner (11,11) when fleeing from diagonal target (10,10)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -240,10 +241,11 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 11, y: 11 });
+    // (11,10) scores 4 (dist=1, routes=4) vs stay (11,11) scores 2 (dist=1, routes=2)
+    expect(decisions[0]!.action.targetCell).toEqual({ x: 11, y: 10 });
   });
 
-  it("should stay in place at corner (0,11) when fleeing from diagonal target (1,10)", () => {
+  it("should escape corner (0,11) when fleeing from diagonal target (1,10)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -269,10 +271,11 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 11 });
+    // (0,10) scores 4 (dist=1, routes=4) vs stay (0,11) scores 2 (dist=1, routes=2)
+    expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 10 });
   });
 
-  it("should stay in place at corner (11,0) when fleeing from diagonal target (10,1)", () => {
+  it("should escape corner (11,0) when fleeing from diagonal target (10,1)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -298,10 +301,11 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 11, y: 0 });
+    // (11,1) scores 4 (dist=1, routes=4) vs stay (11,0) scores 2 (dist=1, routes=2)
+    expect(decisions[0]!.action.targetCell).toEqual({ x: 11, y: 1 });
   });
 
-  it("should use natural secondary when it exists (vertical fallback after horizontal blocked)", () => {
+  it("should prefer interior with better escape routes (vertical fallback)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -327,7 +331,8 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 2 });
+    // Interior (1,2) scores 24 (dist=3, routes=8) vs edge (0,2) scores 15 (dist=3, routes=5)
+    expect(decisions[0]!.action.targetCell).toEqual({ x: 1, y: 2 });
   });
 
   it("should stay in place when already at target position (dx=dy=0)", () => {
@@ -444,6 +449,7 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 4 });
+    // Escape route weighting: (1,4) has 7 routes (score=7) vs (0,4) has 4 routes (score=4)
+    expect(decisions[0]!.action.targetCell).toEqual({ x: 1, y: 4 });
   });
 });

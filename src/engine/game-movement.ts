@@ -74,7 +74,7 @@ export function computeMoveDestination(
   }
 
   // Evaluate each candidate using tiebreaking hierarchy
-  return selectBestCandidate(candidates, target, mode);
+  return selectBestCandidate(candidates, target, mode, allCharacters, mover.id);
 }
 
 /**
@@ -93,6 +93,39 @@ function buildObstacleSet(
     }
   }
   return obstacles;
+}
+
+/**
+ * Count escape routes (unblocked adjacent cells) from a position.
+ * Used for away-mode scoring to prefer positions with more mobility.
+ */
+function countEscapeRoutes(
+  position: Position,
+  gridWidth: number,
+  gridHeight: number,
+  obstacles: Set<string>,
+): number {
+  let count = 0;
+  const directions = [
+    { x: 0, y: -1 },
+    { x: 0, y: 1 },
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 1, y: -1 },
+    { x: -1, y: -1 },
+    { x: 1, y: 1 },
+    { x: -1, y: 1 },
+  ];
+  for (const dir of directions) {
+    const nx = position.x + dir.x;
+    const ny = position.y + dir.y;
+    if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight) {
+      if (!obstacles.has(positionKey({ x: nx, y: ny }))) {
+        count++;
+      }
+    }
+  }
+  return count;
 }
 
 /**
@@ -165,6 +198,7 @@ interface CandidateScore {
   absDy: number;
   y: number;
   x: number;
+  escapeRoutes: number; // Count of unblocked adjacent cells
 }
 
 /**
@@ -173,10 +207,15 @@ interface CandidateScore {
 export function calculateCandidateScore(
   candidate: Position,
   target: Position,
+  obstacles?: Set<string>,
 ): CandidateScore {
   const resultDx = target.x - candidate.x;
   const resultDy = target.y - candidate.y;
   const distance = Math.max(Math.abs(resultDx), Math.abs(resultDy)); // Chebyshev distance
+
+  const escapeRoutes = obstacles
+    ? countEscapeRoutes(candidate, GRID_SIZE, GRID_SIZE, obstacles)
+    : 8; // Default: assume open space when no obstacles provided
 
   return {
     distance,
@@ -184,6 +223,7 @@ export function calculateCandidateScore(
     absDy: Math.abs(resultDy),
     y: candidate.y,
     x: candidate.x,
+    escapeRoutes,
   };
 }
 
@@ -241,7 +281,20 @@ export function compareAwayMode(
   candidateScore: CandidateScore,
   bestScore: CandidateScore,
 ): boolean {
-  // Primary comparison: distance (maximize)
+  // Primary comparison: multiplicative score (distance * escapeRoutes)
+  const candidateComposite =
+    candidateScore.distance * candidateScore.escapeRoutes;
+  const bestComposite = bestScore.distance * bestScore.escapeRoutes;
+
+  if (candidateComposite > bestComposite) {
+    return true;
+  }
+  if (candidateComposite < bestComposite) {
+    return false;
+  }
+
+  // Tiebreakers (when composite scores are equal):
+  // Secondary: maximize distance (prefer farther from threat)
   if (candidateScore.distance > bestScore.distance) {
     return true;
   }
@@ -249,7 +302,7 @@ export function compareAwayMode(
     return false;
   }
 
-  // Secondary: absDx (maximize)
+  // Tertiary: maximize absDx
   if (candidateScore.absDx > bestScore.absDx) {
     return true;
   }
@@ -257,7 +310,7 @@ export function compareAwayMode(
     return false;
   }
 
-  // Tertiary: absDy (maximize)
+  // Quaternary: maximize absDy
   if (candidateScore.absDy > bestScore.absDy) {
     return true;
   }
@@ -265,7 +318,7 @@ export function compareAwayMode(
     return false;
   }
 
-  // Quaternary: y coordinate (minimize)
+  // Quinary: minimize y
   if (candidateScore.y < bestScore.y) {
     return true;
   }
@@ -273,7 +326,7 @@ export function compareAwayMode(
     return false;
   }
 
-  // Quinary: x coordinate (minimize)
+  // Senary: minimize x
   if (candidateScore.x < bestScore.x) {
     return true;
   }
@@ -288,13 +341,29 @@ export function selectBestCandidate(
   candidates: Position[],
   target: Character,
   mode: "towards" | "away",
+  allCharacters?: Character[],
+  moverId?: string,
 ): Position {
+  // Build obstacle set for escape route counting (away mode only)
+  const obstacles =
+    mode === "away" && allCharacters && moverId
+      ? buildObstacleSet(allCharacters, moverId)
+      : undefined;
+
   let bestCandidate: Position = candidates[0]!;
-  let bestScore = calculateCandidateScore(bestCandidate, target.position);
+  let bestScore = calculateCandidateScore(
+    bestCandidate,
+    target.position,
+    obstacles,
+  );
 
   for (let i = 1; i < candidates.length; i++) {
     const candidate = candidates[i]!;
-    const candidateScore = calculateCandidateScore(candidate, target.position);
+    const candidateScore = calculateCandidateScore(
+      candidate,
+      target.position,
+      obstacles,
+    );
 
     const isBetter =
       mode === "towards"

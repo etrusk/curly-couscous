@@ -161,7 +161,9 @@ Chebyshev distance (8-directional; diagonals cost 1)
 
 **Towards mode:** Uses A\* pathfinding to find the optimal path around obstacles (other characters). Diagonal moves cost sqrt(2) while cardinal moves cost 1.0, producing natural-looking paths without unnecessary zig-zagging. When no path exists, the character stays in place.
 
-**Away mode:** Uses single-step maximization with tiebreaking hierarchy:
+**Away mode:** Uses single-step maximization with escape route weighting. Each candidate position is scored using a composite formula: `distance_from_target * escape_routes`, where escape routes are the count of unblocked adjacent cells (0-8). This naturally penalizes corners (3 routes) and edges (5 routes) compared to interior positions (8 routes), preventing AI from getting trapped when fleeing.
+
+Tiebreaking hierarchy (when composite scores are equal):
 
 1. Maximize resulting Chebyshev distance from target
 2. Maximize resulting |dx|, then |dy|

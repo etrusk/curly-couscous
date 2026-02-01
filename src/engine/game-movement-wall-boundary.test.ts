@@ -7,7 +7,7 @@ import { computeMoveDestination } from "./game-movement";
 import { createCharacter } from "./game-test-helpers";
 
 describe("computeMoveDestination - wall-boundary fallback", () => {
-  it("should clamp move destination to grid bounds at x=0 edge", () => {
+  it("should prefer interior over edge at x=0 when fleeing distant threat", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -24,12 +24,11 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    // Moving away from (5,5) when at (0,5) would try x=-1, clamped to x=0
-    // Wall-boundary fallback: try perpendicular escape (lower Y)
-    expect(targetCell).toEqual({ x: 0, y: 4 });
+    // Interior (1,4) scores 32 (dist=4, routes=8) vs edge (0,4) scores 25 (dist=5, routes=5)
+    expect(targetCell).toEqual({ x: 1, y: 4 });
   });
 
-  it("should clamp move destination to grid bounds at x=11 edge", () => {
+  it("should prefer interior over edge at x=11 when fleeing distant threat", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -46,12 +45,11 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    // Moving away from (5,5) when at (11,5) would try x=12, clamped to x=11
-    // Wall-boundary fallback: try perpendicular escape (lower Y)
-    expect(targetCell).toEqual({ x: 11, y: 4 });
+    // Interior (10,4) scores 40 (dist=5, routes=8) vs edge (11,4) scores 30 (dist=6, routes=5)
+    expect(targetCell).toEqual({ x: 10, y: 4 });
   });
 
-  it("should clamp move destination to grid bounds at y=0 edge", () => {
+  it("should prefer interior over edge at y=0 when fleeing distant threat", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -68,12 +66,11 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    // Moving away from (5,5) when at (5,0) would try y=-1, clamped to y=0
-    // Wall-boundary fallback: try perpendicular escape (lower X)
-    expect(targetCell).toEqual({ x: 4, y: 0 });
+    // Interior (4,1) scores 32 (dist=4, routes=8) vs edge (4,0) scores 25 (dist=5, routes=5)
+    expect(targetCell).toEqual({ x: 4, y: 1 });
   });
 
-  it("should clamp move destination to grid bounds at y=11 edge", () => {
+  it("should prefer interior over edge at y=11 when fleeing distant threat", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -90,9 +87,8 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    // Moving away from (5,5) when at (5,11) would try y=12, clamped to y=11
-    // Wall-boundary fallback: try perpendicular escape (lower X)
-    expect(targetCell).toEqual({ x: 4, y: 11 });
+    // Interior (4,10) scores 40 (dist=5, routes=8) vs edge (4,11) scores 30 (dist=6, routes=5)
+    expect(targetCell).toEqual({ x: 4, y: 10 });
   });
 
   it("should escape perpendicular to lower Y when away-horizontal blocked at x=0 (same row)", () => {
@@ -215,7 +211,7 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
     expect(targetCell).toEqual({ x: 4, y: 11 });
   });
 
-  it("should stay in place at corner (0,0) when fleeing from diagonal target (1,1)", () => {
+  it("should escape corner (0,0) when fleeing from diagonal target (1,1)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -232,10 +228,11 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    expect(targetCell).toEqual({ x: 0, y: 0 });
+    // (0,1) scores 4 (dist=1, routes=4) vs stay (0,0) scores 2 (dist=1, routes=2)
+    expect(targetCell).toEqual({ x: 0, y: 1 });
   });
 
-  it("should stay in place at corner (11,11) when fleeing from diagonal target (10,10)", () => {
+  it("should escape corner (11,11) when fleeing from diagonal target (10,10)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -252,10 +249,11 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    expect(targetCell).toEqual({ x: 11, y: 11 });
+    // (11,10) scores 4 (dist=1, routes=4) vs stay (11,11) scores 2 (dist=1, routes=2)
+    expect(targetCell).toEqual({ x: 11, y: 10 });
   });
 
-  it("should stay in place at corner (0,11) when fleeing from diagonal target (1,10)", () => {
+  it("should escape corner (0,11) when fleeing from diagonal target (1,10)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -272,10 +270,11 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    expect(targetCell).toEqual({ x: 0, y: 11 });
+    // (0,10) scores 4 (dist=1, routes=4) vs stay (0,11) scores 2 (dist=1, routes=2)
+    expect(targetCell).toEqual({ x: 0, y: 10 });
   });
 
-  it("should stay in place at corner (11,0) when fleeing from diagonal target (10,1)", () => {
+  it("should escape corner (11,0) when fleeing from diagonal target (10,1)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -292,10 +291,11 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    expect(targetCell).toEqual({ x: 11, y: 0 });
+    // (11,1) scores 4 (dist=1, routes=4) vs stay (11,0) scores 2 (dist=1, routes=2)
+    expect(targetCell).toEqual({ x: 11, y: 1 });
   });
 
-  it("should use natural secondary when it exists (vertical fallback after horizontal blocked)", () => {
+  it("should prefer interior with better escape routes (vertical fallback)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -312,8 +312,8 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    // dx=2, dy=2 → prefer horizontal → x=-1 blocked → natural secondary y=3-1=2
-    expect(targetCell).toEqual({ x: 0, y: 2 });
+    // Interior (1,2) scores 24 (dist=3, routes=8) vs edge (0,2) scores 15 (dist=3, routes=5)
+    expect(targetCell).toEqual({ x: 1, y: 2 });
   });
 
   it("should stay in place when already at target position (dx=dy=0)", () => {
@@ -395,6 +395,7 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    expect(targetCell).toEqual({ x: 0, y: 4 });
+    // Escape route weighting: (1,4) has 7 routes (score=7) vs (0,4) has 4 routes (score=4)
+    expect(targetCell).toEqual({ x: 1, y: 4 });
   });
 });

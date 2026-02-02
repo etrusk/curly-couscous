@@ -59,7 +59,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     expect(lines).toHaveLength(2);
   });
 
-  it("stroke-width 2.5px for locked-in attack in IntentOverlay integration", () => {
+  it("stroke-width 2px for locked-in attack in IntentOverlay integration", () => {
     const skill = createSkill({
       id: "heavy-punch",
       tickCost: 3,
@@ -89,8 +89,8 @@ describe("IntentOverlay - Basic Rendering", () => {
     const mainLine = lines[1];
     expect(mainLine).toHaveAttribute("stroke", "var(--faction-friendly)");
     expect(mainLine).toHaveAttribute("marker-end", "url(#arrowhead-friendly)");
-    // stroke-width should be 2.5 because ticksRemaining = 3 (locked-in)
-    expect(mainLine).toHaveAttribute("stroke-width", "2.5");
+    // stroke-width should be 2 (uniform width)
+    expect(mainLine).toHaveAttribute("stroke-width", "2");
   });
 
   it("should render lines for Light Punch when ticksRemaining > 0 (complete information)", () => {
@@ -263,10 +263,10 @@ describe("IntentOverlay - Basic Rendering", () => {
     });
     rerender(<IntentOverlay {...defaultProps} />);
 
-    // Line should still be visible at tick 1
+    // Line should still be visible at tick 1 (now solid, not dashed)
     lines = container.querySelectorAll("line");
     expect(lines).toHaveLength(2); // outline + main
-    expect(lines[1]).toHaveAttribute("stroke-dasharray", "4 2");
+    expect(lines[1]).not.toHaveAttribute("stroke-dasharray");
   });
 
   it("attack intent line disappears after resolution tick", () => {

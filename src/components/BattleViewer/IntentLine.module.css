@@ -1,17 +1,3 @@
 /**
- * IntentLine styles - pulsing animation for locked-in actions.
+ * IntentLine styles - currently empty (pulsing animation removed).
  */
-
-@keyframes intent-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
-.lockedIn {
-  animation: intent-pulse 1s ease-in-out infinite;
-}

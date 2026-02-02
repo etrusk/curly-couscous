@@ -107,8 +107,8 @@ describe("InventoryPanel", () => {
 
       render(<InventoryPanel />);
 
-      // One skill has tick cost 1 (Light Punch)
-      expect(screen.getByText(/tick cost: 1/i)).toBeInTheDocument();
+      // One skill has tick cost 0 (Light Punch)
+      expect(screen.getByText(/tick cost: 0/i)).toBeInTheDocument();
 
       // One skill has tick cost 2 (Heavy Punch)
       expect(screen.getByText(/tick cost: 2/i)).toBeInTheDocument();

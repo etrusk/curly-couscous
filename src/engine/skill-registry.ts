@@ -27,7 +27,7 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
   {
     id: "light-punch",
     name: "Light Punch",
-    tickCost: 1,
+    tickCost: 0,
     range: 1,
     damage: 10,
     innate: false,

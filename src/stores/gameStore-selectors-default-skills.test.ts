@@ -79,9 +79,9 @@ describe("selectIntentData - DEFAULT_SKILLS integration", () => {
     expect(friendlyIntent?.action.type).toBe("attack");
     expect(enemyIntent?.action.type).toBe("attack");
 
-    // Both should use Light Punch (tickCost=1)
-    expect(friendlyIntent?.ticksRemaining).toBe(1);
-    expect(enemyIntent?.ticksRemaining).toBe(1);
+    // Both should use Light Punch (tickCost=0)
+    expect(friendlyIntent?.ticksRemaining).toBe(0);
+    expect(enemyIntent?.ticksRemaining).toBe(0);
 
     // Both should be using Light Punch skill
     expect(friendlyIntent?.action.skill.id).toBe("light-punch");

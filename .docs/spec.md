@@ -71,9 +71,9 @@ New characters start with only innate skills. Players build their skill loadout 
 
 ### Light Punch
 
-- Tick cost: 1, Range: 1 (melee), Damage: 10
+- Tick cost: 0, Range: 1 (melee), Damage: 10
 - Default selector: nearest_enemy
-- Fast but weak. 1-tick wind-up visible before resolution.
+- Fast and instant. Resolves immediately with no wind-up.
 - **Assignable** (not innate)
 
 ### Heavy Punch
@@ -82,6 +82,18 @@ New characters start with only innate skills. Players build their skill loadout 
 - Default selector: nearest_enemy
 - Slow but powerful. 2-tick wind-up creates dodge window.
 - **Assignable** (not innate)
+
+### Skill Categories
+
+Skills fall into two timing categories:
+
+- **Instant** (tickCost: 0): Resolve the same tick they are chosen. No wind-up, no telegraph. Guaranteed to hit if the target is in range at decision time. Trade telegraphing for reliability.
+- **Wind-up** (tickCost >= 1): Take one or more ticks to resolve. Intent lines appear during wind-up, giving opponents time to react (dodge, reposition). Trade speed for power.
+
+**Tactical rationale:** Instant attacks exist as an anti-kiting mechanic. Without them, characters with escape-route-weighted movement could indefinitely flee melee attackers, since every attack required at least 1 tick of wind-up during which the target could move away. Instant attacks guarantee hits on contact, forcing tactical tradeoffs: kiting is still viable against wind-up attacks, but closing to melee range carries real risk from instant attacks.
+
+**Current instant skills:** Light Punch (tickCost: 0)
+**Current wind-up skills:** Heavy Punch (tickCost: 2), Move (tickCost: 1)
 
 ### Move
 
@@ -128,7 +140,7 @@ Skills are a shared resource pool with faction exclusivity -- each assignable sk
 - `hp_below X%`: Own HP below X%
 - `my_cell_targeted_by_enemy`: Enemy has locked-in action targeting this cell
 
-**Note:** `my_cell_targeted_by_enemy` detects any pending action targeting the cell. All actions have at least 1 tick of visibility before resolution.
+**Note:** `my_cell_targeted_by_enemy` detects any pending action targeting the cell. Wind-up actions (tickCost >= 1) have at least 1 tick of visibility before resolution. Instant actions (tickCost: 0) resolve the same tick they are chosen, so they cannot be dodged via this trigger.
 
 ## Core Game Mechanics
 
@@ -179,22 +191,35 @@ Tiebreaking hierarchy (when composite scores are equal):
 
 Intent lines visualize pending actions, enabling at-a-glance battlefield reading.
 
-**Visibility:** Intent lines appear for all pending actions with `ticksRemaining >= 0`. All actions (including Light Punch with tick cost 1) show intent lines for at least one tick before resolution.
+**Visibility:** Intent lines appear for all pending actions with `ticksRemaining >= 0`. Wind-up actions (tickCost >= 1) show intent lines during their entire wind-up period, giving opponents time to react. Instant actions (tickCost: 0) show intent lines only at the resolution tick (ticksRemaining = 0), since they resolve immediately with no wind-up.
 
 ### Visual Encoding
 
-| Type              | Line Style | Color          | Endpoint         |
-| ----------------- | ---------- | -------------- | ---------------- |
-| Friendly attack   | Solid      | Blue #0072B2   | Filled arrowhead |
-| Enemy attack      | Solid      | Orange #E69F00 | Filled arrowhead |
-| Friendly movement | Dashed     | Blue #0072B2   | Hollow circle    |
-| Enemy movement    | Dashed     | Orange #E69F00 | Hollow diamond   |
+Intent lines encode three dimensions: faction (color), action type (endpoint marker), and timing (line style + stroke width).
+
+**Faction and action type (unchanged):**
+
+| Faction  | Action Type | Color          | Endpoint         |
+| -------- | ----------- | -------------- | ---------------- |
+| Friendly | Attack      | Blue #0072B2   | Filled arrowhead |
+| Enemy    | Attack      | Orange #E69F00 | Filled arrowhead |
+| Friendly | Movement    | Blue #0072B2   | Hollow circle    |
+| Enemy    | Movement    | Orange #E69F00 | Hollow diamond   |
+
+**Timing-based line style:**
+
+| Timing                       | Line Style   | Stroke Width | Numeric Label  | Meaning             |
+| ---------------------------- | ------------ | ------------ | -------------- | ------------------- |
+| Immediate (ticksRemaining=0) | Solid        | 4px          | None           | Resolves now        |
+| Future (ticksRemaining>0)    | Dashed (4 2) | 2px          | ticksRemaining | Resolves in N ticks |
 
 ### Line Specifications
 
-- Confirmed (1 tick remaining): 3px stroke
-- Locked-in (2+ ticks): 4px stroke, pulsing animation
-- Contrasting outline: White outline for visibility (implemented)
+- Immediate actions (ticksRemaining = 0): 4px solid stroke, 5px white outline
+- Future actions (ticksRemaining > 0): 2px dashed stroke (4 2 pattern), 3px white outline, numeric label at line midpoint showing ticksRemaining
+- Numeric labels: 12px bold font, faction-colored fill, 3px white stroke outline with `paintOrder="stroke"` for readability
+- Contrasting outline: White outline (`strokeWidth + 1`) behind all lines for visibility against any background
+- Endpoint markers (arrowhead, circle, diamond) encode action type, independent of timing
 
 ### Damage Display
 

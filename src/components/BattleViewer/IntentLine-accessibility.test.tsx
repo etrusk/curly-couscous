@@ -87,7 +87,7 @@ describe("IntentLine - Accessibility", () => {
       expect(outlineLine).toHaveAttribute("stroke", "var(--contrast-line)");
     });
 
-    it("uses 3px outline stroke for confirmed actions (2px main + 1)", () => {
+    it("uses 3px outline stroke for dashed actions (2px main + 1)", () => {
       const { container } = render(
         <svg>
           <IntentLine
@@ -103,18 +103,18 @@ describe("IntentLine - Accessibility", () => {
       const outlineLine = lines[0];
       const mainLine = lines[1];
 
-      expect(outlineLine).toHaveAttribute("stroke-width", "3");
-      expect(mainLine).toHaveAttribute("stroke-width", "2");
+      expect(outlineLine).toHaveAttribute("stroke-width", "3"); // 2px + 1
+      expect(mainLine).toHaveAttribute("stroke-width", "2"); // Dashed (future)
     });
 
-    it("uses 3.5px outline stroke for locked-in actions (2.5px main + 1)", () => {
+    it("uses 5px outline stroke for solid actions (4px main + 1)", () => {
       const { container } = render(
         <svg>
           <IntentLine
             {...defaultProps}
             type="attack"
             faction="friendly"
-            ticksRemaining={2}
+            ticksRemaining={0}
           />
         </svg>,
       );
@@ -123,8 +123,8 @@ describe("IntentLine - Accessibility", () => {
       const outlineLine = lines[0];
       const mainLine = lines[1];
 
-      expect(outlineLine).toHaveAttribute("stroke-width", "3.5");
-      expect(mainLine).toHaveAttribute("stroke-width", "2.5");
+      expect(outlineLine).toHaveAttribute("stroke-width", "5"); // 4px + 1
+      expect(mainLine).toHaveAttribute("stroke-width", "4"); // Solid (immediate)
     });
 
     it("should not apply marker to outline line", () => {
@@ -183,7 +183,7 @@ describe("IntentLine - Accessibility", () => {
       expect(lines).toHaveLength(2);
     });
 
-    it("should apply lockedIn class to group for locked-in actions", () => {
+    it("should not apply lockedIn class to group for locked-in actions", () => {
       const { container } = render(
         <svg>
           <IntentLine
@@ -196,7 +196,7 @@ describe("IntentLine - Accessibility", () => {
       );
 
       const group = container.querySelector("g");
-      expect(group?.getAttribute("class")).toContain("lockedIn");
+      expect(group?.getAttribute("class") ?? "").not.toContain("lockedIn");
     });
 
     it("should not apply lockedIn class to group for confirmed actions", () => {
@@ -212,7 +212,7 @@ describe("IntentLine - Accessibility", () => {
       );
 
       const group = container.querySelector("g");
-      expect(group?.getAttribute("class")).not.toContain("lockedIn");
+      expect(group?.getAttribute("class") ?? "").not.toContain("lockedIn");
     });
 
     it("uses round line caps on main line for softer appearance", () => {

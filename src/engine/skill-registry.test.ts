@@ -28,7 +28,7 @@ describe("Skill Registry", () => {
         expect(skill.name).toBeTruthy();
         expect(typeof skill.name).toBe("string");
 
-        expect(skill.tickCost).toBeGreaterThan(0);
+        expect(skill.tickCost).toBeGreaterThanOrEqual(0);
         expect(typeof skill.tickCost).toBe("number");
 
         expect(skill.range).toBeGreaterThan(0);
@@ -133,7 +133,7 @@ describe("Skill Registry", () => {
 
       expect(skill.id).toBe("light-punch");
       expect(skill.name).toBe("Light Punch");
-      expect(skill.tickCost).toBe(1);
+      expect(skill.tickCost).toBe(0);
       expect(skill.range).toBe(1);
       expect(skill.damage).toBe(10);
       expect(skill.enabled).toBe(true);
@@ -149,6 +149,20 @@ describe("Skill Registry", () => {
       expect(skill.name).toBe("Move Towards");
       expect(skill.mode).toBe("towards");
       expect(skill.damage).toBeUndefined();
+    });
+  });
+
+  // NEW TESTS FOR INSTANT ATTACKS
+  describe("Instant Attacks", () => {
+    it("Light Punch has tickCost 0 (instant attack)", () => {
+      const lightPunch = SKILL_REGISTRY.find((s) => s.id === "light-punch");
+      expect(lightPunch?.tickCost).toBe(0);
+    });
+
+    it("createSkillFromDefinition preserves tickCost 0 for Light Punch", () => {
+      const lightPunchDef = SKILL_REGISTRY.find((s) => s.id === "light-punch")!;
+      const skill = createSkillFromDefinition(lightPunchDef);
+      expect(skill.tickCost).toBe(0);
     });
   });
 });

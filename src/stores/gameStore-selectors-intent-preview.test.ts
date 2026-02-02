@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import { describe, it, expect, beforeEach } from "vitest";
 import { useGameStore, selectIntentData } from "./gameStore";
 import { createCharacter, createSkill } from "./gameStore-test-helpers";
@@ -453,5 +454,91 @@ describe("selectIntentData - preview intent lines", () => {
     // Dead character should NOT produce intent line
     const friendlyIntent = result.find((r) => r.characterId === "friendly");
     expect(friendlyIntent).toBeUndefined();
+  });
+
+  // NEW TESTS FOR INSTANT ATTACKS
+  describe("Instant Attacks (tickCost 0)", () => {
+    it("should show preview with ticksRemaining=0 for instant attack (tickCost=0)", () => {
+      const instantAttack = createSkill({
+        id: "light-punch",
+        tickCost: 0,
+        range: 1,
+        damage: 10,
+      });
+      const friendly = createCharacter({
+        id: "friendly",
+        faction: "friendly",
+        position: { x: 0, y: 0 },
+        skills: [instantAttack],
+        currentAction: null,
+      });
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { x: 1, y: 0 },
+        skills: [],
+      });
+      useGameStore.getState().actions.initBattle([friendly, enemy]);
+
+      const result = selectIntentData(useGameStore.getState());
+
+      const friendlyIntent = result.find((r) => r.characterId === "friendly");
+      expect(friendlyIntent).toBeDefined();
+      expect(friendlyIntent?.action.type).toBe("attack");
+      expect(friendlyIntent?.ticksRemaining).toBe(0);
+    });
+
+    it("should show preview instant attack alongside committed wind-up action", () => {
+      const heavySkill = createSkill({
+        id: "heavy-punch",
+        tickCost: 2,
+        range: 2,
+        damage: 25,
+      });
+      const instantSkill = createSkill({
+        id: "light-punch",
+        tickCost: 0,
+        range: 1,
+        damage: 10,
+      });
+      const charWithAction = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { x: 0, y: 0 },
+        skills: [heavySkill],
+        currentAction: {
+          type: "attack",
+          skill: heavySkill,
+          targetCell: { x: 2, y: 0 },
+          targetCharacter: null,
+          startedAtTick: 0,
+          resolvesAtTick: 2,
+        },
+      });
+      const idleChar = createCharacter({
+        id: "char2",
+        faction: "enemy",
+        position: { x: 3, y: 0 },
+        skills: [instantSkill],
+        currentAction: null,
+      });
+      const target = createCharacter({
+        id: "target",
+        faction: "friendly",
+        position: { x: 4, y: 0 },
+        skills: [],
+      });
+      useGameStore
+        .getState()
+        .actions.initBattle([charWithAction, idleChar, target]);
+
+      const result = selectIntentData(useGameStore.getState());
+
+      expect(result).toHaveLength(2);
+      const committed = result.find((r) => r.characterId === "char1");
+      const preview = result.find((r) => r.characterId === "char2");
+      expect(committed?.ticksRemaining).toBe(2);
+      expect(preview?.ticksRemaining).toBe(0);
+    });
   });
 });

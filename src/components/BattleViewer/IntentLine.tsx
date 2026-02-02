@@ -4,7 +4,6 @@
  */
 
 import type { Position, Faction } from "../../engine/types";
-import styles from "./IntentLine.module.css";
 
 export interface IntentLineProps {
   from: Position;
@@ -36,24 +35,20 @@ export function IntentLine({
     faction === "friendly" ? "var(--faction-friendly)" : "var(--faction-enemy)";
   const outlineColor = "var(--contrast-line)";
 
-  // Determine stroke width based on ticks remaining
-  // Confirmed (1 tick): 2px, Locked-in (2+ ticks): 2.5px
-  const strokeWidth = ticksRemaining === 1 ? 2 : 2.5;
+  // Conditional stroke width: 4px for solid (immediate), 2px for dashed (future)
+  const strokeWidth = ticksRemaining === 0 ? 4 : 2;
 
   // Outline stroke width is main + 1px
   const outlineStrokeWidth = strokeWidth + 1;
 
-  // Determine if line is dashed (for movement)
-  const strokeDasharray = type === "move" ? "4 2" : undefined;
+  // Timing-based dashing: dashed for ticksRemaining > 0, solid for ticksRemaining = 0
+  const strokeDasharray = ticksRemaining > 0 ? "4 2" : undefined;
 
   // Determine marker based on type and faction
   const markerEnd = getMarkerEnd(type, faction);
 
-  // Apply pulsing animation for locked-in actions (2+ ticks)
-  const className = ticksRemaining >= 2 ? styles.lockedIn : "";
-
   return (
-    <g className={className}>
+    <g>
       {/* Outline line (white, thicker, no marker) - rendered first (behind) */}
       <line
         x1={x1}
@@ -77,6 +72,23 @@ export function IntentLine({
         markerEnd={markerEnd}
         strokeLinecap="round"
       />
+      {/* Numeric label for wind-up actions (ticksRemaining > 0) */}
+      {ticksRemaining > 0 && (
+        <text
+          x={(x1 + x2) / 2}
+          y={(y1 + y2) / 2}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill={color}
+          stroke={outlineColor}
+          strokeWidth="3"
+          paintOrder="stroke"
+          fontSize="12"
+          fontWeight="bold"
+        >
+          {ticksRemaining}
+        </text>
+      )}
     </g>
   );
 }

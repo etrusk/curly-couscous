@@ -7,6 +7,7 @@ import { processTick } from "./game-core";
 import {
   createGameState,
   createCharacter,
+  createSkill,
   createAttackAction,
   createMoveAction,
   initRNG,
@@ -141,5 +142,75 @@ describe("processTick - combat and movement integration", () => {
 
     // RNG should have advanced due to collision resolution
     expect(result.state.rngState).not.toBe(initialRng);
+  });
+
+  // NEW TESTS FOR INSTANT ATTACKS
+  describe("Instant Attacks (tickCost 0)", () => {
+    it("instant attack (tickCost 0) resolves and clears in single processTick", () => {
+      const attackSkill = createSkill({
+        id: "light-punch",
+        tickCost: 0,
+        range: 1,
+        damage: 10,
+        triggers: [{ type: "always" }],
+        selectorOverride: { type: "nearest_enemy" },
+      });
+      const friendly = createCharacter({
+        id: "friendly",
+        faction: "friendly",
+        position: { x: 0, y: 0 },
+        skills: [attackSkill],
+        currentAction: null,
+      });
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { x: 1, y: 0 },
+        hp: 100,
+        skills: [],
+      });
+      const state = createGameState({ characters: [friendly, enemy] });
+
+      const { state: newState } = processTick(state);
+
+      const updatedEnemy = newState.characters.find((c) => c.id === "enemy");
+      expect(updatedEnemy?.hp).toBe(90); // 100 - 10 damage
+      const updatedFriendly = newState.characters.find(
+        (c) => c.id === "friendly",
+      );
+      expect(updatedFriendly?.currentAction).toBeNull();
+    });
+
+    it("instant attack resolvesAtTick equals the tick it was created on", () => {
+      const attackSkill = createSkill({
+        id: "light-punch",
+        tickCost: 0,
+        range: 1,
+        damage: 10,
+        triggers: [{ type: "always" }],
+        selectorOverride: { type: "nearest_enemy" },
+      });
+      const friendly = createCharacter({
+        id: "friendly",
+        faction: "friendly",
+        position: { x: 0, y: 0 },
+        skills: [attackSkill],
+        currentAction: null,
+      });
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { x: 1, y: 0 },
+        hp: 100,
+        skills: [],
+      });
+      const state = createGameState({ characters: [friendly, enemy], tick: 5 });
+
+      const { events } = processTick(state);
+
+      const damageEvent = events.find((e) => e.type === "damage");
+      expect(damageEvent).toBeDefined();
+      expect(damageEvent?.tick).toBe(5);
+    });
   });
 });

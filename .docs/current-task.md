@@ -10,12 +10,11 @@
 
 ## Current Focus
 
-**Workflow:** Claude Code TDD
-**Task:** Implement instant attacks and simplified intent line visuals
-**Started:** 2026-02-02
-**Branch:** feature/escape-route-weighting
+[No active task]
 
 ## Recent Completions
+
+- 2026-02-02: Instant attacks and simplified intent line visuals - Completed (commit 6e88fea). Implemented Light Punch as instant attack (tickCost: 0) to prevent infinite kiting. Simplified intent line visual encoding with timing-based styling: solid 4px lines for immediate actions, dashed 2px lines with numeric labels for future actions. 14 new tests, 10 updated tests. Emptied IntentLine.module.css (removed animation). Updated spec.md with instant vs wind-up skill categories and tactical rationale. Tests: 990/1000 passing (10 pre-existing failures unrelated).
 
 - 2026-02-01: Escape route weighting for AI movement - Completed (commit b27c4df). Implemented composite scoring (distance × escape_routes) for away-mode movement. Characters now prefer positions with more unblocked adjacent cells when fleeing, preventing corner-trapping. Added countEscapeRoutes() helper, modified CandidateScore interface and compareAwayMode(). 15 new tests in game-movement-escape-routes.test.ts, 16 updated test expectations. All 78 movement/integration tests passing. Updated spec.md Movement System documentation.
 

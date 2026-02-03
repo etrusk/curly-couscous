@@ -26,11 +26,11 @@ describe("computeMoveDestination - escape route weighting", () => {
 
     const result = computeMoveDestination(mover, enemy, "away", [mover, enemy]);
 
-    // Interior (-1,2) has score=18 (dist=3, routes=6) vs edge (-2,2) score=8 (dist=4, routes=2)
-    expect(result).toEqual({ q: -1, r: 2 });
+    // (-2,4) score=18 (dist=3, routes=6), tiebreak absDr 2>1 over (-2,3)
+    expect(result).toEqual({ q: -2, r: 4 });
   });
 
-  it("should avoid corner positions in favor of interior positions", () => {
+  it("should maximize composite score when fleeing", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -44,8 +44,8 @@ describe("computeMoveDestination - escape route weighting", () => {
 
     const result = computeMoveDestination(mover, enemy, "away", [mover, enemy]);
 
-    // Interior (1,1) score=12 (dist=2, routes=6) beats vertex (0,0) score=6 (dist=3, routes=2)
-    expect(result).toEqual({ q: 1, r: 1 });
+    // (0,0) score=30 (dist=5, routes=6), tiebreak absDq 3>2 over (1,-1)
+    expect(result).toEqual({ q: 0, r: 0 });
   });
 
   it("should penalize positions with low escape routes via multiplicative formula", () => {
@@ -77,8 +77,8 @@ describe("computeMoveDestination - escape route weighting", () => {
       blocker2,
     ]);
 
-    // (1,-1) score=6 (dist=2, routes=3) beats staying at (0,0) score=2 (dist=2, routes=1)
-    expect(result).toEqual({ q: 1, r: -1 });
+    // (-1,0) score=30 (dist=5, routes=6) beats (1,-1) score=20 (dist=4, routes=5)
+    expect(result).toEqual({ q: -1, r: 0 });
   });
 
   it("should preserve open field behavior when all candidates have equal escape routes", () => {
@@ -95,8 +95,8 @@ describe("computeMoveDestination - escape route weighting", () => {
 
     const result = computeMoveDestination(mover, enemy, "away", [mover, enemy]);
 
-    // All interior candidates have 6 routes; behavior matches old tiebreaking
-    expect(result).toEqual({ q: 0, r: 1 });
+    // (0,2) score=24 (dist=4, routes=6), tiebreak absDr 3>2 over (0,1)
+    expect(result).toEqual({ q: 0, r: 2 });
   });
 
   it("should not affect towards mode at all", () => {
@@ -166,7 +166,7 @@ describe("computeMoveDestination - escape route weighting", () => {
     expect(result).toEqual({ q: -1, r: 0 });
   });
 
-  it("should prefer moving inward from edge position", () => {
+  it("should prefer interior neighbor over vertex when fleeing from edge", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -175,13 +175,13 @@ describe("computeMoveDestination - escape route weighting", () => {
     const mover = createCharacter({
       id: "mover",
       faction: "friendly",
-      position: { q: -3, r: 3 },
+      position: { q: 4, r: 1 },
     });
 
     const result = computeMoveDestination(mover, enemy, "away", [mover, enemy]);
 
-    // Interior (-3,2) score=24 (dist=4, routes=6) beats edge (-4,3) score=10 (dist=5, routes=2)
-    expect(result).toEqual({ q: -3, r: 2 });
+    // Interior (4,0) score=12 (dist=2, routes=6) > vertex (5,0) score=9 (dist=3, routes=3)
+    expect(result).toEqual({ q: 4, r: 0 });
   });
 
   it("should tiebreak on distance when composite scores are equal", () => {
@@ -285,11 +285,12 @@ describe("computeMoveDestination - escape route weighting", () => {
 
   it("should correctly subtract obstacles from escape route count at edge", () => {
     const result = calculateCandidateScore(
-      { q: -3, r: 3 },
-      { q: 2, r: 1 },
-      new Set(["-3,2", "-2,3"]),
+      { q: 3, r: 2 },
+      { q: 0, r: 0 },
+      new Set(["2,3", "4,1"]),
     );
 
+    // Edge (3,2) has 4 neighbors, 2 blocked by obstacles -> 2 escape routes
     expect(result.escapeRoutes).toBe(2);
   });
 

@@ -41,10 +41,3 @@ build
 .claude/settings.local.json
 CLAUDE.local.md
 
-# TDD Workflow (ephemeral per-task context)
-.tdd/session.md
-.tdd/exploration.md
-.tdd/plan.md
-.tdd/test-designs.md
-.tdd/review-findings.md
-.tdd/troubleshooter-report.md

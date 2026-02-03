@@ -6,141 +6,17 @@ import { describe, it, expect } from "vitest";
 import { computeMoveDestination } from "./game-movement";
 import { createCharacter } from "./game-test-helpers";
 
-describe("computeMoveDestination - wall-boundary fallback", () => {
-  it("should prefer interior over edge at x=0 when fleeing distant threat", () => {
+describe("computeMoveDestination - hex boundary fallback", () => {
+  it("should prefer interior over edge (east boundary) when fleeing distant threat", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { q: 3, r: 2 },
-    });
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
-      position: { x: 0, y: 5 },
-    });
-
-    const targetCell = computeMoveDestination(character, enemy, "away", [
-      character,
-      enemy,
-    ]);
-
-    // Interior (1,4) scores 32 (dist=4, routes=8) vs edge (0,4) scores 25 (dist=5, routes=5)
-    expect(targetCell).toEqual({ x: 1, y: 4 });
-  });
-
-  it("should prefer interior over edge at x=11 when fleeing distant threat", () => {
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { q: 3, r: 2 },
-    });
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
-      position: { x: 11, y: 5 },
-    });
-
-    const targetCell = computeMoveDestination(character, enemy, "away", [
-      character,
-      enemy,
-    ]);
-
-    // Interior (10,4) scores 40 (dist=5, routes=8) vs edge (11,4) scores 30 (dist=6, routes=5)
-    expect(targetCell).toEqual({ x: 10, y: 4 });
-  });
-
-  it("should prefer interior over edge at y=0 when fleeing distant threat", () => {
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { q: 3, r: 2 },
-    });
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
-      position: { x: 5, y: 0 },
-    });
-
-    const targetCell = computeMoveDestination(character, enemy, "away", [
-      character,
-      enemy,
-    ]);
-
-    // Interior (4,1) scores 32 (dist=4, routes=8) vs edge (4,0) scores 25 (dist=5, routes=5)
-    expect(targetCell).toEqual({ x: 4, y: 1 });
-  });
-
-  it("should prefer interior over edge at y=11 when fleeing distant threat", () => {
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { q: 3, r: 2 },
-    });
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
-      position: { x: 5, y: 11 },
-    });
-
-    const targetCell = computeMoveDestination(character, enemy, "away", [
-      character,
-      enemy,
-    ]);
-
-    // Interior (4,10) scores 40 (dist=5, routes=8) vs edge (4,11) scores 30 (dist=6, routes=5)
-    expect(targetCell).toEqual({ x: 4, y: 10 });
-  });
-
-  it("should escape perpendicular to lower Y when away-horizontal blocked at x=0 (same row)", () => {
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { x: 2, y: 5 },
-    });
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
-      position: { x: 0, y: 5 },
-    });
-
-    const targetCell = computeMoveDestination(character, enemy, "away", [
-      character,
-      enemy,
-    ]);
-
-    expect(targetCell).toEqual({ x: 0, y: 4 });
-  });
-
-  it("should escape perpendicular to higher Y when away-horizontal blocked at x=0 and at y=0", () => {
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { q: 2, r: 0 },
-    });
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
       position: { q: 0, r: 0 },
     });
-
-    const targetCell = computeMoveDestination(character, enemy, "away", [
-      character,
-      enemy,
-    ]);
-
-    expect(targetCell).toEqual({ q: 0, r: 1 });
-  });
-
-  it("should escape perpendicular to lower Y when away-horizontal blocked at x=11 (same row)", () => {
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { x: 9, y: 5 },
-    });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 11, y: 5 },
+      position: { q: 5, r: -2 },
     });
 
     const targetCell = computeMoveDestination(character, enemy, "away", [
@@ -148,59 +24,41 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    expect(targetCell).toEqual({ x: 11, y: 4 });
+    // Interior (4,-2) score=24 (dist=4, routes=6) > boundary (5,-1) score=20 (dist=5, routes=4)
+    expect(targetCell).toEqual({ q: 4, r: -2 });
   });
 
-  it("should escape perpendicular to lower X when away-vertical blocked at y=0 (same column)", () => {
+  it("should prefer interior over edge (west boundary) when fleeing distant threat", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 2 },
-    });
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
-      position: { x: 5, y: 0 },
-    });
-
-    const targetCell = computeMoveDestination(character, enemy, "away", [
-      character,
-      enemy,
-    ]);
-
-    expect(targetCell).toEqual({ x: 4, y: 0 });
-  });
-
-  it("should escape perpendicular to higher X when away-vertical blocked at y=0 and at x=0", () => {
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { x: 0, y: 2 },
-    });
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
       position: { q: 0, r: 0 },
     });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { q: -5, r: 2 },
+    });
 
     const targetCell = computeMoveDestination(character, enemy, "away", [
       character,
       enemy,
     ]);
 
-    expect(targetCell).toEqual({ q: 1, r: 0 });
+    // Interior (-4,2) score=24 (dist=4, routes=6) > boundary (-5,3) score=20 (dist=5, routes=4)
+    expect(targetCell).toEqual({ q: -4, r: 2 });
   });
 
-  it("should escape perpendicular to lower X when away-vertical blocked at y=11 (same column)", () => {
+  it("should prefer interior over edge (SE boundary) when fleeing distant threat", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 9 },
+      position: { q: -2, r: -1 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 11 },
+      position: { q: 2, r: 3 },
     });
 
     const targetCell = computeMoveDestination(character, enemy, "away", [
@@ -208,19 +66,20 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    expect(targetCell).toEqual({ x: 4, y: 11 });
+    // Interior (2,2) score=42 (dist=7, routes=6), tiebreak absDq 4>3 over (1,3)
+    expect(targetCell).toEqual({ q: 2, r: 2 });
   });
 
-  it("should escape corner (0,0) when fleeing from diagonal target (1,1)", () => {
+  it("should prefer interior over edge (NW boundary) when fleeing distant threat", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { q: 1, r: 1 },
+      position: { q: 2, r: 1 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { q: 0, r: 0 },
+      position: { q: -2, r: -3 },
     });
 
     const targetCell = computeMoveDestination(character, enemy, "away", [
@@ -228,20 +87,20 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    // (0,1) scores 4 (dist=1, routes=4) vs stay (0,0) scores 2 (dist=1, routes=2)
-    expect(targetCell).toEqual({ q: 0, r: 1 });
+    // Interior (-2,-2) score=42 (dist=7, routes=6), tiebreak absDq 4>3 over (-1,-3)
+    expect(targetCell).toEqual({ q: -2, r: -2 });
   });
 
-  it("should escape corner (11,11) when fleeing from diagonal target (10,10)", () => {
+  it("should escape tangential along east boundary (same axis)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { q: 5, r: -40 },
+      position: { q: 3, r: -2 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { q: 5, r: 0 },
+      position: { q: 5, r: -2 },
     });
 
     const targetCell = computeMoveDestination(character, enemy, "away", [
@@ -249,36 +108,15 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    // (11,10) scores 4 (dist=1, routes=4) vs stay (11,11) scores 2 (dist=1, routes=2)
-    expect(targetCell).toEqual({ x: 11, y: 10 });
+    // Tangential (5,-1) score=12 (dist=3, routes=4), tiebreak dist 3>2 over (4,-1)
+    expect(targetCell).toEqual({ q: 5, r: -1 });
   });
 
-  it("should escape corner (0,11) when fleeing from diagonal target (1,10)", () => {
+  it("should escape tangential from vertex (5,-5)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { q: 1, r: 10 },
-    });
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
-      position: { q: 0, r: 11 },
-    });
-
-    const targetCell = computeMoveDestination(character, enemy, "away", [
-      character,
-      enemy,
-    ]);
-
-    // (0,10) scores 4 (dist=1, routes=4) vs stay (0,11) scores 2 (dist=1, routes=2)
-    expect(targetCell).toEqual({ q: 0, r: 10 });
-  });
-
-  it("should escape corner (11,0) when fleeing from diagonal target (10,1)", () => {
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { q: 5, r: -4 },
+      position: { q: 3, r: -3 },
     });
     const character = createCharacter({
       id: "char1",
@@ -291,20 +129,20 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    // (11,1) scores 4 (dist=1, routes=4) vs stay (11,0) scores 2 (dist=1, routes=2)
-    expect(targetCell).toEqual({ x: 11, y: 1 });
+    // Tangential (5,-4) score=8 (dist=2, routes=4), tiebreak absDq 2>1 over (4,-5)
+    expect(targetCell).toEqual({ q: 5, r: -4 });
   });
 
-  it("should prefer interior with better escape routes (vertical fallback)", () => {
+  it("should escape tangential along west boundary (same axis)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 2, y: 5 },
+      position: { q: -3, r: 2 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 3 },
+      position: { q: -5, r: 2 },
     });
 
     const targetCell = computeMoveDestination(character, enemy, "away", [
@@ -312,8 +150,176 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    // Interior (1,2) scores 24 (dist=3, routes=8) vs edge (0,2) scores 15 (dist=3, routes=5)
-    expect(targetCell).toEqual({ x: 1, y: 2 });
+    // Tangential (-5,1) score=12 (dist=3, routes=4), tiebreak dist 3>2 over (-4,1)
+    expect(targetCell).toEqual({ q: -5, r: 1 });
+  });
+
+  it("should escape tangential along SE boundary (same axis)", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 2, r: 1 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { q: 2, r: 3 },
+    });
+
+    const targetCell = computeMoveDestination(character, enemy, "away", [
+      character,
+      enemy,
+    ]);
+
+    // Tangential (1,4) score=12 (dist=3, routes=4), tiebreak dist 3>2 over (1,3)
+    expect(targetCell).toEqual({ q: 1, r: 4 });
+  });
+
+  it("should escape tangential from vertex (0,-5)", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 2, r: -4 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { q: 0, r: -5 },
+    });
+
+    const targetCell = computeMoveDestination(character, enemy, "away", [
+      character,
+      enemy,
+    ]);
+
+    // (-1,-4) score=12 (dist=3, routes=4), tiebreak dist 3>2 over (0,-4)
+    expect(targetCell).toEqual({ q: -1, r: -4 });
+  });
+
+  it("should escape tangential along NW boundary (same axis)", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: -2, r: -1 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { q: -2, r: -3 },
+    });
+
+    const targetCell = computeMoveDestination(character, enemy, "away", [
+      character,
+      enemy,
+    ]);
+
+    // Tangential (-1,-4) score=12 (dist=3, routes=4), tiebreak dist 3>2 over (-1,-3)
+    expect(targetCell).toEqual({ q: -1, r: -4 });
+  });
+
+  it("should escape from vertex (5,0)", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 4, r: 0 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { q: 5, r: 0 },
+    });
+
+    const targetCell = computeMoveDestination(character, enemy, "away", [
+      character,
+      enemy,
+    ]);
+
+    // Vertex (5,-1) score=3 (dist=1, routes=3), tiebreak absDq 1>0 over (4,1)
+    expect(targetCell).toEqual({ q: 5, r: -1 });
+  });
+
+  it("should escape from vertex (-5,0)", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: -3, r: 0 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { q: -5, r: 0 },
+    });
+
+    const targetCell = computeMoveDestination(character, enemy, "away", [
+      character,
+      enemy,
+    ]);
+
+    // (-5,1) score=8 (dist=2, routes=4), tiebreak absDq 2>1 over (-4,-1)
+    expect(targetCell).toEqual({ q: -5, r: 1 });
+  });
+
+  it("should escape from vertex (0,5)", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 0, r: 3 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { q: 0, r: 5 },
+    });
+
+    const targetCell = computeMoveDestination(character, enemy, "away", [
+      character,
+      enemy,
+    ]);
+
+    // (-1,5) score=8 (dist=2, routes=4), tiebreak absDr 2>1 over (1,4)
+    expect(targetCell).toEqual({ q: -1, r: 5 });
+  });
+
+  it("should escape from vertex (-5,5)", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: -4, r: 4 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { q: -5, r: 5 },
+    });
+
+    const targetCell = computeMoveDestination(character, enemy, "away", [
+      character,
+      enemy,
+    ]);
+
+    // (-5,4) score=3 (dist=1, routes=3), tiebreak absDq 1>0 over (-4,5)
+    expect(targetCell).toEqual({ q: -5, r: 4 });
+  });
+
+  it("should prefer interior over boundary (angled flee)", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 2, r: 3 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { q: 4, r: 1 },
+    });
+
+    const targetCell = computeMoveDestination(character, enemy, "away", [
+      character,
+      enemy,
+    ]);
+
+    // Interior (4,0) score=18 (dist=3, routes=6) > vertex (5,0) score=9 (dist=3, routes=3)
+    expect(targetCell).toEqual({ q: 4, r: 0 });
   });
 
   it("should stay in place when already at target position (dx=dy=0)", () => {
@@ -336,16 +342,16 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
     expect(targetCell).toEqual({ q: 3, r: 2 });
   });
 
-  it("should not break towards mode when approaching wall", () => {
+  it("should not break towards mode when approaching boundary", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 0, y: 5 },
+      position: { q: 5, r: 0 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 1, y: 5 },
+      position: { q: 4, r: 1 },
     });
 
     const targetCell = computeMoveDestination(character, enemy, "towards", [
@@ -353,10 +359,11 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    expect(targetCell).toEqual({ x: 0, y: 5 });
+    // A* returns adjacent target directly (hexDist=1)
+    expect(targetCell).toEqual({ q: 5, r: 0 });
   });
 
-  it("should not break towards mode at corner", () => {
+  it("should not break towards mode at interior", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -365,7 +372,7 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { q: 1, r: 1 },
+      position: { q: 1, r: 0 },
     });
 
     const targetCell = computeMoveDestination(character, enemy, "towards", [
@@ -373,21 +380,20 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    // A* pathfinding moves diagonally to target (0,0) which is adjacent
-    // Target is not excluded from obstacles so it's the destination
+    // A* returns adjacent target directly (hexDist=1)
     expect(targetCell).toEqual({ q: 0, r: 0 });
   });
 
-  it("should escape from adjacent target at wall (single cell)", () => {
+  it("should escape from adjacent threat at boundary", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 1, y: 5 },
+      position: { q: 5, r: -1 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 5 },
+      position: { q: 5, r: -2 },
     });
 
     const targetCell = computeMoveDestination(character, enemy, "away", [
@@ -395,7 +401,7 @@ describe("computeMoveDestination - wall-boundary fallback", () => {
       enemy,
     ]);
 
-    // Escape route weighting: (1,4) has 7 routes (score=7) vs (0,4) has 4 routes (score=4)
-    expect(targetCell).toEqual({ x: 1, y: 4 });
+    // Interior (4,-2) score=12 (dist=2, routes=6) > boundary (5,-3) score=8 (dist=2, routes=4)
+    expect(targetCell).toEqual({ q: 4, r: -2 });
   });
 });

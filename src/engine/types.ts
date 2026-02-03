@@ -56,6 +56,7 @@ export interface Skill {
   tickCost: number;
   range: number;
   damage?: number;
+  healing?: number;
   mode?: "towards" | "away"; // for Move skill
   enabled: boolean;
   triggers: Trigger[];
@@ -98,7 +99,7 @@ export interface Selector {
  * Uses absolute timing for deterministic replay.
  */
 export interface Action {
-  type: "attack" | "move" | "idle";
+  type: "attack" | "move" | "heal" | "idle";
   skill: Skill;
   targetCell: Position;
   targetCharacter: Character | null; // null for Move
@@ -156,6 +157,7 @@ export type GameEvent =
   | SkillDecisionEvent
   | SkillExecutionEvent
   | DamageEvent
+  | HealEvent
   | MovementEvent
   | DeathEvent
   | TickEvent;
@@ -182,6 +184,15 @@ export interface DamageEvent {
   sourceId: string;
   targetId: string;
   damage: number;
+  resultingHp: number;
+}
+
+export interface HealEvent {
+  type: "heal";
+  tick: number;
+  sourceId: string;
+  targetId: string;
+  healing: number;
   resultingHp: number;
 }
 

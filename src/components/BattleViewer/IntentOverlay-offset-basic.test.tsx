@@ -231,13 +231,13 @@ describe("IntentOverlay - Basic Offset", () => {
     const lines = container.querySelectorAll("line");
     expect(lines).toHaveLength(4); // outline + main for both
 
-    // Friendly line (char-a) should have faction-friendly color
+    // Friendly line (char-a) should have action-attack color
     const friendlyLine = lines[1];
-    expect(friendlyLine).toHaveAttribute("stroke", "var(--faction-friendly)");
+    expect(friendlyLine).toHaveAttribute("stroke", "var(--action-attack)");
 
-    // Enemy line (char-b) should have faction-enemy color
+    // Enemy line (char-b) should have action-attack color
     const enemyLine = lines[3];
-    expect(enemyLine).toHaveAttribute("stroke", "var(--faction-enemy)");
+    expect(enemyLine).toHaveAttribute("stroke", "var(--action-attack)");
 
     // Lines should NOT share identical coordinates
     const friendlyCoords = {

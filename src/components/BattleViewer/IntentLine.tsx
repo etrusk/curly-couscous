@@ -8,7 +8,7 @@ import type { Position, Faction } from "../../engine/types";
 export interface IntentLineProps {
   from: Position;
   to: Position;
-  type: "attack" | "move";
+  type: "attack" | "move" | "heal";
   faction: Faction;
   ticksRemaining: number;
   cellSize: number;
@@ -30,9 +30,8 @@ export function IntentLine({
   const x2 = to.x * cellSize + cellSize / 2 + offset.x;
   const y2 = to.y * cellSize + cellSize / 2 + offset.y;
 
-  // Determine line color based on faction (using CSS variables)
-  const color =
-    faction === "friendly" ? "var(--faction-friendly)" : "var(--faction-enemy)";
+  // Determine line color based on action type (using CSS variables)
+  const color = getActionColor(type);
   const outlineColor = "var(--contrast-line)";
 
   // Conditional stroke width: 4px for solid (immediate), 2px for dashed (future)
@@ -42,7 +41,7 @@ export function IntentLine({
   const outlineStrokeWidth = strokeWidth + 1;
 
   // Timing-based dashing: dashed for ticksRemaining > 0, solid for ticksRemaining = 0
-  const strokeDasharray = ticksRemaining > 0 ? "4 2" : undefined;
+  const strokeDasharray = ticksRemaining > 0 ? "4 4" : undefined;
 
   // Determine marker based on type and faction
   const markerEnd = getMarkerEnd(type, faction);
@@ -94,17 +93,34 @@ export function IntentLine({
 }
 
 /**
+ * Determine CSS variable for intent line color based on action type.
+ */
+function getActionColor(type: "attack" | "move" | "heal"): string {
+  switch (type) {
+    case "attack":
+      return "var(--action-attack)";
+    case "heal":
+      return "var(--action-heal)";
+    case "move":
+      return "var(--action-move)";
+  }
+}
+
+/**
  * Determine SVG marker reference based on action type and faction.
  */
-function getMarkerEnd(type: "attack" | "move", faction: Faction): string {
-  if (type === "attack") {
-    return faction === "friendly"
-      ? "url(#arrowhead-friendly)"
-      : "url(#arrowhead-enemy)";
-  } else {
-    // Movement
-    return faction === "friendly"
-      ? "url(#circle-friendly)"
-      : "url(#diamond-enemy)";
+function getMarkerEnd(
+  type: "attack" | "move" | "heal",
+  faction: Faction,
+): string {
+  switch (type) {
+    case "attack":
+      return "url(#arrowhead-attack)";
+    case "heal":
+      return "url(#cross-heal)";
+    case "move":
+      return faction === "friendly"
+        ? "url(#circle-friendly)"
+        : "url(#diamond-enemy)";
   }
 }

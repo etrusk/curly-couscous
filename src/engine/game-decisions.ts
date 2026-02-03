@@ -111,7 +111,7 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
         continue;
       }
 
-      // Determine action type and validate range for attacks
+      // Determine action type and validate
       const actionType = getActionType(skill);
 
       if (actionType === "attack") {
@@ -120,6 +120,21 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
           chebyshevDistance(character.position, target.position) > skill.range
         ) {
           // Target out of range → continue to next skill
+          continue;
+        }
+      }
+
+      if (actionType === "heal") {
+        // Validate range for heal skills
+        if (
+          chebyshevDistance(character.position, target.position) > skill.range
+        ) {
+          // Target out of range → continue to next skill
+          continue;
+        }
+        // Reject if target is at full HP
+        if (target.hp >= target.maxHp) {
+          // Target at full HP → continue to next skill
           continue;
         }
       }
@@ -252,6 +267,31 @@ export function evaluateSkillsForCharacter(
           rejectionReason: "out_of_range",
           target,
           distance,
+        });
+        currentIndex++;
+        continue;
+      }
+    }
+
+    // Check range and full HP for heals
+    if (actionType === "heal") {
+      const distance = chebyshevDistance(character.position, target.position);
+      if (distance > skill.range) {
+        evaluations.push({
+          skill,
+          status: "rejected",
+          rejectionReason: "out_of_range",
+          target,
+          distance,
+        });
+        currentIndex++;
+        continue;
+      }
+      if (target.hp >= target.maxHp) {
+        evaluations.push({
+          skill,
+          status: "rejected",
+          rejectionReason: "no_target",
         });
         currentIndex++;
         continue;

@@ -14,10 +14,10 @@ describe("IntentOverlay - Marker Definitions", () => {
   };
 
   describe("Marker Outline Rendering", () => {
-    it("should render arrowhead-friendly marker with outline polygon first", () => {
+    it("should render arrowhead-attack marker with outline polygon first", () => {
       const { container } = render(<IntentOverlay {...defaultProps} />);
 
-      const marker = container.querySelector('marker[id="arrowhead-friendly"]');
+      const marker = container.querySelector('marker[id="arrowhead-attack"]');
       expect(marker).toBeInTheDocument();
 
       const polygons = marker?.querySelectorAll("polygon");
@@ -30,26 +30,25 @@ describe("IntentOverlay - Marker Definitions", () => {
 
       // Second polygon is colored main
       const mainPolygon = polygons?.[1];
-      expect(mainPolygon).toHaveAttribute("fill", "var(--faction-friendly)");
+      expect(mainPolygon).toHaveAttribute("fill", "var(--action-attack)");
     });
 
-    it("should render arrowhead-enemy marker with outline polygon first", () => {
+    it("should render cross-heal marker with outline path first", () => {
       const { container } = render(<IntentOverlay {...defaultProps} />);
 
-      const marker = container.querySelector('marker[id="arrowhead-enemy"]');
+      const marker = container.querySelector('marker[id="cross-heal"]');
       expect(marker).toBeInTheDocument();
 
-      const polygons = marker?.querySelectorAll("polygon");
-      expect(polygons).toHaveLength(2);
+      const paths = marker?.querySelectorAll("path");
+      expect(paths).toHaveLength(2);
 
-      // First polygon is contrast-line outline
-      const outlinePolygon = polygons?.[0];
-      expect(outlinePolygon).toHaveAttribute("fill", "var(--contrast-line)");
-      expect(outlinePolygon).toHaveAttribute("stroke", "var(--contrast-line)");
+      // First path is contrast-line outline
+      const outlinePath = paths?.[0];
+      expect(outlinePath).toHaveAttribute("stroke", "var(--contrast-line)");
 
-      // Second polygon is colored main
-      const mainPolygon = polygons?.[1];
-      expect(mainPolygon).toHaveAttribute("fill", "var(--faction-enemy)");
+      // Second path is colored main
+      const mainPath = paths?.[1];
+      expect(mainPath).toHaveAttribute("stroke", "var(--action-heal)");
     });
 
     it("circle-friendly marker uses reduced stroke widths (3/1.5)", () => {
@@ -69,7 +68,7 @@ describe("IntentOverlay - Marker Definitions", () => {
 
       // Second circle is colored main
       const mainCircle = circles?.[1];
-      expect(mainCircle).toHaveAttribute("stroke", "var(--faction-friendly)");
+      expect(mainCircle).toHaveAttribute("stroke", "var(--action-move)");
       expect(mainCircle).toHaveAttribute("stroke-width", "1.5");
     });
 
@@ -84,13 +83,13 @@ describe("IntentOverlay - Marker Definitions", () => {
 
       // First polygon is white outline (thicker)
       const outlinePolygon = polygons?.[0];
-      expect(outlinePolygon).toHaveAttribute("stroke", "white");
+      expect(outlinePolygon).toHaveAttribute("stroke", "var(--contrast-line)");
       expect(outlinePolygon).toHaveAttribute("stroke-width", "3");
       expect(outlinePolygon).toHaveAttribute("fill", "none");
 
       // Second polygon is colored main
       const mainPolygon = polygons?.[1];
-      expect(mainPolygon).toHaveAttribute("stroke", "#E69F00");
+      expect(mainPolygon).toHaveAttribute("stroke", "var(--action-move)");
       expect(mainPolygon).toHaveAttribute("stroke-width", "1.5");
     });
 
@@ -108,12 +107,10 @@ describe("IntentOverlay - Marker Definitions", () => {
     it("markers use userSpaceOnUse for consistent sizing", () => {
       const { container } = render(<IntentOverlay {...defaultProps} />);
 
-      const arrowheadFriendly = container.querySelector(
-        'marker[id="arrowhead-friendly"]',
+      const arrowheadAttack = container.querySelector(
+        'marker[id="arrowhead-attack"]',
       );
-      const arrowheadEnemy = container.querySelector(
-        'marker[id="arrowhead-enemy"]',
-      );
+      const crossHeal = container.querySelector('marker[id="cross-heal"]');
       const circleFriendly = container.querySelector(
         'marker[id="circle-friendly"]',
       );
@@ -121,29 +118,24 @@ describe("IntentOverlay - Marker Definitions", () => {
         'marker[id="diamond-enemy"]',
       );
 
-      expect(arrowheadFriendly).toHaveAttribute(
-        "markerUnits",
-        "userSpaceOnUse",
-      );
-      expect(arrowheadEnemy).toHaveAttribute("markerUnits", "userSpaceOnUse");
+      expect(arrowheadAttack).toHaveAttribute("markerUnits", "userSpaceOnUse");
+      expect(crossHeal).toHaveAttribute("markerUnits", "userSpaceOnUse");
       expect(circleFriendly).toHaveAttribute("markerUnits", "userSpaceOnUse");
       expect(diamondEnemy).toHaveAttribute("markerUnits", "userSpaceOnUse");
     });
 
-    it("arrowhead markers have appropriate fixed dimensions", () => {
+    it("attack and heal markers have appropriate fixed dimensions", () => {
       const { container } = render(<IntentOverlay {...defaultProps} />);
 
-      const arrowheadFriendly = container.querySelector(
-        'marker[id="arrowhead-friendly"]',
+      const arrowheadAttack = container.querySelector(
+        'marker[id="arrowhead-attack"]',
       );
-      const arrowheadEnemy = container.querySelector(
-        'marker[id="arrowhead-enemy"]',
-      );
+      const crossHeal = container.querySelector('marker[id="cross-heal"]');
 
-      expect(arrowheadFriendly).toHaveAttribute("markerWidth", "12");
-      expect(arrowheadFriendly).toHaveAttribute("markerHeight", "8");
-      expect(arrowheadEnemy).toHaveAttribute("markerWidth", "12");
-      expect(arrowheadEnemy).toHaveAttribute("markerHeight", "8");
+      expect(arrowheadAttack).toHaveAttribute("markerWidth", "12");
+      expect(arrowheadAttack).toHaveAttribute("markerHeight", "8");
+      expect(crossHeal).toHaveAttribute("markerWidth", "12");
+      expect(crossHeal).toHaveAttribute("markerHeight", "12");
     });
 
     it("movement markers have appropriate fixed dimensions", () => {

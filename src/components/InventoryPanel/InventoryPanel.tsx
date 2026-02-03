@@ -54,6 +54,8 @@ export function InventoryPanel() {
                 <div className={styles.skillStats}>
                   Tick Cost: {skill.tickCost} | Range: {skill.range}
                   {skill.damage !== undefined && ` | Damage: ${skill.damage}`}
+                  {skill.healing !== undefined &&
+                    ` | Healing: ${skill.healing}`}
                   {skill.mode !== undefined && ` | Mode: ${skill.mode}`}
                 </div>
                 <div className={styles.skillActions}>

@@ -51,6 +51,7 @@ export function createSkill(overrides: Partial<Skill> & { id: string }): Skill {
     tickCost: overrides.tickCost ?? 1,
     range: overrides.range ?? 1,
     damage: overrides.damage,
+    healing: overrides.healing,
     mode: overrides.mode,
     enabled: overrides.enabled ?? true,
     triggers: overrides.triggers ?? [],
@@ -91,6 +92,24 @@ export function createMoveAction(
     targetCell,
     targetCharacter: null,
     startedAtTick: resolveTick - tickCost,
+    resolvesAtTick: resolveTick,
+  };
+}
+
+/**
+ * Test helper to create heal actions.
+ */
+export function createHealAction(
+  targetCell: { x: number; y: number },
+  healing: number,
+  resolveTick: number,
+): Action {
+  return {
+    type: "heal",
+    skill: createSkill({ id: "test-heal", healing, tickCost: 0 }),
+    targetCell,
+    targetCharacter: null,
+    startedAtTick: resolveTick,
     resolvesAtTick: resolveTick,
   };
 }

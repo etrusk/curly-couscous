@@ -32,8 +32,8 @@ describe("IntentLine", () => {
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1]; // Second line is the colored main line
       expect(mainLine).toBeInTheDocument();
-      expect(mainLine).toHaveAttribute("stroke", "var(--faction-friendly)");
-      expect(mainLine).toHaveAttribute("stroke-dasharray", "4 2"); // Dashed line
+      expect(mainLine).toHaveAttribute("stroke", "var(--action-attack)");
+      expect(mainLine).toHaveAttribute("stroke-dasharray", "4 4"); // Dashed line
     });
 
     it("renders dashed line for enemy attack with ticksRemaining=1", () => {
@@ -51,8 +51,8 @@ describe("IntentLine", () => {
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1]; // Second line is the colored main line
       expect(mainLine).toBeInTheDocument();
-      expect(mainLine).toHaveAttribute("stroke", "var(--faction-enemy)");
-      expect(mainLine).toHaveAttribute("stroke-dasharray", "4 2"); // Dashed line
+      expect(mainLine).toHaveAttribute("stroke", "var(--action-attack)");
+      expect(mainLine).toHaveAttribute("stroke-dasharray", "4 4"); // Dashed line
     });
 
     it("uses arrowhead marker for attacks", () => {
@@ -69,10 +69,7 @@ describe("IntentLine", () => {
 
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1]; // Second line is the colored main line
-      expect(mainLine).toHaveAttribute(
-        "marker-end",
-        "url(#arrowhead-friendly)",
-      );
+      expect(mainLine).toHaveAttribute("marker-end", "url(#arrowhead-attack)");
     });
   });
 
@@ -92,11 +89,11 @@ describe("IntentLine", () => {
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1]; // Second line is the colored main line
       expect(mainLine).toBeInTheDocument();
-      expect(mainLine).toHaveAttribute("stroke", "var(--faction-friendly)");
+      expect(mainLine).toHaveAttribute("stroke", "var(--action-move)");
       expect(mainLine).toHaveAttribute("stroke-dasharray"); // Dashed line
     });
 
-    it("uses tighter dash pattern (4 2) for movement lines", () => {
+    it("uses tighter dash pattern (4 4) for movement lines", () => {
       const { container } = render(
         <svg>
           <IntentLine
@@ -111,8 +108,8 @@ describe("IntentLine", () => {
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1]; // Second line is the colored main line
       const outlineLine = lines[0];
-      expect(mainLine).toHaveAttribute("stroke-dasharray", "4 2");
-      expect(outlineLine).toHaveAttribute("stroke-dasharray", "4 2");
+      expect(mainLine).toHaveAttribute("stroke-dasharray", "4 4");
+      expect(outlineLine).toHaveAttribute("stroke-dasharray", "4 4");
     });
 
     it("renders dashed line for enemy movement", () => {
@@ -130,7 +127,7 @@ describe("IntentLine", () => {
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1]; // Second line is the colored main line
       expect(mainLine).toBeInTheDocument();
-      expect(mainLine).toHaveAttribute("stroke", "var(--faction-enemy)");
+      expect(mainLine).toHaveAttribute("stroke", "var(--action-move)");
       expect(mainLine).toHaveAttribute("stroke-dasharray"); // Dashed line
     });
 
@@ -327,8 +324,8 @@ describe("IntentLine", () => {
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1];
       const outlineLine = lines[0];
-      expect(mainLine).toHaveAttribute("stroke-dasharray", "4 2");
-      expect(outlineLine).toHaveAttribute("stroke-dasharray", "4 2");
+      expect(mainLine).toHaveAttribute("stroke-dasharray", "4 4");
+      expect(outlineLine).toHaveAttribute("stroke-dasharray", "4 4");
     });
 
     it("renders dashed line for locked-in attack (ticksRemaining = 2)", () => {
@@ -344,7 +341,7 @@ describe("IntentLine", () => {
       );
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1];
-      expect(mainLine).toHaveAttribute("stroke-dasharray", "4 2");
+      expect(mainLine).toHaveAttribute("stroke-dasharray", "4 4");
     });
   });
 

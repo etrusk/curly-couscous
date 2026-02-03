@@ -108,10 +108,12 @@ describe("InventoryPanel", () => {
       render(<InventoryPanel />);
 
       // One skill has tick cost 0 (Light Punch)
-      expect(screen.getByText(/tick cost: 0/i)).toBeInTheDocument();
+      const tickCost0Elements = screen.getAllByText(/tick cost: 0/i);
+      expect(tickCost0Elements.length).toBe(1);
 
-      // One skill has tick cost 2 (Heavy Punch)
-      expect(screen.getByText(/tick cost: 2/i)).toBeInTheDocument();
+      // Two skills have tick cost 2 (Heavy Punch and Heal)
+      const tickCost2Elements = screen.getAllByText(/tick cost: 2/i);
+      expect(tickCost2Elements.length).toBe(2);
     });
 
     it("displays skill stats range", () => {
@@ -149,7 +151,7 @@ describe("InventoryPanel", () => {
       // Verify all non-innate skill names from SKILL_REGISTRY appear in the document
       SKILL_REGISTRY.filter((s) => !s.innate).forEach((skill) => {
         expect(
-          screen.getByText(new RegExp(skill.name, "i")),
+          screen.getByRole("heading", { name: new RegExp(skill.name, "i") }),
         ).toBeInTheDocument();
       });
 
@@ -162,7 +164,11 @@ describe("InventoryPanel", () => {
 
       // Total count matches non-innate registry length
       const skillNameCount = SKILL_REGISTRY.filter((skill) => {
-        return screen.queryByText(new RegExp(skill.name, "i")) !== null;
+        return (
+          screen.queryByRole("heading", {
+            name: new RegExp(skill.name, "i"),
+          }) !== null
+        );
       }).length;
 
       expect(skillNameCount).toBe(

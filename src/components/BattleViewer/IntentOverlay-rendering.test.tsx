@@ -87,8 +87,8 @@ describe("IntentOverlay - Basic Rendering", () => {
     const lines = container.querySelectorAll("line");
     expect(lines).toHaveLength(2); // outline + main
     const mainLine = lines[1];
-    expect(mainLine).toHaveAttribute("stroke", "var(--faction-friendly)");
-    expect(mainLine).toHaveAttribute("marker-end", "url(#arrowhead-friendly)");
+    expect(mainLine).toHaveAttribute("stroke", "var(--action-attack)");
+    expect(mainLine).toHaveAttribute("marker-end", "url(#arrowhead-attack)");
     // stroke-width should be 2 (uniform width)
     expect(mainLine).toHaveAttribute("stroke-width", "2");
   });
@@ -122,7 +122,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     expect(lines).toHaveLength(2); // outline + main
   });
 
-  it("movement intent renders with '4 2' dash pattern in IntentOverlay", () => {
+  it("movement intent renders with '4 4' dash pattern in IntentOverlay", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
@@ -151,12 +151,12 @@ describe("IntentOverlay - Basic Rendering", () => {
 
     // Main line (second line element)
     const mainLine = lines[1];
-    expect(mainLine).toHaveAttribute("stroke-dasharray", "4 2");
+    expect(mainLine).toHaveAttribute("stroke-dasharray", "4 4");
     expect(mainLine).toHaveAttribute("marker-end", "url(#circle-friendly)");
-    expect(mainLine).toHaveAttribute("stroke", "var(--faction-friendly)");
+    expect(mainLine).toHaveAttribute("stroke", "var(--action-move)");
   });
 
-  it("enemy movement intent renders with '4 2' dash pattern", () => {
+  it("enemy movement intent renders with '4 4' dash pattern", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
@@ -185,9 +185,9 @@ describe("IntentOverlay - Basic Rendering", () => {
 
     // Main line (second line element)
     const mainLine = lines[1];
-    expect(mainLine).toHaveAttribute("stroke-dasharray", "4 2");
+    expect(mainLine).toHaveAttribute("stroke-dasharray", "4 4");
     expect(mainLine).toHaveAttribute("marker-end", "url(#diamond-enemy)");
-    expect(mainLine).toHaveAttribute("stroke", "var(--faction-enemy)");
+    expect(mainLine).toHaveAttribute("stroke", "var(--action-move)");
   });
 
   it("Light Punch visible at tick 0 and tick 1 (resolution tick)", () => {
@@ -255,7 +255,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const { container, rerender } = render(<IntentOverlay {...defaultProps} />);
     let lines = container.querySelectorAll("line");
     expect(lines).toHaveLength(2); // outline + main
-    expect(lines[1]).toHaveAttribute("stroke-dasharray", "4 2");
+    expect(lines[1]).toHaveAttribute("stroke-dasharray", "4 4");
 
     // Advance to tick 1 (resolution tick, ticksRemaining = 0)
     useGameStore.setState((state) => {

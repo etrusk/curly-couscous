@@ -73,18 +73,9 @@ describe("IntentOverlay - Subscription Behavior", () => {
       const mainLine1 = lines[1]!;
       const mainLine2 = lines[3]!;
 
-      // Verify attack intents with correct faction colors
-      const friendlyLine =
-        mainLine1.getAttribute("stroke") === "var(--faction-friendly)"
-          ? mainLine1
-          : mainLine2;
-      const enemyLine =
-        mainLine1.getAttribute("stroke") === "var(--faction-enemy)"
-          ? mainLine1
-          : mainLine2;
-
-      expect(friendlyLine).toHaveAttribute("stroke", "var(--faction-friendly)");
-      expect(enemyLine).toHaveAttribute("stroke", "var(--faction-enemy)");
+      // Both lines should use action-move color (addCharacter only assigns innate Move skill)
+      expect(mainLine1).toHaveAttribute("stroke", "var(--action-move)");
+      expect(mainLine2).toHaveAttribute("stroke", "var(--action-move)");
     });
   });
 
@@ -111,8 +102,8 @@ describe("IntentOverlay - Subscription Behavior", () => {
       const mainLine2 = lines[3]!;
 
       // Both should be dashed (movement style)
-      expect(mainLine1).toHaveAttribute("stroke-dasharray", "4 2");
-      expect(mainLine2).toHaveAttribute("stroke-dasharray", "4 2");
+      expect(mainLine1).toHaveAttribute("stroke-dasharray", "4 4");
+      expect(mainLine2).toHaveAttribute("stroke-dasharray", "4 4");
 
       // Check markers for movement endpoints
       const friendlyMarker = mainLine1.getAttribute("marker-end");
@@ -205,15 +196,9 @@ describe("IntentOverlay - Subscription Behavior", () => {
     const mainLine1 = lines[1]!;
     const mainLine2 = lines[3]!;
 
-    const hasFriendlyLine =
-      mainLine1.getAttribute("stroke") === "var(--faction-friendly)" ||
-      mainLine2.getAttribute("stroke") === "var(--faction-friendly)";
-    const hasEnemyLine =
-      mainLine1.getAttribute("stroke") === "var(--faction-enemy)" ||
-      mainLine2.getAttribute("stroke") === "var(--faction-enemy)";
-
-    expect(hasFriendlyLine).toBe(true);
-    expect(hasEnemyLine).toBe(true);
+    // Both attack lines should use action-attack color
+    expect(mainLine1).toHaveAttribute("stroke", "var(--action-attack)");
+    expect(mainLine2).toHaveAttribute("stroke", "var(--action-attack)");
   });
 
   it("no-intent-lines-for-single-character", () => {

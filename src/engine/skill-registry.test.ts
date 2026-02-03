@@ -13,10 +13,15 @@ import {
 describe("Skill Registry", () => {
   describe("SKILL_REGISTRY", () => {
     it("exports all skills", () => {
-      expect(SKILL_REGISTRY).toHaveLength(3);
+      expect(SKILL_REGISTRY).toHaveLength(4);
 
       const skillIds = SKILL_REGISTRY.map((skill) => skill.id);
-      expect(skillIds).toEqual(["light-punch", "heavy-punch", "move-towards"]);
+      expect(skillIds).toEqual([
+        "light-punch",
+        "heavy-punch",
+        "move-towards",
+        "heal",
+      ]);
     });
 
     it("skill definitions have required fields", () => {
@@ -64,6 +69,33 @@ describe("Skill Registry", () => {
       expect(moveSkill?.innate).toBe(true);
       expect(lightPunch?.innate).toBe(false);
       expect(heavyPunch?.innate).toBe(false);
+    });
+
+    it("heal skill has healing and no damage", () => {
+      const heal = SKILL_REGISTRY.find((s) => s.id === "heal");
+
+      expect(heal?.healing).toBe(25);
+      expect(heal?.damage).toBeUndefined();
+      expect(heal?.tickCost).toBe(2);
+      expect(heal?.range).toBe(5);
+      expect(heal?.innate).toBe(false);
+      expect(heal?.mode).toBeUndefined();
+    });
+
+    it("heal skill has defaultSelector lowest_hp_ally", () => {
+      const heal = SKILL_REGISTRY.find((s) => s.id === "heal");
+
+      expect(heal?.defaultSelector).toEqual({ type: "lowest_hp_ally" });
+    });
+
+    it("existing skills have defaultSelector nearest_enemy", () => {
+      const lightPunch = SKILL_REGISTRY.find((s) => s.id === "light-punch");
+      const heavyPunch = SKILL_REGISTRY.find((s) => s.id === "heavy-punch");
+      const move = SKILL_REGISTRY.find((s) => s.id === "move-towards");
+
+      expect(lightPunch?.defaultSelector).toEqual({ type: "nearest_enemy" });
+      expect(heavyPunch?.defaultSelector).toEqual({ type: "nearest_enemy" });
+      expect(move?.defaultSelector).toEqual({ type: "nearest_enemy" });
     });
   });
 
@@ -149,6 +181,17 @@ describe("Skill Registry", () => {
       expect(skill.name).toBe("Move Towards");
       expect(skill.mode).toBe("towards");
       expect(skill.damage).toBeUndefined();
+    });
+
+    it("createSkillFromDefinition uses defaultSelector for heal", () => {
+      const healDef = SKILL_REGISTRY.find((s) => s.id === "heal")!;
+      const skill = createSkillFromDefinition(healDef);
+
+      expect(skill.selectorOverride?.type).toBe("lowest_hp_ally");
+      expect(skill.healing).toBe(25);
+      expect(skill.damage).toBeUndefined();
+      expect(skill.tickCost).toBe(2);
+      expect(skill.range).toBe(5);
     });
   });
 

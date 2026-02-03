@@ -21,6 +21,10 @@ export function formatActionSummary(action: Action | null): string {
     return action.skill.name;
   }
 
+  if (action.type === "heal") {
+    return action.skill.name;
+  }
+
   // Move action
   return "Move";
 }
@@ -107,6 +111,13 @@ export function formatActionDisplay(action: Action | null): string {
       ? slotPositionToLetter(action.targetCharacter.slotPosition)
       : "Unknown target";
     return `⚔️ ${action.skill.name} → ${targetName}`;
+  }
+
+  if (action.type === "heal") {
+    const targetName = action.targetCharacter
+      ? slotPositionToLetter(action.targetCharacter.slotPosition)
+      : "Unknown target";
+    return `💚 ${action.skill.name} → ${targetName}`;
   }
 
   // Move action

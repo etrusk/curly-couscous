@@ -83,7 +83,23 @@ New characters start with only innate skills. Players build their skill loadout 
 - Slow but powerful. 2-tick wind-up creates dodge window.
 - **Assignable** (not innate)
 
+### Heal
+
+- Tick cost: 2, Range: 5, Healing: 25
+- Default selector: lowest_hp_ally
+- Supportive skill. 2-tick wind-up with cell-based targeting (locks to target's cell at decision time).
+- Heals target for 25 HP, capped at maxHp.
+- Cannot target characters at full HP (rejected as no_target if no wounded allies in range).
+- Healing resolves before combat in the Resolution Phase (ADR-006), making last-moment saves possible.
+- **Assignable** (not innate)
+
 ### Skill Categories
+
+Skills fall into three action categories:
+
+- **Attack** (damage): Deal damage to enemies. Light Punch, Heavy Punch.
+- **Heal** (healing): Restore HP to allies. Heal.
+- **Move** (movement): Reposition on the grid. Move.
 
 Skills fall into two timing categories:
 
@@ -93,7 +109,7 @@ Skills fall into two timing categories:
 **Tactical rationale:** Instant attacks exist as an anti-kiting mechanic. Without them, characters with escape-route-weighted movement could indefinitely flee melee attackers, since every attack required at least 1 tick of wind-up during which the target could move away. Instant attacks guarantee hits on contact, forcing tactical tradeoffs: kiting is still viable against wind-up attacks, but closing to melee range carries real risk from instant attacks.
 
 **Current instant skills:** Light Punch (tickCost: 0)
-**Current wind-up skills:** Heavy Punch (tickCost: 2), Move (tickCost: 1)
+**Current wind-up skills:** Heavy Punch (tickCost: 2), Heal (tickCost: 2), Move (tickCost: 1)
 
 ### Move
 
@@ -158,10 +174,11 @@ Battle progresses in discrete ticks. Tick 0 is initial state.
 
 **Resolution Phase** (simultaneous execution):
 
-1. Attacks: Check if target still in locked cell → hit or miss
-2. Movement: Apply collision resolution, then move
-3. Apply other effects
-4. Remove characters with HP ≤ 0
+1. Healing: Resolve heal actions first (ADR-006)
+2. Attacks: Check if target still in locked cell → hit or miss
+3. Movement: Apply collision resolution, then move
+4. Apply other effects
+5. Remove characters with HP ≤ 0
 
 **Important:** Characters cannot react to same-tick enemy decisions. All decisions are made against game state at tick start.
 
@@ -195,31 +212,32 @@ Intent lines visualize pending actions, enabling at-a-glance battlefield reading
 
 ### Visual Encoding
 
-Intent lines encode three dimensions: faction (color), action type (endpoint marker), and timing (line style + stroke width).
+Intent lines encode three dimensions: action type (color + endpoint marker), faction (movement marker shape), and timing (line style + stroke width).
 
-**Faction and action type (unchanged):**
+**Action-based colors (Okabe-Ito colorblind-safe palette):**
 
-| Faction  | Action Type | Color          | Endpoint         |
-| -------- | ----------- | -------------- | ---------------- |
-| Friendly | Attack      | Blue #0072B2   | Filled arrowhead |
-| Enemy    | Attack      | Orange #E69F00 | Filled arrowhead |
-| Friendly | Movement    | Blue #0072B2   | Hollow circle    |
-| Enemy    | Movement    | Orange #E69F00 | Hollow diamond   |
+| Action Type | Color                           | Endpoint Marker                                       |
+| ----------- | ------------------------------- | ----------------------------------------------------- |
+| Attack      | Red-orange #d55e00 (vermillion) | Filled arrowhead (`arrowhead-attack`)                 |
+| Heal        | Green #009e73 (bluish green)    | Cross/plus shape (`cross-heal`)                       |
+| Movement    | Blue #0072b2                    | Faction-dependent: circle (friendly), diamond (enemy) |
+
+**Faction shape differentiation (movement only):** Movement markers retain faction-specific shapes (hollow circle for friendly, hollow diamond for enemy) for accessibility. Attack and heal markers are uniform across factions since color already distinguishes them from movement, and shape redundancy within attack/heal is not needed.
 
 **Timing-based line style:**
 
 | Timing                       | Line Style   | Stroke Width | Numeric Label  | Meaning             |
 | ---------------------------- | ------------ | ------------ | -------------- | ------------------- |
 | Immediate (ticksRemaining=0) | Solid        | 4px          | None           | Resolves now        |
-| Future (ticksRemaining>0)    | Dashed (4 2) | 2px          | ticksRemaining | Resolves in N ticks |
+| Future (ticksRemaining>0)    | Dashed (4 4) | 2px          | ticksRemaining | Resolves in N ticks |
 
 ### Line Specifications
 
 - Immediate actions (ticksRemaining = 0): 4px solid stroke, 5px white outline
-- Future actions (ticksRemaining > 0): 2px dashed stroke (4 2 pattern), 3px white outline, numeric label at line midpoint showing ticksRemaining
-- Numeric labels: 12px bold font, faction-colored fill, 3px white stroke outline with `paintOrder="stroke"` for readability
+- Future actions (ticksRemaining > 0): 2px dashed stroke (4 4 pattern), 3px white outline, numeric label at line midpoint showing ticksRemaining
+- Numeric labels: 12px bold font, action-colored fill, 3px white stroke outline with `paintOrder="stroke"` for readability
 - Contrasting outline: White outline (`strokeWidth + 1`) behind all lines for visibility against any background
-- Endpoint markers (arrowhead, circle, diamond) encode action type, independent of timing
+- Endpoint markers (arrowhead, cross, circle, diamond) encode action type and faction, independent of timing
 
 ### Damage Display
 
@@ -303,7 +321,7 @@ The Inventory panel shows all skills available in the game, sourced from the cen
 **Skill list items show:**
 
 - Skill name
-- Stats (tick cost, range, damage or mode)
+- Stats (tick cost, range, damage/healing or mode)
 - "Assign" button (disabled when all skill slots are full)
 
 The inventory panel only shows non-innate skills that are not assigned to any character of the selected character's faction. Skills assigned to characters of the opposite faction are still shown. To unassign a skill, use the "Unassign" button in the Skills & Priority panel.

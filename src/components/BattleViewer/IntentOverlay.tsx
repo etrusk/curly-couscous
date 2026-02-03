@@ -114,9 +114,9 @@ export function IntentOverlay({
     >
       {/* SVG marker definitions */}
       <defs>
-        {/* Attack arrowheads - filled */}
+        {/* Attack arrowhead - action-colored */}
         <marker
-          id="arrowhead-friendly"
+          id="arrowhead-attack"
           markerWidth="12"
           markerHeight="8"
           refX="9"
@@ -132,29 +132,39 @@ export function IntentOverlay({
             stroke="var(--contrast-line)"
           />
           {/* Colored main polygon (rendered second - on top) */}
-          <polygon points="0,0 10,4 0,8" fill="var(--faction-friendly)" />
-        </marker>
-        <marker
-          id="arrowhead-enemy"
-          markerWidth="12"
-          markerHeight="8"
-          refX="9"
-          refY="4"
-          orient="auto"
-          markerUnits="userSpaceOnUse"
-          overflow="visible"
-        >
-          {/* White outline polygon (rendered first - behind) */}
-          <polygon
-            points="0,0 10,4 0,8"
-            fill="var(--contrast-line)"
-            stroke="var(--contrast-line)"
-          />
-          {/* Colored main polygon (rendered second - on top) */}
-          <polygon points="0,0 10,4 0,8" fill="var(--faction-enemy)" />
+          <polygon points="0,0 10,4 0,8" fill="var(--action-attack)" />
         </marker>
 
-        {/* Movement endpoints - hollow */}
+        {/* Heal cross marker - action-colored */}
+        <marker
+          id="cross-heal"
+          markerWidth="12"
+          markerHeight="12"
+          refX="6"
+          refY="6"
+          orient="auto"
+          markerUnits="userSpaceOnUse"
+          overflow="visible"
+        >
+          {/* White outline cross (thicker - rendered first - behind) */}
+          <path
+            d="M6,2 V10 M2,6 H10"
+            fill="none"
+            stroke="var(--contrast-line)"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          {/* Colored main cross (rendered second - on top) */}
+          <path
+            d="M6,2 V10 M2,6 H10"
+            fill="none"
+            stroke="var(--action-heal)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </marker>
+
+        {/* Movement endpoints - hollow, faction-shaped */}
         <marker
           id="circle-friendly"
           markerWidth="12"
@@ -180,7 +190,7 @@ export function IntentOverlay({
             cy="6"
             r="4"
             fill="none"
-            stroke="var(--faction-friendly)"
+            stroke="var(--action-move)"
             strokeWidth="1.5"
           />
         </marker>
@@ -198,14 +208,14 @@ export function IntentOverlay({
           <polygon
             points="6,0 12,6 6,12 0,6"
             fill="none"
-            stroke="white"
+            stroke="var(--contrast-line)"
             strokeWidth="3"
           />
           {/* Colored main polygon (rendered second - on top) */}
           <polygon
             points="6,0 12,6 6,12 0,6"
             fill="none"
-            stroke="#E69F00"
+            stroke="var(--action-move)"
             strokeWidth="1.5"
           />
         </marker>
@@ -217,7 +227,7 @@ export function IntentOverlay({
           key={intent.characterId}
           from={intent.characterPosition}
           to={intent.action.targetCell}
-          type={intent.action.type as "attack" | "move"}
+          type={intent.action.type as "attack" | "move" | "heal"}
           faction={intent.faction}
           ticksRemaining={intent.ticksRemaining}
           cellSize={cellSize}

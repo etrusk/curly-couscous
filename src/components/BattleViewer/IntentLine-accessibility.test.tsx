@@ -67,7 +67,7 @@ describe("IntentLine - Accessibility", () => {
       // Outline should be white
       expect(outlineLine).toHaveAttribute("stroke", "var(--contrast-line)");
       // Main should be colored
-      expect(mainLine).toHaveAttribute("stroke", "var(--faction-friendly)");
+      expect(mainLine).toHaveAttribute("stroke", "var(--action-attack)");
     });
 
     it("should use white stroke for outline", () => {
@@ -158,10 +158,7 @@ describe("IntentLine - Accessibility", () => {
 
       const lines = container.querySelectorAll("line");
       const mainLine = lines[1];
-      expect(mainLine).toHaveAttribute(
-        "marker-end",
-        "url(#arrowhead-friendly)",
-      );
+      expect(mainLine).toHaveAttribute("marker-end", "url(#arrowhead-attack)");
     });
 
     it("should wrap lines in group element", () => {

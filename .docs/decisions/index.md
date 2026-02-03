@@ -15,6 +15,7 @@ LLM-optimized index of significant architectural and design decisions.
 | ADR-003 | Weighted A\* for Pathfinding, Chebyshev for Range  | 2026-01-29 | Accepted | [adr-003-weighted-astar-pathfinding.md](./adr-003-weighted-astar-pathfinding.md)   |
 | ADR-004 | Local React State for UI-Only Concerns             | 2026-01-29 | Accepted | [adr-004-local-state-for-ui-concerns.md](./adr-004-local-state-for-ui-concerns.md) |
 | ADR-005 | Centralized Skill Registry                         | 2026-01-30 | Accepted | [adr-005-centralized-skill-registry.md](./adr-005-centralized-skill-registry.md)   |
+| ADR-006 | Heal Resolution Before Combat                      | 2026-02-03 | Accepted | [adr-006-heal-resolution-order.md](./adr-006-heal-resolution-order.md)             |
 
 ## Adding New ADRs
 

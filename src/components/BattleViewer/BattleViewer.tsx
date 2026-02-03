@@ -50,15 +50,15 @@ export function BattleViewer({
   const cellSize = 50;
 
   // Handle cell click based on selection mode
-  const handleCellClick = (x: number, y: number) => {
+  const handleCellClick = (q: number, r: number) => {
     if (selectionMode === "placing-friendly") {
-      actions.addCharacterAtPosition("friendly", { x, y });
+      actions.addCharacterAtPosition("friendly", { q, r });
       actions.setSelectionMode("idle");
     } else if (selectionMode === "placing-enemy") {
-      actions.addCharacterAtPosition("enemy", { x, y });
+      actions.addCharacterAtPosition("enemy", { q, r });
       actions.setSelectionMode("idle");
     } else if (selectionMode === "moving" && selectedCharacterId) {
-      actions.moveCharacter(selectedCharacterId, { x, y });
+      actions.moveCharacter(selectedCharacterId, { q, r });
       actions.setSelectionMode("idle");
     }
   };

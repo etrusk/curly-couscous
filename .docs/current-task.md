@@ -10,7 +10,7 @@
 
 ## Current Focus
 
-None (ready for next task)
+[TDD Workflow - Claude Code] Hexagonal grid conversion - Started 2026-02-03. Converting 12×12 square grid to hexagon-shaped map (radius 5, 91 hexes) with axial coordinates, flat-top orientation, SVG rendering. Phase: EXPLORE.
 
 ## Recent Completions
 

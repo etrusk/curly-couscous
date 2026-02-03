@@ -12,7 +12,7 @@ import {
   Selector,
   SkillEvaluationResult,
   CharacterEvaluationResult,
-  chebyshevDistance,
+  hexDistance,
 } from "./types";
 import { evaluateTrigger } from "./triggers";
 import { evaluateSelector } from "./selectors";
@@ -116,9 +116,7 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
 
       if (actionType === "attack") {
         // Validate range for attack skills
-        if (
-          chebyshevDistance(character.position, target.position) > skill.range
-        ) {
+        if (hexDistance(character.position, target.position) > skill.range) {
           // Target out of range → continue to next skill
           continue;
         }
@@ -126,9 +124,7 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
 
       if (actionType === "heal") {
         // Validate range for heal skills
-        if (
-          chebyshevDistance(character.position, target.position) > skill.range
-        ) {
+        if (hexDistance(character.position, target.position) > skill.range) {
           // Target out of range → continue to next skill
           continue;
         }
@@ -259,7 +255,7 @@ export function evaluateSkillsForCharacter(
     // Check range for attacks
     const actionType = getActionType(skill);
     if (actionType === "attack") {
-      const distance = chebyshevDistance(character.position, target.position);
+      const distance = hexDistance(character.position, target.position);
       if (distance > skill.range) {
         evaluations.push({
           skill,
@@ -275,7 +271,7 @@ export function evaluateSkillsForCharacter(
 
     // Check range and full HP for heals
     if (actionType === "heal") {
-      const distance = chebyshevDistance(character.position, target.position);
+      const distance = hexDistance(character.position, target.position);
       if (distance > skill.range) {
         evaluations.push({
           skill,

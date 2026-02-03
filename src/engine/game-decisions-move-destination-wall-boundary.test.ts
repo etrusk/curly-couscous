@@ -44,12 +44,12 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 2, y: 0 },
+      position: { q: 2, r: 0 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [
         createSkill({
           id: "skill1",
@@ -66,7 +66,7 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 1 });
+    expect(decisions[0]!.action.targetCell).toEqual({ q: 0, r: 1 });
   });
 
   it("should escape perpendicular to lower Y when away-horizontal blocked at x=11 (same row)", () => {
@@ -136,7 +136,7 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [
         createSkill({
           id: "skill1",
@@ -153,7 +153,7 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 1, y: 0 });
+    expect(decisions[0]!.action.targetCell).toEqual({ q: 1, r: 0 });
   });
 
   it("should escape perpendicular to lower X when away-vertical blocked at y=11 (same column)", () => {
@@ -189,12 +189,12 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 1, y: 1 },
+      position: { q: 1, r: 1 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [
         createSkill({
           id: "skill1",
@@ -212,19 +212,19 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
 
     expect(decisions[0]!.action.type).toBe("move");
     // (0,1) scores 4 (dist=1, routes=4) vs stay (0,0) scores 2 (dist=1, routes=2)
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 1 });
+    expect(decisions[0]!.action.targetCell).toEqual({ q: 0, r: 1 });
   });
 
   it("should escape corner (11,11) when fleeing from diagonal target (10,10)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 10, y: 10 },
+      position: { q: 5, r: -40 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 11, y: 11 },
+      position: { q: 5, r: 0 },
       skills: [
         createSkill({
           id: "skill1",
@@ -249,12 +249,12 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 1, y: 10 },
+      position: { q: 1, r: 10 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 11 },
+      position: { q: 0, r: 11 },
       skills: [
         createSkill({
           id: "skill1",
@@ -272,19 +272,19 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
 
     expect(decisions[0]!.action.type).toBe("move");
     // (0,10) scores 4 (dist=1, routes=4) vs stay (0,11) scores 2 (dist=1, routes=2)
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 10 });
+    expect(decisions[0]!.action.targetCell).toEqual({ q: 0, r: 10 });
   });
 
   it("should escape corner (11,0) when fleeing from diagonal target (10,1)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 10, y: 1 },
+      position: { q: 5, r: -4 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 11, y: 0 },
+      position: { q: 5, r: -5 },
       skills: [
         createSkill({
           id: "skill1",
@@ -339,12 +339,12 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [
         createSkill({
           id: "skill1",
@@ -361,7 +361,7 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 5, y: 5 });
+    expect(decisions[0]!.action.targetCell).toEqual({ q: 3, r: 2 });
   });
 
   it("should not break towards mode when approaching wall", () => {
@@ -397,12 +397,12 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 1, y: 1 },
+      position: { q: 1, r: 1 },
       skills: [
         createSkill({
           id: "skill1",
@@ -420,7 +420,7 @@ describe("computeDecisions - move destination - wall-boundary fallback", () => {
 
     expect(decisions[0]!.action.type).toBe("move");
     // A* pathfinding moves diagonally to target (0,0) which is adjacent
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 0, y: 0 });
+    expect(decisions[0]!.action.targetCell).toEqual({ q: 0, r: 0 });
   });
 
   it("should escape from adjacent target at wall (single cell)", () => {

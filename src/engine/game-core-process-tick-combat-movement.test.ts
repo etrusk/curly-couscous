@@ -17,13 +17,13 @@ describe("processTick - combat and movement integration", () => {
   it("should resolve attack actions at correct tick", () => {
     const attacker = createCharacter({
       id: "attacker",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 1,
-      currentAction: createAttackAction({ x: 1, y: 0 }, 10, 1),
+      currentAction: createAttackAction({ q: 1, r: 0 }, 10, 1),
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 100,
       slotPosition: 2,
     });
@@ -44,13 +44,13 @@ describe("processTick - combat and movement integration", () => {
   it("should not resolve actions with future resolvesAtTick", () => {
     const attacker = createCharacter({
       id: "attacker",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 1,
-      currentAction: createAttackAction({ x: 1, y: 0 }, 10, 5), // Resolves at tick 5
+      currentAction: createAttackAction({ q: 1, r: 0 }, 10, 5), // Resolves at tick 5
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 100,
       slotPosition: 2,
     });
@@ -71,7 +71,7 @@ describe("processTick - combat and movement integration", () => {
   it("should resolve movement actions at correct tick", () => {
     const mover = createCharacter({
       id: "mover",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       slotPosition: 1,
       currentAction: createMoveAction({ x: 6, y: 5 }, 2),
     });
@@ -91,16 +91,16 @@ describe("processTick - combat and movement integration", () => {
     // Attacker and target at same position, target tries to move away
     const attacker = createCharacter({
       id: "attacker",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 1,
-      currentAction: createAttackAction({ x: 1, y: 0 }, 100, 1),
+      currentAction: createAttackAction({ q: 1, r: 0 }, 100, 1),
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 50,
       slotPosition: 2,
-      currentAction: createMoveAction({ x: 2, y: 0 }, 1),
+      currentAction: createMoveAction({ q: 2, r: 0 }, 1),
     });
 
     const state = createGameState({
@@ -122,13 +122,13 @@ describe("processTick - combat and movement integration", () => {
       id: "moverA",
       position: { x: 4, y: 5 },
       slotPosition: 1,
-      currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+      currentAction: createMoveAction({ q: 3, r: 2 }, 1),
     });
     const moverB = createCharacter({
       id: "moverB",
       position: { x: 5, y: 4 },
       slotPosition: 2,
-      currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+      currentAction: createMoveAction({ q: 3, r: 2 }, 1),
     });
 
     const initialRng = initRNG(1000);
@@ -158,14 +158,14 @@ describe("processTick - combat and movement integration", () => {
       const friendly = createCharacter({
         id: "friendly",
         faction: "friendly",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         skills: [attackSkill],
         currentAction: null,
       });
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         skills: [],
       });
@@ -193,14 +193,14 @@ describe("processTick - combat and movement integration", () => {
       const friendly = createCharacter({
         id: "friendly",
         faction: "friendly",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         skills: [attackSkill],
         currentAction: null,
       });
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         skills: [],
       });

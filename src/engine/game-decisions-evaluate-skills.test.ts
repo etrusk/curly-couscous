@@ -17,10 +17,10 @@ import {
 describe("evaluateSkillsForCharacter", () => {
   describe("mid-action detection", () => {
     it("should return isMidAction: true when character has currentAction", () => {
-      const action = createAttackAction({ x: 5, y: 5 }, 10, 2);
+      const action = createAttackAction({ q: 3, r: 2 }, 10, 2);
       const character = createCharacter({
         id: "char1",
-        position: { x: 4, y: 4 },
+        position: { q: 3, r: 2 },
         currentAction: action,
         skills: [
           createSkill({
@@ -43,12 +43,12 @@ describe("evaluateSkillsForCharacter", () => {
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
       });
       const character = createCharacter({
         id: "char1",
         faction: "friendly",
-        position: { x: 4, y: 4 },
+        position: { q: 3, r: 2 },
         currentAction: null,
         skills: [
           createSkill({
@@ -71,7 +71,7 @@ describe("evaluateSkillsForCharacter", () => {
     it("should reject disabled skill with reason 'disabled'", () => {
       const character = createCharacter({
         id: "char1",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         skills: [
           createSkill({
             id: "skill1",
@@ -93,7 +93,7 @@ describe("evaluateSkillsForCharacter", () => {
       const character = createCharacter({
         id: "char1",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         skills: [
           createSkill({
             id: "skill1",
@@ -120,7 +120,7 @@ describe("evaluateSkillsForCharacter", () => {
       const character = createCharacter({
         id: "char1",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         skills: [
           createSkill({
             id: "skill1",
@@ -141,12 +141,12 @@ describe("evaluateSkillsForCharacter", () => {
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { x: 10, y: 10 },
+        position: { q: 3, r: -3 }, // Distance 5 from {q:3, r:2}
       });
       const character = createCharacter({
         id: "char1",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         skills: [
           createSkill({
             id: "skill1",
@@ -172,12 +172,12 @@ describe("evaluateSkillsForCharacter", () => {
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { x: 6, y: 5 },
+        position: { q: 4, r: 2 }, // Distance 1 from {q:3, r:2}
       });
       const character = createCharacter({
         id: "char1",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         skills: [
           createSkill({
             id: "skill1",
@@ -200,12 +200,12 @@ describe("evaluateSkillsForCharacter", () => {
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { x: 6, y: 5 },
+        position: { q: 4, r: 2 }, // Distance 1 from {q:3, r:2}
       });
       const character = createCharacter({
         id: "char1",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         skills: [
           createSkill({
             id: "skill1",
@@ -233,12 +233,12 @@ describe("evaluateSkillsForCharacter", () => {
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { x: 10, y: 10 },
+        position: { q: 3, r: -3 }, // Distance 5 from {q:3, r:2}
       });
       const character = createCharacter({
         id: "char1",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         skills: [
           createSkill({
             id: "skill1",
@@ -269,12 +269,12 @@ describe("evaluateSkillsForCharacter", () => {
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { x: 6, y: 5 },
+        position: { q: 4, r: 2 }, // Distance 1 from {q:3, r:2}
       });
       const character = createCharacter({
         id: "char1",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         skills: [
           createSkill({
             id: "skill1",
@@ -311,7 +311,7 @@ describe("evaluateSkillsForCharacter", () => {
       const character = createCharacter({
         id: "char1",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         skills: [
           createSkill({
             id: "skill1",
@@ -331,7 +331,7 @@ describe("evaluateSkillsForCharacter", () => {
     it("should handle character with no skills", () => {
       const character = createCharacter({
         id: "char1",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         skills: [],
       });
 
@@ -347,12 +347,12 @@ describe("evaluateSkillsForCharacter", () => {
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { x: 10, y: 10 },
+        position: { q: 3, r: -3 }, // Distance 5 from {q:3, r:2}
       });
       const character = createCharacter({
         id: "char1",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         hp: 100,
         skills: [
           createSkill({
@@ -402,7 +402,7 @@ describe("evaluateSkillsForCharacter", () => {
     it("should skip hold mode skill with console warning", () => {
       const character = createCharacter({
         id: "char1",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         skills: [
           createSkill({
             id: "skill1",
@@ -426,12 +426,12 @@ describe("evaluateSkillsForCharacter", () => {
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { x: 6, y: 5 },
+        position: { q: 4, r: 2 }, // Distance 1 from {q:3, r:2}
       });
       const character = createCharacter({
         id: "char1",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 3, r: 2 },
         skills: [
           createSkill({
             id: "skill1",

@@ -54,15 +54,15 @@ describe("Movement RNG System", () => {
     it("should return updated rngState in result", () => {
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const result = resolveMovement([moverA, moverB], 1, initRNG(1000));
@@ -74,15 +74,15 @@ describe("Movement RNG System", () => {
     it("should allow chaining rngState across multiple ticks", () => {
       const moverA1 = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB1 = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const tick1Result = resolveMovement([moverA1, moverB1], 1, initRNG(1000));
@@ -90,15 +90,15 @@ describe("Movement RNG System", () => {
       // Create new characters with actions resolving at tick 2
       const moverA2 = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 2),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 2),
       });
       const moverB2 = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 2),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 2),
       });
 
       const tick2Result = resolveMovement(
@@ -113,15 +113,15 @@ describe("Movement RNG System", () => {
     it("should consume exactly one RNG call per two-way collision", () => {
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const initialState = initRNG(1000);
@@ -134,21 +134,21 @@ describe("Movement RNG System", () => {
     it("should consume exactly one RNG call for N-way collision", () => {
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverC = createCharacter({
         id: "moverC",
-        position: { x: 6, y: 5 },
+        position: { q: 3, r: 2 },
         slotPosition: 3,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const initialState = initRNG(1000);
@@ -161,21 +161,21 @@ describe("Movement RNG System", () => {
     it("should not consume RNG when blocker prevents collision", () => {
       const blocker = createCharacter({
         id: "blocker",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 2 },
         slotPosition: 1,
         currentAction: null,
       });
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 3,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const initialState = initRNG(1000);
@@ -192,15 +192,15 @@ describe("Movement RNG System", () => {
       // This test verifies that extreme RNG values select valid array indices
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       // Try many seeds to potentially hit edge cases

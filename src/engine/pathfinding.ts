@@ -1,18 +1,19 @@
 /**
- * A* pathfinding algorithm for 8-directional grid movement.
- * Finds optimal paths with weighted diagonal costs.
+ * A* pathfinding algorithm for 6-directional hex movement.
+ * Finds optimal paths with uniform cost (all hex moves cost 1.0).
  */
 
 import { Position } from "./types";
+import { hexDistance, getHexNeighbors, isValidHex } from "./hex";
 
 /**
  * Convert a position to a string key for Set/Map lookups.
- * Uses "x,y" format for pathfinding algorithm internals.
- * NOTE: This differs from gameStore-constants.positionKey which uses "x-y" format.
+ * Uses "q,r" format for pathfinding algorithm internals.
+ * NOTE: This differs from gameStore-constants.positionKey which uses "q-r" format.
  * Keep these separate - they serve different modules and should not be mixed.
  */
 export function positionKey(pos: Position): string {
-  return `${pos.x},${pos.y}`;
+  return `${pos.q},${pos.r}`;
 }
 
 /**
@@ -96,77 +97,21 @@ class MinHeap {
 }
 
 /**
- * Calculate Chebyshev distance heuristic (admissible for 8-directional movement).
+ * Calculate hex distance heuristic (admissible for 6-directional hex movement).
  */
 function heuristic(from: Position, to: Position): number {
-  return Math.max(Math.abs(from.x - to.x), Math.abs(from.y - to.y));
+  return hexDistance(from, to);
 }
 
 /**
- * Calculate movement cost between adjacent cells.
- * Cardinal moves cost 1.0, diagonal moves cost sqrt(2).
+ * Get all valid neighbors of a position (6-directional hex movement).
  */
-function movementCost(from: Position, to: Position): number {
-  const dx = Math.abs(to.x - from.x);
-  const dy = Math.abs(to.y - from.y);
+function getNeighbors(pos: Position, obstacles: Set<string>): Position[] {
+  // Get all hex neighbors (already filtered by hex boundary)
+  const neighbors = getHexNeighbors(pos);
 
-  // Diagonal move
-  if (dx === 1 && dy === 1) {
-    return Math.sqrt(2);
-  }
-
-  // Cardinal move
-  return 1.0;
-}
-
-/**
- * Get all valid neighbors of a position (8-directional).
- */
-function getNeighbors(
-  pos: Position,
-  gridWidth: number,
-  gridHeight: number,
-  obstacles: Set<string>,
-): Position[] {
-  const neighbors: Position[] = [];
-
-  // All 8 directions
-  const directions = [
-    { x: 0, y: -1 }, // north
-    { x: 0, y: 1 }, // south
-    { x: 1, y: 0 }, // east
-    { x: -1, y: 0 }, // west
-    { x: 1, y: -1 }, // northeast
-    { x: -1, y: -1 }, // northwest
-    { x: 1, y: 1 }, // southeast
-    { x: -1, y: 1 }, // southwest
-  ];
-
-  for (const dir of directions) {
-    const neighbor: Position = {
-      x: pos.x + dir.x,
-      y: pos.y + dir.y,
-    };
-
-    // Check bounds
-    if (
-      neighbor.x < 0 ||
-      neighbor.x >= gridWidth ||
-      neighbor.y < 0 ||
-      neighbor.y >= gridHeight
-    ) {
-      continue;
-    }
-
-    // Check obstacles
-    if (obstacles.has(positionKey(neighbor))) {
-      continue;
-    }
-
-    neighbors.push(neighbor);
-  }
-
-  return neighbors;
+  // Filter out obstacles
+  return neighbors.filter((neighbor) => !obstacles.has(positionKey(neighbor)));
 }
 
 /**
@@ -185,39 +130,24 @@ function reconstructPath(goalNode: PathNode): Position[] {
 }
 
 /**
- * Validate that a position is within grid bounds.
- */
-function isInBounds(
-  pos: Position,
-  gridWidth: number,
-  gridHeight: number,
-): boolean {
-  return pos.x >= 0 && pos.x < gridWidth && pos.y >= 0 && pos.y < gridHeight;
-}
-
-/**
- * Find shortest path between two positions on a grid using A*.
+ * Find shortest path between two positions on a hex grid using A*.
  *
  * @param start - Starting position
  * @param goal - Target position
- * @param gridWidth - Grid width (columns)
- * @param gridHeight - Grid height (rows)
- * @param obstacles - Set of impassable positions (format: "x,y")
+ * @param obstacles - Set of impassable positions (format: "q,r")
  * @returns Path as array of positions from start to goal (empty if unreachable)
  */
 export function findPath(
   start: Position,
   goal: Position,
-  gridWidth: number,
-  gridHeight: number,
   obstacles: Set<string>,
 ): Position[] {
   // Validate bounds
-  if (!isInBounds(start, gridWidth, gridHeight)) {
+  if (!isValidHex(start)) {
     return [];
   }
 
-  if (!isInBounds(goal, gridWidth, gridHeight)) {
+  if (!isValidHex(goal)) {
     return [];
   }
 
@@ -227,7 +157,7 @@ export function findPath(
   }
 
   // Special case: start equals goal
-  if (start.x === goal.x && start.y === goal.y) {
+  if (start.q === goal.q && start.r === goal.r) {
     return [start];
   }
 
@@ -254,7 +184,7 @@ export function findPath(
     const currentKey = positionKey(current.position);
 
     // Check if we reached the goal
-    if (current.position.x === goal.x && current.position.y === goal.y) {
+    if (current.position.q === goal.q && current.position.r === goal.r) {
       return reconstructPath(current);
     }
 
@@ -266,12 +196,7 @@ export function findPath(
     closedSet.add(currentKey);
 
     // Explore neighbors
-    const neighbors = getNeighbors(
-      current.position,
-      gridWidth,
-      gridHeight,
-      obstacles,
-    );
+    const neighbors = getNeighbors(current.position, obstacles);
 
     for (const neighbor of neighbors) {
       const neighborKey = positionKey(neighbor);
@@ -281,9 +206,8 @@ export function findPath(
         continue;
       }
 
-      // Calculate tentative gCost
-      const tentativeGCost =
-        current.gCost + movementCost(current.position, neighbor);
+      // Calculate tentative gCost (uniform cost of 1.0 for all hex moves)
+      const tentativeGCost = current.gCost + 1.0;
 
       // Check if this path to neighbor is better than any previous one
       const existingGCost = gScores.get(neighborKey);

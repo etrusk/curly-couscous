@@ -16,12 +16,12 @@ describe("game-healing-integration", () => {
     const healer = createCharacter({
       id: "healer",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       currentAction: {
         type: "heal",
         skill: createSkill({ id: "heal", healing: 25, tickCost: 2 }),
-        targetCell: { x: 2, y: 0 },
+        targetCell: { q: 2, r: 0 },
         targetCharacter: null,
         startedAtTick: 1,
         resolvesAtTick: 3,
@@ -30,7 +30,7 @@ describe("game-healing-integration", () => {
     const woundedAlly = createCharacter({
       id: "wounded-ally",
       faction: "friendly",
-      position: { x: 2, y: 0 },
+      position: { q: 2, r: 0 },
       hp: 20,
       maxHp: 100,
       slotPosition: 1,
@@ -38,12 +38,12 @@ describe("game-healing-integration", () => {
     const attacker = createCharacter({
       id: "attacker",
       faction: "enemy",
-      position: { x: 3, y: 0 },
+      position: { q: 3, r: 0 },
       slotPosition: 2,
       currentAction: {
         type: "attack",
         skill: createSkill({ id: "attack", damage: 25, tickCost: 2 }),
-        targetCell: { x: 2, y: 0 },
+        targetCell: { q: 2, r: 0 },
         targetCharacter: null,
         startedAtTick: 1,
         resolvesAtTick: 3,
@@ -100,7 +100,7 @@ describe("game-healing-integration", () => {
     const healer = createCharacter({
       id: "healer",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       skills: [healSkill, moveSkill],
       currentAction: null,
@@ -108,7 +108,7 @@ describe("game-healing-integration", () => {
     const woundedAlly = createCharacter({
       id: "wounded-ally",
       faction: "friendly",
-      position: { x: 3, y: 0 },
+      position: { q: 3, r: 0 },
       hp: 50,
       maxHp: 100,
       slotPosition: 1,
@@ -117,7 +117,7 @@ describe("game-healing-integration", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 10, y: 0 },
+      position: { q: 5, r: 0 }, // Distance 5 from origin
       hp: 100,
       slotPosition: 2,
       currentAction: null,
@@ -164,7 +164,7 @@ describe("game-healing-integration", () => {
     const healer = createCharacter({
       id: "healer",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       skills: [healSkill, moveSkill],
       currentAction: null,
@@ -172,7 +172,7 @@ describe("game-healing-integration", () => {
     const fullHpAlly = createCharacter({
       id: "full-hp-ally",
       faction: "friendly",
-      position: { x: 3, y: 0 },
+      position: { q: 3, r: 0 },
       hp: 100,
       maxHp: 100,
       slotPosition: 1,
@@ -181,7 +181,7 @@ describe("game-healing-integration", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 10, y: 0 },
+      position: { q: 5, r: 0 }, // Distance 5 from origin
       hp: 100,
       slotPosition: 2,
       currentAction: null,
@@ -224,7 +224,7 @@ describe("game-healing-integration", () => {
     const healer = createCharacter({
       id: "healer",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       skills: [healSkill, moveSkill],
       currentAction: null,
@@ -232,7 +232,7 @@ describe("game-healing-integration", () => {
     const distantAlly = createCharacter({
       id: "distant-ally",
       faction: "friendly",
-      position: { x: 8, y: 0 },
+      position: { q: 5, r: 1 }, // Distance 6 from origin (out of range 5)
       hp: 50,
       maxHp: 100,
       slotPosition: 1,
@@ -241,7 +241,7 @@ describe("game-healing-integration", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 11, y: 0 },
+      position: { q: 5, r: -5 },
       slotPosition: 2,
       currentAction: null,
     });
@@ -283,7 +283,7 @@ describe("game-healing-integration", () => {
     const healer = createCharacter({
       id: "healer",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       skills: [healSkill, moveSkill],
       currentAction: null,
@@ -291,7 +291,7 @@ describe("game-healing-integration", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 10, y: 0 },
+      position: { q: 5, r: 0 }, // Distance 5 from origin
       slotPosition: 1,
       currentAction: null,
     });
@@ -324,7 +324,7 @@ describe("game-healing-integration", () => {
     const healer = createCharacter({
       id: "healer",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       skills: [healSkill],
       currentAction: null,
@@ -332,7 +332,7 @@ describe("game-healing-integration", () => {
     const nearAlly = createCharacter({
       id: "near-ally",
       faction: "friendly",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 80,
       maxHp: 100,
       slotPosition: 1,
@@ -341,7 +341,7 @@ describe("game-healing-integration", () => {
     const farAlly = createCharacter({
       id: "far-ally",
       faction: "friendly",
-      position: { x: 4, y: 0 },
+      position: { q: 4, r: 0 },
       hp: 30,
       maxHp: 100,
       slotPosition: 2,
@@ -350,7 +350,7 @@ describe("game-healing-integration", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 11, y: 0 },
+      position: { q: 5, r: -5 },
       slotPosition: 3,
       currentAction: null,
     });

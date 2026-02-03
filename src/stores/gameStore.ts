@@ -13,6 +13,8 @@ import {
   SKILL_REGISTRY,
   createSkillFromDefinition,
 } from "../engine/skill-registry";
+import { isValidHex } from "../engine/hex";
+import { positionsEqual } from "../engine/types";
 
 // Import from decomposed modules
 import {
@@ -103,7 +105,7 @@ export const useGameStore = create<GameStore>()(
     selectionMode: "idle",
 
     // Selectors
-    selectIsGridFull: () => get().gameState.characters.length >= 144,
+    selectIsGridFull: () => get().gameState.characters.length >= 91,
     selectMovementTargetData: () => selectMovementTargetData(get()),
 
     // Actions
@@ -336,7 +338,7 @@ export const useGameStore = create<GameStore>()(
         let success = false;
         set((state) => {
           // Check if grid is full
-          if (state.gameState.characters.length >= 144) {
+          if (state.gameState.characters.length >= 91) {
             success = false;
             return;
           }
@@ -417,19 +419,14 @@ export const useGameStore = create<GameStore>()(
         let success = false;
         set((state) => {
           // Validate position is within bounds
-          if (
-            position.x < 0 ||
-            position.x >= 12 ||
-            position.y < 0 ||
-            position.y >= 12
-          ) {
+          if (!isValidHex(position)) {
             success = false;
             return;
           }
 
           // Check if position is occupied
-          const isOccupied = state.gameState.characters.some(
-            (c) => c.position.x === position.x && c.position.y === position.y,
+          const isOccupied = state.gameState.characters.some((c) =>
+            positionsEqual(c.position, position),
           );
           if (isOccupied) {
             success = false;
@@ -484,20 +481,14 @@ export const useGameStore = create<GameStore>()(
           }
 
           // Validate position is within bounds
-          if (
-            newPosition.x < 0 ||
-            newPosition.x >= 12 ||
-            newPosition.y < 0 ||
-            newPosition.y >= 12
-          ) {
+          if (!isValidHex(newPosition)) {
             success = false;
             return;
           }
 
           // Check if position is occupied
-          const isOccupied = state.gameState.characters.some(
-            (c) =>
-              c.position.x === newPosition.x && c.position.y === newPosition.y,
+          const isOccupied = state.gameState.characters.some((c) =>
+            positionsEqual(c.position, newPosition),
           );
           if (isOccupied) {
             success = false;

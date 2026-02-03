@@ -10,7 +10,7 @@ describe("applyDecisions", () => {
   it("should set currentAction from decision", () => {
     const character = createCharacter({
       id: "char1",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       currentAction: null,
     });
     const action = createAttackAction({ x: 6, y: 5 }, 10, 1);
@@ -22,8 +22,8 @@ describe("applyDecisions", () => {
   });
 
   it("should preserve characters without decisions", () => {
-    const char1 = createCharacter({ id: "char1", position: { x: 5, y: 5 } });
-    const char2 = createCharacter({ id: "char2", position: { x: 6, y: 6 } });
+    const char1 = createCharacter({ id: "char1", position: { q: 3, r: 2 } });
+    const char2 = createCharacter({ id: "char2", position: { q: 4, r: 2 } });
     const action = createAttackAction({ x: 7, y: 7 }, 10, 1);
     const decisions = [{ characterId: "char1", action }];
 
@@ -36,7 +36,7 @@ describe("applyDecisions", () => {
   it("should handle empty decisions array", () => {
     const character = createCharacter({
       id: "char1",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
 
     const result = applyDecisions([character], []);
@@ -57,7 +57,7 @@ describe("applyDecisions", () => {
   it("should not modify original character array", () => {
     const character = createCharacter({
       id: "char1",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       currentAction: null,
     });
     const originalCharacters = [character];
@@ -72,7 +72,7 @@ describe("applyDecisions", () => {
   it("should skip decisions for non-existent character IDs", () => {
     const character = createCharacter({
       id: "char1",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const action1 = createAttackAction({ x: 6, y: 5 }, 10, 1);
     const action2 = createAttackAction({ x: 7, y: 7 }, 15, 1);

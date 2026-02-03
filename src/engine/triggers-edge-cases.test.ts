@@ -13,7 +13,7 @@ describe("evaluateTrigger - edge cases", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const trigger: Trigger = { type: "enemy_in_range", value: 3 };
 
@@ -26,7 +26,7 @@ describe("evaluateTrigger - edge cases", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
 
     const enemyRangeTrigger: Trigger = { type: "enemy_in_range", value: 5 };
@@ -47,7 +47,7 @@ describe("evaluateTrigger - edge cases", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       hp: 30,
       maxHp: 100,
     });
@@ -64,7 +64,7 @@ describe("evaluateTrigger - dead character handling", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const deadEnemy = createCharacter({
       id: "deadEnemy",
@@ -93,7 +93,7 @@ describe("evaluateTrigger - dead character handling", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const deadAlly = createCharacter({
       id: "deadAlly",
@@ -112,7 +112,7 @@ describe("evaluateTrigger - dead character handling", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const deadEnemy = createCharacter({
       id: "deadEnemy",
@@ -121,7 +121,7 @@ describe("evaluateTrigger - dead character handling", () => {
       hp: 0,
       currentAction: createAction({
         type: "attack",
-        targetCell: { x: 5, y: 5 },
+        targetCell: { q: 3, r: 2 },
         resolvesAtTick: 1,
       }),
     });

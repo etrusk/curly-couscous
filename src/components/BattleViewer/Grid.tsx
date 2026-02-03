@@ -31,7 +31,7 @@ export function Grid({
   // Create a map of position -> character for O(1) lookup
   const characterMap = new Map<string, TokenData>();
   for (const char of characters) {
-    const key = `${char.position.x}-${char.position.y}`;
+    const key = `${char.position.q}-${char.position.r}`;
     characterMap.set(key, char);
   }
 

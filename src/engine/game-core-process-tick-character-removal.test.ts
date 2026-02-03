@@ -14,13 +14,13 @@ describe("processTick - character removal", () => {
   it("should remove dead characters (HP <= 0)", () => {
     const attacker = createCharacter({
       id: "attacker",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 1,
-      currentAction: createAttackAction({ x: 1, y: 0 }, 100, 1),
+      currentAction: createAttackAction({ q: 1, r: 0 }, 100, 1),
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 50,
       slotPosition: 2,
     });
@@ -39,13 +39,13 @@ describe("processTick - character removal", () => {
   it("should keep characters with HP > 0", () => {
     const attacker = createCharacter({
       id: "attacker",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 1,
-      currentAction: createAttackAction({ x: 1, y: 0 }, 10, 1),
+      currentAction: createAttackAction({ q: 1, r: 0 }, 10, 1),
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 100,
       slotPosition: 2,
     });
@@ -67,17 +67,17 @@ describe("processTick - character removal", () => {
   it("should handle multiple simultaneous deaths", () => {
     const charA = createCharacter({
       id: "charA",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       hp: 10,
       slotPosition: 1,
-      currentAction: createAttackAction({ x: 1, y: 0 }, 25, 1),
+      currentAction: createAttackAction({ q: 1, r: 0 }, 25, 1),
     });
     const charB = createCharacter({
       id: "charB",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 10,
       slotPosition: 2,
-      currentAction: createAttackAction({ x: 0, y: 0 }, 25, 1),
+      currentAction: createAttackAction({ q: 0, r: 0 }, 25, 1),
     });
 
     const state = createGameState({

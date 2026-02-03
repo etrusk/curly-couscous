@@ -1,436 +1,316 @@
 /**
- * Unit tests for A* pathfinding algorithm.
- * Tests cover basic paths, obstacle avoidance, edge cases, and performance.
+ * Unit tests for A* pathfinding algorithm with hex grid.
+ * Tests cover 6-directional movement, hex distance heuristic, and hex boundary compliance.
  */
 
 import { describe, it, expect } from "vitest";
 import { findPath, positionKey } from "./pathfinding";
 import { Position } from "./types";
+import { hexDistance, isValidHex } from "./hex";
 
-// Constants for assertions
-const SQRT_2 = Math.sqrt(2);
-
-/**
- * Helper to calculate total path cost (sum of movement costs).
- */
-function calculatePathCost(path: Position[]): number {
-  if (path.length <= 1) return 0;
-
-  let totalCost = 0;
-  for (let i = 0; i < path.length - 1; i++) {
-    const from = path[i]!;
-    const to = path[i + 1]!;
-    const dx = Math.abs(to.x - from.x);
-    const dy = Math.abs(to.y - from.y);
-
-    // Diagonal move costs sqrt(2), cardinal move costs 1
-    if (dx === 1 && dy === 1) {
-      totalCost += SQRT_2;
-    } else {
-      totalCost += 1;
-    }
-  }
-
-  return totalCost;
-}
-
-describe("findPath - Basic Cardinal Paths", () => {
-  it("should find straight-line horizontal path (east)", () => {
-    const start: Position = { x: 0, y: 5 };
-    const goal: Position = { x: 4, y: 5 };
+describe("findPath - Basic Hex Paths", () => {
+  it("finds path between adjacent hexes", () => {
+    const start: Position = { q: 0, r: 0 };
+    const goal: Position = { q: 1, r: 0 };
     const obstacles = new Set<string>();
 
-    const path = findPath(start, goal, 10, 10, obstacles);
+    const path = findPath(start, goal, obstacles);
 
-    expect(path.length).toBe(5); // start + 4 steps
+    expect(path).toHaveLength(2);
     expect(path[0]).toEqual(start);
     expect(path[path.length - 1]).toEqual(goal);
-
-    // All intermediate positions should have y=5
-    for (const pos of path) {
-      expect(pos.y).toBe(5);
-    }
   });
 
-  it("should find straight-line vertical path (south)", () => {
-    const start: Position = { x: 3, y: 0 };
-    const goal: Position = { x: 3, y: 5 };
+  it("finds straight-line path along q-axis", () => {
+    const start: Position = { q: 0, r: 0 };
+    const goal: Position = { q: 3, r: 0 };
     const obstacles = new Set<string>();
 
-    const path = findPath(start, goal, 10, 10, obstacles);
+    const path = findPath(start, goal, obstacles);
 
-    expect(path.length).toBe(6); // start + 5 steps
-    expect(path[0]).toEqual(start);
-    expect(path[path.length - 1]).toEqual(goal);
-
-    // All positions should have x=3
-    for (const pos of path) {
-      expect(pos.x).toBe(3);
-    }
-  });
-});
-
-describe("findPath - Diagonal Paths", () => {
-  it("should find optimal diagonal path (southeast)", () => {
-    const start: Position = { x: 0, y: 0 };
-    const goal: Position = { x: 4, y: 4 };
-    const obstacles = new Set<string>();
-
-    const path = findPath(start, goal, 10, 10, obstacles);
-
-    expect(path.length).toBe(5); // start + 4 diagonal steps
-    expect(path[0]).toEqual(start);
-    expect(path[path.length - 1]).toEqual(goal);
-
-    // Each step should move diagonally (+1, +1)
-    for (let i = 0; i < path.length - 1; i++) {
-      const from = path[i]!;
-      const to = path[i + 1]!;
-      expect(to.x - from.x).toBe(1);
-      expect(to.y - from.y).toBe(1);
-    }
-
-    // Verify path cost
-    const cost = calculatePathCost(path);
-    expect(cost).toBeCloseTo(4 * SQRT_2, 2);
-  });
-
-  it("should find diagonal path in negative direction (northwest)", () => {
-    const start: Position = { x: 7, y: 7 };
-    const goal: Position = { x: 3, y: 3 };
-    const obstacles = new Set<string>();
-
-    const path = findPath(start, goal, 10, 10, obstacles);
-
-    expect(path.length).toBe(5); // start + 4 diagonal steps
-    expect(path[0]).toEqual(start);
-    expect(path[path.length - 1]).toEqual(goal);
-
-    // Each step should move diagonally (-1, -1)
-    for (let i = 0; i < path.length - 1; i++) {
-      const from = path[i]!;
-      const to = path[i + 1]!;
-      expect(to.x - from.x).toBe(-1);
-      expect(to.y - from.y).toBe(-1);
-    }
-  });
-});
-
-describe("findPath - Mixed Paths", () => {
-  it("should combine cardinal and diagonal moves optimally", () => {
-    const start: Position = { x: 0, y: 0 };
-    const goal: Position = { x: 3, y: 5 };
-    const obstacles = new Set<string>();
-
-    const path = findPath(start, goal, 10, 10, obstacles);
-
-    // Path should be start + 5 moves (3 diagonal + 2 cardinal)
-    expect(path.length).toBe(6);
-    expect(path[0]).toEqual(start);
-    expect(path[path.length - 1]).toEqual(goal);
-
-    // Total cost should be less than pure cardinal path (3 + 5 = 8)
-    const cost = calculatePathCost(path);
-    expect(cost).toBeLessThan(8);
-  });
-
-  it("should prefer cardinal over diagonal when cheaper", () => {
-    const start: Position = { x: 0, y: 0 };
-    const goal: Position = { x: 1, y: 0 };
-    const obstacles = new Set<string>();
-
-    const path = findPath(start, goal, 10, 10, obstacles);
-
+    expect(path).toHaveLength(4);
     expect(path).toEqual([
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
+      { q: 0, r: 0 },
+      { q: 1, r: 0 },
+      { q: 2, r: 0 },
+      { q: 3, r: 0 },
     ]);
+  });
 
-    // Should use cardinal move (cost 1), not diagonal
-    const cost = calculatePathCost(path);
-    expect(cost).toBe(1);
+  it("finds path along r-axis", () => {
+    const start: Position = { q: 0, r: 0 };
+    const goal: Position = { q: 0, r: 3 };
+    const obstacles = new Set<string>();
+
+    const path = findPath(start, goal, obstacles);
+
+    expect(path).toHaveLength(4);
+
+    // Each step moves by {dq: 0, dr: 1}
+    for (let i = 0; i < path.length - 1; i++) {
+      const from = path[i]!;
+      const to = path[i + 1]!;
+      expect(to.q - from.q).toBe(0);
+      expect(to.r - from.r).toBe(1);
+    }
+  });
+
+  it("finds path using mixed directions", () => {
+    const start: Position = { q: 0, r: 0 };
+    const goal: Position = { q: 2, r: 1 };
+    const obstacles = new Set<string>();
+
+    const path = findPath(start, goal, obstacles);
+
+    // Hex distance is max(2, 1, 3) = 3, so path should be start + 3 steps
+    expect(path).toHaveLength(4);
+
+    // All steps are adjacent hex moves
+    for (let i = 0; i < path.length - 1; i++) {
+      const from = path[i]!;
+      const to = path[i + 1]!;
+      expect(hexDistance(from, to)).toBe(1);
+    }
+
+    expect(path[path.length - 1]).toEqual(goal);
+  });
+});
+
+describe("findPath - Path Validity", () => {
+  it("all path steps are adjacent hexes (distance 1)", () => {
+    const testCases: [Position, Position][] = [
+      [
+        { q: 0, r: 0 },
+        { q: 3, r: 2 },
+      ],
+      [
+        { q: -2, r: 1 },
+        { q: 2, r: -1 },
+      ],
+      [
+        { q: -5, r: 0 },
+        { q: 5, r: 0 },
+      ],
+    ];
+
+    for (const [start, goal] of testCases) {
+      const path = findPath(start, goal, new Set());
+
+      for (let i = 0; i < path.length - 1; i++) {
+        const from = path[i]!;
+        const to = path[i + 1]!;
+        expect(hexDistance(from, to)).toBe(1);
+      }
+    }
+  });
+
+  it("path cost equals path length minus 1 (uniform cost)", () => {
+    const start: Position = { q: 0, r: 0 };
+    const goal: Position = { q: 2, r: 1 };
+    const obstacles = new Set<string>();
+
+    const path = findPath(start, goal, obstacles);
+
+    // Hex distance is 3, path should be 4 nodes (start + 3 steps)
+    expect(path.length - 1).toBe(hexDistance(start, goal));
+  });
+
+  it("path stays within valid hex bounds", () => {
+    const testCases: [Position, Position][] = [
+      [
+        { q: -4, r: 3 },
+        { q: 4, r: -3 },
+      ],
+      [
+        { q: 0, r: -5 },
+        { q: 0, r: 5 },
+      ],
+      [
+        { q: 5, r: -5 },
+        { q: -5, r: 5 },
+      ],
+    ];
+
+    for (const [start, goal] of testCases) {
+      const path = findPath(start, goal, new Set());
+
+      for (const pos of path) {
+        expect(isValidHex(pos, 5)).toBe(true);
+      }
+    }
+  });
+
+  it("path length is optimal (equals hex distance for obstacle-free)", () => {
+    const testCases: [Position, Position][] = [
+      [
+        { q: 0, r: 0 },
+        { q: 3, r: 0 },
+      ],
+      [
+        { q: 0, r: 0 },
+        { q: 2, r: 1 },
+      ],
+      [
+        { q: -2, r: 3 },
+        { q: 1, r: -1 },
+      ],
+    ];
+
+    for (const [start, goal] of testCases) {
+      const path = findPath(start, goal, new Set());
+      expect(path.length - 1).toBe(hexDistance(start, goal));
+    }
+  });
+
+  it("pathfinding uses 6 directions (not 8)", () => {
+    const start: Position = { q: 0, r: 0 };
+    const goal: Position = { q: 3, r: 2 };
+    const obstacles = new Set<string>();
+
+    const path = findPath(start, goal, obstacles);
+
+    // Verify no step has |dq| > 1 or |dr| > 1
+    for (let i = 0; i < path.length - 1; i++) {
+      const from = path[i]!;
+      const to = path[i + 1]!;
+      const dq = Math.abs(to.q - from.q);
+      const dr = Math.abs(to.r - from.r);
+
+      expect(dq).toBeLessThanOrEqual(1);
+      expect(dr).toBeLessThanOrEqual(1);
+
+      // Each step is one of the 6 hex directions
+      expect(hexDistance(from, to)).toBe(1);
+    }
   });
 });
 
 describe("findPath - Obstacle Avoidance", () => {
-  it("should navigate around single obstacle", () => {
-    const start: Position = { x: 0, y: 5 };
-    const goal: Position = { x: 2, y: 5 };
-    const obstacles = new Set<string>([positionKey({ x: 1, y: 5 })]);
+  it("navigates around single obstacle", () => {
+    const start: Position = { q: 0, r: 0 };
+    const goal: Position = { q: 2, r: 0 };
+    const obstacles = new Set<string>([positionKey({ q: 1, r: 0 })]);
 
-    const path = findPath(start, goal, 10, 10, obstacles);
+    const path = findPath(start, goal, obstacles);
 
     expect(path[path.length - 1]).toEqual(goal);
-    expect(path.length).toBeGreaterThanOrEqual(3); // Optimal detour path is exactly 3 nodes
+    // Path is [{0,0}, {0,1}, {1,1}, {2,0}] or [{0,0}, {1,-1}, {2,-1}, {2,0}] = 4 positions
+    expect(path).toHaveLength(4);
 
     // Path should not contain the obstacle
     for (const pos of path) {
-      expect(positionKey(pos)).not.toBe("1,5");
+      expect(positionKey(pos)).not.toBe("1,0");
     }
-
-    // Path should go through (1,4) or (1,6)
-    const pathKeys = path.map(positionKey);
-    expect(pathKeys.includes("1,4") || pathKeys.includes("1,6")).toBe(true);
   });
 
-  it("should navigate around horizontal wall", () => {
-    const start: Position = { x: 0, y: 5 };
-    const goal: Position = { x: 4, y: 5 };
+  it("navigates around wall of obstacles", () => {
+    const start: Position = { q: -2, r: 0 };
+    const goal: Position = { q: 2, r: 0 };
     const obstacles = new Set<string>([
-      positionKey({ x: 1, y: 5 }),
-      positionKey({ x: 2, y: 5 }),
-      positionKey({ x: 3, y: 5 }),
+      positionKey({ q: 0, r: -1 }),
+      positionKey({ q: 0, r: 0 }),
+      positionKey({ q: 0, r: 1 }),
     ]);
 
-    const path = findPath(start, goal, 10, 10, obstacles);
+    const path = findPath(start, goal, obstacles);
 
     expect(path[path.length - 1]).toEqual(goal);
 
-    // Path should avoid all obstacle cells
+    // Path does not contain any obstacle
     for (const pos of path) {
       expect(obstacles.has(positionKey(pos))).toBe(false);
     }
 
-    // Path should go above or below the wall (y !== 5 at some point)
-    const hasDetour = path.some((pos) => pos.y !== 5);
+    // Path goes around the wall (not through r=0 at q=0)
+    const midPath = path.slice(1, -1);
+    const hasDetour = midPath.some((pos) => pos.r !== 0 || pos.q !== 0);
     expect(hasDetour).toBe(true);
-  });
-
-  it("should navigate around L-shaped obstacle", () => {
-    const start: Position = { x: 0, y: 0 };
-    const goal: Position = { x: 2, y: 2 };
-    // Corrected obstacle configuration: blocks direct path but allows detour
-    const obstacles = new Set<string>([
-      positionKey({ x: 1, y: 0 }),
-      positionKey({ x: 1, y: 1 }),
-      positionKey({ x: 2, y: 1 }),
-    ]);
-
-    const path = findPath(start, goal, 10, 10, obstacles);
-
-    expect(path[path.length - 1]).toEqual(goal);
-
-    // Path should avoid all obstacle cells
-    for (const pos of path) {
-      expect(obstacles.has(positionKey(pos))).toBe(false);
-    }
-  });
-
-  it("should navigate through narrow corridor", () => {
-    const start: Position = { x: 0, y: 5 };
-    const goal: Position = { x: 4, y: 5 };
-
-    // Wall from (2,0) to (2,4) and (2,6) to (2,9), leaving gap at (2,5)
-    const obstacles = new Set<string>();
-    for (let y = 0; y <= 4; y++) {
-      obstacles.add(positionKey({ x: 2, y }));
-    }
-    for (let y = 6; y <= 9; y++) {
-      obstacles.add(positionKey({ x: 2, y }));
-    }
-
-    const path = findPath(start, goal, 10, 10, obstacles);
-
-    expect(path[path.length - 1]).toEqual(goal);
-
-    // Path should go through the gap at (2,5)
-    const pathKeys = path.map(positionKey);
-    expect(pathKeys.includes("2,5")).toBe(true);
   });
 });
 
 describe("findPath - Edge Cases", () => {
-  it("should handle start equals goal", () => {
-    const start: Position = { x: 5, y: 5 };
-    const goal: Position = { x: 5, y: 5 };
-    const obstacles = new Set<string>();
+  it("returns empty path when goal is an obstacle", () => {
+    const start: Position = { q: 0, r: 0 };
+    const goal: Position = { q: 3, r: 3 };
+    const obstacles = new Set<string>([positionKey(goal)]);
 
-    const path = findPath(start, goal, 10, 10, obstacles);
-
-    expect(path).toEqual([{ x: 5, y: 5 }]);
-    expect(path.length).toBe(1);
-  });
-
-  it("should return empty path when goal is obstacle", () => {
-    const start: Position = { x: 0, y: 0 };
-    const goal: Position = { x: 3, y: 3 };
-    const obstacles = new Set<string>([positionKey({ x: 3, y: 3 })]);
-
-    const path = findPath(start, goal, 10, 10, obstacles);
+    const path = findPath(start, goal, obstacles);
 
     expect(path).toEqual([]);
   });
 
-  it("should return empty path when start out of bounds", () => {
-    const start: Position = { x: -1, y: 5 };
-    const goal: Position = { x: 5, y: 5 };
+  it("returns single-element path when start equals goal", () => {
+    const start: Position = { q: 2, r: 1 };
+    const goal: Position = { q: 2, r: 1 };
     const obstacles = new Set<string>();
 
-    const path = findPath(start, goal, 10, 10, obstacles);
+    const path = findPath(start, goal, obstacles);
+
+    expect(path).toEqual([start]);
+    expect(path).toHaveLength(1);
+  });
+
+  it("returns empty path when start is outside valid hex grid", () => {
+    const start: Position = { q: 6, r: 0 };
+    const goal: Position = { q: 0, r: 0 };
+    const obstacles = new Set<string>();
+
+    const path = findPath(start, goal, obstacles);
 
     expect(path).toEqual([]);
   });
 
-  it("should return empty path when goal out of bounds", () => {
-    const start: Position = { x: 5, y: 5 };
-    const goal: Position = { x: 15, y: 5 };
+  it("returns empty path when goal is outside valid hex grid", () => {
+    const start: Position = { q: 0, r: 0 };
+    const goal: Position = { q: 0, r: 6 };
     const obstacles = new Set<string>();
 
-    const path = findPath(start, goal, 10, 10, obstacles);
+    const path = findPath(start, goal, obstacles);
 
     expect(path).toEqual([]);
   });
 
-  it("should handle adjacent start and goal", () => {
-    const start: Position = { x: 5, y: 5 };
-    const goal: Position = { x: 6, y: 5 };
-    const obstacles = new Set<string>();
+  it("returns empty path when completely surrounded by obstacles", () => {
+    const start: Position = { q: 0, r: 0 };
+    const goal: Position = { q: 3, r: 0 };
 
-    const path = findPath(start, goal, 10, 10, obstacles);
-
-    expect(path).toEqual([
-      { x: 5, y: 5 },
-      { x: 6, y: 5 },
-    ]);
-    expect(path.length).toBe(2);
-  });
-
-  it("should return empty path when target completely blocked", () => {
-    const start: Position = { x: 0, y: 0 };
-    const goal: Position = { x: 5, y: 5 };
-
-    // Surround goal with obstacles
+    // Surround start with all 6 neighbors as obstacles
     const obstacles = new Set<string>([
-      positionKey({ x: 4, y: 4 }),
-      positionKey({ x: 5, y: 4 }),
-      positionKey({ x: 6, y: 4 }),
-      positionKey({ x: 4, y: 5 }),
-      positionKey({ x: 6, y: 5 }),
-      positionKey({ x: 4, y: 6 }),
-      positionKey({ x: 5, y: 6 }),
-      positionKey({ x: 6, y: 6 }),
+      positionKey({ q: 1, r: 0 }),
+      positionKey({ q: -1, r: 0 }),
+      positionKey({ q: 0, r: 1 }),
+      positionKey({ q: 0, r: -1 }),
+      positionKey({ q: 1, r: -1 }),
+      positionKey({ q: -1, r: 1 }),
     ]);
 
-    const path = findPath(start, goal, 10, 10, obstacles);
-
-    expect(path).toEqual([]);
-  });
-
-  it("should return empty path when mover surrounded", () => {
-    const start: Position = { x: 5, y: 5 };
-    const goal: Position = { x: 0, y: 0 };
-
-    // Surround start with obstacles
-    const obstacles = new Set<string>([
-      positionKey({ x: 4, y: 4 }),
-      positionKey({ x: 5, y: 4 }),
-      positionKey({ x: 6, y: 4 }),
-      positionKey({ x: 4, y: 5 }),
-      positionKey({ x: 6, y: 5 }),
-      positionKey({ x: 4, y: 6 }),
-      positionKey({ x: 5, y: 6 }),
-      positionKey({ x: 6, y: 6 }),
-    ]);
-
-    const path = findPath(start, goal, 10, 10, obstacles);
+    const path = findPath(start, goal, obstacles);
 
     expect(path).toEqual([]);
   });
 });
 
-describe("findPath - Performance and Scale", () => {
-  it("should work on empty grid with no obstacles", () => {
-    const start: Position = { x: 0, y: 0 };
-    const goal: Position = { x: 9, y: 9 };
+describe("findPath - API Signature", () => {
+  it("accepts obstacles Set and radius parameter", () => {
+    const start: Position = { q: 0, r: 0 };
+    const goal: Position = { q: 2, r: 1 };
     const obstacles = new Set<string>();
 
-    const path = findPath(start, goal, 10, 10, obstacles);
-
-    expect(path.length).toBe(10); // start + 9 diagonal steps
-    expect(path[0]).toEqual(start);
-    expect(path[path.length - 1]).toEqual(goal);
-
-    // Should be optimal diagonal route
-    for (let i = 0; i < path.length - 1; i++) {
-      const from = path[i]!;
-      const to = path[i + 1]!;
-      expect(to.x - from.x).toBe(1);
-      expect(to.y - from.y).toBe(1);
-    }
-  });
-
-  it("should verify path cost calculation", () => {
-    const start: Position = { x: 0, y: 0 };
-    const goal: Position = { x: 2, y: 1 };
-    const obstacles = new Set<string>();
-
-    const path = findPath(start, goal, 10, 10, obstacles);
+    // New signature without gridWidth/gridHeight
+    const path = findPath(start, goal, obstacles);
 
     expect(path.length).toBeGreaterThan(0);
     expect(path[path.length - 1]).toEqual(goal);
 
-    // Optimal path: diagonal (0,0)->(1,1) then cardinal (1,1)->(2,1)
-    // OR cardinal (0,0)->(1,0) then diagonal (1,0)->(2,1)
-    // Both cost sqrt(2) + 1 ≈ 2.414
-    const cost = calculatePathCost(path);
-    expect(cost).toBeCloseTo(SQRT_2 + 1, 2);
-
-    // Alternative pure cardinal path would cost 3
-    expect(cost).toBeLessThan(3);
+    // Can also accept radius parameter
+    const pathWithRadius = findPath(start, goal, obstacles, 5);
+    expect(pathWithRadius.length).toBeGreaterThan(0);
   });
 
-  it("should complete efficiently without exploring unnecessary nodes", () => {
-    const start: Position = { x: 0, y: 10 };
-    const goal: Position = { x: 19, y: 10 };
-    const obstacles = new Set<string>();
+  it("positionKey uses q,r format", () => {
+    const pos: Position = { q: 3, r: -2 };
+    const key = positionKey(pos);
 
-    const startTime = performance.now();
-    const path = findPath(start, goal, 20, 20, obstacles);
-    const endTime = performance.now();
-
-    expect(path.length).toBeGreaterThan(0);
-    expect(path[path.length - 1]).toEqual(goal);
-
-    // Should complete quickly (heuristic guides search efficiently)
-    const duration = endTime - startTime;
-    expect(duration).toBeLessThan(10); // milliseconds
-  });
-
-  it("should scale to large grid (30x30)", () => {
-    const start: Position = { x: 0, y: 0 };
-    const goal: Position = { x: 29, y: 29 };
-
-    // Scattered obstacles (not blocking path)
-    const obstacles = new Set<string>([
-      positionKey({ x: 5, y: 5 }),
-      positionKey({ x: 10, y: 10 }),
-      positionKey({ x: 15, y: 15 }),
-      positionKey({ x: 20, y: 20 }),
-      positionKey({ x: 25, y: 25 }),
-    ]);
-
-    const startTime = performance.now();
-    const path = findPath(start, goal, 30, 30, obstacles);
-    const endTime = performance.now();
-
-    expect(path.length).toBeGreaterThan(0);
-    expect(path[path.length - 1]).toEqual(goal);
-
-    // Should complete within reasonable time
-    const duration = endTime - startTime;
-    expect(duration).toBeLessThan(100); // milliseconds
-
-    // Path should avoid obstacles
-    for (const pos of path) {
-      expect(obstacles.has(positionKey(pos))).toBe(false);
-    }
-
-    // Path should stay in bounds
-    for (const pos of path) {
-      expect(pos.x).toBeGreaterThanOrEqual(0);
-      expect(pos.x).toBeLessThan(30);
-      expect(pos.y).toBeGreaterThanOrEqual(0);
-      expect(pos.y).toBeLessThan(30);
-    }
+    expect(key).toBe("3,-2");
   });
 });

@@ -12,12 +12,12 @@ describe("resolveHealing", () => {
     const healer = createCharacter({
       id: "healer",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       currentAction: {
         type: "heal",
         skill: createSkill({ id: "heal", healing: 25, tickCost: 0 }),
-        targetCell: { x: 1, y: 0 },
+        targetCell: { q: 1, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 0,
@@ -26,7 +26,7 @@ describe("resolveHealing", () => {
     const target = createCharacter({
       id: "target",
       faction: "friendly",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 50,
       maxHp: 100,
       slotPosition: 1,
@@ -51,12 +51,12 @@ describe("resolveHealing", () => {
   it("heal-capped-at-maxHp", () => {
     const healer = createCharacter({
       id: "healer",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       currentAction: {
         type: "heal",
         skill: createSkill({ id: "heal", healing: 25, tickCost: 0 }),
-        targetCell: { x: 1, y: 0 },
+        targetCell: { q: 1, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 0,
@@ -64,7 +64,7 @@ describe("resolveHealing", () => {
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 90,
       maxHp: 100,
       slotPosition: 1,
@@ -81,12 +81,12 @@ describe("resolveHealing", () => {
   it("heal-generates-HealEvent", () => {
     const healer = createCharacter({
       id: "healer-a",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       currentAction: {
         type: "heal",
         skill: createSkill({ id: "heal", healing: 25, tickCost: 0 }),
-        targetCell: { x: 2, y: 0 },
+        targetCell: { q: 2, r: 0 },
         targetCharacter: null,
         startedAtTick: 3,
         resolvesAtTick: 3,
@@ -94,7 +94,7 @@ describe("resolveHealing", () => {
     });
     const target = createCharacter({
       id: "target-b",
-      position: { x: 2, y: 0 },
+      position: { q: 2, r: 0 },
       hp: 60,
       maxHp: 100,
       slotPosition: 1,
@@ -115,12 +115,12 @@ describe("resolveHealing", () => {
   it("heal-wind-up-timing", () => {
     const healer = createCharacter({
       id: "healer",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       currentAction: {
         type: "heal",
         skill: createSkill({ id: "heal", healing: 25, tickCost: 2 }),
-        targetCell: { x: 1, y: 0 },
+        targetCell: { q: 1, r: 0 },
         targetCharacter: null,
         startedAtTick: 5,
         resolvesAtTick: 7,
@@ -128,7 +128,7 @@ describe("resolveHealing", () => {
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 75,
       maxHp: 100,
       slotPosition: 1,
@@ -145,12 +145,12 @@ describe("resolveHealing", () => {
   it("heal-miss-target-moved", () => {
     const healer = createCharacter({
       id: "healer",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       currentAction: {
         type: "heal",
         skill: createSkill({ id: "heal", healing: 25, tickCost: 0 }),
-        targetCell: { x: 3, y: 0 },
+        targetCell: { q: 3, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 0,
@@ -158,7 +158,7 @@ describe("resolveHealing", () => {
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 4, y: 0 },
+      position: { q: 4, r: 0 },
       hp: 50,
       maxHp: 100,
       slotPosition: 1,
@@ -175,12 +175,12 @@ describe("resolveHealing", () => {
   it("heal-multiple-healers-same-target", () => {
     const healer1 = createCharacter({
       id: "healer1",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       currentAction: {
         type: "heal",
         skill: createSkill({ id: "heal1", healing: 25, tickCost: 0 }),
-        targetCell: { x: 2, y: 0 },
+        targetCell: { q: 2, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 0,
@@ -188,12 +188,12 @@ describe("resolveHealing", () => {
     });
     const healer2 = createCharacter({
       id: "healer2",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       slotPosition: 1,
       currentAction: {
         type: "heal",
         skill: createSkill({ id: "heal2", healing: 25, tickCost: 0 }),
-        targetCell: { x: 2, y: 0 },
+        targetCell: { q: 2, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 0,
@@ -201,7 +201,7 @@ describe("resolveHealing", () => {
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 2, y: 0 },
+      position: { q: 2, r: 0 },
       hp: 40,
       maxHp: 100,
       slotPosition: 2,
@@ -218,12 +218,12 @@ describe("resolveHealing", () => {
   it("heal-multiple-healers-hp-cap", () => {
     const healer1 = createCharacter({
       id: "healer1",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       currentAction: {
         type: "heal",
         skill: createSkill({ id: "heal1", healing: 25, tickCost: 0 }),
-        targetCell: { x: 2, y: 0 },
+        targetCell: { q: 2, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 0,
@@ -231,12 +231,12 @@ describe("resolveHealing", () => {
     });
     const healer2 = createCharacter({
       id: "healer2",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       slotPosition: 1,
       currentAction: {
         type: "heal",
         skill: createSkill({ id: "heal2", healing: 25, tickCost: 0 }),
-        targetCell: { x: 2, y: 0 },
+        targetCell: { q: 2, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 0,
@@ -244,7 +244,7 @@ describe("resolveHealing", () => {
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 2, y: 0 },
+      position: { q: 2, r: 0 },
       hp: 80,
       maxHp: 100,
       slotPosition: 2,
@@ -262,12 +262,12 @@ describe("resolveHealing", () => {
   it("heal-ignores-non-resolving-actions", () => {
     const healer = createCharacter({
       id: "healer",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       currentAction: {
         type: "heal",
         skill: createSkill({ id: "heal", healing: 25, tickCost: 1 }),
-        targetCell: { x: 1, y: 0 },
+        targetCell: { q: 1, r: 0 },
         targetCharacter: null,
         startedAtTick: 2,
         resolvesAtTick: 3,
@@ -275,7 +275,7 @@ describe("resolveHealing", () => {
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 50,
       maxHp: 100,
       slotPosition: 1,
@@ -292,12 +292,12 @@ describe("resolveHealing", () => {
   it("heal-ignores-attack-actions", () => {
     const attacker = createCharacter({
       id: "attacker",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 0,
       currentAction: {
         type: "attack",
         skill: createSkill({ id: "attack", damage: 25, tickCost: 0 }),
-        targetCell: { x: 1, y: 0 },
+        targetCell: { q: 1, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 0,
@@ -305,7 +305,7 @@ describe("resolveHealing", () => {
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 50,
       maxHp: 100,
       slotPosition: 1,

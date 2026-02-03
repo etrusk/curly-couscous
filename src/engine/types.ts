@@ -10,11 +10,12 @@
 // ============================================================================
 
 /**
- * Position on the 12×12 grid.
+ * Position on the hexagonal grid using axial coordinates.
+ * Hexagon-shaped map with radius 5 (91 total hexes).
  */
 export interface Position {
-  x: number; // 0-11
-  y: number; // 0-11
+  q: number; // Axial coordinate q
+  r: number; // Axial coordinate r
 }
 
 /**
@@ -241,65 +242,29 @@ export interface MovementResult {
 // ============================================================================
 
 /**
- * Directions for 8-directional movement.
- * Includes cardinal directions (north, south, east, west) and diagonal directions.
- */
-export type Direction =
-  | "north"
-  | "south"
-  | "east"
-  | "west"
-  | "northeast"
-  | "northwest"
-  | "southeast"
-  | "southwest";
-
-/**
  * Helper to check if two positions are equal.
  */
 export const positionsEqual = (a: Position, b: Position): boolean =>
-  a.x === b.x && a.y === b.y;
+  a.q === b.q && a.r === b.r;
 
 /**
- * Helper to check if position is within grid bounds (12×12).
+ * Helper to check if position is within hex grid bounds.
+ * Re-exported from hex.ts for convenience.
  */
+import {
+  isValidHex as isValidHexInternal,
+  hexDistance as hexDistanceInternal,
+} from "./hex";
+
 export const isValidPosition = (pos: Position): boolean =>
-  pos.x >= 0 && pos.x < 12 && pos.y >= 0 && pos.y < 12;
+  isValidHexInternal(pos);
 
 /**
- * Helper to calculate Chebyshev distance between positions.
- * Chebyshev distance: 8-directional movement where diagonals cost 1.
- * Used by the game for range calculations per spec Section 2.1.
+ * Helper to calculate hex distance between positions.
+ * Hex distance: uniform cost for all 6 directions.
+ * Re-exported from hex.ts for convenience.
  */
-export const chebyshevDistance = (a: Position, b: Position): number =>
-  Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
-
-/**
- * Helper to get adjacent position in a direction.
- */
-export const getAdjacentPosition = (
-  pos: Position,
-  dir: Direction,
-): Position => {
-  switch (dir) {
-    case "north":
-      return { x: pos.x, y: pos.y - 1 };
-    case "south":
-      return { x: pos.x, y: pos.y + 1 };
-    case "east":
-      return { x: pos.x + 1, y: pos.y };
-    case "west":
-      return { x: pos.x - 1, y: pos.y };
-    case "northeast":
-      return { x: pos.x + 1, y: pos.y - 1 };
-    case "northwest":
-      return { x: pos.x - 1, y: pos.y - 1 };
-    case "southeast":
-      return { x: pos.x + 1, y: pos.y + 1 };
-    case "southwest":
-      return { x: pos.x - 1, y: pos.y + 1 };
-  }
-};
+export const hexDistance = hexDistanceInternal;
 
 // ============================================================================
 // Skill Evaluation Types

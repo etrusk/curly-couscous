@@ -20,7 +20,7 @@ describe("computeDecisions - action type inference", () => {
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [
         createSkill({
           id: "skill1",
@@ -48,7 +48,7 @@ describe("computeDecisions - action type inference", () => {
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [
         createSkill({
           id: "skill1",
@@ -76,7 +76,7 @@ describe("computeDecisions - action type inference", () => {
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [
         createSkill({
           id: "skill1",
@@ -105,7 +105,7 @@ describe("computeDecisions - action type inference", () => {
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [createSkill({ id: "skill1", triggers: [{ type: "always" }] })],
     });
     const state = createGameState({
@@ -129,7 +129,7 @@ describe("computeDecisions - tick resolution for intent visibility", () => {
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [
         createSkill({
           id: "light-punch",
@@ -161,7 +161,7 @@ describe("computeDecisions - tick resolution for intent visibility", () => {
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [
         createSkill({
           id: "heavy-punch",

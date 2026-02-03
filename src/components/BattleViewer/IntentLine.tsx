@@ -4,6 +4,7 @@
  */
 
 import type { Position, Faction } from "../../engine/types";
+import { hexToPixel } from "../../engine/hex";
 
 export interface IntentLineProps {
   from: Position;
@@ -25,10 +26,12 @@ export function IntentLine({
   offset = { x: 0, y: 0 },
 }: IntentLineProps) {
   // Calculate cell center positions with offset
-  const x1 = from.x * cellSize + cellSize / 2 + offset.x;
-  const y1 = from.y * cellSize + cellSize / 2 + offset.y;
-  const x2 = to.x * cellSize + cellSize / 2 + offset.x;
-  const y2 = to.y * cellSize + cellSize / 2 + offset.y;
+  const fromPixel = hexToPixel(from, cellSize);
+  const toPixel = hexToPixel(to, cellSize);
+  const x1 = fromPixel.x + offset.x;
+  const y1 = fromPixel.y + offset.y;
+  const x2 = toPixel.x + offset.x;
+  const y2 = toPixel.y + offset.y;
 
   // Determine line color based on action type (using CSS variables)
   const color = getActionColor(type);

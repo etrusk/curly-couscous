@@ -20,15 +20,15 @@ describe("Movement Fairness and Edge Cases", () => {
       for (let i = 0; i < trials; i++) {
         const moverA = createCharacter({
           id: "moverA",
-          position: { x: 4, y: 5 },
+          position: { q: 1, r: 2 },
           slotPosition: 1,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 2 }, 1),
         });
         const moverB = createCharacter({
           id: "moverB",
-          position: { x: 5, y: 4 },
+          position: { q: 2, r: 1 },
           slotPosition: 2,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 2 }, 1),
         });
 
         const result = resolveMovement([moverA, moverB], 1, initRNG(i));
@@ -52,15 +52,15 @@ describe("Movement Fairness and Edge Cases", () => {
       for (let i = 0; i < trials; i++) {
         const moverA = createCharacter({
           id: "moverA",
-          position: { x: 4, y: 5 },
+          position: { q: 1, r: 2 },
           slotPosition: 99, // High slot position
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 2 }, 1),
         });
         const moverB = createCharacter({
           id: "moverB",
-          position: { x: 5, y: 4 },
+          position: { q: 2, r: 1 },
           slotPosition: 1, // Low slot position
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 2 }, 1),
         });
 
         const result = resolveMovement([moverA, moverB], 1, initRNG(i));
@@ -84,16 +84,16 @@ describe("Movement Fairness and Edge Cases", () => {
         const moverA = createCharacter({
           id: "moverA",
           faction: "friendly",
-          position: { x: 4, y: 5 },
+          position: { q: 1, r: 2 },
           slotPosition: 1,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 2 }, 1),
         });
         const moverB = createCharacter({
           id: "moverB",
           faction: "enemy",
-          position: { x: 5, y: 4 },
+          position: { q: 2, r: 1 },
           slotPosition: 2,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 2 }, 1),
         });
 
         const result = resolveMovement([moverA, moverB], 1, initRNG(i));
@@ -125,9 +125,9 @@ describe("Movement Fairness and Edge Cases", () => {
     it("should not consume RNG when no collisions occur", () => {
       const mover = createCharacter({
         id: "mover",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 6, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 3, r: 2 }, 1),
       });
 
       const initialState = initRNG(1000);
@@ -139,15 +139,15 @@ describe("Movement Fairness and Edge Cases", () => {
     it("should advance RNG when collision occurs", () => {
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const initialState = initRNG(1000);
@@ -159,15 +159,15 @@ describe("Movement Fairness and Edge Cases", () => {
     it("should block mover targeting cell occupied by outgoing mover (snapshot-based)", () => {
       const outgoingMover = createCharacter({
         id: "outgoingMover",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 6, y: 5 }, 1), // Moving away
+        currentAction: createMoveAction({ q: 3, r: 2 }, 1), // Moving away
       });
       const incomingMover = createCharacter({
         id: "incomingMover",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1), // Moving into vacating cell
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1), // Moving into vacating cell
       });
 
       const result = resolveMovement(
@@ -180,12 +180,12 @@ describe("Movement Fairness and Edge Cases", () => {
       expect(
         result.updatedCharacters.find((c) => c.id === "outgoingMover")
           ?.position,
-      ).toEqual({ x: 6, y: 5 });
+      ).toEqual({ q: 3, r: 2 });
       // Incoming mover should be blocked (snapshot-based)
       expect(
         result.updatedCharacters.find((c) => c.id === "incomingMover")
           ?.position,
-      ).toEqual({ x: 4, y: 5 });
+      ).toEqual({ q: 1, r: 2 });
       expect(
         result.events.find((e) => e.characterId === "incomingMover")?.collided,
       ).toBe(true);
@@ -194,21 +194,21 @@ describe("Movement Fairness and Edge Cases", () => {
     it("should prevent chain movement through vacating cells", () => {
       const charA = createCharacter({
         id: "charA",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 6, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 3, r: 2 }, 1),
       });
       const charB = createCharacter({
         id: "charB",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const charC = createCharacter({
         id: "charC",
-        position: { x: 3, y: 5 },
+        position: { q: 0, r: 2 },
         slotPosition: 3,
-        currentAction: createMoveAction({ x: 4, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 1, r: 2 }, 1),
       });
 
       const result = resolveMovement([charA, charB, charC], 1, initRNG(1000));
@@ -216,15 +216,15 @@ describe("Movement Fairness and Edge Cases", () => {
       // A should move (unobstructed at start)
       expect(
         result.updatedCharacters.find((c) => c.id === "charA")?.position,
-      ).toEqual({ x: 6, y: 5 });
+      ).toEqual({ q: 3, r: 2 });
       // B should be blocked by A's start position
       expect(
         result.updatedCharacters.find((c) => c.id === "charB")?.position,
-      ).toEqual({ x: 4, y: 5 });
+      ).toEqual({ q: 1, r: 2 });
       // C should move (B didn't vacate)
       expect(
         result.updatedCharacters.find((c) => c.id === "charC")?.position,
-      ).toEqual({ x: 3, y: 5 });
+      ).toEqual({ q: 0, r: 2 });
     });
 
     it("should preserve all character properties except position", () => {
@@ -232,7 +232,7 @@ describe("Movement Fairness and Edge Cases", () => {
         id: "mover",
         name: "TestMover",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 2 },
         hp: 75,
         maxHp: 100,
         slotPosition: 42,
@@ -246,7 +246,7 @@ describe("Movement Fairness and Edge Cases", () => {
             triggers: [],
           },
         ],
-        currentAction: createMoveAction({ x: 6, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 3, r: 2 }, 1),
       });
 
       const result = resolveMovement([mover], 1, initRNG(1000));
@@ -263,16 +263,16 @@ describe("Movement Fairness and Edge Cases", () => {
     it("should handle hold action correctly (move to current cell)", () => {
       const holder = createCharacter({
         id: "holder",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1), // Hold
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1), // Hold
       });
 
       const result = resolveMovement([holder], 1, initRNG(1000));
 
       expect(
         result.updatedCharacters.find((c) => c.id === "holder")?.position,
-      ).toEqual({ x: 5, y: 5 });
+      ).toEqual({ q: 2, r: 2 });
       // Hold doesn't generate an event (acts as blocker, doesn't move)
       expect(result.events).toHaveLength(0);
     });

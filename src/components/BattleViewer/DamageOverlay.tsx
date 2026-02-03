@@ -6,6 +6,7 @@
 import { useDamageNumbers } from "./hooks/useDamageNumbers";
 import { DamageNumber } from "./DamageNumber";
 import styles from "./DamageOverlay.module.css";
+import { hexToPixel } from "../../engine/hex";
 
 export interface DamageOverlayProps {
   gridWidth: number;
@@ -32,8 +33,9 @@ export function DamageOverlay({
     >
       {damageData.map((data) => {
         // Calculate cell center position
-        const centerX = data.targetPosition.x * cellSize + cellSize / 2;
-        const centerY = data.targetPosition.y * cellSize + cellSize / 2;
+        const pixel = hexToPixel(data.targetPosition, cellSize);
+        const centerX = pixel.x;
+        const centerY = pixel.y;
 
         return (
           <g key={data.targetId}>

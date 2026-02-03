@@ -18,6 +18,7 @@ import {
 } from "../engine/game";
 import { evaluateSelector } from "../engine/selectors";
 import { SKILL_REGISTRY } from "../engine/skill-registry";
+import { generateAllHexes } from "../engine/hex";
 
 // ============================================================================
 // Basic Selectors
@@ -406,7 +407,7 @@ export const selectAllCharacterEvaluations = (() => {
  * Used by CharacterControls to disable add buttons.
  */
 export const selectIsGridFull = (state: GameStore): boolean =>
-  state.gameState.characters.length >= 144;
+  state.gameState.characters.length >= 91;
 
 /**
  * Select current selection mode.
@@ -426,17 +427,15 @@ export const selectClickableCells = (state: GameStore): Set<string> => {
 
   // Build set of occupied positions
   const occupied = new Set(
-    state.gameState.characters.map((c) => `${c.position.x}-${c.position.y}`),
+    state.gameState.characters.map((c) => `${c.position.q}-${c.position.r}`),
   );
 
-  // Return all empty cells (12×12 grid)
+  // Return all empty cells (hex grid with radius 5)
   const clickable = new Set<string>();
-  for (let y = 0; y < 12; y++) {
-    for (let x = 0; x < 12; x++) {
-      const key = `${x}-${y}`;
-      if (!occupied.has(key)) {
-        clickable.add(key);
-      }
+  for (const hex of generateAllHexes()) {
+    const key = `${hex.q}-${hex.r}`;
+    if (!occupied.has(key)) {
+      clickable.add(key);
     }
   }
   return clickable;

@@ -18,13 +18,13 @@ describe("resolveCombat", () => {
     it("should hit target when target is in locked cell", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         slotPosition: 2,
       });
@@ -40,13 +40,13 @@ describe("resolveCombat", () => {
     it("should apply correct damage from skill", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         slotPosition: 2,
       });
@@ -62,13 +62,13 @@ describe("resolveCombat", () => {
     it("should generate DamageEvent on hit", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         slotPosition: 2,
       });
@@ -89,13 +89,13 @@ describe("resolveCombat", () => {
     it("should include correct tick in DamageEvent", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 5),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 5),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         slotPosition: 2,
       });
@@ -110,13 +110,13 @@ describe("resolveCombat", () => {
     it("should handle Heavy Punch damage correctly", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 25, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 25, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         slotPosition: 2,
       });
@@ -137,13 +137,13 @@ describe("resolveCombat", () => {
     it("should miss when no character in target cell", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 2, y: 0 }, // Not in target cell
+        position: { q: 2, r: 0 }, // Not in target cell
         hp: 100,
         slotPosition: 2,
       });
@@ -159,9 +159,9 @@ describe("resolveCombat", () => {
     it("should not generate DamageEvent on miss", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
       });
 
       const result = resolveCombat([attacker], 1);
@@ -173,14 +173,14 @@ describe("resolveCombat", () => {
     it("should not modify any HP on miss", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         hp: 50,
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
       });
       const bystander = createCharacter({
         id: "bystander",
-        position: { x: 3, y: 3 },
+        position: { q: 2, r: 2 },
         hp: 75,
         slotPosition: 2,
       });
@@ -203,19 +203,19 @@ describe("resolveCombat", () => {
     it("should hit different character who moved into target cell", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
       });
       const originalTarget = createCharacter({
         id: "originalTarget",
-        position: { x: 2, y: 0 }, // Moved away from (1,0)
+        position: { q: 2, r: 0 }, // Moved away from (1,0)
         hp: 100,
         slotPosition: 2,
       });
       const bodyBlocker = createCharacter({
         id: "bodyBlocker",
-        position: { x: 1, y: 0 }, // Now in target cell
+        position: { q: 1, r: 0 }, // Now in target cell
         hp: 100,
         slotPosition: 3,
       });
@@ -234,21 +234,21 @@ describe("resolveCombat", () => {
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 5, y: 5 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 2, r: 2 }, null, 10, 1),
       });
       const woundedAlly = createCharacter({
         id: "woundedAlly",
         faction: "friendly",
-        position: { x: 6, y: 5 }, // Moved away from (5,5)
+        position: { q: 3, r: 2 }, // Moved away from (2,2)
         hp: 5,
         slotPosition: 2,
       });
       const heroicAlly = createCharacter({
         id: "heroicAlly",
         faction: "friendly",
-        position: { x: 5, y: 5 }, // Bodyblocking at (5,5)
+        position: { q: 2, r: 2 }, // Bodyblocking at (2,2)
         hp: 100,
         slotPosition: 3,
       });
@@ -266,13 +266,13 @@ describe("resolveCombat", () => {
     it("should generate DamageEvent with actual target hit", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
       });
       const actualTarget = createCharacter({
         id: "actualTarget",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         slotPosition: 2,
       });
@@ -289,10 +289,10 @@ describe("resolveCombat", () => {
     it("should hit self if attacker moves into own target cell", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 3, y: 3 }, // Now at target cell
+        position: { q: 2, r: 2 }, // Now at target cell
         slotPosition: 1,
         hp: 100,
-        currentAction: createAttackAction({ x: 3, y: 3 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 2, r: 2 }, null, 10, 1),
       });
 
       const result = resolveCombat([attacker], 1);

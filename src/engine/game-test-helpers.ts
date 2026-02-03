@@ -32,7 +32,7 @@ export function createCharacter(
     id: overrides.id,
     name: overrides.name ?? `Char-${overrides.id}`,
     faction: overrides.faction ?? "friendly",
-    position: overrides.position ?? { x: 0, y: 0 },
+    position: overrides.position ?? { q: 0, r: 0 },
     hp: overrides.hp ?? 100,
     maxHp: overrides.maxHp ?? 100,
     slotPosition: overrides.slotPosition ?? 0,
@@ -63,7 +63,7 @@ export function createSkill(overrides: Partial<Skill> & { id: string }): Skill {
  * Test helper to create attack actions.
  */
 export function createAttackAction(
-  targetCell: { x: number; y: number },
+  targetCell: { q: number; r: number },
   damage: number,
   resolveTick: number,
 ): Action {
@@ -82,7 +82,7 @@ export function createAttackAction(
  * Test helper to create move actions.
  */
 export function createMoveAction(
-  targetCell: { x: number; y: number },
+  targetCell: { q: number; r: number },
   resolveTick: number,
 ): Action {
   const tickCost = 1;
@@ -100,7 +100,7 @@ export function createMoveAction(
  * Test helper to create heal actions.
  */
 export function createHealAction(
-  targetCell: { x: number; y: number },
+  targetCell: { q: number; r: number },
   healing: number,
   resolveTick: number,
 ): Action {

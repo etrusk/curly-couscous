@@ -15,7 +15,7 @@ describe("computeDecisions - mid-action skip", () => {
   it("should skip characters with currentAction (mid-action)", () => {
     const character = createCharacter({
       id: "char1",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       currentAction: createAttackAction({ x: 6, y: 5 }, 10, 2),
       skills: [
         createSkill({
@@ -40,11 +40,11 @@ describe("computeDecisions - mid-action skip", () => {
       id: "enemy",
       faction: "enemy",
       position: { x: 6, y: 5 },
-      currentAction: createAttackAction({ x: 5, y: 5 }, 10, 2),
+      currentAction: createAttackAction({ q: 3, r: 2 }, 10, 2),
     });
     const character = createCharacter({
       id: "char1",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       currentAction: null,
       skills: [
         createSkill({
@@ -74,7 +74,7 @@ describe("computeDecisions - mid-action skip", () => {
     });
     const midAction = createCharacter({
       id: "mid-action",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       currentAction: createAttackAction({ x: 6, y: 5 }, 10, 2),
       skills: [
         createSkill({

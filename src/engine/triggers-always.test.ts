@@ -12,7 +12,7 @@ describe("evaluateTrigger - always trigger", () => {
   it("should return true for always trigger type", () => {
     const evaluator = createCharacter({
       id: "eval",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const trigger: Trigger = { type: "always" };
 
@@ -25,7 +25,7 @@ describe("evaluateTrigger - always trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       hp: 10, // Low HP
     });
     const enemy = createCharacter({

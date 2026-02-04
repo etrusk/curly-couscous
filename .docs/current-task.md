@@ -10,9 +10,11 @@
 
 ## Current Focus
 
-Hexagonal grid conversion branch finalization -- commit TS error fixes, push, create PR, merge to main.
+Merging feature branches to main.
 
 ## Recent Completions
+
+- 2026-02-04: Hexagonal grid conversion (COMPLETE, merged to main) - All hex tests passing, TS errors fixed, PR merged.
 
 - 2026-02-04: Fix 28 pre-existing TypeScript errors in test files (COMPLETE, TDD/Claude Code) - Fixed `token-visual.test.tsx` (18 missing cx/cy props) and `hex.test.ts` (4 tuple type assertions). All 1048/1048 tests passing. TS errors reduced 141 to 113. ESLint clean. No `@ts-ignore` used. Review approved with 1 minor (hex.test.ts exceeds 400 lines, pre-existing).
 
@@ -24,13 +26,4 @@ Hexagonal grid conversion branch finalization -- commit TS error fixes, push, cr
 
 ## Next Steps
 
-### Hexagonal Grid Conversion - Finalize (branch: feature/hexagonal-grid-conversion)
-
-**Remaining:**
-
-1. Commit TS error fixes + doc updates
-2. Push branch: `git push -u origin feature/hexagonal-grid-conversion`
-
----
-
-Then: Sentence-builder UI for SkillsPanel configuration. Consider splitting hex.test.ts (493 lines) in future cleanup.
+Sentence-builder UI for SkillsPanel configuration. Consider splitting hex.test.ts (493 lines) in future cleanup.

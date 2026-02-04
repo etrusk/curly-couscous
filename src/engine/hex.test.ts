@@ -381,7 +381,12 @@ describe("computeHexViewBox", () => {
     expect(result.height).toBeGreaterThan(0);
 
     // width and height should match the last two numbers in viewBox
-    const [, , vbWidth, vbHeight] = viewBoxParts.map(parseFloat);
+    const [, , vbWidth, vbHeight] = viewBoxParts.map(parseFloat) as [
+      number,
+      number,
+      number,
+      number,
+    ];
     expect(result.width).toBe(vbWidth);
     expect(result.height).toBe(vbHeight);
   });
@@ -394,7 +399,7 @@ describe("computeHexViewBox", () => {
     const [minX, minY, width, height] = result.viewBox
       .trim()
       .split(/\s+/)
-      .map(parseFloat);
+      .map(parseFloat) as [number, number, number, number];
     const maxX = minX + width;
     const maxY = minY + height;
 
@@ -458,7 +463,7 @@ describe("computeHexViewBox", () => {
     const [minX, minY, width, height] = result.viewBox
       .trim()
       .split(/\s+/)
-      .map(parseFloat);
+      .map(parseFloat) as [number, number, number, number];
 
     // All values should be finite
     expect(Number.isFinite(minX)).toBe(true);
@@ -481,7 +486,7 @@ describe("computeHexViewBox", () => {
     const [minX, minY, width, height] = result.viewBox
       .trim()
       .split(/\s+/)
-      .map(parseFloat);
+      .map(parseFloat) as [number, number, number, number];
 
     // Center should be approximately at origin (0, 0)
     const centerX = minX + width / 2;

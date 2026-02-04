@@ -17,6 +17,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={1}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -33,6 +35,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={2}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -53,6 +57,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={1}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -68,6 +74,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={2}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -90,6 +98,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={1}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -107,6 +117,8 @@ describe("Token Visual", () => {
           hp={50}
           maxHp={100}
           slotPosition={1}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -124,6 +136,8 @@ describe("Token Visual", () => {
           hp={0}
           maxHp={100}
           slotPosition={1}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -143,6 +157,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={1}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -159,6 +175,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={2}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -182,6 +200,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={1}
+          cx={0}
+          cy={0}
         />,
       );
       render(
@@ -191,6 +211,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={2}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -218,6 +240,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={1}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -236,6 +260,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={2}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -254,6 +280,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={1}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -272,6 +300,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={1}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -287,6 +317,8 @@ describe("Token Visual", () => {
           hp={75}
           maxHp={100}
           slotPosition={3}
+          cx={0}
+          cy={0}
         />,
       );
 
@@ -304,6 +336,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={1}
+          cx={0}
+          cy={0}
         />,
       );
       const text1 = screen.getByTestId("token-char-1").querySelector("text");
@@ -316,6 +350,8 @@ describe("Token Visual", () => {
           hp={100}
           maxHp={100}
           slotPosition={2}
+          cx={0}
+          cy={0}
         />,
       );
       const text2 = screen.getByTestId("token-char-2").querySelector("text");

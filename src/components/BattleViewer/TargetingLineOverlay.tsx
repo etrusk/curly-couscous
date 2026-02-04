@@ -7,6 +7,7 @@ import { useGameStore, selectMovementTargetData } from "../../stores/gameStore";
 import { useAccessibilityStore } from "../../stores/accessibilityStore";
 import type { MovementTargetData } from "../../stores/gameStore-selectors";
 import { positionsEqual } from "../../engine/types";
+import { hexToPixel } from "../../engine/hex";
 import { TargetingLine } from "./TargetingLine";
 import styles from "./TargetingLineOverlay.module.css";
 
@@ -26,6 +27,7 @@ export interface TargetingLineOverlayProps {
  */
 function detectBidirectionalTargeting(
   targetData: MovementTargetData[],
+  cellSize: number,
 ): Map<string, { x: number; y: number }> {
   const offsets = new Map<string, { x: number; y: number }>();
   const processed = new Set<string>();
@@ -48,10 +50,11 @@ function detectBidirectionalTargeting(
       processed.add(data.fromId);
       processed.add(reverseTarget.fromId);
 
-      // Calculate perpendicular direction using the first character's line direction
-      // Direction vector: (dx, dy) = (toX - fromX, toY - fromY)
-      const dx = data.toPosition.x - data.fromPosition.x;
-      const dy = data.toPosition.y - data.fromPosition.y;
+      // Calculate perpendicular direction using pixel-space vectors
+      const fromPixel = hexToPixel(data.fromPosition, cellSize);
+      const toPixel = hexToPixel(data.toPosition, cellSize);
+      const dx = toPixel.x - fromPixel.x;
+      const dy = toPixel.y - fromPixel.y;
 
       // Perpendicular vector: (-dy, dx)
       // Normalize and scale by 4px
@@ -97,7 +100,7 @@ export function TargetingLineOverlay({
   }
 
   // Detect bidirectional targeting and compute offsets
-  const offsets = detectBidirectionalTargeting(targetData);
+  const offsets = detectBidirectionalTargeting(targetData, cellSize);
 
   const svgWidth = gridWidth * cellSize;
   const svgHeight = gridHeight * cellSize;

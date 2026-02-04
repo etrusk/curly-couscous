@@ -10,6 +10,7 @@ import {
 } from "../../stores/gameStore";
 import type { IntentData } from "../../stores/gameStore-selectors";
 import { positionsEqual } from "../../engine/types";
+import { hexToPixel } from "../../engine/hex";
 import { IntentLine } from "./IntentLine";
 import styles from "./IntentOverlay.module.css";
 
@@ -29,6 +30,7 @@ export interface IntentOverlayProps {
  */
 function detectBidirectionalAttacks(
   intents: IntentData[],
+  cellSize: number,
 ): Map<string, { x: number; y: number }> {
   const offsets = new Map<string, { x: number; y: number }>();
   const processed = new Set<string>();
@@ -51,10 +53,11 @@ function detectBidirectionalAttacks(
       processed.add(intent.characterId);
       processed.add(reverseIntent.characterId);
 
-      // Calculate perpendicular direction using the first character's line direction
-      // Direction vector: (dx, dy) = (targetX - fromX, targetY - fromY)
-      const dx = intent.action.targetCell.x - intent.characterPosition.x;
-      const dy = intent.action.targetCell.y - intent.characterPosition.y;
+      // Calculate perpendicular direction using pixel-space vectors
+      const fromPixel = hexToPixel(intent.characterPosition, cellSize);
+      const toPixel = hexToPixel(intent.action.targetCell, cellSize);
+      const dx = toPixel.x - fromPixel.x;
+      const dy = toPixel.y - fromPixel.y;
 
       // Perpendicular vector: (-dy, dx)
       // Normalize and scale by 4px
@@ -100,7 +103,7 @@ export function IntentOverlay({
   void characters.length;
 
   // Detect bidirectional attacks and compute offsets
-  const offsets = detectBidirectionalAttacks(intents);
+  const offsets = detectBidirectionalAttacks(intents, cellSize);
 
   const svgWidth = gridWidth * cellSize;
   const svgHeight = gridHeight * cellSize;

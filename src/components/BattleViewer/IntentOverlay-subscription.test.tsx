@@ -35,7 +35,7 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add first character (friendly at 0,0)
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
 
     // Still no lines (1 character, needs target)
     await waitFor(() => {
@@ -46,7 +46,7 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add second character (enemy at 1,0, adjacent)
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 1, y: 0 });
+      .actions.addCharacterAtPosition("enemy", { q: 1, r: 0 });
 
     // Should now have 4 lines (2 characters x 2 lines each for bidirectional attack)
     await waitFor(() => {
@@ -85,12 +85,12 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add friendly at (0,0)
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
 
     // Add enemy far apart at (10,10) - out of attack range
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 10, y: 10 });
+      .actions.addCharacterAtPosition("enemy", { q: 4, r: 0 });
 
     // Should have 4 lines (2 characters x 2 lines each for movement intents)
     await waitFor(() => {
@@ -132,12 +132,12 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add friendly at (0,0) - store action
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
 
     // Add enemy at (1,0) - store action
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 1, y: 0 });
+      .actions.addCharacterAtPosition("enemy", { q: 1, r: 0 });
 
     // Final state: should have 4 lines WITHOUT explicit rerender
     await waitFor(() => {
@@ -157,7 +157,7 @@ describe("IntentOverlay - Subscription Behavior", () => {
     const attackAction1 = {
       type: "attack" as const,
       skill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -165,7 +165,7 @@ describe("IntentOverlay - Subscription Behavior", () => {
     const attackAction2 = {
       type: "attack" as const,
       skill,
-      targetCell: { x: 0, y: 0 },
+      targetCell: { q: 0, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -173,13 +173,13 @@ describe("IntentOverlay - Subscription Behavior", () => {
     const char1 = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: attackAction1,
     });
     const char2 = createCharacter({
       id: "char2",
       faction: "enemy",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       currentAction: attackAction2,
     });
 
@@ -207,7 +207,7 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add single character
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
 
     // No lines (no valid target)
     const lines = container.querySelectorAll("line");
@@ -220,10 +220,10 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add friendly at (0,0) and enemy at (1,0) - adjacent
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 1, y: 0 });
+      .actions.addCharacterAtPosition("enemy", { q: 1, r: 0 });
 
     // Should have 4 attack lines (bidirectional attack)
     await waitFor(() => {
@@ -234,7 +234,7 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add second friendly at (5,5) - far from both
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 5, y: 5 });
+      .actions.addCharacterAtPosition("friendly", { q: 3, r: 1 });
 
     // Should now have 6 lines total (4 for attack pair + 2 for movement)
     await waitFor(() => {
@@ -249,10 +249,10 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add friendly and enemy adjacent
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 1, y: 0 });
+      .actions.addCharacterAtPosition("enemy", { q: 1, r: 0 });
 
     // Should have 4 lines
     await waitFor(() => {

@@ -170,7 +170,9 @@ describe("CharacterTooltip - Content Rendering", () => {
     const { actions } = useGameStore.getState();
     actions.initBattle([character, target]);
     // Set game tick to 1 (mid-action)
-    useGameStore.setState({ currentTick: 1 });
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     const anchorRect = createMockRect();
 

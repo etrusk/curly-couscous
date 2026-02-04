@@ -63,16 +63,18 @@ describe("addCharacter", () => {
     expect(ids.includes("char-1")).toBe(true);
   });
 
-  it("should assign valid position within 12x12 grid (0-11)", () => {
+  it("should assign valid position within hex grid (radius 5)", () => {
     useGameStore.getState().actions.initBattle([]);
 
     useGameStore.getState().actions.addCharacter("friendly");
 
     const character = useGameStore.getState().gameState.characters[0];
-    expect(character?.position.x).toBeGreaterThanOrEqual(0);
-    expect(character?.position.x).toBeLessThanOrEqual(11);
-    expect(character?.position.y).toBeGreaterThanOrEqual(0);
-    expect(character?.position.y).toBeLessThanOrEqual(11);
+    const { q, r } = character!.position;
+
+    // Valid hex coordinates satisfy: max(|q|, |r|, |q+r|) <= 5
+    expect(Math.abs(q)).toBeLessThanOrEqual(5);
+    expect(Math.abs(r)).toBeLessThanOrEqual(5);
+    expect(Math.abs(q + r)).toBeLessThanOrEqual(5);
   });
 
   it("should not place character on occupied cell", () => {
@@ -85,7 +87,7 @@ describe("addCharacter", () => {
     const pos1 = characters[0]!.position;
     const pos2 = characters[1]!.position;
 
-    const samePosition = pos1.x === pos2.x && pos1.y === pos2.y;
+    const samePosition = pos1.q === pos2.q && pos1.r === pos2.r;
     expect(samePosition).toBe(false);
   });
 
@@ -174,11 +176,11 @@ describe("addCharacter", () => {
     expect(result).toBe(true);
   });
 
-  it("should return false when grid is completely full (144 characters)", () => {
+  it("should return false when grid is completely full (91 hexes)", () => {
     useGameStore.getState().actions.initBattle([]);
 
-    // Fill the grid with 144 characters (12x12)
-    for (let i = 0; i < 144; i++) {
+    // Fill the hex grid with 91 characters (radius 5)
+    for (let i = 0; i < 91; i++) {
       useGameStore
         .getState()
         .actions.addCharacter(i % 2 === 0 ? "friendly" : "enemy");
@@ -192,8 +194,8 @@ describe("addCharacter", () => {
   it("should not add character when grid is full", () => {
     useGameStore.getState().actions.initBattle([]);
 
-    // Fill the grid with 144 characters
-    for (let i = 0; i < 144; i++) {
+    // Fill the hex grid with 91 characters
+    for (let i = 0; i < 91; i++) {
       useGameStore
         .getState()
         .actions.addCharacter(i % 2 === 0 ? "friendly" : "enemy");
@@ -204,7 +206,7 @@ describe("addCharacter", () => {
     const afterCount = useGameStore.getState().gameState.characters.length;
 
     expect(afterCount).toBe(beforeCount);
-    expect(afterCount).toBe(144);
+    expect(afterCount).toBe(91);
   });
 });
 
@@ -324,12 +326,12 @@ describe("removeCharacter", () => {
     const char1 = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [createSkill({ id: "skill1", damage: 10, range: 1 })],
       currentAction: {
         type: "attack",
         skill: createSkill({ id: "skill1" }),
-        targetCell: { x: 1, y: 0 },
+        targetCell: { q: 1, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 1,
@@ -362,11 +364,11 @@ describe("selectIsGridFull", () => {
     expect(isFull).toBe(false);
   });
 
-  it("should return true when grid has 144 characters", () => {
+  it("should return true when grid has 91 hexes filled", () => {
     useGameStore.getState().actions.initBattle([]);
 
-    // Fill the grid with 144 characters
-    for (let i = 0; i < 144; i++) {
+    // Fill the hex grid with 91 characters
+    for (let i = 0; i < 91; i++) {
       useGameStore
         .getState()
         .actions.addCharacter(i % 2 === 0 ? "friendly" : "enemy");

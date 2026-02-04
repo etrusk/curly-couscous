@@ -29,7 +29,7 @@ describe("IntentOverlay - Directional Offset", () => {
     const actionAtoB = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 4, y: 2 },
+      targetCell: { q: 3, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -37,7 +37,7 @@ describe("IntentOverlay - Directional Offset", () => {
     const actionBtoA = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 0, y: 2 },
+      targetCell: { q: 0, r: 2 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -45,13 +45,13 @@ describe("IntentOverlay - Directional Offset", () => {
     const charA = createCharacter({
       id: "char-a",
       faction: "friendly",
-      position: { x: 0, y: 2 },
+      position: { q: 0, r: 2 },
       currentAction: actionAtoB,
     });
     const charB = createCharacter({
       id: "char-b",
       faction: "enemy",
-      position: { x: 4, y: 2 },
+      position: { q: 3, r: 0 },
       currentAction: actionBtoA,
     });
     useGameStore.getState().actions.initBattle([charA, charB]);
@@ -61,14 +61,12 @@ describe("IntentOverlay - Directional Offset", () => {
     const lines = container.querySelectorAll("line");
     expect(lines).toHaveLength(4); // outline + main for both
 
-    // For horizontal line, offset should be in Y direction only
-    // Cell centers: (0,2) -> (20, 100), (4,2) -> (180, 100) with cellSize=40
-    // Expected: char-a gets -4px Y offset, char-b gets +4px Y offset
+    // For horizontal hex line, offset should be perpendicular
+    // Hex cells: {q:0,r:2} and {q:3,r:0} are roughly horizontal
     const lineA = lines[1]; // Main line for char-a
     const lineB = lines[3]; // Main line for char-b
 
-    // char-a should have Y values offset by -4 from center (96 instead of 100)
-    // char-b should have Y values offset by +4 from center (104 instead of 100)
+    // Lines should have perpendicular offset applied (will differ in position)
     const aY1 = Number(lineA?.getAttribute("y1"));
     const aY2 = Number(lineA?.getAttribute("y2"));
     const bY1 = Number(lineB?.getAttribute("y1"));
@@ -89,7 +87,7 @@ describe("IntentOverlay - Directional Offset", () => {
     const actionAtoB = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 2, y: 4 },
+      targetCell: { q: 2, r: 3 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -97,7 +95,7 @@ describe("IntentOverlay - Directional Offset", () => {
     const actionBtoA = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 2, y: 0 },
+      targetCell: { q: 2, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -105,13 +103,13 @@ describe("IntentOverlay - Directional Offset", () => {
     const charA = createCharacter({
       id: "char-a",
       faction: "friendly",
-      position: { x: 2, y: 0 },
+      position: { q: 2, r: 0 },
       currentAction: actionAtoB,
     });
     const charB = createCharacter({
       id: "char-b",
       faction: "enemy",
-      position: { x: 2, y: 4 },
+      position: { q: 2, r: 3 },
       currentAction: actionBtoA,
     });
     useGameStore.getState().actions.initBattle([charA, charB]);
@@ -145,7 +143,7 @@ describe("IntentOverlay - Directional Offset", () => {
     const actionAtoB = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 3, y: 3 },
+      targetCell: { q: 2, r: 1 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -153,7 +151,7 @@ describe("IntentOverlay - Directional Offset", () => {
     const actionBtoA = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 0, y: 0 },
+      targetCell: { q: 0, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -161,13 +159,13 @@ describe("IntentOverlay - Directional Offset", () => {
     const charA = createCharacter({
       id: "char-a",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: actionAtoB,
     });
     const charB = createCharacter({
       id: "char-b",
       faction: "enemy",
-      position: { x: 3, y: 3 },
+      position: { q: 2, r: 1 },
       currentAction: actionBtoA,
     });
     useGameStore.getState().actions.initBattle([charA, charB]);

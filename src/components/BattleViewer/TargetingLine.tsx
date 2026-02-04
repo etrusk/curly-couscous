@@ -4,6 +4,7 @@
  */
 
 import type { Position } from "../../engine/types";
+import { hexToPixel } from "../../engine/hex";
 import styles from "./TargetingLine.module.css";
 
 export interface TargetingLineProps {
@@ -20,10 +21,12 @@ export function TargetingLine({
   offset = { x: 0, y: 0 },
 }: TargetingLineProps) {
   // Calculate cell center positions with offset
-  const x1 = from.x * cellSize + cellSize / 2 + offset.x;
-  const y1 = from.y * cellSize + cellSize / 2 + offset.y;
-  const x2 = to.x * cellSize + cellSize / 2 + offset.x;
-  const y2 = to.y * cellSize + cellSize / 2 + offset.y;
+  const fromPixel = hexToPixel(from, cellSize);
+  const toPixel = hexToPixel(to, cellSize);
+  const x1 = fromPixel.x + offset.x;
+  const y1 = fromPixel.y + offset.y;
+  const x2 = toPixel.x + offset.x;
+  const y2 = toPixel.y + offset.y;
 
   return (
     <g className={styles.targetingLine} opacity="0.4">

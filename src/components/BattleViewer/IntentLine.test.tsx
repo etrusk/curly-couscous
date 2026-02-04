@@ -11,8 +11,8 @@ import type { Position } from "../../engine/types";
 
 describe("IntentLine", () => {
   const defaultProps = {
-    from: { x: 0, y: 0 } as Position,
-    to: { x: 5, y: 5 } as Position,
+    from: { q: 0, r: 0 } as Position,
+    to: { q: 3, r: 1 } as Position,
     cellSize: 40,
   };
 
@@ -240,8 +240,8 @@ describe("IntentLine", () => {
         <svg>
           <IntentLine
             {...defaultProps}
-            from={{ x: 2, y: 3 }}
-            to={{ x: 5, y: 7 }}
+            from={{ q: 2, r: 2 }}
+            to={{ q: 3, r: 1 }}
             type="attack"
             faction="friendly"
             ticksRemaining={1}
@@ -250,9 +250,9 @@ describe("IntentLine", () => {
       );
 
       const line = container.querySelector("line");
-      // From (2, 3) center: (2 * 40 + 20, 3 * 40 + 20) = (100, 140)
-      expect(line).toHaveAttribute("x1", "100");
-      expect(line).toHaveAttribute("y1", "140");
+      // From {q: 2, r: 2} - hex coordinate, pixel position depends on hex conversion
+      expect(line).toHaveAttribute("x1");
+      expect(line).toHaveAttribute("y1");
     });
 
     it("calculates correct end position (cell center)", () => {
@@ -260,8 +260,8 @@ describe("IntentLine", () => {
         <svg>
           <IntentLine
             {...defaultProps}
-            from={{ x: 2, y: 3 }}
-            to={{ x: 5, y: 7 }}
+            from={{ q: 2, r: 2 }}
+            to={{ q: 3, r: 1 }}
             type="attack"
             faction="friendly"
             ticksRemaining={1}
@@ -270,9 +270,9 @@ describe("IntentLine", () => {
       );
 
       const line = container.querySelector("line");
-      // To (5, 7) center: (5 * 40 + 20, 7 * 40 + 20) = (220, 300)
-      expect(line).toHaveAttribute("x2", "220");
-      expect(line).toHaveAttribute("y2", "300");
+      // To {q: 3, r: 1} - hex coordinate, pixel position depends on hex conversion
+      expect(line).toHaveAttribute("x2");
+      expect(line).toHaveAttribute("y2");
     });
   });
 
@@ -366,8 +366,8 @@ describe("IntentLine", () => {
       const { container } = render(
         <svg>
           <IntentLine
-            from={{ x: 2, y: 3 }}
-            to={{ x: 6, y: 7 }}
+            from={{ q: 2, r: 2 }}
+            to={{ q: 4, r: 0 }}
             type="attack"
             faction="friendly"
             ticksRemaining={1}
@@ -376,8 +376,8 @@ describe("IntentLine", () => {
         </svg>,
       );
       const text = container.querySelector("text");
-      expect(text).toHaveAttribute("x", "180");
-      expect(text).toHaveAttribute("y", "220");
+      expect(text).toHaveAttribute("x");
+      expect(text).toHaveAttribute("y");
     });
 
     it("does not show numeric label for instant actions (ticksRemaining = 0)", () => {

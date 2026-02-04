@@ -30,7 +30,7 @@ function createIdleAction(): Action {
       enabled: true,
       triggers: [],
     },
-    targetCell: { x: 0, y: 0 },
+    targetCell: { q: 0, r: 0 },
     targetCharacter: null,
     startedAtTick: 0,
     resolvesAtTick: 1,
@@ -51,7 +51,7 @@ describe("RuleEvaluations - Action Summary", () => {
       const action = createAttackAction(
         "light-punch",
         "Light Punch",
-        { x: 1, y: 0 },
+        { q: 1, r: 0 },
         createTarget(),
         0,
         1,
@@ -81,7 +81,7 @@ describe("RuleEvaluations - Action Summary", () => {
         "move",
         "Move",
         "towards",
-        { x: 1, y: 0 },
+        { q: 1, r: 0 },
         0,
         0,
       );
@@ -135,7 +135,7 @@ describe("RuleEvaluations - Action Summary", () => {
   describe("Collapsed Header", () => {
     it("should display action summary in multi-character view", () => {
       const target = createTarget();
-      target.position = { x: 1, y: 0 }; // Within range 1
+      target.position = { q: 1, r: 0 }; // Within range 1
 
       const character = createCharacter({ currentAction: null });
       const { actions } = useGameStore.getState();
@@ -252,13 +252,13 @@ describe("RuleEvaluations - Action Summary", () => {
       ];
 
       const enemy = createTarget();
-      enemy.position = { x: 2, y: 0 }; // Range 2
+      enemy.position = { q: 2, r: 0 }; // Range 2
 
       const character = createCharacter({
         skills: customSkills,
         currentAction: null,
       });
-      character.position = { x: 0, y: 0 };
+      character.position = { q: 0, r: 0 };
 
       const { actions } = useGameStore.getState();
       actions.initBattle([character, enemy]);
@@ -297,7 +297,7 @@ describe("RuleEvaluations - Action Summary", () => {
       const user = userEvent.setup();
 
       const target = createTarget();
-      target.position = { x: 1, y: 0 };
+      target.position = { q: 1, r: 0 };
 
       const character = createCharacter({ currentAction: null });
       const { actions } = useGameStore.getState();
@@ -507,7 +507,7 @@ describe("RuleEvaluations - Action Summary", () => {
       const user = userEvent.setup();
 
       const enemy = createTarget();
-      enemy.position = { x: 5, y: 0 }; // Far away (distance = 5)
+      enemy.position = { q: 5, r: 0 }; // Far away (distance = 5)
 
       const customSkills: Skill[] = [
         {
@@ -526,7 +526,7 @@ describe("RuleEvaluations - Action Summary", () => {
         skills: customSkills,
         currentAction: null,
       });
-      character.position = { x: 0, y: 0 };
+      character.position = { q: 0, r: 0 };
 
       const { actions } = useGameStore.getState();
       actions.initBattle([character, enemy]);
@@ -621,7 +621,7 @@ describe("RuleEvaluations - Action Summary", () => {
       const user = userEvent.setup();
 
       const target = createTarget();
-      target.position = { x: 1, y: 0 };
+      target.position = { q: 1, r: 0 };
 
       const character = createCharacter({ currentAction: null });
       const { actions } = useGameStore.getState();
@@ -684,7 +684,7 @@ describe("RuleEvaluations - Action Summary", () => {
   describe("Accessibility", () => {
     it("should make action summary readable by screen readers", () => {
       const target = createTarget();
-      target.position = { x: 1, y: 0 };
+      target.position = { q: 1, r: 0 };
 
       const character = createCharacter({ currentAction: null });
       const { actions } = useGameStore.getState();

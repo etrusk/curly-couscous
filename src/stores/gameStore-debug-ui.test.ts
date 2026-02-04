@@ -78,13 +78,13 @@ describe("addCharacterAtPosition", () => {
   it("addCharacterAtPosition should place character at specified position", () => {
     const result = useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 5, y: 7 });
+      .actions.addCharacterAtPosition("friendly", { q: 2, r: 3 });
 
     expect(result).toBe(true);
 
     const characters = useGameStore.getState().gameState.characters;
     expect(characters).toHaveLength(1);
-    expect(characters[0]?.position).toEqual({ x: 5, y: 7 });
+    expect(characters[0]?.position).toEqual({ q: 2, r: 3 });
     expect(characters[0]?.faction).toBe("friendly");
   });
 
@@ -92,12 +92,12 @@ describe("addCharacterAtPosition", () => {
     // Place first character
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 3, y: 4 });
+      .actions.addCharacterAtPosition("friendly", { q: 1, r: 1 });
 
     // Try to place second character at same position
     const result = useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 3, y: 4 });
+      .actions.addCharacterAtPosition("enemy", { q: 1, r: 1 });
 
     expect(result).toBe(false);
     expect(useGameStore.getState().gameState.characters).toHaveLength(1);
@@ -105,11 +105,11 @@ describe("addCharacterAtPosition", () => {
 
   it("addCharacterAtPosition should return false if position is out of bounds", () => {
     const outOfBoundsPositions = [
-      { x: -1, y: 5 },
-      { x: 5, y: -1 },
-      { x: 12, y: 5 },
-      { x: 5, y: 12 },
-      { x: 15, y: 15 },
+      { q: -6, r: 0 }, // |q| > 5
+      { q: 0, r: -6 }, // |r| > 5
+      { q: 6, r: 0 }, // |q| > 5
+      { q: 0, r: 6 }, // |r| > 5
+      { q: 3, r: 3 }, // |q+r| = 6 > 5
     ];
 
     outOfBoundsPositions.forEach((position) => {
@@ -126,7 +126,7 @@ describe("addCharacterAtPosition", () => {
   it("addCharacterAtPosition should update initialCharacters for reset support", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 2, y: 3 });
+      .actions.addCharacterAtPosition("friendly", { q: 2, r: 3 });
 
     const charId = useGameStore.getState().gameState.characters[0]!.id;
 
@@ -138,19 +138,19 @@ describe("addCharacterAtPosition", () => {
     useGameStore.getState().actions.reset();
     const restoredChar = useGameStore.getState().gameState.characters[0];
     expect(restoredChar?.hp).toBe(100);
-    expect(restoredChar?.position).toEqual({ x: 2, y: 3 });
+    expect(restoredChar?.position).toEqual({ q: 2, r: 3 });
   });
 
   it("addCharacterAtPosition should assign correct slotPosition", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 1, y: 1 });
+      .actions.addCharacterAtPosition("enemy", { q: 1, r: 1 });
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 2, y: 2 });
+      .actions.addCharacterAtPosition("friendly", { q: 2, r: 2 });
 
     const characters = useGameStore.getState().gameState.characters;
     expect(characters[0]?.slotPosition).toBe(1);
@@ -161,7 +161,7 @@ describe("addCharacterAtPosition", () => {
   it("addCharacterAtPosition should create character with only innate skills", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 5, y: 5 });
+      .actions.addCharacterAtPosition("friendly", { q: 2, r: 2 });
 
     const character = useGameStore.getState().gameState.characters[0];
     // Characters now start with only innate skills
@@ -180,7 +180,7 @@ describe("addCharacterAtPosition", () => {
   it("addCharacterAtPosition should create character with 100 HP", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 6, y: 8 });
+      .actions.addCharacterAtPosition("friendly", { q: 3, r: 1 });
 
     const character = useGameStore.getState().gameState.characters[0];
     expect(character?.hp).toBe(100);
@@ -197,52 +197,52 @@ describe("moveCharacter", () => {
   it("moveCharacter should relocate character to new position", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 2, y: 3 });
+      .actions.addCharacterAtPosition("friendly", { q: 2, r: 3 });
     const charId = useGameStore.getState().gameState.characters[0]!.id;
 
     const result = useGameStore
       .getState()
-      .actions.moveCharacter(charId, { x: 7, y: 8 });
+      .actions.moveCharacter(charId, { q: 3, r: 2 });
 
     expect(result).toBe(true);
 
     const character = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === charId);
-    expect(character?.position).toEqual({ x: 7, y: 8 });
+    expect(character?.position).toEqual({ q: 3, r: 2 });
   });
 
   it("moveCharacter should return false if target position is occupied", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 2, y: 3 });
+      .actions.addCharacterAtPosition("friendly", { q: 2, r: 3 });
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 5, y: 5 });
+      .actions.addCharacterAtPosition("enemy", { q: 2, r: 2 });
 
     const charId = useGameStore.getState().gameState.characters[0]!.id;
 
     // Try to move to occupied position
     const result = useGameStore
       .getState()
-      .actions.moveCharacter(charId, { x: 5, y: 5 });
+      .actions.moveCharacter(charId, { q: 2, r: 2 });
 
     expect(result).toBe(false);
 
     const character = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === charId);
-    expect(character?.position).toEqual({ x: 2, y: 3 }); // Should not have moved
+    expect(character?.position).toEqual({ q: 2, r: 3 }); // Should not have moved
   });
 
   it("moveCharacter should return false if character not found", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 2, y: 3 });
+      .actions.addCharacterAtPosition("friendly", { q: 2, r: 3 });
 
     const result = useGameStore
       .getState()
-      .actions.moveCharacter("non-existent-id", { x: 5, y: 5 });
+      .actions.moveCharacter("non-existent-id", { q: 2, r: 2 });
 
     expect(result).toBe(false);
   });
@@ -250,14 +250,14 @@ describe("moveCharacter", () => {
   it("moveCharacter should return false if position is out of bounds", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 2, y: 3 });
+      .actions.addCharacterAtPosition("friendly", { q: 2, r: 3 });
     const charId = useGameStore.getState().gameState.characters[0]!.id;
 
     const outOfBoundsPositions = [
-      { x: -1, y: 5 },
-      { x: 5, y: -1 },
-      { x: 12, y: 5 },
-      { x: 5, y: 12 },
+      { q: -6, r: 0 }, // |q| = 6 > 5
+      { q: 0, r: -6 }, // |r| = 6 > 5
+      { q: 6, r: 0 }, // |q| = 6 > 5
+      { q: 0, r: 6 }, // |r| = 6 > 5
     ];
 
     outOfBoundsPositions.forEach((position) => {
@@ -271,16 +271,16 @@ describe("moveCharacter", () => {
     const character = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === charId);
-    expect(character?.position).toEqual({ x: 2, y: 3 }); // Should not have moved
+    expect(character?.position).toEqual({ q: 2, r: 3 }); // Should not have moved
   });
 
   it("moveCharacter should update both gameState and initialCharacters", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 2, y: 3 });
+      .actions.addCharacterAtPosition("friendly", { q: 2, r: 3 });
     const charId = useGameStore.getState().gameState.characters[0]!.id;
 
-    useGameStore.getState().actions.moveCharacter(charId, { x: 7, y: 8 });
+    useGameStore.getState().actions.moveCharacter(charId, { q: 3, r: 2 });
 
     // Reset should restore to new moved position
     useGameStore.getState().actions.reset();
@@ -288,19 +288,19 @@ describe("moveCharacter", () => {
     const character = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === charId);
-    expect(character?.position).toEqual({ x: 7, y: 8 });
+    expect(character?.position).toEqual({ q: 3, r: 2 });
   });
 
   it("moveCharacter should preserve all other character properties", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 2, y: 3 });
+      .actions.addCharacterAtPosition("friendly", { q: 2, r: 3 });
     const charId = useGameStore.getState().gameState.characters[0]!.id;
     const originalChar = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === charId)!;
 
-    useGameStore.getState().actions.moveCharacter(charId, { x: 7, y: 8 });
+    useGameStore.getState().actions.moveCharacter(charId, { q: 3, r: 2 });
 
     const movedChar = useGameStore
       .getState()
@@ -335,52 +335,52 @@ describe("selectClickableCells", () => {
   it("selectClickableCells should return all empty cells in placing-friendly mode", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 5, y: 5 });
+      .actions.addCharacterAtPosition("friendly", { q: 2, r: 2 });
     useGameStore.getState().actions.setSelectionMode("placing-friendly");
 
     const clickableCells = selectClickableCells(useGameStore.getState());
 
-    // Should have 143 empty cells (144 - 1 occupied)
-    expect(clickableCells.size).toBe(143);
-    expect(clickableCells.has("5-5")).toBe(false); // Occupied cell not clickable
+    // Should have 90 empty cells (91 - 1 occupied)
+    expect(clickableCells.size).toBe(90);
+    expect(clickableCells.has("2-2")).toBe(false); // Occupied cell not clickable
     expect(clickableCells.has("0-0")).toBe(true); // Empty cell clickable
-    expect(clickableCells.has("11-11")).toBe(true); // Empty cell clickable
+    expect(clickableCells.has("5--5")).toBe(true); // Empty cell clickable at edge
   });
 
   it("selectClickableCells should return all empty cells in moving mode", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 3, y: 4 });
+      .actions.addCharacterAtPosition("friendly", { q: 3, r: 1 });
     useGameStore.getState().actions.setSelectionMode("moving");
 
     const clickableCells = selectClickableCells(useGameStore.getState());
 
-    // Should have 143 empty cells
-    expect(clickableCells.size).toBe(143);
-    expect(clickableCells.has("3-4")).toBe(false); // Occupied cell not clickable
+    // Should have 90 empty cells
+    expect(clickableCells.size).toBe(90);
+    expect(clickableCells.has("3-1")).toBe(false); // Occupied cell not clickable
     expect(clickableCells.has("2-2")).toBe(true); // Empty cell clickable
   });
 
   it("selectClickableCells should exclude occupied positions", () => {
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 5, y: 5 });
+      .actions.addCharacterAtPosition("enemy", { q: 2, r: 2 });
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 11, y: 11 });
+      .actions.addCharacterAtPosition("friendly", { q: 4, r: 1 });
 
     useGameStore.getState().actions.setSelectionMode("placing-friendly");
 
     const clickableCells = selectClickableCells(useGameStore.getState());
 
-    // Should have 141 empty cells (144 - 3 occupied)
-    expect(clickableCells.size).toBe(141);
+    // Should have 88 empty cells (91 - 3 occupied)
+    expect(clickableCells.size).toBe(88);
     expect(clickableCells.has("0-0")).toBe(false);
-    expect(clickableCells.has("5-5")).toBe(false);
-    expect(clickableCells.has("11-11")).toBe(false);
-    expect(clickableCells.has("6-6")).toBe(true); // Empty cell clickable
+    expect(clickableCells.has("2-2")).toBe(false);
+    expect(clickableCells.has("4-1")).toBe(false);
+    expect(clickableCells.has("1-1")).toBe(true); // Empty cell clickable
   });
 });

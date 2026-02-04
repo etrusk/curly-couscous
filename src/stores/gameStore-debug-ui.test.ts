@@ -342,9 +342,9 @@ describe("selectClickableCells", () => {
 
     // Should have 90 empty cells (91 - 1 occupied)
     expect(clickableCells.size).toBe(90);
-    expect(clickableCells.has("2-2")).toBe(false); // Occupied cell not clickable
-    expect(clickableCells.has("0-0")).toBe(true); // Empty cell clickable
-    expect(clickableCells.has("5--5")).toBe(true); // Empty cell clickable at edge
+    expect(clickableCells.has("2,2")).toBe(false); // Occupied cell not clickable
+    expect(clickableCells.has("0,0")).toBe(true); // Empty cell clickable
+    expect(clickableCells.has("5,-5")).toBe(true); // Empty cell clickable at edge
   });
 
   it("selectClickableCells should return all empty cells in moving mode", () => {
@@ -357,8 +357,8 @@ describe("selectClickableCells", () => {
 
     // Should have 90 empty cells
     expect(clickableCells.size).toBe(90);
-    expect(clickableCells.has("3-1")).toBe(false); // Occupied cell not clickable
-    expect(clickableCells.has("2-2")).toBe(true); // Empty cell clickable
+    expect(clickableCells.has("3,1")).toBe(false); // Occupied cell not clickable
+    expect(clickableCells.has("2,2")).toBe(true); // Empty cell clickable
   });
 
   it("selectClickableCells should exclude occupied positions", () => {
@@ -378,9 +378,9 @@ describe("selectClickableCells", () => {
 
     // Should have 88 empty cells (91 - 3 occupied)
     expect(clickableCells.size).toBe(88);
-    expect(clickableCells.has("0-0")).toBe(false);
-    expect(clickableCells.has("2-2")).toBe(false);
-    expect(clickableCells.has("4-1")).toBe(false);
-    expect(clickableCells.has("1-1")).toBe(true); // Empty cell clickable
+    expect(clickableCells.has("0,0")).toBe(false);
+    expect(clickableCells.has("2,2")).toBe(false);
+    expect(clickableCells.has("4,1")).toBe(false);
+    expect(clickableCells.has("1,1")).toBe(true); // Empty cell clickable
   });
 });

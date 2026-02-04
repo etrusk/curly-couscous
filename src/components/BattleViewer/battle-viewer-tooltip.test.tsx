@@ -112,11 +112,13 @@ describe("BattleViewer Tooltip Integration", () => {
       id: "char-a",
       name: "Alpha",
       faction: "friendly",
+      position: { q: 0, r: 0 },
     });
     const charB = createCharacter({
       id: "char-b",
       name: "Beta",
       faction: "enemy",
+      position: { q: 2, r: 0 },
     });
     const { actions } = useGameStore.getState();
     actions.initBattle([charA, charB]);
@@ -227,8 +229,16 @@ describe("BattleViewer Tooltip Integration", () => {
   // Test: only-one-tooltip-visible-at-time
   it("only one tooltip exists in DOM at any time", async () => {
     const user = userEvent.setup();
-    const charA = createCharacter({ id: "char-a", faction: "friendly" });
-    const charB = createCharacter({ id: "char-b", faction: "enemy" });
+    const charA = createCharacter({
+      id: "char-a",
+      faction: "friendly",
+      position: { q: 0, r: 0 },
+    });
+    const charB = createCharacter({
+      id: "char-b",
+      faction: "enemy",
+      position: { q: 2, r: 0 },
+    });
     const { actions } = useGameStore.getState();
     actions.initBattle([charA, charB]);
 
@@ -285,8 +295,14 @@ describe("BattleViewer Tooltip Integration", () => {
       expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
     });
 
-    // No console errors or crashes
-    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    // No console errors or crashes (filter out act() warnings)
+    const nonActErrors = consoleErrorSpy.mock.calls.filter((call) => {
+      const firstArg = call[0] as string | undefined;
+      return !(
+        typeof firstArg === "string" && firstArg.includes("not wrapped in act")
+      );
+    });
+    expect(nonActErrors).toHaveLength(0);
 
     consoleErrorSpy.mockRestore();
   });

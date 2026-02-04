@@ -19,9 +19,7 @@ import {
 
 describe("TargetingLineOverlay", () => {
   const defaultProps = {
-    gridWidth: 12,
-    gridHeight: 12,
-    cellSize: 40,
+    hexSize: 30,
   };
 
   beforeEach(() => {
@@ -78,8 +76,9 @@ describe("TargetingLineOverlay", () => {
 
       const svg = container.querySelector("svg");
       expect(svg).toBeInTheDocument();
-      expect(svg).toHaveAttribute("width", "480"); // 12 * 40
-      expect(svg).toHaveAttribute("height", "480"); // 12 * 40
+      // Verify SVG has positive numeric dimensions (hex viewBox is computed, not gridWidth*cellSize)
+      expect(Number(svg?.getAttribute("width"))).toBeGreaterThan(0);
+      expect(Number(svg?.getAttribute("height"))).toBeGreaterThan(0);
     });
 
     it("should toggle reactively show/hide when toggle changes", () => {

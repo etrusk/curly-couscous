@@ -18,7 +18,7 @@ import {
 } from "../engine/game";
 import { evaluateSelector } from "../engine/selectors";
 import { SKILL_REGISTRY } from "../engine/skill-registry";
-import { generateAllHexes } from "../engine/hex";
+import { generateAllHexes, positionKey } from "../engine/hex";
 
 // ============================================================================
 // Basic Selectors
@@ -419,7 +419,7 @@ export const selectSelectionMode = (state: GameStore): SelectionMode =>
 /**
  * Compute which cells are clickable based on current selection mode.
  * Returns empty Set in idle mode.
- * Returns Set of "x-y" formatted strings for empty cells in placement/moving modes.
+ * Returns Set of "q,r" formatted strings (positionKey format) for empty cells in placement/moving modes.
  */
 export const selectClickableCells = (state: GameStore): Set<string> => {
   const { selectionMode } = state;
@@ -427,13 +427,13 @@ export const selectClickableCells = (state: GameStore): Set<string> => {
 
   // Build set of occupied positions
   const occupied = new Set(
-    state.gameState.characters.map((c) => `${c.position.q}-${c.position.r}`),
+    state.gameState.characters.map((c) => positionKey(c.position)),
   );
 
   // Return all empty cells (hex grid with radius 5)
   const clickable = new Set<string>();
   for (const hex of generateAllHexes()) {
-    const key = `${hex.q}-${hex.r}`;
+    const key = positionKey(hex);
     if (!occupied.has(key)) {
       clickable.add(key);
     }

@@ -68,6 +68,19 @@ The grid system uses axial coordinates {q, r} with flat-top hexagonal orientatio
 - **Tiebreaking**: Lower R coordinate first, then lower Q coordinate (consistent across selectors and movement)
 - **Key module**: `src/engine/hex.ts` provides all hex math utilities
 
+### SVG Rendering (ADR-008)
+
+The grid renders using SVG elements instead of CSS Grid (ADR-008). All rendering layers share a common viewBox coordinate system for pixel-perfect alignment.
+
+- **Grid**: `<svg>` root with `role="grid"`. Iterates `generateAllHexes(5)` to render 91 hex cells.
+- **Cell**: SVG `<g>` containing `<polygon>` for hex shape. Uses `hexVertices()` for the 6-point polygon. `role="gridcell"` with `aria-label`.
+- **Token**: SVG `<g>` with `transform="translate(cx-20, cy-20)"` to position at hex center. Internal coordinates (0..40) unchanged from standalone SVG.
+- **Overlays**: IntentOverlay, DamageOverlay, and TargetingLineOverlay each render as separate `<svg>` elements with `position: absolute` overlay. All use identical viewBox for coordinate alignment.
+- **ViewBox utility**: `computeHexViewBox(hexSize, radius)` dynamically computes bounds from hex geometry. Returns `{ viewBox, width, height }`. Used by Grid and all overlays.
+- **Hex sizing**: Default `hexSize = 30`. Hex width = 60px, height ~52px. Column spacing = 45px, row spacing ~52px.
+- **Event handling**: `pointer-events="all"` on Cell `<g>` elements. Hex-shaped polygon provides natural hit area. CSS `:hover` and `cursor: pointer` work on SVG elements.
+- **Tooltip positioning**: Token's `<g>` element supports `getBoundingClientRect()` for portal tooltip anchoring (ADR-004).
+
 ## Critical Constraints
 
 - Must support TypeScript 5.x strict mode

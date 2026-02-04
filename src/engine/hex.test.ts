@@ -12,6 +12,8 @@ import {
   pixelToHex,
   generateAllHexes,
   HEX_DIRECTIONS,
+  hexVertices,
+  computeHexViewBox,
 } from "./hex";
 import { Position } from "./types";
 
@@ -352,5 +354,140 @@ describe("HEX_DIRECTIONS", () => {
   it("no duplicates", () => {
     const dirSet = new Set(HEX_DIRECTIONS.map((d) => `${d.q},${d.r}`));
     expect(dirSet.size).toBe(6);
+  });
+});
+
+describe("computeHexViewBox", () => {
+  it("returns object with viewBox, width, and height", () => {
+    const result = computeHexViewBox(30);
+
+    // Should have all three properties
+    expect(result).toHaveProperty("viewBox");
+    expect(result).toHaveProperty("width");
+    expect(result).toHaveProperty("height");
+
+    // viewBox should be a string with 4 space-separated numbers
+    expect(typeof result.viewBox).toBe("string");
+    const viewBoxParts = result.viewBox.trim().split(/\s+/);
+    expect(viewBoxParts).toHaveLength(4);
+    for (const part of viewBoxParts) {
+      expect(Number.isFinite(parseFloat(part))).toBe(true);
+    }
+
+    // width and height should be positive numbers
+    expect(typeof result.width).toBe("number");
+    expect(typeof result.height).toBe("number");
+    expect(result.width).toBeGreaterThan(0);
+    expect(result.height).toBeGreaterThan(0);
+
+    // width and height should match the last two numbers in viewBox
+    const [, , vbWidth, vbHeight] = viewBoxParts.map(parseFloat);
+    expect(result.width).toBe(vbWidth);
+    expect(result.height).toBe(vbHeight);
+  });
+
+  it("default radius covers all 91 hexes with margin", () => {
+    const result = computeHexViewBox(30);
+    const allHexes = generateAllHexes(5);
+
+    // Parse viewBox
+    const [minX, minY, width, height] = result.viewBox
+      .trim()
+      .split(/\s+/)
+      .map(parseFloat);
+    const maxX = minX + width;
+    const maxY = minY + height;
+
+    // Check that all hex vertices fall within viewBox bounds
+    for (const hex of allHexes) {
+      const center = hexToPixel(hex, 30);
+      const vertices = hexVertices(center, 30);
+
+      for (const vertex of vertices) {
+        expect(vertex.x).toBeGreaterThanOrEqual(minX);
+        expect(vertex.x).toBeLessThanOrEqual(maxX);
+        expect(vertex.y).toBeGreaterThanOrEqual(minY);
+        expect(vertex.y).toBeLessThanOrEqual(maxY);
+      }
+    }
+
+    // Verify there's margin (at least 5px beyond outermost vertices)
+    let outerMinX = Infinity,
+      outerMaxX = -Infinity;
+    let outerMinY = Infinity,
+      outerMaxY = -Infinity;
+
+    for (const hex of allHexes) {
+      const center = hexToPixel(hex, 30);
+      const vertices = hexVertices(center, 30);
+      for (const v of vertices) {
+        outerMinX = Math.min(outerMinX, v.x);
+        outerMaxX = Math.max(outerMaxX, v.x);
+        outerMinY = Math.min(outerMinY, v.y);
+        outerMaxY = Math.max(outerMaxY, v.y);
+      }
+    }
+
+    // ViewBox bounds should be at least 5px beyond the actual vertices
+    expect(minX).toBeLessThanOrEqual(outerMinX - 5);
+    expect(maxX).toBeGreaterThanOrEqual(outerMaxX + 5);
+    expect(minY).toBeLessThanOrEqual(outerMinY - 5);
+    expect(maxY).toBeGreaterThanOrEqual(outerMaxY + 5);
+  });
+
+  it("scales proportionally with hexSize", () => {
+    const result30 = computeHexViewBox(30);
+    const result60 = computeHexViewBox(60);
+
+    // Width and height should approximately double
+    // Note: margin is constant (10px), so the scaling isn't perfectly 2x
+    // For hexSize=30, typical width ~530, for hexSize=60, width ~1040
+    // Ratio should be close to 2.0 (within 5%)
+    const widthRatio = result60.width / result30.width;
+    const heightRatio = result60.height / result30.height;
+    expect(widthRatio).toBeGreaterThan(1.95);
+    expect(widthRatio).toBeLessThan(2.05);
+    expect(heightRatio).toBeGreaterThan(1.95);
+    expect(heightRatio).toBeLessThan(2.05);
+  });
+
+  it("handles radius 0 (single hex) edge case", () => {
+    const result = computeHexViewBox(30, 0);
+
+    // Parse viewBox
+    const [minX, minY, width, height] = result.viewBox
+      .trim()
+      .split(/\s+/)
+      .map(parseFloat);
+
+    // All values should be finite
+    expect(Number.isFinite(minX)).toBe(true);
+    expect(Number.isFinite(minY)).toBe(true);
+    expect(Number.isFinite(width)).toBe(true);
+    expect(Number.isFinite(height)).toBe(true);
+
+    // Width should be approximately hex width (2 * 30) + margins (2 * 10) = 80
+    expect(width).toBeCloseTo(80, 0);
+
+    // Height should be approximately hex height (sqrt(3) * 30) + margins (2 * 10) ≈ 72
+    const expectedHeight = Math.sqrt(3) * 30 + 2 * 10;
+    expect(height).toBeCloseTo(expectedHeight, 0);
+  });
+
+  it("viewBox is symmetric around origin", () => {
+    const result = computeHexViewBox(30);
+
+    // Parse viewBox
+    const [minX, minY, width, height] = result.viewBox
+      .trim()
+      .split(/\s+/)
+      .map(parseFloat);
+
+    // Center should be approximately at origin (0, 0)
+    const centerX = minX + width / 2;
+    const centerY = minY + height / 2;
+
+    expect(centerX).toBeCloseTo(0, 1);
+    expect(centerY).toBeCloseTo(0, 1);
   });
 });

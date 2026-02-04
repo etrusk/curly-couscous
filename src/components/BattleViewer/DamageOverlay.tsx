@@ -6,34 +6,27 @@
 import { useDamageNumbers } from "./hooks/useDamageNumbers";
 import { DamageNumber } from "./DamageNumber";
 import styles from "./DamageOverlay.module.css";
-import { hexToPixel } from "../../engine/hex";
+import { hexToPixel, computeHexViewBox } from "../../engine/hex";
 
 export interface DamageOverlayProps {
-  gridWidth: number;
-  gridHeight: number;
-  cellSize: number;
+  hexSize: number;
 }
 
-export function DamageOverlay({
-  gridWidth,
-  gridHeight,
-  cellSize,
-}: DamageOverlayProps) {
+export function DamageOverlay({ hexSize }: DamageOverlayProps) {
   const damageData = useDamageNumbers();
 
-  const svgWidth = gridWidth * cellSize;
-  const svgHeight = gridHeight * cellSize;
+  const { viewBox, width, height } = computeHexViewBox(hexSize);
 
   return (
     <svg
       className={styles.damageOverlay}
-      width={svgWidth}
-      height={svgHeight}
-      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      width={width}
+      height={height}
+      viewBox={viewBox}
     >
       {damageData.map((data) => {
         // Calculate cell center position
-        const pixel = hexToPixel(data.targetPosition, cellSize);
+        const pixel = hexToPixel(data.targetPosition, hexSize);
         const centerX = pixel.x;
         const centerY = pixel.y;
 

@@ -10,19 +10,19 @@ import styles from "./TargetingLine.module.css";
 export interface TargetingLineProps {
   from: Position;
   to: Position;
-  cellSize: number;
+  hexSize: number;
   offset?: { x: number; y: number };
 }
 
 export function TargetingLine({
   from,
   to,
-  cellSize,
+  hexSize,
   offset = { x: 0, y: 0 },
 }: TargetingLineProps) {
   // Calculate cell center positions with offset
-  const fromPixel = hexToPixel(from, cellSize);
-  const toPixel = hexToPixel(to, cellSize);
+  const fromPixel = hexToPixel(from, hexSize);
+  const toPixel = hexToPixel(to, hexSize);
   const x1 = fromPixel.x + offset.x;
   const y1 = fromPixel.y + offset.y;
   const x2 = toPixel.x + offset.x;

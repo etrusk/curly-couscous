@@ -12,7 +12,7 @@ export interface IntentLineProps {
   type: "attack" | "move" | "heal";
   faction: Faction;
   ticksRemaining: number;
-  cellSize: number;
+  hexSize: number;
   offset?: { x: number; y: number };
 }
 
@@ -22,12 +22,12 @@ export function IntentLine({
   type,
   faction,
   ticksRemaining,
-  cellSize,
+  hexSize,
   offset = { x: 0, y: 0 },
 }: IntentLineProps) {
   // Calculate cell center positions with offset
-  const fromPixel = hexToPixel(from, cellSize);
-  const toPixel = hexToPixel(to, cellSize);
+  const fromPixel = hexToPixel(from, hexSize);
+  const toPixel = hexToPixel(to, hexSize);
   const x1 = fromPixel.x + offset.x;
   const y1 = fromPixel.y + offset.y;
   const x2 = toPixel.x + offset.x;

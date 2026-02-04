@@ -24,6 +24,10 @@ export interface TokenProps {
   maxHp: number;
   /** Slot position (1-based) used for letter mapping (A, B, C, ...) */
   slotPosition: number;
+  /** Hex center X in SVG coordinate space */
+  cx: number;
+  /** Hex center Y in SVG coordinate space */
+  cy: number;
   /** Callback when mouse enters token */
   onMouseEnter?: (id: string, rect: DOMRect) => void;
   /** Callback when mouse leaves token */
@@ -48,6 +52,8 @@ export function Token({
   hp,
   maxHp,
   slotPosition,
+  cx,
+  cy,
   onMouseEnter,
   onMouseLeave,
   tooltipId,
@@ -114,12 +120,12 @@ export function Token({
     ? `${styles.token} ${styles.selected}`
     : styles.token;
 
+  // Position the token at the hex center using transform
+  const transform = `translate(${cx - TOKEN_RADIUS}, ${cy - TOKEN_RADIUS})`;
+
   return (
-    <svg
+    <g
       className={className}
-      width={TOKEN_SIZE}
-      height={TOKEN_SIZE + HP_BAR_HEIGHT + 4}
-      viewBox={`0 0 ${TOKEN_SIZE} ${TOKEN_SIZE + HP_BAR_HEIGHT + 4}`}
       data-testid={`token-${id}`}
       role="img"
       aria-label={ariaLabel}
@@ -129,6 +135,7 @@ export function Token({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeaveLocal}
       tabIndex={0}
+      transform={transform}
     >
       {/* Pattern definition for enemy diagonal stripes (colorblind support) */}
       {/* Unique pattern ID per character to avoid DOM collisions */}
@@ -210,6 +217,6 @@ export function Token({
         className={styles.hpBarFill}
         data-testid={`health-bar-${id}`}
       />
-    </svg>
+    </g>
   );
 }

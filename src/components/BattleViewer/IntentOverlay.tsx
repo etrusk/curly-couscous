@@ -10,14 +10,12 @@ import {
 } from "../../stores/gameStore";
 import type { IntentData } from "../../stores/gameStore-selectors";
 import { positionsEqual } from "../../engine/types";
-import { hexToPixel } from "../../engine/hex";
+import { hexToPixel, computeHexViewBox } from "../../engine/hex";
 import { IntentLine } from "./IntentLine";
 import styles from "./IntentOverlay.module.css";
 
 export interface IntentOverlayProps {
-  gridWidth: number;
-  gridHeight: number;
-  cellSize: number;
+  hexSize: number;
 }
 
 /**
@@ -30,7 +28,7 @@ export interface IntentOverlayProps {
  */
 function detectBidirectionalAttacks(
   intents: IntentData[],
-  cellSize: number,
+  hexSize: number,
 ): Map<string, { x: number; y: number }> {
   const offsets = new Map<string, { x: number; y: number }>();
   const processed = new Set<string>();
@@ -54,8 +52,8 @@ function detectBidirectionalAttacks(
       processed.add(reverseIntent.characterId);
 
       // Calculate perpendicular direction using pixel-space vectors
-      const fromPixel = hexToPixel(intent.characterPosition, cellSize);
-      const toPixel = hexToPixel(intent.action.targetCell, cellSize);
+      const fromPixel = hexToPixel(intent.characterPosition, hexSize);
+      const toPixel = hexToPixel(intent.action.targetCell, hexSize);
       const dx = toPixel.x - fromPixel.x;
       const dy = toPixel.y - fromPixel.y;
 
@@ -86,11 +84,7 @@ function detectBidirectionalAttacks(
   return offsets;
 }
 
-export function IntentOverlay({
-  gridWidth,
-  gridHeight,
-  cellSize,
-}: IntentOverlayProps) {
+export function IntentOverlay({ hexSize }: IntentOverlayProps) {
   // Subscribe to characters to force re-render when characters change
   // This fixes a Zustand subscription issue where selectIntentData doesn't
   // properly detect character additions via the addCharacter action.
@@ -103,17 +97,16 @@ export function IntentOverlay({
   void characters.length;
 
   // Detect bidirectional attacks and compute offsets
-  const offsets = detectBidirectionalAttacks(intents, cellSize);
+  const offsets = detectBidirectionalAttacks(intents, hexSize);
 
-  const svgWidth = gridWidth * cellSize;
-  const svgHeight = gridHeight * cellSize;
+  const { viewBox, width, height } = computeHexViewBox(hexSize);
 
   return (
     <svg
       className={styles.intentOverlay}
-      width={svgWidth}
-      height={svgHeight}
-      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      width={width}
+      height={height}
+      viewBox={viewBox}
     >
       {/* SVG marker definitions */}
       <defs>
@@ -233,7 +226,7 @@ export function IntentOverlay({
           type={intent.action.type as "attack" | "move" | "heal"}
           faction={intent.faction}
           ticksRemaining={intent.ticksRemaining}
-          cellSize={cellSize}
+          hexSize={hexSize}
           offset={offsets.get(intent.characterId)}
         />
       ))}

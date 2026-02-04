@@ -257,3 +257,51 @@ export function hexVertices(
 
   return vertices;
 }
+
+/**
+ * Compute SVG viewBox dimensions for the hex grid.
+ * Calculates bounds from all hex vertices and adds margin.
+ *
+ * @param hexSize - Size of hexagon (distance from center to vertex)
+ * @param radius - Map radius (default: HEX_RADIUS)
+ * @returns Object with viewBox string, width, and height
+ */
+export function computeHexViewBox(
+  hexSize: number,
+  radius: number = HEX_RADIUS,
+): {
+  viewBox: string;
+  width: number;
+  height: number;
+} {
+  const allHexes = generateAllHexes(radius);
+  let minX = Infinity,
+    maxX = -Infinity,
+    minY = Infinity,
+    maxY = -Infinity;
+
+  for (const hex of allHexes) {
+    const center = hexToPixel(hex, hexSize);
+    const vertices = hexVertices(center, hexSize);
+    for (const v of vertices) {
+      minX = Math.min(minX, v.x);
+      maxX = Math.max(maxX, v.x);
+      minY = Math.min(minY, v.y);
+      maxY = Math.max(maxY, v.y);
+    }
+  }
+
+  const margin = 10;
+  minX -= margin;
+  minY -= margin;
+  maxX += margin;
+  maxY += margin;
+  const width = maxX - minX;
+  const height = maxY - minY;
+
+  return {
+    viewBox: `${minX} ${minY} ${width} ${height}`,
+    width,
+    height,
+  };
+}

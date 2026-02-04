@@ -20,8 +20,7 @@ import {
 import styles from "./BattleViewer.module.css";
 
 export interface BattleViewerProps {
-  gridWidth?: number;
-  gridHeight?: number;
+  hexSize?: number;
 }
 
 interface HoverState {
@@ -29,10 +28,7 @@ interface HoverState {
   anchorRect: DOMRect;
 }
 
-export function BattleViewer({
-  gridWidth = 12,
-  gridHeight = 12,
-}: BattleViewerProps) {
+export function BattleViewer({ hexSize = 30 }: BattleViewerProps) {
   // Subscribe to token data for character rendering
   const characters = useGameStore(selectTokenData);
 
@@ -45,9 +41,6 @@ export function BattleViewer({
   // Hover state for tooltip
   const [hoverState, setHoverState] = useState<HoverState | null>(null);
   const hoverTimeoutRef = useRef<number | null>(null);
-
-  // Cell size from CSS custom property (default 50px per spec)
-  const cellSize = 50;
 
   // Handle cell click based on selection mode
   const handleCellClick = (q: number, r: number) => {
@@ -90,19 +83,10 @@ export function BattleViewer({
   };
 
   return (
-    <div
-      className={styles.battleViewer}
-      style={
-        {
-          "--grid-width": gridWidth,
-          "--grid-height": gridHeight,
-        } as React.CSSProperties
-      }
-    >
+    <div className={styles.battleViewer}>
       <div className={styles.gridContainer}>
         <Grid
-          width={gridWidth}
-          height={gridHeight}
+          hexSize={hexSize}
           characters={characters}
           onCellClick={handleCellClick}
           clickableCells={clickableCells}
@@ -110,21 +94,9 @@ export function BattleViewer({
           onTokenLeave={handleTokenLeave}
           hoveredTokenId={hoverState?.characterId}
         />
-        <IntentOverlay
-          gridWidth={gridWidth}
-          gridHeight={gridHeight}
-          cellSize={cellSize}
-        />
-        <TargetingLineOverlay
-          gridWidth={gridWidth}
-          gridHeight={gridHeight}
-          cellSize={cellSize}
-        />
-        <DamageOverlay
-          gridWidth={gridWidth}
-          gridHeight={gridHeight}
-          cellSize={cellSize}
-        />
+        <IntentOverlay hexSize={hexSize} />
+        <TargetingLineOverlay hexSize={hexSize} />
+        <DamageOverlay hexSize={hexSize} />
       </div>
       {hoverState && (
         <CharacterTooltip

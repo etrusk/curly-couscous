@@ -7,14 +7,12 @@ import { useGameStore, selectMovementTargetData } from "../../stores/gameStore";
 import { useAccessibilityStore } from "../../stores/accessibilityStore";
 import type { MovementTargetData } from "../../stores/gameStore-selectors";
 import { positionsEqual } from "../../engine/types";
-import { hexToPixel } from "../../engine/hex";
+import { hexToPixel, computeHexViewBox } from "../../engine/hex";
 import { TargetingLine } from "./TargetingLine";
 import styles from "./TargetingLineOverlay.module.css";
 
 export interface TargetingLineOverlayProps {
-  gridWidth: number;
-  gridHeight: number;
-  cellSize: number;
+  hexSize: number;
 }
 
 /**
@@ -27,7 +25,7 @@ export interface TargetingLineOverlayProps {
  */
 function detectBidirectionalTargeting(
   targetData: MovementTargetData[],
-  cellSize: number,
+  hexSize: number,
 ): Map<string, { x: number; y: number }> {
   const offsets = new Map<string, { x: number; y: number }>();
   const processed = new Set<string>();
@@ -51,8 +49,8 @@ function detectBidirectionalTargeting(
       processed.add(reverseTarget.fromId);
 
       // Calculate perpendicular direction using pixel-space vectors
-      const fromPixel = hexToPixel(data.fromPosition, cellSize);
-      const toPixel = hexToPixel(data.toPosition, cellSize);
+      const fromPixel = hexToPixel(data.fromPosition, hexSize);
+      const toPixel = hexToPixel(data.toPosition, hexSize);
       const dx = toPixel.x - fromPixel.x;
       const dy = toPixel.y - fromPixel.y;
 
@@ -83,11 +81,7 @@ function detectBidirectionalTargeting(
   return offsets;
 }
 
-export function TargetingLineOverlay({
-  gridWidth,
-  gridHeight,
-  cellSize,
-}: TargetingLineOverlayProps) {
+export function TargetingLineOverlay({ hexSize }: TargetingLineOverlayProps) {
   // Subscribe to toggle state
   const showTargetLines = useAccessibilityStore((s) => s.showTargetLines);
 
@@ -100,17 +94,16 @@ export function TargetingLineOverlay({
   }
 
   // Detect bidirectional targeting and compute offsets
-  const offsets = detectBidirectionalTargeting(targetData, cellSize);
+  const offsets = detectBidirectionalTargeting(targetData, hexSize);
 
-  const svgWidth = gridWidth * cellSize;
-  const svgHeight = gridHeight * cellSize;
+  const { viewBox, width, height } = computeHexViewBox(hexSize);
 
   return (
     <svg
       className={styles.targetingOverlay}
-      width={svgWidth}
-      height={svgHeight}
-      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      width={width}
+      height={height}
+      viewBox={viewBox}
     >
       {/* Render targeting lines */}
       {targetData.map((data) => (
@@ -118,7 +111,7 @@ export function TargetingLineOverlay({
           key={data.fromId}
           from={data.fromPosition}
           to={data.toPosition}
-          cellSize={cellSize}
+          hexSize={hexSize}
           offset={offsets.get(data.fromId)}
         />
       ))}

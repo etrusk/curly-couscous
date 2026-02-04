@@ -8,17 +8,96 @@ import { render, screen } from "@testing-library/react";
 import { Token } from "./Token";
 import { useGameStore } from "../../stores/gameStore";
 
-describe("Token Interaction", () => {
-  describe("Accessibility", () => {
-    it("has aria-label describing friendly character", () => {
-      render(
+describe("Token - SVG Rendering", () => {
+  it("renders as SVG group (not standalone SVG)", () => {
+    render(
+      <svg>
         <Token
-          id="char-1"
+          id="c1"
+          faction="friendly"
+          hp={100}
+          maxHp={100}
+          slotPosition={1}
+          cx={0}
+          cy={0}
+        />
+      </svg>,
+    );
+
+    const token = screen.getByTestId("token-c1");
+    expect(token.tagName.toLowerCase()).toBe("g");
+    expect(token.hasAttribute("viewBox")).toBe(false);
+  });
+
+  it("has transform attribute for positioning", () => {
+    render(
+      <svg>
+        <Token
+          id="c1"
+          faction="friendly"
+          hp={100}
+          maxHp={100}
+          slotPosition={1}
+          cx={45}
+          cy={25.98}
+        />
+      </svg>,
+    );
+
+    const token = screen.getByTestId("token-c1");
+    const transform = token.getAttribute("transform");
+
+    expect(transform).toBeTruthy();
+    expect(transform).toContain("translate(");
+
+    // Token should be positioned at cx - TOKEN_RADIUS, cy - TOKEN_RADIUS
+    // TOKEN_RADIUS = 20 (half of TOKEN_SIZE = 40)
+    // So expected translate is (45 - 20, 25.98 - 20) = (25, 5.98)
+    expect(transform).toContain("25");
+    expect(transform).toContain("5.98");
+  });
+
+  it("preserves role, aria-label, and tabIndex", () => {
+    render(
+      <svg>
+        <Token
+          id="c1"
           faction="friendly"
           hp={75}
           maxHp={100}
           slotPosition={1}
-        />,
+          cx={0}
+          cy={0}
+        />
+      </svg>,
+    );
+
+    const token = screen.getByTestId("token-c1");
+    expect(token).toHaveAttribute("role", "img");
+    expect(token).toHaveAttribute("tabindex", "0");
+
+    const label = token.getAttribute("aria-label");
+    expect(label).toContain("Friendly");
+    expect(label).toContain("75");
+    expect(label).toContain("100");
+  });
+});
+
+describe("Token Interaction", () => {
+  describe("Accessibility", () => {
+    it("has aria-label describing friendly character", () => {
+      render(
+        <svg>
+          <Token
+            id="char-1"
+            faction="friendly"
+            hp={75}
+            maxHp={100}
+            slotPosition={1}
+            cx={0}
+            cy={0}
+          />
+        </svg>,
       );
 
       const token = screen.getByTestId("token-char-1");
@@ -31,13 +110,17 @@ describe("Token Interaction", () => {
 
     it("has aria-label describing enemy character", () => {
       render(
-        <Token
-          id="char-2"
-          faction="enemy"
-          hp={50}
-          maxHp={100}
-          slotPosition={2}
-        />,
+        <svg>
+          <Token
+            id="char-2"
+            faction="enemy"
+            hp={50}
+            maxHp={100}
+            slotPosition={2}
+            cx={0}
+            cy={0}
+          />
+        </svg>,
       );
 
       const token = screen.getByTestId("token-char-2");
@@ -50,13 +133,17 @@ describe("Token Interaction", () => {
 
     it("has role='img' for screen reader compatibility", () => {
       render(
-        <Token
-          id="char-1"
-          faction="friendly"
-          hp={100}
-          maxHp={100}
-          slotPosition={1}
-        />,
+        <svg>
+          <Token
+            id="char-1"
+            faction="friendly"
+            hp={100}
+            maxHp={100}
+            slotPosition={1}
+            cx={0}
+            cy={0}
+          />
+        </svg>,
       );
 
       const token = screen.getByTestId("token-char-1");
@@ -65,13 +152,17 @@ describe("Token Interaction", () => {
 
     it("is focusable with keyboard navigation", () => {
       render(
-        <Token
-          id="char-1"
-          faction="friendly"
-          hp={100}
-          maxHp={100}
-          slotPosition={1}
-        />,
+        <svg>
+          <Token
+            id="char-1"
+            faction="friendly"
+            hp={100}
+            maxHp={100}
+            slotPosition={1}
+            cx={0}
+            cy={0}
+          />
+        </svg>,
       );
       const token = screen.getByTestId("token-char-1");
       expect(token).toHaveAttribute("tabindex", "0");
@@ -83,13 +174,17 @@ describe("Token Interaction", () => {
       const { useGameStore } = await import("../../stores/gameStore");
 
       render(
-        <Token
-          id="char-1"
-          faction="friendly"
-          hp={100}
-          maxHp={100}
-          slotPosition={1}
-        />,
+        <svg>
+          <Token
+            id="char-1"
+            faction="friendly"
+            hp={100}
+            maxHp={100}
+            slotPosition={1}
+            cx={0}
+            cy={0}
+          />
+        </svg>,
       );
       const token = screen.getByTestId("token-char-1");
 
@@ -119,13 +214,17 @@ describe("Token Interaction", () => {
       useGameStore.setState({ selectedCharacterId: null });
 
       render(
-        <Token
-          id="char-1"
-          faction="friendly"
-          hp={100}
-          maxHp={100}
-          slotPosition={1}
-        />,
+        <svg>
+          <Token
+            id="char-1"
+            faction="friendly"
+            hp={100}
+            maxHp={100}
+            slotPosition={1}
+            cx={0}
+            cy={0}
+          />
+        </svg>,
       );
 
       const token = screen.getByTestId("token-char-1");
@@ -140,13 +239,17 @@ describe("Token Interaction", () => {
       useGameStore.setState({ selectedCharacterId: "char-1" });
 
       render(
-        <Token
-          id="char-1"
-          faction="friendly"
-          hp={100}
-          maxHp={100}
-          slotPosition={1}
-        />,
+        <svg>
+          <Token
+            id="char-1"
+            faction="friendly"
+            hp={100}
+            maxHp={100}
+            slotPosition={1}
+            cx={0}
+            cy={0}
+          />
+        </svg>,
       );
 
       const token = screen.getByTestId("token-char-1");
@@ -162,13 +265,17 @@ describe("Token Interaction", () => {
       useGameStore.setState({ selectedCharacterId: "other-char" });
 
       render(
-        <Token
-          id="char-1"
-          faction="friendly"
-          hp={100}
-          maxHp={100}
-          slotPosition={1}
-        />,
+        <svg>
+          <Token
+            id="char-1"
+            faction="friendly"
+            hp={100}
+            maxHp={100}
+            slotPosition={1}
+            cx={0}
+            cy={0}
+          />
+        </svg>,
       );
 
       const token = screen.getByTestId("token-char-1");
@@ -188,13 +295,17 @@ describe("Token Interaction", () => {
       useGameStore.setState({ selectedCharacterId: "char-1" });
 
       render(
-        <Token
-          id="char-1"
-          faction="friendly"
-          hp={100}
-          maxHp={100}
-          slotPosition={1}
-        />,
+        <svg>
+          <Token
+            id="char-1"
+            faction="friendly"
+            hp={100}
+            maxHp={100}
+            slotPosition={1}
+            cx={0}
+            cy={0}
+          />
+        </svg>,
       );
 
       const token = screen.getByTestId("token-char-1");

@@ -22,14 +22,14 @@ describe("selectIntentData - movement intents", () => {
     const action: Action = {
       type: "move",
       skill: moveSkill,
-      targetCell: { x: 5, y: 5 },
+      targetCell: { q: 2, r: 3 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
     };
     const char = createCharacter({
       id: "char1",
-      position: { x: 4, y: 5 },
+      position: { q: 4, r: 1 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -52,14 +52,14 @@ describe("selectIntentData - movement intents", () => {
     const action: Action = {
       type: "move",
       skill: slowMoveSkill,
-      targetCell: { x: 6, y: 6 },
+      targetCell: { q: 3, r: 2 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
     };
     const char = createCharacter({
       id: "char1",
-      position: { x: 4, y: 4 },
+      position: { q: 2, r: 2 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -81,14 +81,14 @@ describe("selectIntentData - movement intents", () => {
     const action: Action = {
       type: "move",
       skill: moveSkill,
-      targetCell: { x: 7, y: 3 },
+      targetCell: { q: 4, r: -1 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
     };
     const char = createCharacter({
       id: "char1",
-      position: { x: 6, y: 3 },
+      position: { q: 3, r: -1 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -96,8 +96,8 @@ describe("selectIntentData - movement intents", () => {
     const result = selectIntentData(useGameStore.getState());
 
     expect(result).toHaveLength(1);
-    expect(result[0]?.action.targetCell).toEqual({ x: 7, y: 3 });
-    expect(result[0]?.characterPosition).toEqual({ x: 6, y: 3 });
+    expect(result[0]?.action.targetCell).toEqual({ q: 4, r: -1 });
+    expect(result[0]?.characterPosition).toEqual({ q: 3, r: -1 });
   });
 
   it("should include attack actions with ticksRemaining=1 (about to execute)", () => {
@@ -109,14 +109,14 @@ describe("selectIntentData - movement intents", () => {
     const action: Action = {
       type: "attack",
       skill: instantAttackSkill,
-      targetCell: { x: 2, y: 2 },
+      targetCell: { q: 2, r: 2 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
     };
     const char = createCharacter({
       id: "char1",
-      position: { x: 1, y: 2 },
+      position: { q: 1, r: 2 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -139,7 +139,7 @@ describe("selectIntentData - movement intents", () => {
     const friendlyAction: Action = {
       type: "move",
       skill: moveSkill,
-      targetCell: { x: 5, y: 5 },
+      targetCell: { q: 2, r: 3 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -147,7 +147,7 @@ describe("selectIntentData - movement intents", () => {
     const enemyAction: Action = {
       type: "move",
       skill: moveSkill,
-      targetCell: { x: 7, y: 5 },
+      targetCell: { q: 4, r: 1 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -155,13 +155,13 @@ describe("selectIntentData - movement intents", () => {
     const friendlyChar = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 4, y: 5 },
+      position: { q: 4, r: 1 },
       currentAction: friendlyAction,
     });
     const enemyChar = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 3, r: -1 },
       currentAction: enemyAction,
     });
     useGameStore.getState().actions.initBattle([friendlyChar, enemyChar]);
@@ -186,7 +186,7 @@ describe("selectIntentData - movement intents", () => {
     const action: Action = {
       type: "move",
       skill: moveSkill,
-      targetCell: { x: 5, y: 5 },
+      targetCell: { q: 2, r: 3 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,

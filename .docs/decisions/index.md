@@ -8,13 +8,16 @@ LLM-optimized index of significant architectural and design decisions.
 
 ## Decisions
 
-| ID      | Title                                              | Date       | Status   | File                                                                               |
-| ------- | -------------------------------------------------- | ---------- | -------- | ---------------------------------------------------------------------------------- |
-| ADR-001 | Spike and Stabilize Pattern for Discovery          | 2026-01-03 | Accepted | [adr-001-spike-and-stabilize.md](./adr-001-spike-and-stabilize.md)                 |
-| ADR-002 | Uniform Intent Line Filtering for All Action Types | 2026-01-27 | Accepted | [adr-002-uniform-intent-filtering.md](./adr-002-uniform-intent-filtering.md)       |
-| ADR-003 | Weighted A\* for Pathfinding, Chebyshev for Range  | 2026-01-29 | Accepted | [adr-003-weighted-astar-pathfinding.md](./adr-003-weighted-astar-pathfinding.md)   |
-| ADR-004 | Local React State for UI-Only Concerns             | 2026-01-29 | Accepted | [adr-004-local-state-for-ui-concerns.md](./adr-004-local-state-for-ui-concerns.md) |
-| ADR-005 | Centralized Skill Registry                         | 2026-01-30 | Accepted | [adr-005-centralized-skill-registry.md](./adr-005-centralized-skill-registry.md)   |
+| ID      | Title                                              | Date       | Status                | File                                                                               |
+| ------- | -------------------------------------------------- | ---------- | --------------------- | ---------------------------------------------------------------------------------- |
+| ADR-001 | Spike and Stabilize Pattern for Discovery          | 2026-01-03 | Accepted              | [adr-001-spike-and-stabilize.md](./adr-001-spike-and-stabilize.md)                 |
+| ADR-002 | Uniform Intent Line Filtering for All Action Types | 2026-01-27 | Accepted              | [adr-002-uniform-intent-filtering.md](./adr-002-uniform-intent-filtering.md)       |
+| ADR-003 | Weighted A\* for Pathfinding, Chebyshev for Range  | 2026-01-29 | Superseded by ADR-007 | [adr-003-weighted-astar-pathfinding.md](./adr-003-weighted-astar-pathfinding.md)   |
+| ADR-004 | Local React State for UI-Only Concerns             | 2026-01-29 | Accepted              | [adr-004-local-state-for-ui-concerns.md](./adr-004-local-state-for-ui-concerns.md) |
+| ADR-005 | Centralized Skill Registry                         | 2026-01-30 | Accepted              | [adr-005-centralized-skill-registry.md](./adr-005-centralized-skill-registry.md)   |
+| ADR-006 | Heal Resolution Before Combat                      | 2026-02-03 | Accepted              | [adr-006-heal-resolution-order.md](./adr-006-heal-resolution-order.md)             |
+| ADR-007 | Hexagonal Grid with Axial Coordinates              | 2026-02-03 | Accepted              | [adr-007-hex-coordinate-system.md](./adr-007-hex-coordinate-system.md)             |
+| ADR-008 | SVG Hex Grid with Shared ViewBox Coordinate System | 2026-02-04 | Accepted              | [adr-008-svg-hex-grid.md](./adr-008-svg-hex-grid.md)                               |
 
 ## Adding New ADRs
 

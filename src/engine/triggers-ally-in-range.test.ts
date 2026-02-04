@@ -13,12 +13,12 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const ally = createCharacter({
       id: "ally",
       faction: "friendly",
-      position: { x: 5, y: 7 }, // dist=2
+      position: { q: 2, r: 4 }, // hex dist from (3,2) = 2
     });
     const trigger: Trigger = { type: "ally_in_range", value: 3 };
 
@@ -31,12 +31,12 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const ally = createCharacter({
       id: "ally",
       faction: "friendly",
-      position: { x: 5, y: 9 }, // dist=4
+      position: { q: 2, r: -2 }, // hex dist from (3,2) = 4
     });
     const trigger: Trigger = { type: "ally_in_range", value: 3 };
 
@@ -49,12 +49,12 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const ally = createCharacter({
       id: "ally",
       faction: "friendly",
-      position: { x: 5, y: 8 }, // dist=3
+      position: { q: 2, r: 5 }, // hex dist from (3,2) = 3
     });
     const trigger: Trigger = { type: "ally_in_range", value: 3 };
 
@@ -67,7 +67,7 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const trigger: Trigger = { type: "ally_in_range", value: 0 };
 
@@ -80,17 +80,17 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const allyA = createCharacter({
       id: "allyA",
       faction: "friendly",
-      position: { x: 10, y: 10 }, // dist=5
+      position: { q: 5, r: 5 }, // hex dist from (3,2) = 5
     });
     const allyB = createCharacter({
       id: "allyB",
       faction: "friendly",
-      position: { x: 5, y: 6 }, // dist=1
+      position: { q: 2, r: 3 }, // hex dist from (3,2) = 1
     });
     const trigger: Trigger = { type: "ally_in_range", value: 3 };
 
@@ -107,12 +107,12 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 6 },
+      position: { q: 2, r: 3 },
     });
     const trigger: Trigger = { type: "ally_in_range", value: 3 };
 
@@ -125,12 +125,12 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 6 }, // dist=1
+      position: { q: 2, r: 3 }, // hex dist from (3,2) = 1
     });
     const trigger: Trigger = { type: "ally_in_range", value: 3 };
 

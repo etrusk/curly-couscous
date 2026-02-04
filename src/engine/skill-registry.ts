@@ -3,7 +3,7 @@
  * This is the ONLY file that needs to be edited to add/remove/modify skills.
  */
 
-import type { Skill } from "./types";
+import type { Skill, Selector } from "./types";
 
 /**
  * Intrinsic properties of a skill -- the identity and stats.
@@ -15,8 +15,10 @@ export interface SkillDefinition {
   tickCost: number;
   range: number;
   damage?: number;
+  healing?: number;
   mode?: "towards" | "away";
   innate: boolean;
+  defaultSelector?: Selector;
 }
 
 /**
@@ -27,10 +29,11 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
   {
     id: "light-punch",
     name: "Light Punch",
-    tickCost: 1,
+    tickCost: 0,
     range: 1,
     damage: 10,
     innate: false,
+    defaultSelector: { type: "nearest_enemy" },
   },
   {
     id: "heavy-punch",
@@ -39,6 +42,7 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     range: 2,
     damage: 25,
     innate: false,
+    defaultSelector: { type: "nearest_enemy" },
   },
   {
     id: "move-towards",
@@ -47,6 +51,16 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     range: 1,
     mode: "towards",
     innate: true,
+    defaultSelector: { type: "nearest_enemy" },
+  },
+  {
+    id: "heal",
+    name: "Heal",
+    tickCost: 2,
+    range: 5,
+    healing: 25,
+    innate: false,
+    defaultSelector: { type: "lowest_hp_ally" },
   },
 ];
 
@@ -65,10 +79,11 @@ export function getDefaultSkills(): Skill[] {
     tickCost: def.tickCost,
     range: def.range,
     ...(def.damage !== undefined ? { damage: def.damage } : {}),
+    ...(def.healing !== undefined ? { healing: def.healing } : {}),
     ...(def.mode !== undefined ? { mode: def.mode } : {}),
     enabled: true,
     triggers: [{ type: "always" as const }],
-    selectorOverride: { type: "nearest_enemy" as const },
+    selectorOverride: def.defaultSelector ?? { type: "nearest_enemy" as const },
   }));
 }
 
@@ -83,9 +98,10 @@ export function createSkillFromDefinition(def: SkillDefinition): Skill {
     tickCost: def.tickCost,
     range: def.range,
     ...(def.damage !== undefined ? { damage: def.damage } : {}),
+    ...(def.healing !== undefined ? { healing: def.healing } : {}),
     ...(def.mode !== undefined ? { mode: def.mode } : {}),
     enabled: true,
     triggers: [{ type: "always" as const }],
-    selectorOverride: { type: "nearest_enemy" as const },
+    selectorOverride: def.defaultSelector ?? { type: "nearest_enemy" as const },
   };
 }

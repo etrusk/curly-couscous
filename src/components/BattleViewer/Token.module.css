@@ -4,7 +4,6 @@
  */
 
 .token {
-  display: block;
   pointer-events: auto;
   cursor: pointer;
 }

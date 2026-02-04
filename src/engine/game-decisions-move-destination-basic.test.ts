@@ -15,12 +15,12 @@ describe("computeDecisions - move destination", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 8, y: 5 },
+      position: { q: 3, r: 0 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 0, r: 0 },
       skills: [
         createSkill({
           id: "skill1",
@@ -37,8 +37,8 @@ describe("computeDecisions - move destination", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell.x).toBeGreaterThan(
-      character.position.x,
+    expect(decisions[0]!.action.targetCell.q).toBeGreaterThan(
+      character.position.q,
     );
   });
 
@@ -46,12 +46,12 @@ describe("computeDecisions - move destination", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 8, y: 5 },
+      position: { q: 3, r: 0 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 0, r: 0 },
       skills: [
         createSkill({
           id: "skill1",
@@ -68,8 +68,8 @@ describe("computeDecisions - move destination", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell.x).toBeLessThan(
-      character.position.x,
+    expect(decisions[0]!.action.targetCell.q).toBeLessThan(
+      character.position.q,
     );
   });
 
@@ -77,12 +77,12 @@ describe("computeDecisions - move destination", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 8, y: 5 },
+      position: { q: 3, r: 0 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 0, r: 0 },
       skills: [
         createSkill({
           id: "skill1",
@@ -106,7 +106,7 @@ describe("computeDecisions - move destination", () => {
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 0, r: 0 },
       skills: [
         createSkill({
           id: "skill1",
@@ -125,16 +125,16 @@ describe("computeDecisions - move destination", () => {
     expect(decisions[0]!.action.type).toBe("idle");
   });
 
-  it("should prefer diagonal movement when dx === dy (diagonal tiebreaking)", () => {
+  it("should move towards target via hex neighbor", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 8, y: 8 },
+      position: { q: 2, r: 2 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 0, r: 0 },
       skills: [
         createSkill({
           id: "skill1",
@@ -151,6 +151,14 @@ describe("computeDecisions - move destination", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 6, y: 6 });
+    // Should be a hex neighbor (distance 1 from {0,0})
+    const targetCell = decisions[0]!.action.targetCell;
+    expect(
+      Math.max(
+        Math.abs(targetCell.q),
+        Math.abs(targetCell.r),
+        Math.abs(targetCell.q + targetCell.r),
+      ),
+    ).toBe(1);
   });
 });

@@ -107,11 +107,13 @@ describe("InventoryPanel", () => {
 
       render(<InventoryPanel />);
 
-      // One skill has tick cost 1 (Light Punch)
-      expect(screen.getByText(/tick cost: 1/i)).toBeInTheDocument();
+      // One skill has tick cost 0 (Light Punch)
+      const tickCost0Elements = screen.getAllByText(/tick cost: 0/i);
+      expect(tickCost0Elements.length).toBe(1);
 
-      // One skill has tick cost 2 (Heavy Punch)
-      expect(screen.getByText(/tick cost: 2/i)).toBeInTheDocument();
+      // Two skills have tick cost 2 (Heavy Punch and Heal)
+      const tickCost2Elements = screen.getAllByText(/tick cost: 2/i);
+      expect(tickCost2Elements.length).toBe(2);
     });
 
     it("displays skill stats range", () => {
@@ -149,7 +151,7 @@ describe("InventoryPanel", () => {
       // Verify all non-innate skill names from SKILL_REGISTRY appear in the document
       SKILL_REGISTRY.filter((s) => !s.innate).forEach((skill) => {
         expect(
-          screen.getByText(new RegExp(skill.name, "i")),
+          screen.getByRole("heading", { name: new RegExp(skill.name, "i") }),
         ).toBeInTheDocument();
       });
 
@@ -162,7 +164,11 @@ describe("InventoryPanel", () => {
 
       // Total count matches non-innate registry length
       const skillNameCount = SKILL_REGISTRY.filter((skill) => {
-        return screen.queryByText(new RegExp(skill.name, "i")) !== null;
+        return (
+          screen.queryByRole("heading", {
+            name: new RegExp(skill.name, "i"),
+          }) !== null
+        );
       }).length;
 
       expect(skillNameCount).toBe(
@@ -376,6 +382,132 @@ describe("InventoryPanel", () => {
       // After click: Light Punch disappears
       expect(screen.queryByText(/light punch/i)).toBeNull();
       // Heavy Punch remains visible
+      expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("Faction Skill Exclusivity", () => {
+    it("hides skill assigned to another same-faction character", () => {
+      const friendlyA = createCharacter({ id: "f1", faction: "friendly" });
+      const friendlyB = createCharacter({ id: "f2", faction: "friendly" });
+      useGameStore.getState().actions.initBattle([friendlyA, friendlyB]);
+      useGameStore
+        .getState()
+        .actions.assignSkillToCharacter("f1", "light-punch");
+      useGameStore.getState().actions.selectCharacter("f2");
+
+      render(<InventoryPanel />);
+
+      expect(screen.queryByText(/light punch/i)).toBeNull();
+      expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /assign light punch/i }),
+      ).toBeNull();
+    });
+
+    it("shows skill when assigned to a different-faction character", () => {
+      const friendlyA = createCharacter({ id: "f1", faction: "friendly" });
+      const enemyA = createCharacter({ id: "e1", faction: "enemy" });
+      useGameStore.getState().actions.initBattle([friendlyA, enemyA]);
+      useGameStore
+        .getState()
+        .actions.assignSkillToCharacter("e1", "light-punch");
+      useGameStore.getState().actions.selectCharacter("f1");
+
+      render(<InventoryPanel />);
+
+      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
+      expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /assign light punch/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("skill reappears in inventory when unassigned from same-faction character", () => {
+      const friendlyA = createCharacter({ id: "f1", faction: "friendly" });
+      const friendlyB = createCharacter({ id: "f2", faction: "friendly" });
+      useGameStore.getState().actions.initBattle([friendlyA, friendlyB]);
+      useGameStore
+        .getState()
+        .actions.assignSkillToCharacter("f1", "light-punch");
+      useGameStore.getState().actions.selectCharacter("f2");
+
+      render(<InventoryPanel />);
+
+      expect(screen.queryByText(/light punch/i)).toBeNull();
+
+      act(() => {
+        useGameStore
+          .getState()
+          .actions.removeSkillFromCharacter("f1", "light-punch");
+      });
+
+      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /assign light punch/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("hides all faction-assigned skills from inventory", () => {
+      const friendlyA = createCharacter({ id: "f1", faction: "friendly" });
+      const friendlyB = createCharacter({ id: "f2", faction: "friendly" });
+      const friendlyC = createCharacter({ id: "f3", faction: "friendly" });
+      useGameStore
+        .getState()
+        .actions.initBattle([friendlyA, friendlyB, friendlyC]);
+      useGameStore
+        .getState()
+        .actions.assignSkillToCharacter("f1", "light-punch");
+      useGameStore
+        .getState()
+        .actions.assignSkillToCharacter("f2", "heavy-punch");
+      useGameStore.getState().actions.selectCharacter("f3");
+
+      render(<InventoryPanel />);
+
+      expect(screen.queryByText(/light punch/i)).toBeNull();
+      expect(screen.queryByText(/heavy punch/i)).toBeNull();
+    });
+
+    it("switching from friendly to enemy shows correct faction-filtered inventory", () => {
+      const friendlyA = createCharacter({ id: "f1", faction: "friendly" });
+      const enemyA = createCharacter({ id: "e1", faction: "enemy" });
+      useGameStore.getState().actions.initBattle([friendlyA, enemyA]);
+      useGameStore
+        .getState()
+        .actions.assignSkillToCharacter("f1", "light-punch");
+      useGameStore.getState().actions.selectCharacter("f1");
+
+      render(<InventoryPanel />);
+
+      expect(screen.queryByText(/light punch/i)).toBeNull();
+
+      act(() => {
+        useGameStore.getState().actions.selectCharacter("e1");
+      });
+
+      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
+      expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
+    });
+
+    it("assign button click removes skill from other same-faction character's inventory view", async () => {
+      const user = userEvent.setup();
+      const friendlyA = createCharacter({ id: "f1", faction: "friendly" });
+      const friendlyB = createCharacter({ id: "f2", faction: "friendly" });
+      useGameStore.getState().actions.initBattle([friendlyA, friendlyB]);
+      useGameStore.getState().actions.selectCharacter("f1");
+
+      render(<InventoryPanel />);
+
+      await user.click(
+        screen.getByRole("button", { name: /assign light punch/i }),
+      );
+
+      act(() => {
+        useGameStore.getState().actions.selectCharacter("f2");
+      });
+
+      expect(screen.queryByText(/light punch/i)).toBeNull();
       expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
     });
   });

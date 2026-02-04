@@ -19,9 +19,9 @@ describe("selectIntentData - DEFAULT_SKILLS integration", () => {
   it("movement-intent-when-far-apart-via-addCharacterAtPosition", () => {
     // Setup: characters with DEFAULT_SKILLS placed far apart
     const { actions } = useGameStore.getState();
-    actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
-    actions.addCharacterAtPosition("enemy", { x: 10, y: 10 });
-    // Chebyshev distance = max(10, 10) = 10 cells
+    actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
+    actions.addCharacterAtPosition("enemy", { q: 5, r: 0 });
+    // Chebyshev distance = max(5, 0) = 5 cells
     // Outside Light Punch (range=1) and Heavy Punch (range=2)
     // Should select Move Towards
 
@@ -42,8 +42,8 @@ describe("selectIntentData - DEFAULT_SKILLS integration", () => {
     expect(enemyIntent?.ticksRemaining).toBe(1);
 
     // Verify character positions
-    expect(friendlyIntent?.characterPosition).toEqual({ x: 0, y: 0 });
-    expect(enemyIntent?.characterPosition).toEqual({ x: 10, y: 10 });
+    expect(friendlyIntent?.characterPosition).toEqual({ q: 0, r: 0 });
+    expect(enemyIntent?.characterPosition).toEqual({ q: 5, r: 0 });
 
     // Both should have targetCell defined (movement target)
     expect(friendlyIntent?.action.targetCell).toBeDefined();
@@ -79,9 +79,9 @@ describe("selectIntentData - DEFAULT_SKILLS integration", () => {
     expect(friendlyIntent?.action.type).toBe("attack");
     expect(enemyIntent?.action.type).toBe("attack");
 
-    // Both should use Light Punch (tickCost=1)
-    expect(friendlyIntent?.ticksRemaining).toBe(1);
-    expect(enemyIntent?.ticksRemaining).toBe(1);
+    // Both should use Light Punch (tickCost=0)
+    expect(friendlyIntent?.ticksRemaining).toBe(0);
+    expect(enemyIntent?.ticksRemaining).toBe(0);
 
     // Both should be using Light Punch skill
     expect(friendlyIntent?.action.skill.id).toBe("light-punch");
@@ -91,8 +91,8 @@ describe("selectIntentData - DEFAULT_SKILLS integration", () => {
   it("attack-intent-when-at-range-2-via-addCharacterAtPosition", () => {
     // Setup: characters at range 2
     const { actions } = useGameStore.getState();
-    actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
-    actions.addCharacterAtPosition("enemy", { x: 2, y: 0 });
+    actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
+    actions.addCharacterAtPosition("enemy", { q: 2, r: 0 });
 
     // Assign Light Punch and Heavy Punch to both characters
     const characters = useGameStore.getState().gameState.characters;
@@ -127,8 +127,8 @@ describe("selectIntentData - DEFAULT_SKILLS integration", () => {
   it("movement-intent-when-just-outside-heavy-punch-range", () => {
     // Setup: characters at range 3
     const { actions } = useGameStore.getState();
-    actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
-    actions.addCharacterAtPosition("enemy", { x: 3, y: 0 });
+    actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
+    actions.addCharacterAtPosition("enemy", { q: 3, r: 0 });
     // Chebyshev distance = 3
     // Outside Light Punch (range=1) and Heavy Punch (range=2)
 
@@ -156,12 +156,12 @@ describe("selectIntentData - DEFAULT_SKILLS integration", () => {
   it("mixed-intent-types-when-asymmetric-distances", () => {
     // Setup: multiple characters at different distances
     const { actions } = useGameStore.getState();
-    actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
-    actions.addCharacterAtPosition("friendly", { x: 1, y: 0 }); // Second friendly
-    actions.addCharacterAtPosition("enemy", { x: 10, y: 10 });
-    // First friendly: distance = 10, should move
-    // Second friendly: distance = max(9, 10) = 10, should move
-    // Enemy: distance to nearest = 10, should move
+    actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
+    actions.addCharacterAtPosition("friendly", { q: 1, r: 0 }); // Second friendly
+    actions.addCharacterAtPosition("enemy", { q: 5, r: 0 });
+    // First friendly: distance = 5, should move
+    // Second friendly: distance = max(4, 0) = 4, should move
+    // Enemy: distance to nearest = 4, should move
 
     const result = selectIntentData(useGameStore.getState());
 
@@ -177,9 +177,9 @@ describe("selectIntentData - DEFAULT_SKILLS integration", () => {
   it("intent-data-includes-correct-faction-with-default-skills", () => {
     // Setup: characters with DEFAULT_SKILLS at medium distance
     const { actions } = useGameStore.getState();
-    actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
-    actions.addCharacterAtPosition("enemy", { x: 5, y: 5 });
-    // Chebyshev distance = max(5, 5) = 5, outside attack range
+    actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
+    actions.addCharacterAtPosition("enemy", { q: 4, r: 0 });
+    // Chebyshev distance = max(4, 0) = 4, outside attack range
 
     const result = selectIntentData(useGameStore.getState());
 

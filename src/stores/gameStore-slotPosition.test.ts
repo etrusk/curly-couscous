@@ -28,17 +28,17 @@ describe("slotPosition 1-based assignment", () => {
     const char1 = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
     });
     const char2 = createCharacter({
       id: "char2",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 5, r: 5 },
     });
     const char3 = createCharacter({
       id: "char3",
       faction: "friendly",
-      position: { x: 10, y: 10 },
+      position: { q: 10, r: 10 },
     });
 
     useGameStore.getState().actions.initBattle([char1, char2, char3]);
@@ -55,13 +55,13 @@ describe("slotPosition 1-based assignment", () => {
 
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 5, y: 5 });
+      .actions.addCharacterAtPosition("enemy", { q: 2, r: 2 });
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 10, y: 10 });
+      .actions.addCharacterAtPosition("friendly", { q: 4, r: 0 });
 
     const characters = useGameStore.getState().gameState.characters;
     expect(characters[0]?.slotPosition).toBe(1);

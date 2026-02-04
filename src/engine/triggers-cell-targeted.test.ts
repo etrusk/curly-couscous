@@ -17,15 +17,15 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 6 },
+      position: { q: 2, r: 3 },
       currentAction: createAction({
         type: "attack",
-        targetCell: { x: 5, y: 5 },
+        targetCell: { q: 3, r: 2 },
         resolvesAtTick: 1,
       }),
     });
@@ -40,15 +40,15 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 6 },
+      position: { q: 2, r: 3 },
       currentAction: createAction({
         type: "attack",
-        targetCell: { x: 6, y: 6 },
+        targetCell: { q: 3, r: 1 },
         resolvesAtTick: 1,
       }),
     });
@@ -63,12 +63,12 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 6 },
+      position: { q: 2, r: 3 },
       currentAction: null,
     });
     const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
@@ -82,15 +82,15 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const ally = createCharacter({
       id: "ally",
       faction: "friendly",
-      position: { x: 5, y: 6 },
+      position: { q: 2, r: 3 },
       currentAction: createAction({
         type: "attack",
-        targetCell: { x: 5, y: 5 },
+        targetCell: { q: 3, r: 2 },
         resolvesAtTick: 1,
       }),
     });
@@ -105,25 +105,25 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const enemyA = createCharacter({
       id: "enemyA",
       faction: "enemy",
-      position: { x: 5, y: 6 },
+      position: { q: 2, r: 3 },
       currentAction: createAction({
         type: "attack",
-        targetCell: { x: 6, y: 6 },
+        targetCell: { q: 3, r: 1 },
         resolvesAtTick: 1,
       }),
     });
     const enemyB = createCharacter({
       id: "enemyB",
       faction: "enemy",
-      position: { x: 5, y: 7 },
+      position: { q: 1, r: 4 },
       currentAction: createAction({
         type: "attack",
-        targetCell: { x: 5, y: 5 },
+        targetCell: { q: 3, r: 2 },
         resolvesAtTick: 1,
       }),
     });
@@ -142,16 +142,16 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 6 },
+      position: { q: 2, r: 3 },
       currentAction: createAction({
         type: "attack",
         skill: createSkill({ id: "heavy-punch", tickCost: 2 }),
-        targetCell: { x: 5, y: 5 },
+        targetCell: { q: 3, r: 2 },
         resolvesAtTick: 1,
       }),
     });
@@ -166,16 +166,16 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 6 },
+      position: { q: 2, r: 3 },
       currentAction: createAction({
         type: "attack",
         skill: createSkill({ id: "heavy-punch", tickCost: 2 }),
-        targetCell: { x: 5, y: 5 },
+        targetCell: { q: 3, r: 2 },
         resolvesAtTick: 2,
       }),
     });
@@ -190,25 +190,25 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const enemyA = createCharacter({
       id: "enemyA",
       faction: "enemy",
-      position: { x: 5, y: 6 },
+      position: { q: 2, r: 3 },
       currentAction: createAction({
         type: "attack",
-        targetCell: { x: 5, y: 5 },
+        targetCell: { q: 3, r: 2 },
         resolvesAtTick: 1,
       }),
     });
     const enemyB = createCharacter({
       id: "enemyB",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 3, r: -1 },
       currentAction: createAction({
         type: "attack",
-        targetCell: { x: 5, y: 5 },
+        targetCell: { q: 3, r: 2 },
         resolvesAtTick: 1,
       }),
     });
@@ -227,15 +227,15 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 6 },
+      position: { q: 2, r: 3 },
       currentAction: createAction({
         type: "attack",
-        targetCell: { x: 5, y: 5 },
+        targetCell: { q: 3, r: 2 },
         resolvesAtTick: 1,
       }),
     });
@@ -250,15 +250,15 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 6 },
+      position: { q: 2, r: 3 },
       currentAction: createAction({
         type: "move",
-        targetCell: { x: 5, y: 5 },
+        targetCell: { q: 3, r: 2 },
         resolvesAtTick: 1,
       }),
     });

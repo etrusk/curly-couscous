@@ -20,25 +20,25 @@ describe("resolveCombat", () => {
     it("should only resolve actions with ticksRemaining === 1", () => {
       const charA = createCharacter({
         id: "charA",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1), // Resolves
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1), // Resolves
       });
       const charB = createCharacter({
         id: "charB",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         slotPosition: 2,
       });
       const charC = createCharacter({
         id: "charC",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 3 },
         slotPosition: 3,
-        currentAction: createAttackAction({ x: 6, y: 6 }, null, 25, 2), // Doesn't resolve
+        currentAction: createAttackAction({ q: 3, r: 2 }, null, 25, 2), // Doesn't resolve
       });
       const charD = createCharacter({
         id: "charD",
-        position: { x: 6, y: 6 },
+        position: { q: 3, r: 2 },
         hp: 100,
         slotPosition: 4,
       });
@@ -56,9 +56,9 @@ describe("resolveCombat", () => {
     it("should ignore move actions", () => {
       const charA = createCharacter({
         id: "charA",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 1, y: 0 }, 1),
+        currentAction: createMoveAction({ q: 1, r: 0 }, 1),
       });
 
       const result = resolveCombat([charA], 1);
@@ -70,7 +70,7 @@ describe("resolveCombat", () => {
     it("should ignore idle actions", () => {
       const charA = createCharacter({
         id: "charA",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
         currentAction: createIdleAction(),
       });
@@ -84,7 +84,7 @@ describe("resolveCombat", () => {
     it("should handle character with null currentAction", () => {
       const charA = createCharacter({
         id: "charA",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
         currentAction: null,
       });
@@ -103,13 +103,13 @@ describe("resolveCombat", () => {
     it("should return empty events when no attacks resolve", () => {
       const charA = createCharacter({
         id: "charA",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 1, y: 0 }, 1),
+        currentAction: createMoveAction({ q: 1, r: 0 }, 1),
       });
       const charB = createCharacter({
         id: "charB",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         slotPosition: 2,
         currentAction: null,
       });
@@ -122,14 +122,14 @@ describe("resolveCombat", () => {
     it("should return unchanged characters when no attacks resolve", () => {
       const charA = createCharacter({
         id: "charA",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         hp: 50,
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 1, y: 0 }, 1),
+        currentAction: createMoveAction({ q: 1, r: 0 }, 1),
       });
       const charB = createCharacter({
         id: "charB",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 75,
         slotPosition: 2,
         currentAction: null,
@@ -155,13 +155,13 @@ describe("resolveCombat", () => {
     it("should handle attack when targetCharacter not in array", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
       });
       const actualTarget = createCharacter({
         id: "actualTarget",
-        position: { x: 1, y: 0 }, // At target cell
+        position: { q: 1, r: 0 }, // At target cell
         hp: 100,
         slotPosition: 2,
       });
@@ -179,15 +179,15 @@ describe("resolveCombat", () => {
         id: "attacker",
         name: "Attacker",
         faction: "friendly",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
       });
       const target = createCharacter({
         id: "target",
         name: "Target",
         faction: "enemy",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         slotPosition: 2,
       });
@@ -200,7 +200,7 @@ describe("resolveCombat", () => {
       expect(updatedTarget?.id).toBe("target");
       expect(updatedTarget?.name).toBe("Target");
       expect(updatedTarget?.faction).toBe("enemy");
-      expect(updatedTarget?.position).toEqual({ x: 1, y: 0 });
+      expect(updatedTarget?.position).toEqual({ q: 1, r: 0 });
     });
   });
 
@@ -211,13 +211,13 @@ describe("resolveCombat", () => {
     it("should handle target at 1 HP surviving", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, undefined, 1), // undefined damage
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, undefined, 1), // undefined damage
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 1,
         slotPosition: 2,
       });
@@ -234,13 +234,13 @@ describe("resolveCombat", () => {
     it("should handle exactly lethal damage", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 25, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 25, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 25,
         slotPosition: 2,
       });
@@ -257,13 +257,13 @@ describe("resolveCombat", () => {
     it("should handle massive overkill without clamping", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 100, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 100, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 10,
         slotPosition: 2,
       });
@@ -280,13 +280,13 @@ describe("resolveCombat", () => {
     it("should handle target at maxHP taking damage", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         maxHp: 100,
         slotPosition: 2,
@@ -310,13 +310,13 @@ describe("resolveCombat", () => {
     it("should treat undefined skill.damage as 0", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, undefined, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, undefined, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         slotPosition: 2,
       });
@@ -335,19 +335,19 @@ describe("resolveCombat", () => {
     it("should order events by attacker slotPosition", () => {
       const attackerB = createCharacter({
         id: "attackerB",
-        position: { x: 2, y: 0 },
+        position: { q: 2, r: 0 },
         slotPosition: 3,
-        currentAction: createAttackAction({ x: 0, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 0, r: 0 }, null, 10, 1),
       });
       const attackerA = createCharacter({
         id: "attackerA",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         slotPosition: 2,
-        currentAction: createAttackAction({ x: 0, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 0, r: 0 }, null, 10, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         hp: 100,
         slotPosition: 1,
       });
@@ -362,25 +362,25 @@ describe("resolveCombat", () => {
     it("should order all DamageEvents before DeathEvents", () => {
       const attackerA = createCharacter({
         id: "attackerA",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 2, y: 0 }, null, 100, 1),
+        currentAction: createAttackAction({ q: 2, r: 0 }, null, 100, 1),
       });
       const attackerB = createCharacter({
         id: "attackerB",
-        position: { x: 1, y: 1 },
+        position: { q: 1, r: 1 },
         slotPosition: 2,
-        currentAction: createAttackAction({ x: 3, y: 3 }, null, 100, 1),
+        currentAction: createAttackAction({ q: 3, r: 0 }, null, 100, 1),
       });
       const targetA = createCharacter({
         id: "targetA",
-        position: { x: 2, y: 0 },
+        position: { q: 2, r: 0 },
         hp: 50,
         slotPosition: 3,
       });
       const targetB = createCharacter({
         id: "targetB",
-        position: { x: 3, y: 3 },
+        position: { q: 3, r: 0 },
         hp: 50,
         slotPosition: 4,
       });

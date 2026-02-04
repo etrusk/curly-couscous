@@ -122,35 +122,35 @@ export function resolveMovement(
   const groups = new Map<string, Character[]>();
   for (const mover of movers) {
     const target = mover.currentAction!.targetCell;
-    const key = `${target.x},${target.y}`;
+    const key = `${target.q},${target.r}`;
     if (!groups.has(key)) {
       groups.set(key, []);
     }
     groups.get(key)!.push(mover);
   }
 
-  // 3. Sort groups by target position (Y then X) for determinism
+  // 3. Sort groups by target position (R then Q) for determinism
   const sortedGroups = Array.from(groups.entries()).sort((a, b) => {
     const [keyA, keyB] = [a[0], b[0]];
     const partsA = keyA.split(",");
     const partsB = keyB.split(",");
-    const axStr = partsA[0];
-    const ayStr = partsA[1];
-    const bxStr = partsB[0];
-    const byStr = partsB[1];
+    const aqStr = partsA[0];
+    const arStr = partsA[1];
+    const bqStr = partsB[0];
+    const brStr = partsB[1];
 
-    if (axStr === undefined || ayStr === undefined) {
+    if (aqStr === undefined || arStr === undefined) {
       throw new Error(`Invalid position key format: ${keyA}`);
     }
-    if (bxStr === undefined || byStr === undefined) {
+    if (bqStr === undefined || brStr === undefined) {
       throw new Error(`Invalid position key format: ${keyB}`);
     }
 
-    const ax = parseInt(axStr, 10);
-    const ay = parseInt(ayStr, 10);
-    const bx = parseInt(bxStr, 10);
-    const by = parseInt(byStr, 10);
-    return ay !== by ? ay - by : ax - bx;
+    const aq = parseInt(aqStr, 10);
+    const ar = parseInt(arStr, 10);
+    const bq = parseInt(bqStr, 10);
+    const br = parseInt(brStr, 10);
+    return ar !== br ? ar - br : aq - bq;
   });
 
   // 4. Resolve each collision group

@@ -121,7 +121,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 10, y: 10 },
+      position: { q: 5, r: 0 },
     });
     // Create character with a skill that has no range-based triggers (uses "always")
     const skills: Skill[] = [
@@ -138,7 +138,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
     ];
     const character = createCharacter({
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 0, r: 0 },
       skills,
     });
     const { actions } = useGameStore.getState();
@@ -146,7 +146,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
     actions.selectCharacter(character.id);
 
     render(<RuleEvaluations />);
-    // Long Punch (range 1) should be out of range to enemy at distance 5
+    // Long Punch (range 1) should be out of range to enemy at hex distance 5
     expect(
       screen.getByText(/target out of range \(5 > 1\)/i),
     ).toBeInTheDocument();
@@ -188,7 +188,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       },
     ];
     const character = createCharacter({ skills });
-    const target = createTarget(); // Enemy at (1,0), within range
+    const target = createTarget(); // Enemy at hex (1,0), within range
     const { actions } = useGameStore.getState();
     actions.initBattle([character, target]);
     actions.selectCharacter(character.id);
@@ -215,7 +215,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
     // Use default character with enemy in range
     // Light Punch will be selected, Move and Heavy Punch will be skipped
     const character = createCharacter();
-    const target = createTarget(); // Enemy at (1,0)
+    const target = createTarget(); // Enemy at hex (1,0)
     const { actions } = useGameStore.getState();
     actions.initBattle([character, target]);
     actions.selectCharacter(character.id);
@@ -399,13 +399,13 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         selectorOverride: { type: "nearest_enemy" },
       },
     ];
-    // Character at (0,0), enemy at (5,5) - out of range for skills with range 1
-    const character = createCharacter({ skills, position: { x: 0, y: 0 } });
+    // Character at (0,0), enemy at (5,0) - out of range for skills with range 1
+    const character = createCharacter({ skills, position: { q: 0, r: 0 } });
     const enemy = createCharacter({
       id: "enemy",
       name: "Enemy",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 5, r: 0 },
       skills: [],
     });
     const { actions } = useGameStore.getState();

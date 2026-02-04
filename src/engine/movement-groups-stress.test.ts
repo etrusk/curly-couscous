@@ -14,31 +14,31 @@ describe("Movement Groups and Stress Tests", () => {
   // ===========================================================================
   describe("multiple collision groups", () => {
     it("should resolve independent collision groups separately", () => {
-      // Group 1: Two movers to (5,5)
+      // Group 1: Two movers to {q:2, r:1}
       const mover1A = createCharacter({
         id: "mover1A",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 1 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 1 }, 1),
       });
       const mover1B = createCharacter({
         id: "mover1B",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 0 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 1 }, 1),
       });
-      // Group 2: Two movers to (8,8)
+      // Group 2: Two movers to {q:-2, r:-1}
       const mover2A = createCharacter({
         id: "mover2A",
-        position: { x: 7, y: 8 },
+        position: { q: -1, r: -1 },
         slotPosition: 3,
-        currentAction: createMoveAction({ x: 8, y: 8 }, 1),
+        currentAction: createMoveAction({ q: -2, r: -1 }, 1),
       });
       const mover2B = createCharacter({
         id: "mover2B",
-        position: { x: 8, y: 7 },
+        position: { q: -2, r: 0 },
         slotPosition: 4,
-        currentAction: createMoveAction({ x: 8, y: 8 }, 1),
+        currentAction: createMoveAction({ q: -2, r: -1 }, 1),
       });
 
       const result = resolveMovement(
@@ -62,27 +62,27 @@ describe("Movement Groups and Stress Tests", () => {
       // Two collision groups should advance RNG twice
       const mover1A = createCharacter({
         id: "mover1A",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 1 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 1 }, 1),
       });
       const mover1B = createCharacter({
         id: "mover1B",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 0 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 1 }, 1),
       });
       const mover2A = createCharacter({
         id: "mover2A",
-        position: { x: 7, y: 8 },
+        position: { q: -1, r: -1 },
         slotPosition: 3,
-        currentAction: createMoveAction({ x: 8, y: 8 }, 1),
+        currentAction: createMoveAction({ q: -2, r: -1 }, 1),
       });
       const mover2B = createCharacter({
         id: "mover2B",
-        position: { x: 8, y: 7 },
+        position: { q: -2, r: 0 },
         slotPosition: 4,
-        currentAction: createMoveAction({ x: 8, y: 8 }, 1),
+        currentAction: createMoveAction({ q: -2, r: -1 }, 1),
       });
 
       const initialState = initRNG(1000);
@@ -103,27 +103,27 @@ describe("Movement Groups and Stress Tests", () => {
       // Create collision groups at different target cells
       const moverA1 = createCharacter({
         id: "moverA1",
-        position: { x: 0, y: 0 },
+        position: { q: 1, r: 3 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 2, y: 3 }, 1), // Target Y=3, X=2
+        currentAction: createMoveAction({ q: 2, r: 3 }, 1), // Target Y=3, X=2
       });
       const moverA2 = createCharacter({
         id: "moverA2",
-        position: { x: 1, y: 2 },
+        position: { q: 2, r: 2 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 2, y: 3 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 3 }, 1),
       });
       const moverB1 = createCharacter({
         id: "moverB1",
-        position: { x: 4, y: 4 },
+        position: { q: -1, r: -1 },
         slotPosition: 3,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1), // Target Y=5, X=5
+        currentAction: createMoveAction({ q: -2, r: -1 }, 1), // Target Y=5, X=5
       });
       const moverB2 = createCharacter({
         id: "moverB2",
-        position: { x: 5, y: 4 },
+        position: { q: -2, r: 0 },
         slotPosition: 4,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: -2, r: -1 }, 1),
       });
 
       const result1 = resolveMovement(
@@ -146,67 +146,57 @@ describe("Movement Groups and Stress Tests", () => {
   // Section 10: Stress Tests (1 test)
   // ===========================================================================
   describe("stress tests", () => {
-    it("should handle 8-way collision", () => {
+    it("should handle 6-way collision", () => {
+      // Target: {q:2, r:1}
+      // 6 neighbors (max collision in hex): (3,1), (1,1), (2,2), (2,0), (3,0), (1,2)
       const movers = [
         createCharacter({
           id: "mover0",
-          position: { x: 4, y: 4 },
+          position: { q: 3, r: 1 },
           slotPosition: 1,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 1 }, 1),
         }),
         createCharacter({
           id: "mover1",
-          position: { x: 5, y: 4 },
+          position: { q: 1, r: 1 },
           slotPosition: 2,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 1 }, 1),
         }),
         createCharacter({
           id: "mover2",
-          position: { x: 6, y: 4 },
+          position: { q: 2, r: 2 },
           slotPosition: 3,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 1 }, 1),
         }),
         createCharacter({
           id: "mover3",
-          position: { x: 4, y: 5 },
+          position: { q: 2, r: 0 },
           slotPosition: 4,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 1 }, 1),
         }),
         createCharacter({
           id: "mover4",
-          position: { x: 6, y: 5 },
+          position: { q: 3, r: 0 },
           slotPosition: 5,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 1 }, 1),
         }),
         createCharacter({
           id: "mover5",
-          position: { x: 4, y: 6 },
+          position: { q: 1, r: 2 },
           slotPosition: 6,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
-        }),
-        createCharacter({
-          id: "mover6",
-          position: { x: 5, y: 6 },
-          slotPosition: 6,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
-        }),
-        createCharacter({
-          id: "mover7",
-          position: { x: 6, y: 6 },
-          slotPosition: 7,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 1 }, 1),
         }),
       ];
 
       const result = resolveMovement(movers, 1, initRNG(1000));
 
-      // Exactly 1 winner, 7 losers
+      // Exactly 1 winner, 5 losers
       expect(result.events.filter((e) => e.collided === false)).toHaveLength(1);
-      expect(result.events.filter((e) => e.collided === true)).toHaveLength(7);
+      expect(result.events.filter((e) => e.collided === true)).toHaveLength(5);
 
-      // Exactly 1 character at (5,5)
+      // Exactly 1 character at {q:2, r:1}
       const atTarget = result.updatedCharacters.filter(
-        (c) => c.position.x === 5 && c.position.y === 5,
+        (c) => c.position.q === 2 && c.position.r === 1,
       );
       expect(atTarget).toHaveLength(1);
     });

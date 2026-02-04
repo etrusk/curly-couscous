@@ -10,13 +10,12 @@ import {
 } from "../../stores/gameStore";
 import type { IntentData } from "../../stores/gameStore-selectors";
 import { positionsEqual } from "../../engine/types";
+import { hexToPixel, computeHexViewBox } from "../../engine/hex";
 import { IntentLine } from "./IntentLine";
 import styles from "./IntentOverlay.module.css";
 
 export interface IntentOverlayProps {
-  gridWidth: number;
-  gridHeight: number;
-  cellSize: number;
+  hexSize: number;
 }
 
 /**
@@ -29,6 +28,7 @@ export interface IntentOverlayProps {
  */
 function detectBidirectionalAttacks(
   intents: IntentData[],
+  hexSize: number,
 ): Map<string, { x: number; y: number }> {
   const offsets = new Map<string, { x: number; y: number }>();
   const processed = new Set<string>();
@@ -51,10 +51,11 @@ function detectBidirectionalAttacks(
       processed.add(intent.characterId);
       processed.add(reverseIntent.characterId);
 
-      // Calculate perpendicular direction using the first character's line direction
-      // Direction vector: (dx, dy) = (targetX - fromX, targetY - fromY)
-      const dx = intent.action.targetCell.x - intent.characterPosition.x;
-      const dy = intent.action.targetCell.y - intent.characterPosition.y;
+      // Calculate perpendicular direction using pixel-space vectors
+      const fromPixel = hexToPixel(intent.characterPosition, hexSize);
+      const toPixel = hexToPixel(intent.action.targetCell, hexSize);
+      const dx = toPixel.x - fromPixel.x;
+      const dy = toPixel.y - fromPixel.y;
 
       // Perpendicular vector: (-dy, dx)
       // Normalize and scale by 4px
@@ -83,11 +84,7 @@ function detectBidirectionalAttacks(
   return offsets;
 }
 
-export function IntentOverlay({
-  gridWidth,
-  gridHeight,
-  cellSize,
-}: IntentOverlayProps) {
+export function IntentOverlay({ hexSize }: IntentOverlayProps) {
   // Subscribe to characters to force re-render when characters change
   // This fixes a Zustand subscription issue where selectIntentData doesn't
   // properly detect character additions via the addCharacter action.
@@ -100,23 +97,22 @@ export function IntentOverlay({
   void characters.length;
 
   // Detect bidirectional attacks and compute offsets
-  const offsets = detectBidirectionalAttacks(intents);
+  const offsets = detectBidirectionalAttacks(intents, hexSize);
 
-  const svgWidth = gridWidth * cellSize;
-  const svgHeight = gridHeight * cellSize;
+  const { viewBox, width, height } = computeHexViewBox(hexSize);
 
   return (
     <svg
       className={styles.intentOverlay}
-      width={svgWidth}
-      height={svgHeight}
-      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      width={width}
+      height={height}
+      viewBox={viewBox}
     >
       {/* SVG marker definitions */}
       <defs>
-        {/* Attack arrowheads - filled */}
+        {/* Attack arrowhead - action-colored */}
         <marker
-          id="arrowhead-friendly"
+          id="arrowhead-attack"
           markerWidth="12"
           markerHeight="8"
           refX="9"
@@ -132,29 +128,39 @@ export function IntentOverlay({
             stroke="var(--contrast-line)"
           />
           {/* Colored main polygon (rendered second - on top) */}
-          <polygon points="0,0 10,4 0,8" fill="var(--faction-friendly)" />
-        </marker>
-        <marker
-          id="arrowhead-enemy"
-          markerWidth="12"
-          markerHeight="8"
-          refX="9"
-          refY="4"
-          orient="auto"
-          markerUnits="userSpaceOnUse"
-          overflow="visible"
-        >
-          {/* White outline polygon (rendered first - behind) */}
-          <polygon
-            points="0,0 10,4 0,8"
-            fill="var(--contrast-line)"
-            stroke="var(--contrast-line)"
-          />
-          {/* Colored main polygon (rendered second - on top) */}
-          <polygon points="0,0 10,4 0,8" fill="var(--faction-enemy)" />
+          <polygon points="0,0 10,4 0,8" fill="var(--action-attack)" />
         </marker>
 
-        {/* Movement endpoints - hollow */}
+        {/* Heal cross marker - action-colored */}
+        <marker
+          id="cross-heal"
+          markerWidth="12"
+          markerHeight="12"
+          refX="6"
+          refY="6"
+          orient="auto"
+          markerUnits="userSpaceOnUse"
+          overflow="visible"
+        >
+          {/* White outline cross (thicker - rendered first - behind) */}
+          <path
+            d="M6,2 V10 M2,6 H10"
+            fill="none"
+            stroke="var(--contrast-line)"
+            strokeWidth="3"
+            strokeLinecap="round"
+          />
+          {/* Colored main cross (rendered second - on top) */}
+          <path
+            d="M6,2 V10 M2,6 H10"
+            fill="none"
+            stroke="var(--action-heal)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+        </marker>
+
+        {/* Movement endpoints - hollow, faction-shaped */}
         <marker
           id="circle-friendly"
           markerWidth="12"
@@ -180,7 +186,7 @@ export function IntentOverlay({
             cy="6"
             r="4"
             fill="none"
-            stroke="var(--faction-friendly)"
+            stroke="var(--action-move)"
             strokeWidth="1.5"
           />
         </marker>
@@ -198,14 +204,14 @@ export function IntentOverlay({
           <polygon
             points="6,0 12,6 6,12 0,6"
             fill="none"
-            stroke="white"
+            stroke="var(--contrast-line)"
             strokeWidth="3"
           />
           {/* Colored main polygon (rendered second - on top) */}
           <polygon
             points="6,0 12,6 6,12 0,6"
             fill="none"
-            stroke="#E69F00"
+            stroke="var(--action-move)"
             strokeWidth="1.5"
           />
         </marker>
@@ -217,10 +223,10 @@ export function IntentOverlay({
           key={intent.characterId}
           from={intent.characterPosition}
           to={intent.action.targetCell}
-          type={intent.action.type as "attack" | "move"}
+          type={intent.action.type as "attack" | "move" | "heal"}
           faction={intent.faction}
           ticksRemaining={intent.ticksRemaining}
-          cellSize={cellSize}
+          hexSize={hexSize}
           offset={offsets.get(intent.characterId)}
         />
       ))}

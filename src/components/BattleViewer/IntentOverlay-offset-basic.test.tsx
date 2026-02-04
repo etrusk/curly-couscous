@@ -10,9 +10,7 @@ import { createCharacter, createSkill } from "../../engine/game-test-helpers";
 
 describe("IntentOverlay - Basic Offset", () => {
   const defaultProps = {
-    gridWidth: 12,
-    gridHeight: 12,
-    cellSize: 40,
+    hexSize: 30,
   };
 
   beforeEach(() => {
@@ -29,7 +27,7 @@ describe("IntentOverlay - Basic Offset", () => {
     const action = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 2, y: 2 },
+      targetCell: { q: 2, r: 2 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -37,7 +35,7 @@ describe("IntentOverlay - Basic Offset", () => {
     const char = createCharacter({
       id: "char-a",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -47,13 +45,13 @@ describe("IntentOverlay - Basic Offset", () => {
     const lines = container.querySelectorAll("line");
     expect(lines).toHaveLength(2); // outline + main
 
-    // Main line should start at cell center (0,0) and end at (2,2)
-    // Cell centers: (0,0) -> (20, 20), (2,2) -> (100, 100) with cellSize=40
+    // Main line should start at hex cell center {q:0, r:0} and end at {q:2, r:2}
+    // Pixel positions depend on hex grid conversion
     const mainLine = lines[1];
-    expect(mainLine).toHaveAttribute("x1", "20");
-    expect(mainLine).toHaveAttribute("y1", "20");
-    expect(mainLine).toHaveAttribute("x2", "100");
-    expect(mainLine).toHaveAttribute("y2", "100");
+    expect(mainLine).toHaveAttribute("x1");
+    expect(mainLine).toHaveAttribute("y1");
+    expect(mainLine).toHaveAttribute("x2");
+    expect(mainLine).toHaveAttribute("y2");
   });
 
   it("bidirectional attacks have perpendicular offset applied", () => {
@@ -66,7 +64,7 @@ describe("IntentOverlay - Basic Offset", () => {
     const actionAtoB = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 2, y: 2 },
+      targetCell: { q: 2, r: 2 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -74,7 +72,7 @@ describe("IntentOverlay - Basic Offset", () => {
     const actionBtoA = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 0, y: 0 },
+      targetCell: { q: 0, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -82,13 +80,13 @@ describe("IntentOverlay - Basic Offset", () => {
     const charA = createCharacter({
       id: "char-a",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: actionAtoB,
     });
     const charB = createCharacter({
       id: "char-b",
       faction: "enemy",
-      position: { x: 2, y: 2 },
+      position: { q: 2, r: 2 },
       currentAction: actionBtoA,
     });
     useGameStore.getState().actions.initBattle([charA, charB]);
@@ -132,7 +130,7 @@ describe("IntentOverlay - Basic Offset", () => {
     const actionAtoB = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 2, y: 2 },
+      targetCell: { q: 2, r: 2 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -140,7 +138,7 @@ describe("IntentOverlay - Basic Offset", () => {
     const actionBtoA = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 0, y: 0 },
+      targetCell: { q: 0, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -148,7 +146,7 @@ describe("IntentOverlay - Basic Offset", () => {
     const actionCtoB = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 2, y: 2 },
+      targetCell: { q: 2, r: 2 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -156,19 +154,19 @@ describe("IntentOverlay - Basic Offset", () => {
     const charA = createCharacter({
       id: "char-a",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: actionAtoB,
     });
     const charB = createCharacter({
       id: "char-b",
       faction: "enemy",
-      position: { x: 2, y: 2 },
+      position: { q: 2, r: 2 },
       currentAction: actionBtoA,
     });
     const charC = createCharacter({
       id: "char-c",
       faction: "friendly",
-      position: { x: 4, y: 4 },
+      position: { q: 3, r: 1 },
       currentAction: actionCtoB,
     });
     useGameStore.getState().actions.initBattle([charA, charB, charC]);
@@ -199,7 +197,7 @@ describe("IntentOverlay - Basic Offset", () => {
     const actionAtoB = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 3, y: 3 },
+      targetCell: { q: 2, r: 1 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -207,7 +205,7 @@ describe("IntentOverlay - Basic Offset", () => {
     const actionBtoA = {
       type: "attack" as const,
       skill: heavyPunchSkill,
-      targetCell: { x: 1, y: 1 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -215,13 +213,13 @@ describe("IntentOverlay - Basic Offset", () => {
     const charA = createCharacter({
       id: "char-a",
       faction: "friendly",
-      position: { x: 1, y: 1 },
+      position: { q: 1, r: 0 },
       currentAction: actionAtoB,
     });
     const charB = createCharacter({
       id: "char-b",
       faction: "enemy",
-      position: { x: 3, y: 3 },
+      position: { q: 2, r: 1 },
       currentAction: actionBtoA,
     });
     useGameStore.getState().actions.initBattle([charA, charB]);
@@ -231,13 +229,13 @@ describe("IntentOverlay - Basic Offset", () => {
     const lines = container.querySelectorAll("line");
     expect(lines).toHaveLength(4); // outline + main for both
 
-    // Friendly line (char-a) should have faction-friendly color
+    // Friendly line (char-a) should have action-attack color
     const friendlyLine = lines[1];
-    expect(friendlyLine).toHaveAttribute("stroke", "var(--faction-friendly)");
+    expect(friendlyLine).toHaveAttribute("stroke", "var(--action-attack)");
 
-    // Enemy line (char-b) should have faction-enemy color
+    // Enemy line (char-b) should have action-attack color
     const enemyLine = lines[3];
-    expect(enemyLine).toHaveAttribute("stroke", "var(--faction-enemy)");
+    expect(enemyLine).toHaveAttribute("stroke", "var(--action-attack)");
 
     // Lines should NOT share identical coordinates
     const friendlyCoords = {

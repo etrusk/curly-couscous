@@ -4,15 +4,15 @@
  */
 
 import type { Position, Faction } from "../../engine/types";
-import styles from "./IntentLine.module.css";
+import { hexToPixel } from "../../engine/hex";
 
 export interface IntentLineProps {
   from: Position;
   to: Position;
-  type: "attack" | "move";
+  type: "attack" | "move" | "heal";
   faction: Faction;
   ticksRemaining: number;
-  cellSize: number;
+  hexSize: number;
   offset?: { x: number; y: number };
 }
 
@@ -22,38 +22,35 @@ export function IntentLine({
   type,
   faction,
   ticksRemaining,
-  cellSize,
+  hexSize,
   offset = { x: 0, y: 0 },
 }: IntentLineProps) {
   // Calculate cell center positions with offset
-  const x1 = from.x * cellSize + cellSize / 2 + offset.x;
-  const y1 = from.y * cellSize + cellSize / 2 + offset.y;
-  const x2 = to.x * cellSize + cellSize / 2 + offset.x;
-  const y2 = to.y * cellSize + cellSize / 2 + offset.y;
+  const fromPixel = hexToPixel(from, hexSize);
+  const toPixel = hexToPixel(to, hexSize);
+  const x1 = fromPixel.x + offset.x;
+  const y1 = fromPixel.y + offset.y;
+  const x2 = toPixel.x + offset.x;
+  const y2 = toPixel.y + offset.y;
 
-  // Determine line color based on faction (using CSS variables)
-  const color =
-    faction === "friendly" ? "var(--faction-friendly)" : "var(--faction-enemy)";
+  // Determine line color based on action type (using CSS variables)
+  const color = getActionColor(type);
   const outlineColor = "var(--contrast-line)";
 
-  // Determine stroke width based on ticks remaining
-  // Confirmed (1 tick): 2px, Locked-in (2+ ticks): 2.5px
-  const strokeWidth = ticksRemaining === 1 ? 2 : 2.5;
+  // Conditional stroke width: 4px for solid (immediate), 2px for dashed (future)
+  const strokeWidth = ticksRemaining === 0 ? 4 : 2;
 
   // Outline stroke width is main + 1px
   const outlineStrokeWidth = strokeWidth + 1;
 
-  // Determine if line is dashed (for movement)
-  const strokeDasharray = type === "move" ? "4 2" : undefined;
+  // Timing-based dashing: dashed for ticksRemaining > 0, solid for ticksRemaining = 0
+  const strokeDasharray = ticksRemaining > 0 ? "4 4" : undefined;
 
   // Determine marker based on type and faction
   const markerEnd = getMarkerEnd(type, faction);
 
-  // Apply pulsing animation for locked-in actions (2+ ticks)
-  const className = ticksRemaining >= 2 ? styles.lockedIn : "";
-
   return (
-    <g className={className}>
+    <g>
       {/* Outline line (white, thicker, no marker) - rendered first (behind) */}
       <line
         x1={x1}
@@ -77,22 +74,56 @@ export function IntentLine({
         markerEnd={markerEnd}
         strokeLinecap="round"
       />
+      {/* Numeric label for wind-up actions (ticksRemaining > 0) */}
+      {ticksRemaining > 0 && (
+        <text
+          x={(x1 + x2) / 2}
+          y={(y1 + y2) / 2}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill={color}
+          stroke={outlineColor}
+          strokeWidth="3"
+          paintOrder="stroke"
+          fontSize="12"
+          fontWeight="bold"
+        >
+          {ticksRemaining}
+        </text>
+      )}
     </g>
   );
 }
 
 /**
+ * Determine CSS variable for intent line color based on action type.
+ */
+function getActionColor(type: "attack" | "move" | "heal"): string {
+  switch (type) {
+    case "attack":
+      return "var(--action-attack)";
+    case "heal":
+      return "var(--action-heal)";
+    case "move":
+      return "var(--action-move)";
+  }
+}
+
+/**
  * Determine SVG marker reference based on action type and faction.
  */
-function getMarkerEnd(type: "attack" | "move", faction: Faction): string {
-  if (type === "attack") {
-    return faction === "friendly"
-      ? "url(#arrowhead-friendly)"
-      : "url(#arrowhead-enemy)";
-  } else {
-    // Movement
-    return faction === "friendly"
-      ? "url(#circle-friendly)"
-      : "url(#diamond-enemy)";
+function getMarkerEnd(
+  type: "attack" | "move" | "heal",
+  faction: Faction,
+): string {
+  switch (type) {
+    case "attack":
+      return "url(#arrowhead-attack)";
+    case "heal":
+      return "url(#cross-heal)";
+    case "move":
+      return faction === "friendly"
+        ? "url(#circle-friendly)"
+        : "url(#diamond-enemy)";
   }
 }

@@ -7,9 +7,9 @@ import type { Skill } from "../engine/types";
 import { getDefaultSkills } from "../engine/skill-registry";
 
 /**
- * Grid size (12×12 grid).
+ * Hex grid radius (hexagon-shaped map with 91 total hexes).
  */
-export const GRID_SIZE = 12;
+export const HEX_RADIUS = 5;
 
 /**
  * Maximum number of skill slots per character.
@@ -20,11 +20,11 @@ export const MAX_SKILL_SLOTS = 3;
 
 /**
  * Helper function to create consistent position keys for game state.
- * Uses hyphen format: "x-y"
- * NOTE: This differs from pathfinding.positionKey which uses "x,y" format.
+ * Uses hyphen format: "q-r"
+ * NOTE: This differs from pathfinding.positionKey which uses "q,r" format.
  * Keep these separate - they serve different modules and should not be mixed.
  */
-export const positionKey = (x: number, y: number): string => `${x}-${y}`;
+export const positionKey = (q: number, r: number): string => `${q}-${r}`;
 
 /**
  * Counter for generating unique character IDs.

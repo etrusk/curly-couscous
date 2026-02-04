@@ -15,14 +15,14 @@ describe("processTick - battle status detection", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 1,
-      currentAction: createAttackAction({ x: 1, y: 0 }, 100, 1),
+      currentAction: createAttackAction({ q: 1, r: 0 }, 100, 1),
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 50,
       slotPosition: 2,
     });
@@ -41,16 +41,16 @@ describe("processTick - battle status detection", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       hp: 50,
       slotPosition: 1,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       slotPosition: 2,
-      currentAction: createAttackAction({ x: 0, y: 0 }, 100, 1),
+      currentAction: createAttackAction({ q: 0, r: 0 }, 100, 1),
     });
 
     const state = createGameState({
@@ -67,18 +67,18 @@ describe("processTick - battle status detection", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       hp: 10,
       slotPosition: 1,
-      currentAction: createAttackAction({ x: 1, y: 0 }, 25, 1),
+      currentAction: createAttackAction({ q: 1, r: 0 }, 25, 1),
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       hp: 10,
       slotPosition: 2,
-      currentAction: createAttackAction({ x: 0, y: 0 }, 25, 1),
+      currentAction: createAttackAction({ q: 0, r: 0 }, 25, 1),
     });
 
     const state = createGameState({
@@ -95,13 +95,13 @@ describe("processTick - battle status detection", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 1,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       slotPosition: 2,
     });
 

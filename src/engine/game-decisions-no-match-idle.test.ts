@@ -15,12 +15,12 @@ describe("computeDecisions - no match to idle", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 10, y: 10 },
+      position: { q: 5, r: 0 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [
         createSkill({
           id: "skill1",
@@ -43,12 +43,12 @@ describe("computeDecisions - no match to idle", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 5, r: 0 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [],
     });
     const state = createGameState({
@@ -65,12 +65,12 @@ describe("computeDecisions - no match to idle", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 5, r: 0 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [
         createSkill({
           id: "skill1",
@@ -99,7 +99,7 @@ describe("computeDecisions - no match to idle", () => {
   it("should return idle action with type=idle", () => {
     const character = createCharacter({
       id: "char1",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [],
     });
     const state = createGameState({
@@ -115,7 +115,7 @@ describe("computeDecisions - no match to idle", () => {
   it("should set idle targetCell to character position", () => {
     const character = createCharacter({
       id: "char1",
-      position: { x: 5, y: 7 },
+      position: { q: 1, r: 4 },
       skills: [],
     });
     const state = createGameState({
@@ -125,6 +125,6 @@ describe("computeDecisions - no match to idle", () => {
 
     const decisions = computeDecisions(state);
 
-    expect(decisions[0]!.action.targetCell).toEqual({ x: 5, y: 7 });
+    expect(decisions[0]!.action.targetCell).toEqual({ q: 1, r: 4 });
   });
 });

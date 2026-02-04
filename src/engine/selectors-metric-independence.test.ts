@@ -17,19 +17,19 @@ describe("evaluateSelector", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 0, r: 0 },
       });
       const enemyA = createCharacter({
         id: "enemyA",
         faction: "enemy",
         hp: 100,
-        position: { x: 5, y: 6 }, // dist=1
+        position: { q: 0, r: 1 }, // dist=1
       });
       const enemyB = createCharacter({
         id: "enemyB",
         faction: "enemy",
         hp: 10,
-        position: { x: 5, y: 9 }, // dist=4
+        position: { q: 0, r: 4 }, // dist=4
       });
       const selector: Selector = { type: "nearest_enemy" };
 
@@ -46,19 +46,19 @@ describe("evaluateSelector", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 0, r: 0 },
       });
       const enemyA = createCharacter({
         id: "enemyA",
         faction: "enemy",
         hp: 100,
-        position: { x: 5, y: 6 }, // dist=1
+        position: { q: 0, r: 1 }, // dist=1
       });
       const enemyB = createCharacter({
         id: "enemyB",
         faction: "enemy",
         hp: 10,
-        position: { x: 5, y: 9 }, // dist=4
+        position: { q: 0, r: 4 }, // dist=4
       });
       const selector: Selector = { type: "lowest_hp_enemy" };
 

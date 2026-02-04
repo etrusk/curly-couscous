@@ -4,10 +4,11 @@
  */
 
 import type { Character, Position } from "../engine/types";
-import { GRID_SIZE, positionKey } from "./gameStore-constants";
+import { generateAllHexes } from "../engine/hex";
+import { positionKey } from "./gameStore-constants";
 
 /**
- * Find the first unoccupied position on the grid (row-major order).
+ * Find the first unoccupied position on the grid (deterministic hex order).
  * @param characters - Current characters on the grid
  * @returns Position if available, null if grid is full
  */
@@ -15,15 +16,13 @@ export function findNextAvailablePosition(
   characters: Character[],
 ): Position | null {
   const occupiedPositions = new Set(
-    characters.map((c) => positionKey(c.position.x, c.position.y)),
+    characters.map((c) => positionKey(c.position.q, c.position.r)),
   );
 
-  for (let y = 0; y < GRID_SIZE; y++) {
-    for (let x = 0; x < GRID_SIZE; x++) {
-      const key = positionKey(x, y);
-      if (!occupiedPositions.has(key)) {
-        return { x, y };
-      }
+  for (const pos of generateAllHexes()) {
+    const key = positionKey(pos.q, pos.r);
+    if (!occupiedPositions.has(key)) {
+      return pos;
     }
   }
 

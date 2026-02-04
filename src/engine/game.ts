@@ -22,5 +22,9 @@ export type { Decision } from "./game-decisions";
 // Re-export action utilities
 export { getActionType } from "./game-actions";
 
+// Re-export healing logic
+export { resolveHealing } from "./healing";
+export type { HealingResult } from "./healing";
+
 // Note: DEFAULT_SELECTOR and IDLE_SKILL are internal constants
 // and are not exported from this barrel file.

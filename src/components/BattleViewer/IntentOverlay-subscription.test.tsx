@@ -35,7 +35,7 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add first character (friendly at 0,0)
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
 
     // Still no lines (1 character, needs target)
     await waitFor(() => {
@@ -46,7 +46,7 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add second character (enemy at 1,0, adjacent)
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 1, y: 0 });
+      .actions.addCharacterAtPosition("enemy", { q: 1, r: 0 });
 
     // Should now have 4 lines (2 characters x 2 lines each for bidirectional attack)
     await waitFor(() => {
@@ -73,18 +73,9 @@ describe("IntentOverlay - Subscription Behavior", () => {
       const mainLine1 = lines[1]!;
       const mainLine2 = lines[3]!;
 
-      // Verify attack intents with correct faction colors
-      const friendlyLine =
-        mainLine1.getAttribute("stroke") === "var(--faction-friendly)"
-          ? mainLine1
-          : mainLine2;
-      const enemyLine =
-        mainLine1.getAttribute("stroke") === "var(--faction-enemy)"
-          ? mainLine1
-          : mainLine2;
-
-      expect(friendlyLine).toHaveAttribute("stroke", "var(--faction-friendly)");
-      expect(enemyLine).toHaveAttribute("stroke", "var(--faction-enemy)");
+      // Both lines should use action-move color (addCharacter only assigns innate Move skill)
+      expect(mainLine1).toHaveAttribute("stroke", "var(--action-move)");
+      expect(mainLine2).toHaveAttribute("stroke", "var(--action-move)");
     });
   });
 
@@ -94,12 +85,12 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add friendly at (0,0)
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
 
     // Add enemy far apart at (10,10) - out of attack range
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 10, y: 10 });
+      .actions.addCharacterAtPosition("enemy", { q: 4, r: 0 });
 
     // Should have 4 lines (2 characters x 2 lines each for movement intents)
     await waitFor(() => {
@@ -111,8 +102,8 @@ describe("IntentOverlay - Subscription Behavior", () => {
       const mainLine2 = lines[3]!;
 
       // Both should be dashed (movement style)
-      expect(mainLine1).toHaveAttribute("stroke-dasharray", "4 2");
-      expect(mainLine2).toHaveAttribute("stroke-dasharray", "4 2");
+      expect(mainLine1).toHaveAttribute("stroke-dasharray", "4 4");
+      expect(mainLine2).toHaveAttribute("stroke-dasharray", "4 4");
 
       // Check markers for movement endpoints
       const friendlyMarker = mainLine1.getAttribute("marker-end");
@@ -141,12 +132,12 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add friendly at (0,0) - store action
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
 
     // Add enemy at (1,0) - store action
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 1, y: 0 });
+      .actions.addCharacterAtPosition("enemy", { q: 1, r: 0 });
 
     // Final state: should have 4 lines WITHOUT explicit rerender
     await waitFor(() => {
@@ -166,7 +157,7 @@ describe("IntentOverlay - Subscription Behavior", () => {
     const attackAction1 = {
       type: "attack" as const,
       skill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -174,7 +165,7 @@ describe("IntentOverlay - Subscription Behavior", () => {
     const attackAction2 = {
       type: "attack" as const,
       skill,
-      targetCell: { x: 0, y: 0 },
+      targetCell: { q: 0, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -182,13 +173,13 @@ describe("IntentOverlay - Subscription Behavior", () => {
     const char1 = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: attackAction1,
     });
     const char2 = createCharacter({
       id: "char2",
       faction: "enemy",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       currentAction: attackAction2,
     });
 
@@ -205,15 +196,9 @@ describe("IntentOverlay - Subscription Behavior", () => {
     const mainLine1 = lines[1]!;
     const mainLine2 = lines[3]!;
 
-    const hasFriendlyLine =
-      mainLine1.getAttribute("stroke") === "var(--faction-friendly)" ||
-      mainLine2.getAttribute("stroke") === "var(--faction-friendly)";
-    const hasEnemyLine =
-      mainLine1.getAttribute("stroke") === "var(--faction-enemy)" ||
-      mainLine2.getAttribute("stroke") === "var(--faction-enemy)";
-
-    expect(hasFriendlyLine).toBe(true);
-    expect(hasEnemyLine).toBe(true);
+    // Both attack lines should use action-attack color
+    expect(mainLine1).toHaveAttribute("stroke", "var(--action-attack)");
+    expect(mainLine2).toHaveAttribute("stroke", "var(--action-attack)");
   });
 
   it("no-intent-lines-for-single-character", () => {
@@ -222,7 +207,7 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add single character
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
 
     // No lines (no valid target)
     const lines = container.querySelectorAll("line");
@@ -235,10 +220,10 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add friendly at (0,0) and enemy at (1,0) - adjacent
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 1, y: 0 });
+      .actions.addCharacterAtPosition("enemy", { q: 1, r: 0 });
 
     // Should have 4 attack lines (bidirectional attack)
     await waitFor(() => {
@@ -249,7 +234,7 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add second friendly at (5,5) - far from both
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 5, y: 5 });
+      .actions.addCharacterAtPosition("friendly", { q: 3, r: 1 });
 
     // Should now have 6 lines total (4 for attack pair + 2 for movement)
     await waitFor(() => {
@@ -264,10 +249,10 @@ describe("IntentOverlay - Subscription Behavior", () => {
     // Add friendly and enemy adjacent
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("friendly", { x: 0, y: 0 });
+      .actions.addCharacterAtPosition("friendly", { q: 0, r: 0 });
     useGameStore
       .getState()
-      .actions.addCharacterAtPosition("enemy", { x: 1, y: 0 });
+      .actions.addCharacterAtPosition("enemy", { q: 1, r: 0 });
 
     // Should have 4 lines
     await waitFor(() => {

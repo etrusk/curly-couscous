@@ -16,7 +16,9 @@ describe("Token - Letter Visibility", () => {
         hp={100}
         maxHp={100}
         slotPosition={1}
-      />
+        cx={100}
+        cy={100}
+      />,
     );
 
     // Find the <text> element (letter)
@@ -36,7 +38,9 @@ describe("Token - Letter Visibility", () => {
         hp={100}
         maxHp={100}
         slotPosition={1}
-      />
+        cx={100}
+        cy={100}
+      />,
     );
 
     const textElement = container.querySelector("text");
@@ -46,7 +50,7 @@ describe("Token - Letter Visibility", () => {
     expect(textElement?.textContent).toBe("A");
 
     // Should have class containing "letter"
-    expect((textElement?.className as SVGAnimatedString | undefined)?.baseVal).toContain("letter");
+    expect(textElement?.getAttribute("class")).toContain("letter");
 
     // Should be centered
     expect(textElement?.getAttribute("text-anchor")).toBe("middle");
@@ -61,7 +65,9 @@ describe("Token - Letter Visibility", () => {
         hp={100}
         maxHp={100}
         slotPosition={2}
-      />
+        cx={100}
+        cy={100}
+      />,
     );
 
     const textElement = container.querySelector("text");
@@ -71,7 +77,7 @@ describe("Token - Letter Visibility", () => {
     expect(textElement?.textContent).toBe("B");
 
     // Should have class containing "letter"
-    expect((textElement?.className as SVGAnimatedString | undefined)?.baseVal).toContain("letter");
+    expect(textElement?.getAttribute("class")).toContain("letter");
 
     // Should be centered (same structure as friendly)
     expect(textElement?.getAttribute("text-anchor")).toBe("middle");

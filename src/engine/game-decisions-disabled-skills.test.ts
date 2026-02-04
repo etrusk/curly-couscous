@@ -15,12 +15,12 @@ describe("computeDecisions - disabled skills", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 3, r: -1 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [
         createSkill({
           id: "skill1",
@@ -44,12 +44,12 @@ describe("computeDecisions - disabled skills", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 4, r: 1 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [
         createSkill({
           id: "skill1",

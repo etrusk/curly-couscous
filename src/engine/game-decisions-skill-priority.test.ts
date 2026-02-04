@@ -15,12 +15,12 @@ describe("computeDecisions - skill priority order", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 4, r: 2 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [
         createSkill({
           id: "skill1",
@@ -48,12 +48,12 @@ describe("computeDecisions - skill priority order", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 10, y: 10 },
+      position: { q: 3, r: -3 }, // Distance 5 from {q:3, r:2}
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       skills: [
         createSkill({
           id: "skill1",
@@ -82,12 +82,12 @@ describe("computeDecisions - skill priority order", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 10, y: 10 },
+      position: { q: 3, r: -3 }, // Distance 5 from {q:3, r:2}
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       hp: 100,
       skills: [
         createSkill({

@@ -18,13 +18,13 @@ describe("resolveCombat", () => {
     it("should generate DeathEvent when HP reaches exactly 0", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 10, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 10,
         slotPosition: 2,
       });
@@ -42,13 +42,13 @@ describe("resolveCombat", () => {
     it("should generate DeathEvent when HP goes negative", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 25, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 25, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 10,
         slotPosition: 2,
       });
@@ -65,13 +65,13 @@ describe("resolveCombat", () => {
     it("should include correct characterId in DeathEvent", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 100, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 100, 1),
       });
       const target = createCharacter({
         id: "char-1",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 50,
         slotPosition: 2,
       });
@@ -87,13 +87,13 @@ describe("resolveCombat", () => {
     it("should include correct tick in DeathEvent", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 100, 3),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 100, 3),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 50,
         slotPosition: 2,
       });
@@ -107,13 +107,13 @@ describe("resolveCombat", () => {
     it("should not generate DeathEvent when HP remains positive", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 25, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 25, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 100,
         slotPosition: 2,
       });
@@ -130,13 +130,13 @@ describe("resolveCombat", () => {
     it("should generate DeathEvent after DamageEvent in events array", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 100, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 100, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 50,
         slotPosition: 2,
       });
@@ -156,13 +156,13 @@ describe("resolveCombat", () => {
     it("should keep dead characters in returned array", () => {
       const attacker = createCharacter({
         id: "attacker",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 1, y: 0 }, null, 100, 1),
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 100, 1),
       });
       const target = createCharacter({
         id: "target",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         hp: 50,
         slotPosition: 2,
       });

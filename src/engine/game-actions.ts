@@ -10,22 +10,32 @@ import { computeMoveDestination } from "./game-movement";
  * Infer action type from skill properties.
  *
  * @param skill - Skill to check
- * @returns 'attack' if skill has damage, 'move' if skill has mode
- * @throws Error if skill has both or neither damage and mode
+ * @returns 'attack' if skill has damage, 'heal' if skill has healing, 'move' if skill has mode
+ * @throws Error if skill has multiple action properties or none
  */
-export function getActionType(skill: Skill): "attack" | "move" {
+export function getActionType(skill: Skill): "attack" | "move" | "heal" {
   const hasDamage = skill.damage !== undefined;
+  const hasHealing = skill.healing !== undefined;
   const hasMode = skill.mode !== undefined;
 
-  if (hasDamage && hasMode) {
-    throw new Error(`Skill ${skill.id} cannot have both damage and mode`);
+  // Count how many action-defining properties are set
+  const actionProperties = [hasDamage, hasHealing, hasMode].filter(
+    Boolean,
+  ).length;
+
+  if (actionProperties === 0) {
+    throw new Error(`Skill ${skill.id} must have damage, healing, or mode`);
   }
 
-  if (!hasDamage && !hasMode) {
-    throw new Error(`Skill ${skill.id} must have damage or mode`);
+  if (actionProperties > 1) {
+    throw new Error(
+      `Skill ${skill.id} can only have one of damage, healing, or mode`,
+    );
   }
 
-  return hasDamage ? "attack" : "move";
+  if (hasDamage) return "attack";
+  if (hasHealing) return "heal";
+  return "move";
 }
 
 /**
@@ -77,8 +87,8 @@ export function createSkillAction(
   let targetCell: Position;
   let targetCharacter: Character | null;
 
-  if (actionType === "attack") {
-    // Attack: lock to target's position
+  if (actionType === "attack" || actionType === "heal") {
+    // Attack and Heal: lock to target's current position (cell-based targeting)
     targetCell = target.position;
     targetCharacter = target;
   } else {

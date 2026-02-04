@@ -40,7 +40,7 @@ export function createAction(overrides: Partial<Action>): Action {
   return {
     type: overrides.type ?? "attack",
     skill: overrides.skill ?? createSkill({ id: "test-skill" }),
-    targetCell: overrides.targetCell ?? { x: 0, y: 0 },
+    targetCell: overrides.targetCell ?? { q: 0, r: 0 },
     targetCharacter: overrides.targetCharacter ?? null,
     startedAtTick: overrides.startedAtTick ?? 0,
     resolvesAtTick: overrides.resolvesAtTick ?? 1,

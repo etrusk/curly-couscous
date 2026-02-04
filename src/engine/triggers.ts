@@ -3,7 +3,7 @@
  * Pure TypeScript - no React dependencies.
  */
 
-import { Trigger, Character, chebyshevDistance, positionsEqual } from "./types";
+import { Trigger, Character, hexDistance, positionsEqual } from "./types";
 
 /**
  * Evaluates whether a single trigger condition is satisfied.
@@ -34,7 +34,7 @@ export function evaluateTrigger(
         (c) =>
           c.faction !== evaluator.faction &&
           c.hp > 0 &&
-          chebyshevDistance(c.position, evaluator.position) <= range,
+          hexDistance(c.position, evaluator.position) <= range,
       );
     }
 
@@ -45,7 +45,7 @@ export function evaluateTrigger(
           c.faction === evaluator.faction &&
           c.id !== evaluator.id &&
           c.hp > 0 &&
-          chebyshevDistance(c.position, evaluator.position) <= range,
+          hexDistance(c.position, evaluator.position) <= range,
       );
     }
 

@@ -17,7 +17,7 @@ export const createCharacter = (
   slotPosition: overrides.slotPosition ?? 0,
   hp: overrides.hp ?? 100,
   maxHp: overrides.maxHp ?? 100,
-  position: overrides.position ?? { x: 0, y: 0 },
+  position: overrides.position ?? { q: 0, r: 0 },
   skills: overrides.skills ?? [],
   currentAction: overrides.currentAction ?? null,
 });

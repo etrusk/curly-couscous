@@ -3,7 +3,7 @@
 ## Project Overview
 
 Tick-based auto battler with priority-based skill system (gambit system like FFXII).
-12×12 grid with character tokens, intent lines, damage overlays.
+Hexagonal grid (radius 5, 91 hexes) with character tokens, intent lines, damage overlays.
 Client-side only for v0.3 (foundation for future roguelike meta-progression).
 
 ## Design Vision
@@ -71,9 +71,9 @@ New characters start with only innate skills. Players build their skill loadout 
 
 ### Light Punch
 
-- Tick cost: 1, Range: 1 (melee), Damage: 10
+- Tick cost: 0, Range: 1 (melee), Damage: 10
 - Default selector: nearest_enemy
-- Fast but weak. 1-tick wind-up visible before resolution.
+- Fast and instant. Resolves immediately with no wind-up.
 - **Assignable** (not innate)
 
 ### Heavy Punch
@@ -83,22 +83,51 @@ New characters start with only innate skills. Players build their skill loadout 
 - Slow but powerful. 2-tick wind-up creates dodge window.
 - **Assignable** (not innate)
 
+### Heal
+
+- Tick cost: 2, Range: 5, Healing: 25
+- Default selector: lowest_hp_ally
+- Supportive skill. 2-tick wind-up with cell-based targeting (locks to target's cell at decision time).
+- Heals target for 25 HP, capped at maxHp.
+- Cannot target characters at full HP (rejected as no_target if no wounded allies in range).
+- Healing resolves before combat in the Resolution Phase (ADR-006), making last-moment saves possible.
+- **Assignable** (not innate)
+
+### Skill Categories
+
+Skills fall into three action categories:
+
+- **Attack** (damage): Deal damage to enemies. Light Punch, Heavy Punch.
+- **Heal** (healing): Restore HP to allies. Heal.
+- **Move** (movement): Reposition on the grid. Move.
+
+Skills fall into two timing categories:
+
+- **Instant** (tickCost: 0): Resolve the same tick they are chosen. No wind-up, no telegraph. Guaranteed to hit if the target is in range at decision time. Trade telegraphing for reliability.
+- **Wind-up** (tickCost >= 1): Take one or more ticks to resolve. Intent lines appear during wind-up, giving opponents time to react (dodge, reposition). Trade speed for power.
+
+**Tactical rationale:** Instant attacks exist as an anti-kiting mechanic. Without them, characters with escape-route-weighted movement could indefinitely flee melee attackers, since every attack required at least 1 tick of wind-up during which the target could move away. Instant attacks guarantee hits on contact, forcing tactical tradeoffs: kiting is still viable against wind-up attacks, but closing to melee range carries real risk from instant attacks.
+
+**Current instant skills:** Light Punch (tickCost: 0)
+**Current wind-up skills:** Heavy Punch (tickCost: 2), Heal (tickCost: 2), Move (tickCost: 1)
+
 ### Move
 
-- Tick cost: 1, Distance: 1 cell
+- Tick cost: 1, Distance: 1 hex
 - Default selector: nearest_enemy
 - Modes: **towards** (closer), **away** (farther)
 - **Innate** (automatically assigned, cannot be removed)
 
 ## Skill Assignment
 
-Skills are a shared resource pool -- any character can use any skill from the inventory. Assignment is per-character: each character maintains their own skill list with independent priority ordering.
+Skills are a shared resource pool with faction exclusivity -- each assignable skill can only be assigned to one character per faction. Cross-faction sharing is allowed (a friendly and an enemy can have the same skill). Assignment is per-character: each character maintains their own skill list with independent priority ordering.
 
 **Assigning a skill:**
 
 - Skills are assigned from the Inventory panel via an "Assign" button
 - Newly assigned skills are added to the top of the character's skill list (highest priority)
 - A skill can only be assigned once per character (no duplicates)
+- A skill can only be assigned to one character per faction (faction exclusivity). Assigning a skill to one friendly removes it from inventory for all friendlies, but it remains available for enemies.
 
 **Removing a skill:**
 
@@ -112,22 +141,22 @@ Skills are a shared resource pool -- any character can use any skill from the in
 
 ### Target Selectors
 
-- `nearest_enemy`: Closest enemy by Chebyshev distance
+- `nearest_enemy`: Closest enemy by hex distance
 - `nearest_ally`: Closest ally (not self)
 - `lowest_hp_enemy`: Enemy with lowest current HP
 - `lowest_hp_ally`: Ally with lowest current HP
 - `self`: Target self (for self-buffs)
 
-**Selector tiebreaking:** Lower Y → Lower X coordinate
+**Selector tiebreaking:** Lower R coordinate, then lower Q coordinate
 
 ### Trigger Conditions
 
-- `enemy_in_range X`: Any enemy within X cells
-- `ally_in_range X`: Any ally within X cells
+- `enemy_in_range X`: Any enemy within X hexes
+- `ally_in_range X`: Any ally within X hexes
 - `hp_below X%`: Own HP below X%
-- `my_cell_targeted_by_enemy`: Enemy has locked-in action targeting this cell
+- `my_cell_targeted_by_enemy`: Enemy has locked-in action targeting this hex
 
-**Note:** `my_cell_targeted_by_enemy` detects any pending action targeting the cell. All actions have at least 1 tick of visibility before resolution.
+**Note:** `my_cell_targeted_by_enemy` detects any pending action targeting the cell. Wind-up actions (tickCost >= 1) have at least 1 tick of visibility before resolution. Instant actions (tickCost: 0) resolve the same tick they are chosen, so they cannot be dodged via this trigger.
 
 ## Core Game Mechanics
 
@@ -140,62 +169,88 @@ Battle progresses in discrete ticks. Tick 0 is initial state.
 1. If mid-action, continue current action
 2. Scan skill list top-to-bottom
 3. Select first skill whose conditions are met
-4. Lock targeting to target's current cell
+4. Lock targeting to target's current hex
 5. If no skill valid, idle
 
 **Resolution Phase** (simultaneous execution):
 
-1. Attacks: Check if target still in locked cell → hit or miss
-2. Movement: Apply collision resolution, then move
-3. Apply other effects
-4. Remove characters with HP ≤ 0
+1. Healing: Resolve heal actions first (ADR-006)
+2. Attacks: Check if target still in locked hex -> hit or miss
+3. Movement: Apply collision resolution, then move
+4. Apply other effects
+5. Remove characters with HP <= 0
 
 **Important:** Characters cannot react to same-tick enemy decisions. All decisions are made against game state at tick start.
 
+### Grid System
+
+Hexagonal grid using axial coordinates {q, r} with flat-top orientation (ADR-007).
+
+- **Shape:** Hexagonal map with radius 5 (91 total hexes)
+- **Coordinates:** Axial {q, r} where valid hexes satisfy max(|q|, |r|, |q+r|) <= 5
+- **Center:** {q: 0, r: 0}
+- **Neighbors:** 6 directions (E, W, SE, NW, NE, SW)
+
 ### Distance Metric
 
-Chebyshev distance (8-directional; diagonals cost 1)
+Hex distance: `max(|dq|, |dr|, |dq+dr|)` (equivalent to `(|dq| + |dr| + |dq+dr|) / 2`). All neighbors are equidistant (distance 1). Uniform movement cost across all 6 directions.
 
 ### Movement System
 
-**Towards mode:** Uses A\* pathfinding to find the optimal path around obstacles (other characters). Diagonal moves cost sqrt(2) while cardinal moves cost 1.0, producing natural-looking paths without unnecessary zig-zagging. When no path exists, the character stays in place.
+**Towards mode:** Uses A\* pathfinding on the hex grid to find the optimal path around obstacles (other characters). All hex moves cost 1.0, producing natural paths without diagonal bias. When no path exists, the character stays in place.
 
-**Away mode:** Uses single-step maximization with tiebreaking hierarchy:
+**Away mode:** Uses single-step maximization with escape route weighting. Each candidate position is scored using a composite formula: `distance_from_target * escape_routes`, where escape routes are the count of unblocked adjacent hexes (0-6). This naturally penalizes vertex positions (3 routes) and edge positions (4 routes) compared to interior positions (6 routes), preventing AI from getting trapped when fleeing.
 
-1. Maximize resulting Chebyshev distance from target
-2. Maximize resulting |dx|, then |dy|
-3. Then lower Y coordinate
-4. Then lower X coordinate
+Tiebreaking hierarchy (when composite scores are equal):
+
+1. Maximize resulting hex distance from target
+2. Maximize resulting |dq|, then |dr|
+3. Then lower R coordinate of candidate hex
+4. Then lower Q coordinate of candidate hex
 
 ### Collision Resolution
 
 - **Blocker wins:** Stationary character holds ground; movers cannot displace
-- **Two movers, same destination:** Random winner (seeded for replay consistency); losers stay in original cells
+- **Two movers, same destination:** Random winner (seeded for replay consistency); losers stay in original hexes
 
 ## Intent Lines
 
 Intent lines visualize pending actions, enabling at-a-glance battlefield reading.
 
-**Visibility:** Intent lines appear for all pending actions with `ticksRemaining >= 0`. All actions (including Light Punch with tick cost 1) show intent lines for at least one tick before resolution.
+**Visibility:** Intent lines appear for all pending actions with `ticksRemaining >= 0`. Wind-up actions (tickCost >= 1) show intent lines during their entire wind-up period, giving opponents time to react. Instant actions (tickCost: 0) show intent lines only at the resolution tick (ticksRemaining = 0), since they resolve immediately with no wind-up.
 
 ### Visual Encoding
 
-| Type              | Line Style | Color          | Endpoint         |
-| ----------------- | ---------- | -------------- | ---------------- |
-| Friendly attack   | Solid      | Blue #0072B2   | Filled arrowhead |
-| Enemy attack      | Solid      | Orange #E69F00 | Filled arrowhead |
-| Friendly movement | Dashed     | Blue #0072B2   | Hollow circle    |
-| Enemy movement    | Dashed     | Orange #E69F00 | Hollow diamond   |
+Intent lines encode three dimensions: action type (color + endpoint marker), faction (movement marker shape), and timing (line style + stroke width).
+
+**Action-based colors (Okabe-Ito colorblind-safe palette):**
+
+| Action Type | Color                           | Endpoint Marker                                       |
+| ----------- | ------------------------------- | ----------------------------------------------------- |
+| Attack      | Red-orange #d55e00 (vermillion) | Filled arrowhead (`arrowhead-attack`)                 |
+| Heal        | Green #009e73 (bluish green)    | Cross/plus shape (`cross-heal`)                       |
+| Movement    | Blue #0072b2                    | Faction-dependent: circle (friendly), diamond (enemy) |
+
+**Faction shape differentiation (movement only):** Movement markers retain faction-specific shapes (hollow circle for friendly, hollow diamond for enemy) for accessibility. Attack and heal markers are uniform across factions since color already distinguishes them from movement, and shape redundancy within attack/heal is not needed.
+
+**Timing-based line style:**
+
+| Timing                       | Line Style   | Stroke Width | Numeric Label  | Meaning             |
+| ---------------------------- | ------------ | ------------ | -------------- | ------------------- |
+| Immediate (ticksRemaining=0) | Solid        | 4px          | None           | Resolves now        |
+| Future (ticksRemaining>0)    | Dashed (4 4) | 2px          | ticksRemaining | Resolves in N ticks |
 
 ### Line Specifications
 
-- Confirmed (1 tick remaining): 3px stroke
-- Locked-in (2+ ticks): 4px stroke, pulsing animation
-- Contrasting outline: White outline for visibility (implemented)
+- Immediate actions (ticksRemaining = 0): 4px solid stroke, 5px white outline
+- Future actions (ticksRemaining > 0): 2px dashed stroke (4 4 pattern), 3px white outline, numeric label at line midpoint showing ticksRemaining
+- Numeric labels: 12px bold font, action-colored fill, 3px white stroke outline with `paintOrder="stroke"` for readability
+- Contrasting outline: White outline (`strokeWidth + 1`) behind all lines for visibility against any background
+- Endpoint markers (arrowhead, cross, circle, diamond) encode action type and faction, independent of timing
 
 ### Damage Display
 
-- Damage numbers displayed in tile center
+- Damage numbers displayed in hex center
 - Colored border matching attacker faction
 - Multiple attackers: Stack numbers, show combined on hover
 
@@ -240,7 +295,7 @@ Character tokens display alphabetical letters for visual distinction, making it 
 
 Four-panel structure (v0.3 implementation):
 
-1. **Battle Viewer (50% width):** 12×12 grid with tokens, intent lines, damage numbers. Hovering over character tokens displays rule evaluation tooltips.
+1. **Battle Viewer (50% width):** Hexagonal grid (radius 5, 91 hexes) with tokens, intent lines, damage numbers. Hovering over character tokens displays rule evaluation tooltips. Currently uses CSS Grid rendering (SVG hex rendering planned in Phase 3).
 2. **Skills Panel (25% width):** Sentence-builder UI for skill configuration (triggers, selectors, priority). Innate skills display an "Innate" badge next to the skill name. Non-innate skills display an "Unassign" button to return them to the inventory.
 3. **Inventory Panel (25% width):** Displays all available skills from the centralized skill registry. Visible content when any character is selected; otherwise shows placeholder message. Skills can be assigned to or removed from the selected character.
 4. **Event Log (bottom):** Planned for future release
@@ -275,7 +330,7 @@ The Inventory panel shows all skills available in the game, sourced from the cen
 **Skill list items show:**
 
 - Skill name
-- Stats (tick cost, range, damage or mode)
+- Stats (tick cost, range, damage/healing or mode)
 - "Assign" button (disabled when all skill slots are full)
 
-The inventory panel only shows unassigned, non-innate skills. Assigned skills and innate skills are not displayed. To unassign a skill, use the "Unassign" button in the Skills & Priority panel.
+The inventory panel only shows non-innate skills that are not assigned to any character of the selected character's faction. Skills assigned to characters of the opposite faction are still shown. To unassign a skill, use the "Unassign" button in the Skills & Priority panel.

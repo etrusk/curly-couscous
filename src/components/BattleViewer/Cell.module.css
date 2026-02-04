@@ -1,39 +1,28 @@
 /**
- * Cell styles - individual grid cell styling.
+ * Cell styles - SVG hex cell styling.
  * Uses CSS custom properties for theming and accessibility.
  */
 
-.cell {
-  /* Use CSS custom property for cell size (set by Grid or BattleViewer) */
-  width: var(--cell-size, 50px);
-  height: var(--cell-size, 50px);
-
-  /* Visual styling */
-  background-color: var(--cell-bg);
-  border: 1px solid var(--cell-border);
-
-  /* Layout */
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  /* Ensure crisp rendering */
-  box-sizing: border-box;
+.hexagon {
+  transition: fill 0.15s ease-in-out;
 }
 
-/* Clickable cell styling */
 .clickable {
   cursor: pointer;
 }
 
-.clickable:hover {
-  background-color: var(--cell-hover-bg);
-  outline: 2px solid var(--focus-ring);
+.clickable:hover .hexagon {
+  fill: var(--cell-hover-bg);
+}
+
+.clickableOverlay {
+  fill: transparent;
+  stroke: var(--focus-ring);
+  stroke-width: 2;
+  pointer-events: none;
 }
 
 /* High contrast mode support */
-:root[data-theme="high-contrast"] .cell {
-  border-color: var(--cell-border);
-  border-width: 2px;
+:root[data-theme="high-contrast"] .hexagon {
+  stroke-width: 2;
 }

@@ -12,7 +12,7 @@ import {
   Selector,
   SkillEvaluationResult,
   CharacterEvaluationResult,
-  chebyshevDistance,
+  hexDistance,
 } from "./types";
 import { evaluateTrigger } from "./triggers";
 import { evaluateSelector } from "./selectors";
@@ -111,15 +111,26 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
         continue;
       }
 
-      // Determine action type and validate range for attacks
+      // Determine action type and validate
       const actionType = getActionType(skill);
 
       if (actionType === "attack") {
         // Validate range for attack skills
-        if (
-          chebyshevDistance(character.position, target.position) > skill.range
-        ) {
+        if (hexDistance(character.position, target.position) > skill.range) {
           // Target out of range → continue to next skill
+          continue;
+        }
+      }
+
+      if (actionType === "heal") {
+        // Validate range for heal skills
+        if (hexDistance(character.position, target.position) > skill.range) {
+          // Target out of range → continue to next skill
+          continue;
+        }
+        // Reject if target is at full HP
+        if (target.hp >= target.maxHp) {
+          // Target at full HP → continue to next skill
           continue;
         }
       }
@@ -244,7 +255,7 @@ export function evaluateSkillsForCharacter(
     // Check range for attacks
     const actionType = getActionType(skill);
     if (actionType === "attack") {
-      const distance = chebyshevDistance(character.position, target.position);
+      const distance = hexDistance(character.position, target.position);
       if (distance > skill.range) {
         evaluations.push({
           skill,
@@ -252,6 +263,31 @@ export function evaluateSkillsForCharacter(
           rejectionReason: "out_of_range",
           target,
           distance,
+        });
+        currentIndex++;
+        continue;
+      }
+    }
+
+    // Check range and full HP for heals
+    if (actionType === "heal") {
+      const distance = hexDistance(character.position, target.position);
+      if (distance > skill.range) {
+        evaluations.push({
+          skill,
+          status: "rejected",
+          rejectionReason: "out_of_range",
+          target,
+          distance,
+        });
+        currentIndex++;
+        continue;
+      }
+      if (target.hp >= target.maxHp) {
+        evaluations.push({
+          skill,
+          status: "rejected",
+          rejectionReason: "no_target",
         });
         currentIndex++;
         continue;

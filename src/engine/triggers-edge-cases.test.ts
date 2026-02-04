@@ -13,7 +13,7 @@ describe("evaluateTrigger - edge cases", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const trigger: Trigger = { type: "enemy_in_range", value: 3 };
 
@@ -26,7 +26,7 @@ describe("evaluateTrigger - edge cases", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
 
     const enemyRangeTrigger: Trigger = { type: "enemy_in_range", value: 5 };
@@ -47,7 +47,7 @@ describe("evaluateTrigger - edge cases", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
       hp: 30,
       maxHp: 100,
     });
@@ -64,18 +64,18 @@ describe("evaluateTrigger - dead character handling", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const deadEnemy = createCharacter({
       id: "deadEnemy",
       faction: "enemy",
-      position: { x: 5, y: 6 }, // dist=1
+      position: { q: 2, r: 3 }, // hex dist=2
       hp: 0,
     });
     const liveEnemy = createCharacter({
       id: "liveEnemy",
       faction: "enemy",
-      position: { x: 10, y: 10 }, // dist=5
+      position: { q: -2, r: 0 }, // hex dist=7 (out of range 3)
       hp: 50,
     });
     const trigger: Trigger = { type: "enemy_in_range", value: 3 };
@@ -93,12 +93,12 @@ describe("evaluateTrigger - dead character handling", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const deadAlly = createCharacter({
       id: "deadAlly",
       faction: "friendly",
-      position: { x: 5, y: 6 }, // dist=1
+      position: { q: 2, r: 3 }, // hex dist=2
       hp: 0,
     });
     const trigger: Trigger = { type: "ally_in_range", value: 3 };
@@ -112,16 +112,16 @@ describe("evaluateTrigger - dead character handling", () => {
     const evaluator = createCharacter({
       id: "eval",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 3, r: 2 },
     });
     const deadEnemy = createCharacter({
       id: "deadEnemy",
       faction: "enemy",
-      position: { x: 5, y: 6 },
+      position: { q: 2, r: 3 },
       hp: 0,
       currentAction: createAction({
         type: "attack",
-        targetCell: { x: 5, y: 5 },
+        targetCell: { q: 3, r: 2 },
         resolvesAtTick: 1,
       }),
     });

@@ -16,21 +16,21 @@ describe("Movement Collision System", () => {
     it("should select exactly one winner from two movers", () => {
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const result = resolveMovement([moverA, moverB], 1, initRNG(1000));
 
       const movedCount = result.updatedCharacters.filter(
-        (c) => c.position.x === 5 && c.position.y === 5,
+        (c) => c.position.q === 2 && c.position.r === 2,
       ).length;
       expect(movedCount).toBe(1);
     });
@@ -38,15 +38,15 @@ describe("Movement Collision System", () => {
     it("should keep loser in original position", () => {
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const result = resolveMovement([moverA, moverB], 1, initRNG(1000));
@@ -58,15 +58,15 @@ describe("Movement Collision System", () => {
     it("should set correct collided flags (winner=false, loser=true)", () => {
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const result = resolveMovement([moverA, moverB], 1, initRNG(1000));
@@ -80,15 +80,15 @@ describe("Movement Collision System", () => {
     it("should generate events for both movers", () => {
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const result = resolveMovement([moverA, moverB], 1, initRNG(1000));
@@ -104,15 +104,15 @@ describe("Movement Collision System", () => {
       const seed = 42;
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const result1 = resolveMovement([moverA, moverB], 1, initRNG(seed));
@@ -130,15 +130,15 @@ describe("Movement Collision System", () => {
     it("should potentially produce different winner with different rngState", () => {
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       // Try different seeds until we get different outcomes
@@ -164,21 +164,21 @@ describe("Movement Collision System", () => {
     it("should select exactly one winner from 3-way collision", () => {
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverC = createCharacter({
         id: "moverC",
-        position: { x: 6, y: 5 },
+        position: { q: 3, r: 2 },
         slotPosition: 3,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const result = resolveMovement(
@@ -196,21 +196,21 @@ describe("Movement Collision System", () => {
     it("should keep all losers in original positions", () => {
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverC = createCharacter({
         id: "moverC",
-        position: { x: 6, y: 5 },
+        position: { q: 3, r: 2 },
         slotPosition: 3,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const result = resolveMovement(
@@ -229,27 +229,27 @@ describe("Movement Collision System", () => {
     it("should handle 4-way collision", () => {
       const moverA = createCharacter({
         id: "moverA",
-        position: { x: 4, y: 5 },
+        position: { q: 1, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverB = createCharacter({
         id: "moverB",
-        position: { x: 5, y: 4 },
+        position: { q: 2, r: 1 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverC = createCharacter({
         id: "moverC",
-        position: { x: 6, y: 5 },
+        position: { q: 3, r: 2 },
         slotPosition: 3,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
       const moverD = createCharacter({
         id: "moverD",
-        position: { x: 5, y: 6 },
+        position: { q: 2, r: 3 },
         slotPosition: 4,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 2 }, 1),
       });
 
       const result = resolveMovement(
@@ -269,21 +269,21 @@ describe("Movement Collision System", () => {
       for (let i = 0; i < trials; i++) {
         const moverA = createCharacter({
           id: "moverA",
-          position: { x: 4, y: 5 },
+          position: { q: 1, r: 2 },
           slotPosition: 1,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 2 }, 1),
         });
         const moverB = createCharacter({
           id: "moverB",
-          position: { x: 5, y: 4 },
+          position: { q: 2, r: 1 },
           slotPosition: 2,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 2 }, 1),
         });
         const moverC = createCharacter({
           id: "moverC",
-          position: { x: 6, y: 5 },
+          position: { q: 3, r: 2 },
           slotPosition: 3,
-          currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+          currentAction: createMoveAction({ q: 2, r: 2 }, 1),
         });
 
         const result = resolveMovement([moverA, moverB, moverC], 1, initRNG(i));

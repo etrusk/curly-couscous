@@ -15,12 +15,11 @@ describe("computeDecisions - action type inference", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 0, r: 1 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
       skills: [
         createSkill({
           id: "skill1",
@@ -43,12 +42,11 @@ describe("computeDecisions - action type inference", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 8, y: 5 },
+      position: { q: 0, r: 3 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
       skills: [
         createSkill({
           id: "skill1",
@@ -71,12 +69,11 @@ describe("computeDecisions - action type inference", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 0, r: 1 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
       skills: [
         createSkill({
           id: "skill1",
@@ -92,7 +89,7 @@ describe("computeDecisions - action type inference", () => {
     });
 
     expect(() => computeDecisions(state)).toThrow(
-      /cannot have both damage and mode/,
+      /can only have one of damage, healing, or mode/,
     );
   });
 
@@ -100,12 +97,11 @@ describe("computeDecisions - action type inference", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 0, r: 1 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
       skills: [createSkill({ id: "skill1", triggers: [{ type: "always" }] })],
     });
     const state = createGameState({
@@ -113,7 +109,9 @@ describe("computeDecisions - action type inference", () => {
       characters: [character, enemy],
     });
 
-    expect(() => computeDecisions(state)).toThrow(/must have damage or mode/);
+    expect(() => computeDecisions(state)).toThrow(
+      /must have damage, healing, or mode/,
+    );
   });
 });
 
@@ -122,12 +120,11 @@ describe("computeDecisions - tick resolution for intent visibility", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 0, r: 1 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
       skills: [
         createSkill({
           id: "light-punch",
@@ -154,12 +151,11 @@ describe("computeDecisions - tick resolution for intent visibility", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 0, r: 1 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
       skills: [
         createSkill({
           id: "heavy-punch",

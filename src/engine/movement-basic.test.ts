@@ -20,23 +20,23 @@ describe("Movement Basic System", () => {
     it("should move character to unobstructed target cell", () => {
       const mover = createCharacter({
         id: "mover",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 6, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 3, r: 2 }, 1),
       });
 
       const result = resolveMovement([mover], 1, initRNG(1000));
 
       const updated = result.updatedCharacters.find((c) => c.id === "mover");
-      expect(updated?.position).toEqual({ x: 6, y: 5 });
+      expect(updated?.position).toEqual({ q: 3, r: 2 });
     });
 
     it("should generate MovementEvent with correct fields", () => {
       const mover = createCharacter({
         id: "mover",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 6, y: 5 }, 3),
+        currentAction: createMoveAction({ q: 3, r: 2 }, 3),
       });
 
       const result = resolveMovement([mover], 3, initRNG(1000));
@@ -46,8 +46,8 @@ describe("Movement Basic System", () => {
         type: "movement",
         tick: 3,
         characterId: "mover",
-        from: { x: 5, y: 5 },
-        to: { x: 6, y: 5 },
+        from: { q: 2, r: 2 },
+        to: { q: 3, r: 2 },
         collided: false,
       });
     });
@@ -55,9 +55,9 @@ describe("Movement Basic System", () => {
     it("should set collided=false for successful move", () => {
       const mover = createCharacter({
         id: "mover",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 6, y: 5 }, 1),
+        currentAction: createMoveAction({ q: 3, r: 2 }, 1),
       });
 
       const result = resolveMovement([mover], 1, initRNG(1000));
@@ -68,22 +68,22 @@ describe("Movement Basic System", () => {
     it("should not move character with ticksRemaining > 1", () => {
       const mover = createCharacter({
         id: "mover",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 2 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 6, y: 5 }, 2),
+        currentAction: createMoveAction({ q: 3, r: 2 }, 2),
       });
 
       const result = resolveMovement([mover], 1, initRNG(1000));
 
       const updated = result.updatedCharacters.find((c) => c.id === "mover");
-      expect(updated?.position).toEqual({ x: 5, y: 5 }); // Unchanged
+      expect(updated?.position).toEqual({ q: 2, r: 2 }); // Unchanged
       expect(result.events).toHaveLength(0); // No event
     });
 
     it("should not move character with null action", () => {
       const char = createCharacter({
         id: "char",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 2 },
         slotPosition: 1,
         currentAction: null,
       });
@@ -92,23 +92,23 @@ describe("Movement Basic System", () => {
 
       expect(
         result.updatedCharacters.find((c) => c.id === "char")?.position,
-      ).toEqual({ x: 5, y: 5 });
+      ).toEqual({ q: 2, r: 2 });
       expect(result.events).toHaveLength(0);
     });
 
     it("should not move character with non-move action", () => {
       const char = createCharacter({
         id: "char",
-        position: { x: 5, y: 5 },
+        position: { q: 2, r: 2 },
         slotPosition: 1,
-        currentAction: createAttackAction({ x: 6, y: 5 }, 10, 1),
+        currentAction: createAttackAction({ q: 3, r: 2 }, 10, 1),
       });
 
       const result = resolveMovement([char], 1, initRNG(1000));
 
       expect(
         result.updatedCharacters.find((c) => c.id === "char")?.position,
-      ).toEqual({ x: 5, y: 5 });
+      ).toEqual({ q: 2, r: 2 });
       expect(result.events).toHaveLength(0);
     });
   });

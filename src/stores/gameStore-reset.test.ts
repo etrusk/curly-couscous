@@ -16,14 +16,14 @@ describe("Reset Functionality", () => {
     const attacker = createCharacter({
       id: "attacker",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 1,
       skills: [createSkill({ id: "attack", damage: 10, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       slotPosition: 2,
       hp: 100,
     });
@@ -64,14 +64,14 @@ describe("Reset Functionality", () => {
     const attacker = createCharacter({
       id: "attacker",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 1,
       skills: [createSkill({ id: "attack", damage: 10, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       slotPosition: 2,
     });
 
@@ -91,14 +91,14 @@ describe("Reset Functionality", () => {
     const attacker = createCharacter({
       id: "attacker",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 1,
       skills: [createSkill({ id: "heavy-punch", damage: 100, range: 1 })],
     });
     const target = createCharacter({
       id: "target",
       faction: "enemy",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       slotPosition: 2,
       hp: 50,
     });
@@ -119,14 +119,14 @@ describe("Reset Functionality", () => {
     const char1 = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 5, y: 5 },
+      position: { q: 5, r: 5 },
       slotPosition: 1,
       skills: [createSkill({ id: "move", mode: "towards", range: 0 })],
     });
     const char2 = createCharacter({
       id: "char2",
       faction: "enemy",
-      position: { x: 7, y: 5 },
+      position: { q: 7, r: 5 },
       slotPosition: 2,
     });
 
@@ -140,7 +140,7 @@ describe("Reset Functionality", () => {
     const restoredChar = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === "char1");
-    expect(restoredChar?.position).toEqual({ x: 5, y: 5 });
+    expect(restoredChar?.position).toEqual({ q: 5, r: 5 });
   });
 
   it("should restore character skills on reset", () => {
@@ -168,7 +168,7 @@ describe("Reset Functionality", () => {
     const char1 = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       slotPosition: 1,
       skills: [
         createSkill({ id: "attack", damage: 10, range: 1, tickCost: 2 }),
@@ -177,7 +177,7 @@ describe("Reset Functionality", () => {
     const char2 = createCharacter({
       id: "char2",
       faction: "enemy",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       slotPosition: 2,
     });
 

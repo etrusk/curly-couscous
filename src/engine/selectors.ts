@@ -3,30 +3,34 @@
  * Pure TypeScript - no React dependencies.
  */
 
-import { Selector, Character, chebyshevDistance, Position } from './types';
+import { Selector, Character, hexDistance, Position } from "./types";
 
 /**
- * Tie-breaking comparison: compares by Y coordinate, then X coordinate.
+ * Tie-breaking comparison: compares by R coordinate, then Q coordinate.
  * Returns negative if a should come before b, positive if b should come before a.
  */
 function tieBreakCompare(a: Character, b: Character): number {
-  if (a.position.y !== b.position.y) {
-    return a.position.y - b.position.y; // Lower Y wins
+  if (a.position.r !== b.position.r) {
+    return a.position.r - b.position.r; // Lower R wins
   }
-  return a.position.x - b.position.x; // Lower X wins
+  return a.position.q - b.position.q; // Lower Q wins
 }
 
 /**
  * Compares characters by distance from a position, then by position tie-break.
  */
-function compareByDistanceThenPosition(a: Character, b: Character, from: Position): number {
-  const distA = chebyshevDistance(a.position, from);
-  const distB = chebyshevDistance(b.position, from);
-  
+function compareByDistanceThenPosition(
+  a: Character,
+  b: Character,
+  from: Position,
+): number {
+  const distA = hexDistance(a.position, from);
+  const distB = hexDistance(b.position, from);
+
   if (distA !== distB) {
     return distA - distB; // Closer wins (lower distance)
   }
-  
+
   return tieBreakCompare(a, b);
 }
 
@@ -37,7 +41,7 @@ function compareByHpThenPosition(a: Character, b: Character): number {
   if (a.hp !== b.hp) {
     return a.hp - b.hp; // Lower HP wins
   }
-  
+
   return tieBreakCompare(a, b);
 }
 
@@ -47,11 +51,11 @@ function compareByHpThenPosition(a: Character, b: Character): number {
  */
 function findMinimum(
   candidates: Character[],
-  compareFn: (a: Character, b: Character) => number
+  compareFn: (a: Character, b: Character) => number,
 ): Character | null {
   if (candidates.length === 0) return null;
   return candidates.reduce((min, candidate) =>
-    compareFn(candidate, min) < 0 ? candidate : min
+    compareFn(candidate, min) < 0 ? candidate : min,
   );
 }
 
@@ -72,36 +76,50 @@ function findMinimum(
 export function evaluateSelector(
   selector: Selector,
   evaluator: Character,
-  allCharacters: Character[]
+  allCharacters: Character[],
 ): Character | null {
   switch (selector.type) {
-    case 'self':
+    case "self":
       return evaluator;
-    
-    case 'nearest_enemy':
+
+    case "nearest_enemy":
       return findMinimum(
-        allCharacters.filter(c => c.faction !== evaluator.faction && c.hp > 0),
-        (a, b) => compareByDistanceThenPosition(a, b, evaluator.position)
+        allCharacters.filter(
+          (c) => c.faction !== evaluator.faction && c.hp > 0,
+        ),
+        (a, b) => compareByDistanceThenPosition(a, b, evaluator.position),
       );
-    
-    case 'nearest_ally':
+
+    case "nearest_ally":
       return findMinimum(
-        allCharacters.filter(c => c.faction === evaluator.faction && c.id !== evaluator.id && c.hp > 0),
-        (a, b) => compareByDistanceThenPosition(a, b, evaluator.position)
+        allCharacters.filter(
+          (c) =>
+            c.faction === evaluator.faction &&
+            c.id !== evaluator.id &&
+            c.hp > 0,
+        ),
+        (a, b) => compareByDistanceThenPosition(a, b, evaluator.position),
       );
-    
-    case 'lowest_hp_enemy':
+
+    case "lowest_hp_enemy":
       return findMinimum(
-        allCharacters.filter(c => c.faction !== evaluator.faction && c.hp > 0),
-        (a, b) => compareByHpThenPosition(a, b)
+        allCharacters.filter(
+          (c) => c.faction !== evaluator.faction && c.hp > 0,
+        ),
+        (a, b) => compareByHpThenPosition(a, b),
       );
-    
-    case 'lowest_hp_ally':
+
+    case "lowest_hp_ally":
       return findMinimum(
-        allCharacters.filter(c => c.faction === evaluator.faction && c.id !== evaluator.id && c.hp > 0),
-        (a, b) => compareByHpThenPosition(a, b)
+        allCharacters.filter(
+          (c) =>
+            c.faction === evaluator.faction &&
+            c.id !== evaluator.id &&
+            c.hp > 0,
+        ),
+        (a, b) => compareByHpThenPosition(a, b),
       );
-    
+
     default: {
       const _exhaustive: never = selector.type;
       return _exhaustive; // Compile-time error if case missing

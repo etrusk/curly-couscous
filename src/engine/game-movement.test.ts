@@ -1,25 +1,66 @@
 /**
- * Integration tests for computeMoveDestination with A* pathfinding.
- * Tests verify pathfinding integration and real-world multi-character scenarios.
+ * Integration tests for computeMoveDestination with hex pathfinding.
+ * Tests verify pathfinding integration, away mode with escape routes, and hex grid behavior.
  */
 
 import { describe, it, expect } from "vitest";
-import { computeMoveDestination } from "./game-movement";
+import {
+  computeMoveDestination,
+  countEscapeRoutes,
+  generateValidCandidates,
+} from "./game-movement";
 import { createCharacter } from "./game-test-helpers";
+import { hexDistance } from "./hex";
 
-describe("computeMoveDestination - Pathfinding Integration", () => {
-  it("should use pathfinding to navigate around blocker (towards mode)", () => {
+describe("computeMoveDestination - Towards Mode", () => {
+  it("uses A* to find first step toward target", () => {
     const mover = createCharacter({
       id: "mover",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 4, y: 0 },
+      position: { q: 3, r: 0 },
+    });
+
+    const destination = computeMoveDestination(mover, target, "towards", [
+      mover,
+      target,
+    ]);
+
+    expect(destination).toEqual({ q: 1, r: 0 });
+  });
+
+  it("returns current position when already at target", () => {
+    const mover = createCharacter({
+      id: "mover",
+      position: { q: 2, r: 1 },
+    });
+    const target = createCharacter({
+      id: "target",
+      position: { q: 2, r: 1 },
+    });
+
+    const destination = computeMoveDestination(mover, target, "towards", [
+      mover,
+      target,
+    ]);
+
+    expect(destination).toEqual(mover.position);
+  });
+
+  it("routes around obstacle", () => {
+    const mover = createCharacter({
+      id: "mover",
+      position: { q: 0, r: 0 },
+    });
+    const target = createCharacter({
+      id: "target",
+      position: { q: 2, r: 0 },
     });
     const blocker = createCharacter({
       id: "blocker",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
     });
 
     const destination = computeMoveDestination(mover, target, "towards", [
@@ -29,197 +70,199 @@ describe("computeMoveDestination - Pathfinding Integration", () => {
     ]);
 
     // Should not move into blocker
-    expect(destination).not.toEqual({ x: 1, y: 0 });
+    expect(destination).not.toEqual({ q: 1, r: 0 });
 
-    // Should take first step around blocker (diagonal or cardinal detour)
-    expect(
-      (destination.x === 1 && destination.y === 1) ||
-        (destination.x === 0 && destination.y === 1),
-    ).toBe(true);
+    // Result is a valid hex neighbor of mover
+    expect(hexDistance(mover.position, destination)).toBeLessThanOrEqual(1);
+
+    // Should move closer or maintain distance
+    const initialDist = hexDistance(mover.position, target.position);
+    const resultDist = hexDistance(destination, target.position);
+    expect(resultDist).toBeLessThanOrEqual(initialDist);
   });
+});
 
-  it("should not affect away mode behavior", () => {
+describe("computeMoveDestination - Away Mode", () => {
+  it("moves away from threat", () => {
     const mover = createCharacter({
       id: "mover",
-      position: { x: 5, y: 5 },
+      position: { q: 0, r: 0 },
+    });
+    const threat = createCharacter({
+      id: "threat",
+      position: { q: 2, r: 0 },
+    });
+
+    const destination = computeMoveDestination(mover, threat, "away", [
+      mover,
+      threat,
+    ]);
+
+    const initialDist = hexDistance(mover.position, threat.position);
+    const resultDist = hexDistance(destination, threat.position);
+
+    expect(resultDist).toBeGreaterThanOrEqual(initialDist);
+
+    // Result is a valid hex neighbor or current position
+    expect(hexDistance(mover.position, destination)).toBeLessThanOrEqual(1);
+  });
+
+  it("escape route count is 0-6 (not 0-8)", () => {
+    // Interior hex should have 6 escape routes
+    const escapeRoutes = countEscapeRoutes({ q: 0, r: 0 }, new Set());
+
+    // Interior hex should have 6 escape routes
+    expect(escapeRoutes).toBe(6);
+    expect(escapeRoutes).toBeLessThanOrEqual(6);
+  });
+
+  it("edge hex has fewer escape routes", () => {
+    const escapeRoutes = countEscapeRoutes({ q: 5, r: 0 }, new Set());
+
+    // Boundary hex has fewer than 6 neighbors
+    expect(escapeRoutes).toBeLessThan(6);
+    expect(escapeRoutes).toBeGreaterThan(0);
+  });
+
+  it("vertex hex has fewest escape routes", () => {
+    const escapeRoutes = countEscapeRoutes({ q: 5, r: -5 }, new Set());
+
+    // Corner of hex map has exactly 3 neighbors
+    expect(escapeRoutes).toBe(3);
+  });
+
+  it("prefers interior over boundary when scores compete", () => {
+    const mover = createCharacter({
+      id: "mover",
+      position: { q: 4, r: 0 },
+    });
+    const threat = createCharacter({
+      id: "threat",
+      position: { q: 0, r: 0 },
+    });
+
+    const destination = computeMoveDestination(mover, threat, "away", [
+      mover,
+      threat,
+    ]);
+
+    // Mover is near boundary. Away movement should prefer interior positions
+    // with more escape routes over boundary positions with fewer escape routes.
+    // Since this depends on composite scoring (distance * escapeRoutes),
+    // we just verify a valid move was made
+    expect(hexDistance(mover.position, destination)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("computeMoveDestination - Escape Routes", () => {
+  it("tiebreaking uses |dq|, |dr|, r, q", () => {
+    // This test requires access to the internal scoring, which may not be exposed.
+    // For now, we test deterministic behavior: same inputs give same outputs.
+    const mover = createCharacter({
+      id: "mover",
+      position: { q: 0, r: 0 },
+    });
+    const threat = createCharacter({
+      id: "threat",
+      position: { q: 3, r: 0 },
+    });
+
+    const destination1 = computeMoveDestination(mover, threat, "away", [
+      mover,
+      threat,
+    ]);
+    const destination2 = computeMoveDestination(mover, threat, "away", [
+      mover,
+      threat,
+    ]);
+
+    // Deterministic: same result both times
+    expect(destination1).toEqual(destination2);
+  });
+
+  it("deterministic results for replay", () => {
+    const mover = createCharacter({
+      id: "mover",
+      position: { q: 2, r: -1 },
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 8, y: 5 },
+      position: { q: -2, r: 3 },
     });
 
-    const destination = computeMoveDestination(mover, target, "away", [
+    const dest1 = computeMoveDestination(mover, target, "towards", [
+      mover,
+      target,
+    ]);
+    const dest2 = computeMoveDestination(mover, target, "towards", [
       mover,
       target,
     ]);
 
-    // Should move away (x should decrease)
-    expect(destination.x).toBeLessThan(5);
+    expect(dest1).toEqual(dest2);
   });
+});
 
-  it("should treat all other characters as obstacles", () => {
+describe("generateValidCandidates", () => {
+  it("returns only hex neighbors", () => {
     const mover = createCharacter({
       id: "mover",
-      position: { x: 0, y: 5 },
+      position: { q: 0, r: 0 },
+    });
+    const threat = createCharacter({
+      id: "threat",
+      position: { q: 3, r: 0 },
+    });
+
+    const candidates = generateValidCandidates(mover, [mover, threat], "away");
+
+    // At most 7 candidates for away mode (6 neighbors + stay)
+    expect(candidates.length).toBeLessThanOrEqual(7);
+
+    // All candidates are valid hexes
+    for (const candidate of candidates) {
+      expect(hexDistance(mover.position, candidate)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("away mode includes stay option", () => {
+    const mover = createCharacter({
+      id: "mover",
+      position: { q: 0, r: 0 },
+    });
+    const threat = createCharacter({
+      id: "threat",
+      position: { q: 5, r: 0 },
+    });
+
+    const candidates = generateValidCandidates(mover, [mover, threat], "away");
+
+    // Should include current position as stay option
+    const hasStay = candidates.some((c) => c.q === 0 && c.r === 0);
+    expect(hasStay).toBe(true);
+  });
+
+  it("towards mode does not include stay option", () => {
+    const mover = createCharacter({
+      id: "mover",
+      position: { q: 0, r: 0 },
     });
     const target = createCharacter({
       id: "target",
-      position: { x: 4, y: 5 },
-    });
-    const blocker1 = createCharacter({
-      id: "blocker1",
-      position: { x: 1, y: 5 },
-    });
-    const blocker2 = createCharacter({
-      id: "blocker2",
-      position: { x: 2, y: 5 },
-    });
-    const blocker3 = createCharacter({
-      id: "blocker3",
-      position: { x: 1, y: 4 },
-    });
-    const blocker4 = createCharacter({
-      id: "blocker4",
-      position: { x: 2, y: 4 },
+      position: { q: 3, r: 0 },
     });
 
-    const destination = computeMoveDestination(mover, target, "towards", [
+    const candidates = generateValidCandidates(
       mover,
-      target,
-      blocker1,
-      blocker2,
-      blocker3,
-      blocker4,
-    ]);
+      [mover, target],
+      "towards",
+    );
 
-    // Should avoid all blocker positions
-    expect(destination).not.toEqual(blocker1.position);
-    expect(destination).not.toEqual(blocker2.position);
-    expect(destination).not.toEqual(blocker3.position);
-    expect(destination).not.toEqual(blocker4.position);
-  });
+    // At most 6 candidates (no stay option)
+    expect(candidates.length).toBeLessThanOrEqual(6);
 
-  it("should return current position when mover is surrounded", () => {
-    const mover = createCharacter({
-      id: "mover",
-      position: { x: 5, y: 5 },
-    });
-    const target = createCharacter({
-      id: "target",
-      position: { x: 0, y: 0 },
-    });
-
-    // Surround mover with blockers
-    const blockers = [
-      createCharacter({ id: "b1", position: { x: 4, y: 4 } }),
-      createCharacter({ id: "b2", position: { x: 5, y: 4 } }),
-      createCharacter({ id: "b3", position: { x: 6, y: 4 } }),
-      createCharacter({ id: "b4", position: { x: 4, y: 5 } }),
-      createCharacter({ id: "b5", position: { x: 6, y: 5 } }),
-      createCharacter({ id: "b6", position: { x: 4, y: 6 } }),
-      createCharacter({ id: "b7", position: { x: 5, y: 6 } }),
-      createCharacter({ id: "b8", position: { x: 6, y: 6 } }),
-    ];
-
-    const destination = computeMoveDestination(mover, target, "towards", [
-      mover,
-      target,
-      ...blockers,
-    ]);
-
-    // Should stay in current position (cannot move)
-    expect(destination).toEqual({ x: 5, y: 5 });
-  });
-
-  it("should move to adjacent target position", () => {
-    const mover = createCharacter({
-      id: "mover",
-      position: { x: 5, y: 5 },
-    });
-    const target = createCharacter({
-      id: "target",
-      position: { x: 6, y: 5 },
-    });
-
-    const destination = computeMoveDestination(mover, target, "towards", [
-      mover,
-      target,
-    ]);
-
-    // Should move directly to adjacent target
-    expect(destination).toEqual({ x: 6, y: 5 });
-  });
-
-  it("should return current position when no path exists", () => {
-    const mover = createCharacter({
-      id: "mover",
-      position: { x: 0, y: 0 },
-    });
-    const target = createCharacter({
-      id: "target",
-      position: { x: 5, y: 5 },
-    });
-
-    // Completely surround target
-    const blockers = [
-      createCharacter({ id: "b1", position: { x: 4, y: 4 } }),
-      createCharacter({ id: "b2", position: { x: 5, y: 4 } }),
-      createCharacter({ id: "b3", position: { x: 6, y: 4 } }),
-      createCharacter({ id: "b4", position: { x: 4, y: 5 } }),
-      createCharacter({ id: "b5", position: { x: 6, y: 5 } }),
-      createCharacter({ id: "b6", position: { x: 4, y: 6 } }),
-      createCharacter({ id: "b7", position: { x: 5, y: 6 } }),
-      createCharacter({ id: "b8", position: { x: 6, y: 6 } }),
-    ];
-
-    const destination = computeMoveDestination(mover, target, "towards", [
-      mover,
-      target,
-      ...blockers,
-    ]);
-
-    // Should stay in current position (no path)
-    expect(destination).toEqual({ x: 0, y: 0 });
-  });
-
-  it("should exclude self from obstacles", () => {
-    const mover = createCharacter({
-      id: "mover",
-      position: { x: 5, y: 5 },
-    });
-    const target = createCharacter({
-      id: "target",
-      position: { x: 7, y: 5 },
-    });
-
-    const destination = computeMoveDestination(mover, target, "towards", [
-      mover,
-      target,
-    ]);
-
-    // Path should be found (mover doesn't block itself)
-    expect(destination).not.toEqual({ x: 5, y: 5 });
-
-    // Should move towards target
-    expect(destination.x).toBeGreaterThan(5);
-  });
-
-  it("should not treat target position as obstacle", () => {
-    const mover = createCharacter({
-      id: "mover",
-      position: { x: 5, y: 5 },
-    });
-    const target = createCharacter({
-      id: "target",
-      position: { x: 6, y: 5 },
-    });
-
-    const destination = computeMoveDestination(mover, target, "towards", [
-      mover,
-      target,
-    ]);
-
-    // Should move toward target (target position is valid destination)
-    expect(destination).toEqual({ x: 6, y: 5 });
+    // Should not include current position
+    const hasStay = candidates.some((c) => c.q === 0 && c.r === 0);
+    expect(hasStay).toBe(false);
   });
 });

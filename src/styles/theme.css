@@ -43,6 +43,11 @@
   --faction-friendly-text: #4da6ff; /* text on tinted bg (lighter for dark) */
   --faction-enemy-text: #ffb84d; /* text on tinted bg (lighter for dark) */
 
+  /* === ACTION (intent line colors) === */
+  --action-attack: #d55e00; /* red-orange (Okabe-Ito vermillion) */
+  --action-heal: #009e73; /* green (Okabe-Ito bluish green) */
+  --action-move: #0072b2; /* blue (Okabe-Ito blue, same as friendly) */
+
   /* === TOKEN (character icons) === */
   --text-on-faction: #ffffff; /* white text on colored faction backgrounds */
   --accent-primary: #00a8ff; /* selection glow, accent highlights */
@@ -120,6 +125,11 @@
   --faction-friendly-text: #004d7a; /* text on tinted bg (darker for light) */
   --faction-enemy-text: #8f5a00; /* text on tinted bg (darker for light) */
 
+  /* === ACTION (intent line colors) === */
+  --action-attack: #d55e00;
+  --action-heal: #009e73;
+  --action-move: #0072b2;
+
   /* === TOKEN (character icons) === */
   --text-on-faction: #ffffff; /* white text on colored faction backgrounds */
   --accent-primary: #0072b2; /* matches friendly blue for consistency */
@@ -196,6 +206,11 @@
   --faction-enemy-bg: rgba(255, 153, 0, 0.2);
   --faction-friendly-text: #66ccff;
   --faction-enemy-text: #ffb84d;
+
+  /* === ACTION (intent line colors - brighter for high contrast) === */
+  --action-attack: #ff6633; /* brighter vermillion */
+  --action-heal: #00ff88; /* brighter green */
+  --action-move: #0099ff; /* brighter blue */
 
   /* === TOKEN (character icons) === */
   --text-on-faction: #ffffff; /* white text on colored faction backgrounds */

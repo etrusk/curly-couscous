@@ -5,6 +5,7 @@
 
 import { GameState, Character, Action, GameEvent, BattleStatus } from "./types";
 import { resolveCombat } from "./combat";
+import { resolveHealing } from "./healing";
 import { resolveMovement } from "./movement";
 import { computeDecisions, Decision } from "./game-decisions";
 
@@ -47,12 +48,17 @@ export function processTick(state: GameState): TickResult {
   });
 
   // 4. Calculate outcomes
-  // 4a. Combat resolution (attacks resolve first)
+  // 4a. Healing resolution (heals resolve before combat)
+  const healingResult = resolveHealing(characters, state.tick);
+  characters = healingResult.updatedCharacters;
+  events.push(...healingResult.events);
+
+  // 4b. Combat resolution (attacks resolve after heals)
   const combatResult = resolveCombat(characters, state.tick);
   characters = combatResult.updatedCharacters;
   events.push(...combatResult.events);
 
-  // 4b. Movement resolution (using updated characters from combat)
+  // 4c. Movement resolution (using updated characters from combat)
   const movementResult = resolveMovement(
     characters,
     state.tick,

@@ -17,25 +17,25 @@ describe("evaluateSelector", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 0, r: 0 },
       });
       const allyA = createCharacter({
         id: "allyA",
         faction: "friendly",
         hp: 75,
-        position: { x: 3, y: 3 },
+        position: { q: 3, r: 0 },
       });
       const allyB = createCharacter({
         id: "allyB",
         faction: "friendly",
         hp: 50,
-        position: { x: 4, y: 4 },
+        position: { q: 2, r: 2 },
       });
       const allyC = createCharacter({
         id: "allyC",
         faction: "friendly",
         hp: 90,
-        position: { x: 6, y: 6 },
+        position: { q: 3, r: 2 },
       });
       const selector: Selector = { type: "lowest_hp_ally" };
 
@@ -54,13 +54,13 @@ describe("evaluateSelector", () => {
         id: "eval",
         faction: "friendly",
         hp: 10,
-        position: { x: 5, y: 5 },
+        position: { q: 0, r: 0 },
       });
       const ally = createCharacter({
         id: "ally",
         faction: "friendly",
         hp: 50,
-        position: { x: 4, y: 4 },
+        position: { q: 2, r: 2 },
       });
       const selector: Selector = { type: "lowest_hp_ally" };
 
@@ -73,19 +73,19 @@ describe("evaluateSelector", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
-        position: { x: 5, y: 5 },
+        position: { q: 0, r: 0 },
       });
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
         hp: 10,
-        position: { x: 6, y: 6 },
+        position: { q: 3, r: 2 },
       });
       const ally = createCharacter({
         id: "ally",
         faction: "friendly",
         hp: 50,
-        position: { x: 4, y: 4 },
+        position: { q: 2, r: 2 },
       });
       const selector: Selector = { type: "lowest_hp_ally" };
 

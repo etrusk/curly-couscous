@@ -46,7 +46,7 @@ export function createIdleAction(resolveTick: number = 1): Action {
   return {
     type: "idle",
     skill: baseCreateSkill({ id: "idle", tickCost }),
-    targetCell: { x: 0, y: 0 },
+    targetCell: { q: 0, r: 0 },
     targetCharacter: null,
     startedAtTick: resolveTick - tickCost,
     resolvesAtTick: resolveTick,

@@ -1,7 +1,9 @@
 import {
   useGameStore,
   selectSelectedCharacter,
+  selectCharacters,
   selectActions,
+  getFactionAssignedSkillIds,
 } from "../../stores/gameStore";
 import { SKILL_REGISTRY } from "../../engine/skill-registry";
 import { MAX_SKILL_SLOTS } from "../../stores/gameStore-constants";
@@ -9,6 +11,7 @@ import styles from "./InventoryPanel.module.css";
 
 export function InventoryPanel() {
   const selectedCharacter = useGameStore(selectSelectedCharacter);
+  const characters = useGameStore(selectCharacters);
   const { assignSkillToCharacter } = useGameStore(selectActions);
 
   // Determine if we should show the skill list or placeholder
@@ -17,6 +20,11 @@ export function InventoryPanel() {
   // Check if character has all slots filled
   const slotsAreFull =
     selectedCharacter && selectedCharacter.skills.length >= MAX_SKILL_SLOTS;
+
+  // Compute faction-assigned skills once before filter
+  const factionAssignedSkillIds = selectedCharacter
+    ? getFactionAssignedSkillIds(characters, selectedCharacter.faction)
+    : new Set<string>();
 
   const handleAssignSkill = (skillId: string) => {
     if (selectedCharacter) {
@@ -36,10 +44,7 @@ export function InventoryPanel() {
         <div className={styles.skillsList}>
           {SKILL_REGISTRY.filter((skill) => {
             if (skill.innate) return false;
-            const isAssigned = selectedCharacter.skills.some(
-              (s) => s.id === skill.id,
-            );
-            return !isAssigned;
+            return !factionAssignedSkillIds.has(skill.id);
           }).map((skill) => {
             return (
               <div key={skill.id} className={styles.skillItem}>
@@ -49,6 +54,8 @@ export function InventoryPanel() {
                 <div className={styles.skillStats}>
                   Tick Cost: {skill.tickCost} | Range: {skill.range}
                   {skill.damage !== undefined && ` | Damage: ${skill.damage}`}
+                  {skill.healing !== undefined &&
+                    ` | Healing: ${skill.healing}`}
                   {skill.mode !== undefined && ` | Mode: ${skill.mode}`}
                 </div>
                 <div className={styles.skillActions}>

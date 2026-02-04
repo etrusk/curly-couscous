@@ -3,7 +3,7 @@
  * Following TDD workflow - these tests are written before implementation.
  */
 /* eslint-disable max-lines */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { SkillsPanel } from "./SkillsPanel";
@@ -1271,6 +1271,324 @@ describe("SkillsPanel", () => {
         name: /unassign/i,
       });
       expect(unassignButtons).toHaveLength(1);
+    });
+  });
+
+  // NEW TESTS FOR MOVE SKILL DUPLICATION
+  describe("Move Skill Duplication UI", () => {
+    it("duplicate button visible for move skills", () => {
+      const moveSkill = createSkill({
+        id: "move-towards",
+        instanceId: "move-inst-1",
+        name: "Move",
+        mode: "towards",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      expect(
+        screen.getByRole("button", { name: /duplicate move/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("duplicate button not visible for non-move skills", () => {
+      const punchSkill = createSkill({
+        id: "light-punch",
+        instanceId: "lp-inst-1",
+        damage: 10,
+      });
+      const char1 = createCharacter({ id: "char1", skills: [punchSkill] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      expect(
+        screen.queryByRole("button", { name: /duplicate/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("duplicate button hidden at max move instances", () => {
+      const move1 = createSkill({
+        id: "move-towards",
+        instanceId: "move1",
+        mode: "towards",
+      });
+      const move2 = createSkill({
+        id: "move-towards",
+        instanceId: "move2",
+        mode: "towards",
+      });
+      const move3 = createSkill({
+        id: "move-towards",
+        instanceId: "move3",
+        mode: "towards",
+      });
+      const char1 = createCharacter({
+        id: "char1",
+        skills: [move1, move2, move3],
+      });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      expect(
+        screen.queryByRole("button", { name: /duplicate/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("duplicate button hidden at max skill slots", () => {
+      const move = createSkill({
+        id: "move-towards",
+        instanceId: "inst1",
+        mode: "towards",
+      });
+      const punch1 = createSkill({
+        id: "light-punch",
+        instanceId: "inst2",
+        damage: 10,
+      });
+      const punch2 = createSkill({
+        id: "heavy-punch",
+        instanceId: "inst3",
+        damage: 25,
+      });
+      const char1 = createCharacter({
+        id: "char1",
+        skills: [move, punch1, punch2],
+      });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      expect(
+        screen.queryByRole("button", { name: /duplicate/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("clicking duplicate creates new move instance", async () => {
+      const user = userEvent.setup();
+      const moveSkill = createSkill({
+        id: "move-towards",
+        instanceId: "move-inst-1",
+        name: "Move",
+        mode: "towards",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      const duplicateButton = screen.getByRole("button", {
+        name: /duplicate move/i,
+      });
+      await user.click(duplicateButton);
+
+      const updatedChar = useGameStore
+        .getState()
+        .gameState.characters.find((c) => c.id === "char1");
+      expect(updatedChar?.skills).toHaveLength(2);
+      expect(updatedChar?.skills[0]?.id).toBe("move-towards");
+      expect(updatedChar?.skills[1]?.id).toBe("move-towards");
+      expect(updatedChar?.skills[0]?.instanceId).not.toBe(
+        updatedChar?.skills[1]?.instanceId,
+      );
+
+      const modeDropdowns = screen.getAllByRole("combobox", { name: /mode/i });
+      expect(modeDropdowns).toHaveLength(2);
+    });
+
+    it("remove button appears for duplicate move instances", () => {
+      const move1 = createSkill({
+        id: "move-towards",
+        instanceId: "move1",
+        mode: "towards",
+      });
+      const move2 = createSkill({
+        id: "move-towards",
+        instanceId: "move2",
+        mode: "towards",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [move1, move2] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      const removeButtons = screen.getAllByRole("button", { name: /remove/i });
+      expect(removeButtons).toHaveLength(2);
+      expect(screen.getAllByText(/innate/i)).toHaveLength(2);
+    });
+
+    it("remove button hidden for single move instance", () => {
+      const moveSkill = createSkill({
+        id: "move-towards",
+        instanceId: "move1",
+        mode: "towards",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      expect(
+        screen.queryByRole("button", { name: /remove move/i }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByText(/innate/i)).toBeInTheDocument();
+    });
+
+    it("clicking remove deletes duplicate move instance", async () => {
+      const user = userEvent.setup();
+      const move1 = createSkill({
+        id: "move-towards",
+        instanceId: "inst1",
+        mode: "towards",
+      });
+      const move2 = createSkill({
+        id: "move-towards",
+        instanceId: "inst2",
+        mode: "towards",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [move1, move2] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      const removeButtons = screen.getAllByRole("button", { name: /remove/i });
+      await user.click(removeButtons[1]!);
+
+      const updatedChar = useGameStore
+        .getState()
+        .gameState.characters.find((c) => c.id === "char1");
+      expect(updatedChar?.skills).toHaveLength(1);
+      expect(updatedChar?.skills[0]?.instanceId).toBe("inst1");
+
+      const modeDropdowns = screen.getAllByRole("combobox", { name: /mode/i });
+      expect(modeDropdowns).toHaveLength(1);
+    });
+
+    it("each move instance has independent mode configuration", async () => {
+      const user = userEvent.setup();
+      const move1 = createSkill({
+        id: "move-towards",
+        instanceId: "inst1",
+        mode: "towards",
+      });
+      const move2 = createSkill({
+        id: "move-towards",
+        instanceId: "inst2",
+        mode: "towards",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [move1, move2] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      const modeDropdowns = screen.getAllByRole("combobox", { name: /mode/i });
+      await user.selectOptions(modeDropdowns[1]!, "away");
+
+      expect(modeDropdowns[0]).toHaveValue("towards");
+      expect(modeDropdowns[1]).toHaveValue("away");
+
+      const updatedChar = useGameStore
+        .getState()
+        .gameState.characters.find((c) => c.id === "char1");
+      expect(
+        updatedChar?.skills.find((s) => s.instanceId === "inst1")?.mode,
+      ).toBe("towards");
+      expect(
+        updatedChar?.skills.find((s) => s.instanceId === "inst2")?.mode,
+      ).toBe("away");
+    });
+
+    it("each move instance has independent trigger configuration", async () => {
+      const user = userEvent.setup();
+      const move1 = createSkill({
+        id: "move-towards",
+        instanceId: "inst1",
+        name: "Move",
+        mode: "towards",
+        triggers: [{ type: "always" }],
+      });
+      const move2 = createSkill({
+        id: "move-towards",
+        instanceId: "inst2",
+        name: "Move",
+        mode: "towards",
+        triggers: [{ type: "always" }],
+      });
+      const char1 = createCharacter({ id: "char1", skills: [move1, move2] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      const triggerDropdowns = screen.getAllByRole("combobox", {
+        name: /trigger/i,
+      });
+      await user.selectOptions(triggerDropdowns[0]!, "hp_below");
+
+      const updatedChar = useGameStore
+        .getState()
+        .gameState.characters.find((c) => c.id === "char1");
+      expect(
+        updatedChar?.skills.find((s) => s.instanceId === "inst1")?.triggers[0]
+          ?.type,
+      ).toBe("hp_below");
+      expect(
+        updatedChar?.skills.find((s) => s.instanceId === "inst2")?.triggers[0]
+          ?.type,
+      ).toBe("always");
+    });
+
+    it("react keys use instanceId no duplicate key warnings", () => {
+      const consoleErrorSpy = vi.spyOn(console, "error");
+      const move1 = createSkill({
+        id: "move-towards",
+        instanceId: "move1",
+        mode: "towards",
+      });
+      const move2 = createSkill({
+        id: "move-towards",
+        instanceId: "move2",
+        mode: "towards",
+      });
+      const move3 = createSkill({
+        id: "move-towards",
+        instanceId: "move3",
+        mode: "towards",
+      });
+      const char1 = createCharacter({
+        id: "char1",
+        skills: [move1, move2, move3],
+      });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<SkillsPanel />);
+
+      const modeDropdowns = screen.getAllByRole("combobox", { name: /mode/i });
+      expect(modeDropdowns).toHaveLength(3);
+
+      const keyWarnings = consoleErrorSpy.mock.calls.filter((call) =>
+        call.some(
+          (arg) =>
+            typeof arg === "string" &&
+            (arg.includes("key") || arg.includes("unique")),
+        ),
+      );
+      expect(keyWarnings).toHaveLength(0);
+
+      consoleErrorSpy.mockRestore();
     });
   });
 });

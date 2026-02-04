@@ -65,13 +65,14 @@ export interface GameStore {
     // Skill management
     updateSkill: (
       charId: string,
-      skillId: string,
+      instanceId: string,
       updates: Partial<Skill>,
     ) => void;
     moveSkillUp: (charId: string, skillIndex: number) => void;
     moveSkillDown: (charId: string, skillIndex: number) => void;
     assignSkillToCharacter: (charId: string, skillId: string) => void;
-    removeSkillFromCharacter: (charId: string, skillId: string) => void;
+    removeSkillFromCharacter: (charId: string, instanceId: string) => void;
+    duplicateSkill: (charId: string, instanceId: string) => void;
 
     // Character add/remove
     addCharacter: (faction: Faction) => boolean;

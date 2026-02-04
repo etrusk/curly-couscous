@@ -78,7 +78,7 @@ function CompactEvaluationList({
     <ol className={styles.evaluationList}>
       {relevantEvaluations.map((evaluation, index) => (
         <li
-          key={evaluation.skill.id}
+          key={evaluation.skill.instanceId}
           className={`${styles.evaluationItem} ${
             index === selectedSkillIndex ? styles.selected : ""
           }`}
@@ -122,7 +122,7 @@ function SkillPriorityList({
       <ol className={styles.skillList} role="list">
         {primarySkillsWithIndices.map(({ evaluation, originalIndex }) => (
           <SkillListItem
-            key={evaluation.skill.id}
+            key={evaluation.skill.instanceId}
             evaluation={evaluation}
             displayIndex={originalIndex + 1}
             isSelected={originalIndex === selectedSkillIndex}
@@ -140,7 +140,7 @@ function SkillPriorityList({
           <ol className={styles.skillList} role="list">
             {skippedSkillsWithIndices.map(({ evaluation, originalIndex }) => (
               <SkillListItem
-                key={evaluation.skill.id}
+                key={evaluation.skill.instanceId}
                 evaluation={evaluation}
                 displayIndex={originalIndex + 1}
                 isSelected={false}
@@ -203,7 +203,7 @@ function SkillListItem({
 
   return (
     <li
-      key={evaluation.skill.id}
+      key={evaluation.skill.instanceId}
       className={`${styles.skillItem} ${isSelected ? styles.activeSkill : ""}`}
     >
       <div className={styles.skillName}>

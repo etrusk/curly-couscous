@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- TODO: extract skill actions into separate module */
 /**
  * Zustand store for game state management.
  * Uses Immer middleware for immutable updates.
@@ -8,10 +9,12 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { processTick as engineProcessTick } from "../engine/game";
-import type { Character } from "../engine/types";
+import type { Character, Skill } from "../engine/types";
 import {
   SKILL_REGISTRY,
   createSkillFromDefinition,
+  generateInstanceId,
+  getDefaultSkills,
 } from "../engine/skill-registry";
 import { isValidHex } from "../engine/hex";
 import { positionsEqual } from "../engine/types";
@@ -19,9 +22,9 @@ import { positionsEqual } from "../engine/types";
 // Import from decomposed modules
 import {
   getNextCharacterIdCounter,
-  DEFAULT_SKILLS,
   initialGameState,
   MAX_SKILL_SLOTS,
+  MAX_MOVE_INSTANCES,
 } from "./gameStore-constants";
 import {
   findNextAvailablePosition,
@@ -217,13 +220,15 @@ export const useGameStore = create<GameStore>()(
           state.selectedCharacterId = id;
         }),
 
-      updateSkill: (charId, skillId, updates) =>
+      updateSkill: (charId, instanceId, updates) =>
         set((state) => {
           const character = state.gameState.characters.find(
             (c) => c.id === charId,
           );
           if (character) {
-            const skill = character.skills.find((s) => s.id === skillId);
+            const skill = character.skills.find(
+              (s) => s.instanceId === instanceId,
+            );
             if (skill) {
               Object.assign(skill, updates);
             }
@@ -307,7 +312,7 @@ export const useGameStore = create<GameStore>()(
           character.skills.unshift(createSkillFromDefinition(skillDef));
         }),
 
-      removeSkillFromCharacter: (charId, skillId) =>
+      removeSkillFromCharacter: (charId, instanceId) =>
         set((state) => {
           const character = state.gameState.characters.find(
             (c) => c.id === charId,
@@ -318,20 +323,84 @@ export const useGameStore = create<GameStore>()(
 
           // Find skill in character's skill list
           const skillIndex = character.skills.findIndex(
-            (s) => s.id === skillId,
+            (s) => s.instanceId === instanceId,
           );
           if (skillIndex === -1) {
             return;
           }
 
-          // Check if skill is innate - cannot remove innate skills
-          const skillDef = SKILL_REGISTRY.find((s) => s.id === skillId);
+          const skill = character.skills[skillIndex]!;
+
+          // Check if skill is innate via registry
+          const skillDef = SKILL_REGISTRY.find((s) => s.id === skill.id);
+
           if (skillDef?.innate) {
-            return;
+            // For innate skills (Move): only allow removal if character has >1 instance
+            const moveCount = character.skills.filter(
+              (s) => s.id === skill.id,
+            ).length;
+            if (moveCount <= 1) {
+              return; // Cannot remove last Move instance
+            }
           }
 
           // Remove skill
           character.skills.splice(skillIndex, 1);
+        }),
+
+      duplicateSkill: (charId, instanceId) =>
+        set((state) => {
+          const character = state.gameState.characters.find(
+            (c) => c.id === charId,
+          );
+          if (!character) {
+            return;
+          }
+
+          // Find source skill
+          const sourceSkill = character.skills.find(
+            (s) => s.instanceId === instanceId,
+          );
+          if (!sourceSkill) {
+            return;
+          }
+
+          // Only Move skills can be duplicated (skills with mode property)
+          if (sourceSkill.mode === undefined) {
+            return;
+          }
+
+          // Check move instance count limit
+          const moveCount = character.skills.filter(
+            (s) => s.mode !== undefined,
+          ).length;
+          if (moveCount >= MAX_MOVE_INSTANCES) {
+            return;
+          }
+
+          // Check total skill slot limit
+          if (character.skills.length >= MAX_SKILL_SLOTS) {
+            return;
+          }
+
+          // Create new instance with default config
+          const newSkill: Skill = {
+            id: sourceSkill.id,
+            instanceId: generateInstanceId(sourceSkill.id),
+            name: sourceSkill.name, // "Move"
+            tickCost: sourceSkill.tickCost,
+            range: sourceSkill.range,
+            mode: "towards", // Default mode for new duplicate
+            enabled: true,
+            triggers: [{ type: "always" }],
+            selectorOverride: { type: "nearest_enemy" },
+          };
+
+          // Insert directly after source skill in priority list
+          const sourceIndex = character.skills.findIndex(
+            (s) => s.instanceId === instanceId,
+          );
+          character.skills.splice(sourceIndex + 1, 0, newSkill);
         }),
 
       addCharacter: (faction) => {
@@ -367,7 +436,7 @@ export const useGameStore = create<GameStore>()(
             hp: 100,
             maxHp: 100,
             position,
-            skills: structuredClone(DEFAULT_SKILLS),
+            skills: getDefaultSkills(), // Each call generates fresh instanceIds
             currentAction: null,
           };
 
@@ -448,7 +517,7 @@ export const useGameStore = create<GameStore>()(
             hp: 100,
             maxHp: 100,
             position,
-            skills: structuredClone(DEFAULT_SKILLS),
+            skills: getDefaultSkills(), // Each call generates fresh instanceIds
             currentAction: null,
           };
 

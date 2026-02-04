@@ -18,6 +18,7 @@ LLM-optimized index of significant architectural and design decisions.
 | ADR-006 | Heal Resolution Before Combat                      | 2026-02-03 | Accepted              | [adr-006-heal-resolution-order.md](./adr-006-heal-resolution-order.md)             |
 | ADR-007 | Hexagonal Grid with Axial Coordinates              | 2026-02-03 | Accepted              | [adr-007-hex-coordinate-system.md](./adr-007-hex-coordinate-system.md)             |
 | ADR-008 | SVG Hex Grid with Shared ViewBox Coordinate System | 2026-02-04 | Accepted              | [adr-008-svg-hex-grid.md](./adr-008-svg-hex-grid.md)                               |
+| ADR-009 | Instance Identity for Skill Duplication            | 2026-02-04 | Accepted              | [adr-009-skill-instance-identity.md](./adr-009-skill-instance-identity.md)         |
 
 ## Adding New ADRs
 

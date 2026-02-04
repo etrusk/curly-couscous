@@ -52,7 +52,8 @@ export interface Character {
  * Matches spec Section 13.2.
  */
 export interface Skill {
-  id: string;
+  id: string; // Registry ID (shared by duplicates)
+  instanceId: string; // Unique per-instance (for React keys, targeted updates, removal)
   name: string;
   tickCost: number;
   range: number;

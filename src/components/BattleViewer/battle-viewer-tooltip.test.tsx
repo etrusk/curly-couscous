@@ -152,6 +152,7 @@ describe("BattleViewer Tooltip Integration", () => {
       skills: [
         {
           id: "light-punch",
+          instanceId: "light-punch",
           name: "Light Punch",
           tickCost: 1,
           range: 1,

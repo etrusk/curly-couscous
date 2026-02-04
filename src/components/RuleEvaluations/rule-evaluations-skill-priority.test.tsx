@@ -76,6 +76,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
     const skills: Skill[] = [
       {
         id: "light-punch",
+        instanceId: "light-punch",
         name: "Light Punch",
         tickCost: 1,
         range: 1,
@@ -86,6 +87,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       },
       {
         id: "move",
+        instanceId: "move",
         name: "Move",
         tickCost: 1,
         range: 0,
@@ -96,6 +98,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       },
       {
         id: "heavy-punch",
+        instanceId: "heavy-punch",
         name: "Heavy Punch",
         tickCost: 2,
         range: 1,
@@ -127,6 +130,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
     const skills: Skill[] = [
       {
         id: "long-punch",
+        instanceId: "long-punch",
         name: "Long Punch",
         tickCost: 1,
         range: 1,
@@ -158,6 +162,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
     const skills: Skill[] = [
       {
         id: "skill-1",
+        instanceId: "skill-1",
         name: "Skill One",
         tickCost: 1,
         range: 1,
@@ -168,6 +173,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       },
       {
         id: "skill-2",
+        instanceId: "skill-2",
         name: "Skill Two",
         tickCost: 1,
         range: 1,
@@ -178,6 +184,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       },
       {
         id: "skill-3",
+        instanceId: "skill-3",
         name: "Skill Three",
         tickCost: 1,
         range: 1,
@@ -244,6 +251,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
     const skills: Skill[] = [
       {
         id: "skill-a",
+        instanceId: "skill-a",
         name: "Alpha Strike",
         tickCost: 1,
         range: 1,
@@ -254,6 +262,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       },
       {
         id: "skill-b",
+        instanceId: "skill-b",
         name: "Beta Move",
         tickCost: 1,
         range: 0,
@@ -264,6 +273,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       },
       {
         id: "skill-c",
+        instanceId: "skill-c",
         name: "Gamma Blast",
         tickCost: 2,
         range: 2,
@@ -299,6 +309,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
     const skills: Skill[] = [
       {
         id: "light-punch",
+        instanceId: "light-punch",
         name: "Light Punch",
         tickCost: 1,
         range: 1,
@@ -309,6 +320,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       },
       {
         id: "move",
+        instanceId: "move",
         name: "Move",
         tickCost: 1,
         range: 0,
@@ -319,6 +331,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       },
       {
         id: "heavy-punch",
+        instanceId: "heavy-punch",
         name: "Heavy Punch",
         tickCost: 2,
         range: 2,
@@ -360,6 +373,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
     const skills: Skill[] = [
       {
         id: "disabled-skill",
+        instanceId: "disabled-skill",
         name: "Disabled Skill",
         tickCost: 1,
         range: 1,
@@ -370,6 +384,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       },
       {
         id: "trigger-fail",
+        instanceId: "trigger-fail",
         name: "Trigger Fail Skill",
         tickCost: 1,
         range: 1,
@@ -380,6 +395,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       },
       {
         id: "out-of-range",
+        instanceId: "out-of-range",
         name: "Out of Range Skill",
         tickCost: 1,
         range: 1,
@@ -390,6 +406,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
       },
       {
         id: "move",
+        instanceId: "move",
         name: "Move",
         tickCost: 1,
         range: 0,
@@ -441,6 +458,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
     const skills: Skill[] = [
       {
         id: "only-skill",
+        instanceId: "only-skill",
         name: "Only Skill",
         tickCost: 1,
         range: 1,

@@ -10,6 +10,7 @@ export function createCharacter(overrides: Partial<Character> = {}): Character {
   const defaultSkills: Skill[] = [
     {
       id: "light-punch",
+      instanceId: "light-punch",
       name: "Light Punch",
       tickCost: 1,
       range: 1,
@@ -20,6 +21,7 @@ export function createCharacter(overrides: Partial<Character> = {}): Character {
     },
     {
       id: "move",
+      instanceId: "move",
       name: "Move",
       tickCost: 1,
       range: 0,
@@ -30,6 +32,7 @@ export function createCharacter(overrides: Partial<Character> = {}): Character {
     },
     {
       id: "heavy-punch",
+      instanceId: "heavy-punch",
       name: "Heavy Punch",
       tickCost: 2,
       range: 2,
@@ -82,6 +85,7 @@ export function createAttackAction(
     type: "attack",
     skill: {
       id: skillId,
+      instanceId: skillId,
       name: skillName,
       tickCost: resolvesAtTick - startedAtTick,
       range: 1,
@@ -109,6 +113,7 @@ export function createMoveAction(
     type: "move",
     skill: {
       id: skillId,
+      instanceId: skillId,
       name: skillName,
       tickCost: resolvesAtTick - startedAtTick,
       range: 0,
@@ -129,6 +134,7 @@ export function createIdleAction(): Action {
     type: "idle",
     skill: {
       id: "idle",
+      instanceId: "idle",
       name: "Idle",
       tickCost: 1,
       range: 0,

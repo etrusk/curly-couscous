@@ -241,6 +241,7 @@ describe("RuleEvaluations - Basic Rendering", () => {
       type: "attack" as const,
       skill: {
         id: "light-punch",
+        instanceId: "light-punch",
         name: "Light Punch",
         tickCost: 3,
         range: 1,

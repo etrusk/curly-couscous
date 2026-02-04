@@ -239,6 +239,7 @@ describe("Movement Fairness and Edge Cases", () => {
         skills: [
           {
             id: "skill1",
+            instanceId: "skill1",
             name: "Skill",
             tickCost: 1,
             range: 1,

@@ -47,6 +47,7 @@ export function createCharacter(
 export function createSkill(overrides: Partial<Skill> & { id: string }): Skill {
   return {
     id: overrides.id,
+    instanceId: overrides.instanceId ?? overrides.id, // Default instanceId to id for backward compatibility
     name: overrides.name ?? `Skill-${overrides.id}`,
     tickCost: overrides.tickCost ?? 1,
     range: overrides.range ?? 1,
@@ -70,7 +71,12 @@ export function createAttackAction(
   const tickCost = 1;
   return {
     type: "attack",
-    skill: createSkill({ id: "test-attack", damage, tickCost }),
+    skill: createSkill({
+      id: "test-attack",
+      instanceId: "test-attack",
+      damage,
+      tickCost,
+    }),
     targetCell,
     targetCharacter: null,
     startedAtTick: resolveTick - tickCost,
@@ -88,7 +94,12 @@ export function createMoveAction(
   const tickCost = 1;
   return {
     type: "move",
-    skill: createSkill({ id: "test-move", mode: "towards", tickCost }),
+    skill: createSkill({
+      id: "test-move",
+      instanceId: "test-move",
+      mode: "towards",
+      tickCost,
+    }),
     targetCell,
     targetCharacter: null,
     startedAtTick: resolveTick - tickCost,
@@ -106,7 +117,12 @@ export function createHealAction(
 ): Action {
   return {
     type: "heal",
-    skill: createSkill({ id: "test-heal", healing, tickCost: 0 }),
+    skill: createSkill({
+      id: "test-heal",
+      instanceId: "test-heal",
+      healing,
+      tickCost: 0,
+    }),
     targetCell,
     targetCharacter: null,
     startedAtTick: resolveTick,

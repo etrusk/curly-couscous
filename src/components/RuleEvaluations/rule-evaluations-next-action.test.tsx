@@ -25,6 +25,7 @@ describe("RuleEvaluations - Next Action Display", () => {
       type: "attack",
       skill: {
         id: "light-punch",
+        instanceId: "light-punch",
         name: "Light Punch",
         tickCost: 1,
         range: 1,
@@ -53,6 +54,7 @@ describe("RuleEvaluations - Next Action Display", () => {
       type: "move",
       skill: {
         id: "move",
+        instanceId: "move",
         name: "Move",
         tickCost: 1,
         range: 0,
@@ -81,6 +83,7 @@ describe("RuleEvaluations - Next Action Display", () => {
       type: "move",
       skill: {
         id: "move",
+        instanceId: "move",
         name: "Move",
         tickCost: 1,
         range: 0,
@@ -110,6 +113,7 @@ describe("RuleEvaluations - Next Action Display", () => {
       type: "attack",
       skill: {
         id: "light-punch",
+        instanceId: "light-punch",
         name: "Light Punch",
         tickCost: 1,
         range: 1,
@@ -144,6 +148,7 @@ describe("RuleEvaluations - Next Action Display", () => {
       type: "attack",
       skill: {
         id: "light-punch",
+        instanceId: "light-punch",
         name: "Light Punch",
         tickCost: 1,
         range: 1,
@@ -178,6 +183,7 @@ describe("RuleEvaluations - Next Action Display", () => {
       type: "attack",
       skill: {
         id: "heavy-punch",
+        instanceId: "heavy-punch",
         name: "Heavy Punch",
         tickCost: 2,
         range: 1,

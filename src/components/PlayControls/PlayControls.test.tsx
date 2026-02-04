@@ -392,6 +392,7 @@ describe("PlayControls", () => {
 
       const killSkill: Skill = {
         id: "kill-skill",
+        instanceId: "kill-skill",
         name: "Kill Skill",
         tickCost: 1,
         range: 12, // Can reach across entire board

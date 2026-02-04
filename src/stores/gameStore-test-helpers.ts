@@ -29,6 +29,7 @@ export const createSkill = (
   overrides: Partial<Skill> & { id: string },
 ): Skill => ({
   id: overrides.id,
+  instanceId: overrides.instanceId ?? overrides.id, // Default instanceId to id for backward compatibility
   name: overrides.name ?? `Skill-${overrides.id}`,
   tickCost: overrides.tickCost ?? 1,
   range: overrides.range ?? 1,

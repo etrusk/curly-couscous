@@ -32,6 +32,7 @@ export const DEFAULT_SELECTOR: Selector = { type: "nearest_enemy" };
  */
 export const IDLE_SKILL: Skill = {
   id: "__idle__",
+  instanceId: "__idle__",
   name: "Idle",
   tickCost: 1,
   range: 0,

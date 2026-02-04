@@ -6,6 +6,20 @@
 import type { Skill, Selector } from "./types";
 
 /**
+ * Module-level counter for generating unique instance IDs.
+ * Monotonically increasing to prevent collisions across all skill instances.
+ */
+let instanceIdCounter = 0;
+
+/**
+ * Generate a unique instance ID for a skill.
+ * Pattern: `${registryId}-${counter++}` (e.g., "move-towards-1", "move-towards-2")
+ */
+export function generateInstanceId(registryId: string): string {
+  return `${registryId}-${++instanceIdCounter}`;
+}
+
+/**
  * Intrinsic properties of a skill -- the identity and stats.
  * This is the source of truth. Other representations derive from this.
  */
@@ -75,7 +89,8 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
 export function getDefaultSkills(): Skill[] {
   return SKILL_REGISTRY.filter((def) => def.innate).map((def) => ({
     id: def.id,
-    name: def.mode ? `${def.name} Towards` : def.name, // Move -> "Move Towards"
+    instanceId: generateInstanceId(def.id),
+    name: def.name, // Use registry name directly ("Move", not "Move Towards")
     tickCost: def.tickCost,
     range: def.range,
     ...(def.damage !== undefined ? { damage: def.damage } : {}),
@@ -94,7 +109,8 @@ export function getDefaultSkills(): Skill[] {
 export function createSkillFromDefinition(def: SkillDefinition): Skill {
   return {
     id: def.id,
-    name: def.mode ? `${def.name} Towards` : def.name,
+    instanceId: generateInstanceId(def.id),
+    name: def.name, // Use registry name directly
     tickCost: def.tickCost,
     range: def.range,
     ...(def.damage !== undefined ? { damage: def.damage } : {}),

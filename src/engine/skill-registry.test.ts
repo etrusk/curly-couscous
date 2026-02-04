@@ -8,6 +8,7 @@ import {
   SKILL_REGISTRY,
   getDefaultSkills,
   createSkillFromDefinition,
+  generateInstanceId,
 } from "./skill-registry";
 
 describe("Skill Registry", () => {
@@ -143,7 +144,7 @@ describe("Skill Registry", () => {
       expect(skills).toHaveLength(1);
       const move = skills[0]!;
 
-      expect(move.name).toBe("Move Towards");
+      expect(move.name).toBe("Move");
     });
 
     it("returns fresh instances", () => {
@@ -178,7 +179,7 @@ describe("Skill Registry", () => {
       const moveDef = SKILL_REGISTRY.find((s) => s.id === "move-towards")!;
       const skill = createSkillFromDefinition(moveDef);
 
-      expect(skill.name).toBe("Move Towards");
+      expect(skill.name).toBe("Move");
       expect(skill.mode).toBe("towards");
       expect(skill.damage).toBeUndefined();
     });
@@ -206,6 +207,72 @@ describe("Skill Registry", () => {
       const lightPunchDef = SKILL_REGISTRY.find((s) => s.id === "light-punch")!;
       const skill = createSkillFromDefinition(lightPunchDef);
       expect(skill.tickCost).toBe(0);
+    });
+  });
+
+  // NEW TESTS FOR MOVE SKILL DUPLICATION
+  describe("Instance ID Generation", () => {
+    it("generateInstanceId returns string with registry prefix", () => {
+      const instanceId = generateInstanceId("move-towards");
+
+      expect(instanceId).toMatch(/^move-towards-\d+$/);
+      expect(instanceId).toBeTruthy();
+      expect(typeof instanceId).toBe("string");
+    });
+
+    it("generateInstanceId produces unique ids across calls", () => {
+      const id1 = generateInstanceId("move-towards");
+      const id2 = generateInstanceId("move-towards");
+      const id3 = generateInstanceId("move-towards");
+
+      const uniqueIds = new Set([id1, id2, id3]);
+      expect(uniqueIds.size).toBe(3);
+      expect(id1).toContain("move-towards-");
+      expect(id2).toContain("move-towards-");
+      expect(id3).toContain("move-towards-");
+    });
+
+    it("generateInstanceId unique across different registry ids", () => {
+      const moveId = generateInstanceId("move-towards");
+      const punchId = generateInstanceId("light-punch");
+
+      expect(moveId).not.toBe(punchId);
+      expect(moveId).toMatch(/^move-towards-/);
+      expect(punchId).toMatch(/^light-punch-/);
+    });
+
+    it("getDefaultSkills generates unique instanceIds", () => {
+      const skills = getDefaultSkills();
+
+      expect(skills).toHaveLength(1);
+      const skill = skills[0]!;
+      expect(skill.instanceId).toBeDefined();
+      expect(skill.instanceId).toBeTruthy();
+      expect(skill.instanceId).toMatch(new RegExp(`^${skill.id}-`));
+    });
+
+    it("getDefaultSkills returns fresh instanceIds each call", () => {
+      const result1 = getDefaultSkills();
+      const result2 = getDefaultSkills();
+
+      expect(result1[0]!.instanceId).not.toBe(result2[0]!.instanceId);
+    });
+
+    it("getDefaultSkills uses registry name without suffix", () => {
+      const skills = getDefaultSkills();
+
+      expect(skills).toHaveLength(1);
+      const move = skills[0]!;
+      expect(move.name).toBe("Move");
+    });
+
+    it("createSkillFromDefinition includes instanceId", () => {
+      const lightPunchDef = SKILL_REGISTRY.find((s) => s.id === "light-punch")!;
+      const skill = createSkillFromDefinition(lightPunchDef);
+
+      expect(skill.instanceId).toBeDefined();
+      expect(skill.instanceId).toBeTruthy();
+      expect(skill.instanceId).toMatch(/^light-punch-/);
     });
   });
 });

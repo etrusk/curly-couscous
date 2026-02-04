@@ -5,6 +5,10 @@ import {
 } from "../../stores/gameStore";
 import type { Trigger, Selector } from "../../engine/types";
 import { SKILL_REGISTRY } from "../../engine/skill-registry";
+import {
+  MAX_SKILL_SLOTS,
+  MAX_MOVE_INSTANCES,
+} from "../../stores/gameStore-constants";
 import { slotPositionToLetter } from "../../utils/letterMapping";
 import styles from "./SkillsPanel.module.css";
 
@@ -75,8 +79,13 @@ export function composeSelector(
 
 export function SkillsPanel() {
   const selectedCharacter = useGameStore(selectSelectedCharacter);
-  const { updateSkill, moveSkillUp, moveSkillDown, removeSkillFromCharacter } =
-    useGameStore(selectActions);
+  const {
+    updateSkill,
+    moveSkillUp,
+    moveSkillDown,
+    removeSkillFromCharacter,
+    duplicateSkill,
+  } = useGameStore(selectActions);
 
   if (!selectedCharacter) {
     return (
@@ -89,17 +98,17 @@ export function SkillsPanel() {
     );
   }
 
-  const handleEnabledToggle = (skillId: string, currentEnabled: boolean) => {
-    updateSkill(selectedCharacter.id, skillId, { enabled: !currentEnabled });
+  const handleEnabledToggle = (instanceId: string, currentEnabled: boolean) => {
+    updateSkill(selectedCharacter.id, instanceId, { enabled: !currentEnabled });
   };
 
-  const handleUnassignSkill = (skillId: string) => {
-    removeSkillFromCharacter(selectedCharacter.id, skillId);
+  const handleUnassignSkill = (instanceId: string) => {
+    removeSkillFromCharacter(selectedCharacter.id, instanceId);
   };
 
   // Type assertion acceptable for 80/20 - select values are guaranteed to match Trigger['type']
   const handleTriggerTypeChange = (
-    skillId: string,
+    instanceId: string,
     triggerType: Trigger["type"],
   ) => {
     let newTriggers: Trigger[];
@@ -120,23 +129,28 @@ export function SkillsPanel() {
       newTriggers = [{ type: "always" }];
     }
 
-    updateSkill(selectedCharacter.id, skillId, { triggers: newTriggers });
+    updateSkill(selectedCharacter.id, instanceId, { triggers: newTriggers });
   };
 
   const handleTriggerValueChange = (
-    skillId: string,
+    instanceId: string,
     triggerType: Trigger["type"],
     value: number,
   ) => {
     const newTriggers: Trigger[] = [{ type: triggerType, value }];
-    updateSkill(selectedCharacter.id, skillId, { triggers: newTriggers });
+    updateSkill(selectedCharacter.id, instanceId, { triggers: newTriggers });
   };
 
-  const handleCategoryChange = (skillId: string, category: TargetCategory) => {
+  const handleCategoryChange = (
+    instanceId: string,
+    category: TargetCategory,
+  ) => {
     // Get current selector to preserve strategy when switching categories
-    const skill = selectedCharacter.skills.find((s) => s.id === skillId);
+    const skill = selectedCharacter.skills.find(
+      (s) => s.instanceId === instanceId,
+    );
     if (!skill) {
-      console.error("[handleCategoryChange] Skill not found:", skillId);
+      console.error("[handleCategoryChange] Skill not found:", instanceId);
       return;
     }
 
@@ -144,16 +158,21 @@ export function SkillsPanel() {
     const { strategy } = decomposeSelector(currentSelector.type);
 
     const newType = composeSelector(category, strategy);
-    updateSkill(selectedCharacter.id, skillId, {
+    updateSkill(selectedCharacter.id, instanceId, {
       selectorOverride: { type: newType },
     });
   };
 
-  const handleStrategyChange = (skillId: string, strategy: TargetStrategy) => {
+  const handleStrategyChange = (
+    instanceId: string,
+    strategy: TargetStrategy,
+  ) => {
     // Get current selector to preserve category when switching strategies
-    const skill = selectedCharacter.skills.find((s) => s.id === skillId);
+    const skill = selectedCharacter.skills.find(
+      (s) => s.instanceId === instanceId,
+    );
     if (!skill) {
-      console.error("[handleStrategyChange] Skill not found:", skillId);
+      console.error("[handleStrategyChange] Skill not found:", instanceId);
       return;
     }
 
@@ -161,14 +180,14 @@ export function SkillsPanel() {
     const { category } = decomposeSelector(currentSelector.type);
 
     const newType = composeSelector(category, strategy);
-    updateSkill(selectedCharacter.id, skillId, {
+    updateSkill(selectedCharacter.id, instanceId, {
       selectorOverride: { type: newType },
     });
   };
 
   // Type assertion acceptable for 80/20 - select values are guaranteed to match mode types
-  const handleModeChange = (skillId: string, mode: "towards" | "away") => {
-    updateSkill(selectedCharacter.id, skillId, { mode });
+  const handleModeChange = (instanceId: string, mode: "towards" | "away") => {
+    updateSkill(selectedCharacter.id, instanceId, { mode });
   };
 
   return (
@@ -189,22 +208,29 @@ export function SkillsPanel() {
           const isMove = skill.mode !== undefined;
           const isInnate = !!SKILL_REGISTRY.find((def) => def.id === skill.id)
             ?.innate;
+          const moveCount = isMove
+            ? selectedCharacter.skills.filter((s) => s.mode !== undefined)
+                .length
+            : 0;
+          const canRemove = !isInnate || (isInnate && moveCount > 1);
 
           const decomposed = decomposeSelector(selector.type);
 
           return (
-            <div key={skill.id} className={styles.skillRow}>
+            <div key={skill.instanceId} className={styles.skillRow}>
               <div className={styles.skillHeader}>
                 <input
                   type="checkbox"
-                  id={`enable-${skill.id}`}
+                  id={`enable-${skill.instanceId}`}
                   checked={skill.enabled}
-                  onChange={() => handleEnabledToggle(skill.id, skill.enabled)}
+                  onChange={() =>
+                    handleEnabledToggle(skill.instanceId, skill.enabled)
+                  }
                   aria-label={`Enable ${skill.name}`}
                   className={styles.enabledCheckbox}
                 />
                 <label
-                  htmlFor={`enable-${skill.id}`}
+                  htmlFor={`enable-${skill.instanceId}`}
                   className={styles.enabledLabel}
                 >
                   <h3>{skill.name}</h3>
@@ -217,13 +243,35 @@ export function SkillsPanel() {
                     Innate
                   </span>
                 )}
+                {isMove &&
+                  moveCount < MAX_MOVE_INSTANCES &&
+                  selectedCharacter.skills.length < MAX_SKILL_SLOTS && (
+                    <button
+                      onClick={() =>
+                        duplicateSkill(selectedCharacter.id, skill.instanceId)
+                      }
+                      className={styles.duplicateButton}
+                      aria-label={`Duplicate ${skill.name}`}
+                    >
+                      Duplicate
+                    </button>
+                  )}
                 {!isInnate && (
                   <button
-                    onClick={() => handleUnassignSkill(skill.id)}
+                    onClick={() => handleUnassignSkill(skill.instanceId)}
                     className={styles.unassignButton}
                     aria-label={`Unassign ${skill.name}`}
                   >
                     Unassign
+                  </button>
+                )}
+                {canRemove && isInnate && moveCount > 1 && (
+                  <button
+                    onClick={() => handleUnassignSkill(skill.instanceId)}
+                    className={styles.removeButton}
+                    aria-label={`Remove ${skill.name}`}
+                  >
+                    Remove
                   </button>
                 )}
               </div>
@@ -236,7 +284,7 @@ export function SkillsPanel() {
                       value={trigger.type}
                       onChange={(e) =>
                         handleTriggerTypeChange(
-                          skill.id,
+                          skill.instanceId,
                           e.target.value as Trigger["type"],
                         )
                       }
@@ -260,7 +308,7 @@ export function SkillsPanel() {
                         value={trigger.value ?? 0}
                         onChange={(e) =>
                           handleTriggerValueChange(
-                            skill.id,
+                            skill.instanceId,
                             trigger.type,
                             parseInt(e.target.value, 10),
                           )
@@ -282,7 +330,7 @@ export function SkillsPanel() {
                       value={decomposed.category}
                       onChange={(e) =>
                         handleCategoryChange(
-                          skill.id,
+                          skill.instanceId,
                           e.target.value as TargetCategory,
                         )
                       }
@@ -300,7 +348,7 @@ export function SkillsPanel() {
                       value={decomposed.strategy}
                       onChange={(e) =>
                         handleStrategyChange(
-                          skill.id,
+                          skill.instanceId,
                           e.target.value as TargetStrategy,
                         )
                       }
@@ -319,7 +367,7 @@ export function SkillsPanel() {
                         value={skill.mode}
                         onChange={(e) =>
                           handleModeChange(
-                            skill.id,
+                            skill.instanceId,
                             e.target.value as "towards" | "away",
                           )
                         }

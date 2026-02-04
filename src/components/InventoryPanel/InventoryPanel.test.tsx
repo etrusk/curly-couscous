@@ -349,11 +349,18 @@ describe("InventoryPanel", () => {
       // Before removal: Light Punch is NOT visible
       expect(screen.queryByText(/light punch/i)).toBeNull();
 
-      // Remove the skill
+      // Remove the skill - get instanceId first
       act(() => {
+        const char = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "char1");
+        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+        const lightPunchInstanceId = char?.skills.find(
+          (s) => s.id === "light-punch",
+        )?.instanceId!;
         useGameStore
           .getState()
-          .actions.removeSkillFromCharacter("char1", "light-punch");
+          .actions.removeSkillFromCharacter("char1", lightPunchInstanceId);
       });
 
       // After removal: Light Punch is visible
@@ -437,9 +444,16 @@ describe("InventoryPanel", () => {
       expect(screen.queryByText(/light punch/i)).toBeNull();
 
       act(() => {
+        const f1 = useGameStore
+          .getState()
+          .gameState.characters.find((c) => c.id === "f1");
+        // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+        const lightPunchInstanceId = f1?.skills.find(
+          (s) => s.id === "light-punch",
+        )?.instanceId!;
         useGameStore
           .getState()
-          .actions.removeSkillFromCharacter("f1", "light-punch");
+          .actions.removeSkillFromCharacter("f1", lightPunchInstanceId);
       });
 
       expect(screen.getByText(/light punch/i)).toBeInTheDocument();

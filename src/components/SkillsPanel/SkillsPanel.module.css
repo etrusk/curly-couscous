@@ -101,6 +101,37 @@
   background-color: var(--surface-error-hover, rgba(239, 68, 68, 0.2));
 }
 
+.duplicateButton {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--content-primary);
+  background-color: var(--surface-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.duplicateButton:hover {
+  background-color: var(--surface-secondary);
+}
+
+.removeButton {
+  margin-left: auto;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--content-error, #ef4444);
+  background-color: var(--surface-error, rgba(239, 68, 68, 0.1));
+  border: 1px solid var(--border-error, #ef4444);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.removeButton:hover {
+  background-color: var(--surface-error-hover, rgba(239, 68, 68, 0.2));
+}
+
 .skillControls {
   display: flex;
   flex-direction: column;

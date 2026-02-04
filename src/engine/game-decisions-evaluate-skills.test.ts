@@ -453,4 +453,45 @@ describe("evaluateSkillsForCharacter", () => {
       expect(result.skillEvaluations[1]!.status).toBe("selected");
     });
   });
+
+  // NEW TEST FOR MOVE SKILL DUPLICATION
+  describe("Multiple Move Instances", () => {
+    it("reports correct status for multiple moves", () => {
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { q: 2, r: 0 },
+      });
+      const character = createCharacter({
+        id: "char1",
+        faction: "friendly",
+        position: { q: 0, r: 0 },
+        hp: 100,
+        maxHp: 100,
+        skills: [
+          createSkill({
+            id: "move-towards",
+            instanceId: "move-away-inst",
+            mode: "away",
+            triggers: [{ type: "hp_below", value: 50 }],
+          }),
+          createSkill({
+            id: "move-towards",
+            instanceId: "move-towards-inst",
+            mode: "towards",
+            triggers: [{ type: "always" }],
+          }),
+        ],
+      });
+
+      const result = evaluateSkillsForCharacter(character, [character, enemy]);
+
+      expect(result.skillEvaluations[0]!.status).toBe("rejected");
+      expect(result.skillEvaluations[0]!.rejectionReason).toBe(
+        "trigger_failed",
+      );
+      expect(result.skillEvaluations[1]!.status).toBe("selected");
+      expect(result.selectedSkillIndex).toBe(1);
+    });
+  });
 });

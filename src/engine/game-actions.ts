@@ -49,6 +49,7 @@ export function createIdleAction(character: Character, tick: number): Action {
   // Import IDLE_SKILL from game-decisions to avoid duplication
   const IDLE_SKILL = {
     id: "__idle__",
+    instanceId: "__idle__",
     name: "Idle",
     tickCost: 1,
     range: 0,

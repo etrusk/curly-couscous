@@ -102,7 +102,7 @@ describe("addCharacter", () => {
 
     const skill = character?.skills[0];
     expect(skill?.id).toBe("move-towards");
-    expect(skill?.name).toBe("Move Towards");
+    expect(skill?.name).toBe("Move");
     expect(skill).toHaveProperty("tickCost");
     expect(skill).toHaveProperty("range");
     expect(skill).toHaveProperty("enabled");

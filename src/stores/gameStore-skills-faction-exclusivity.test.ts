@@ -96,9 +96,19 @@ describe("assignSkillToCharacter - faction exclusivity", () => {
     useGameStore.getState().actions.initBattle([friendlyA, friendlyB]);
 
     useGameStore.getState().actions.assignSkillToCharacter("f1", "light-punch");
+
+    // Get instanceId of light-punch to remove it
+    const f1 = useGameStore
+      .getState()
+      .gameState.characters.find((c) => c.id === "f1");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+    const lightPunchInstanceId = f1?.skills.find(
+      (s) => s.id === "light-punch",
+    )?.instanceId!;
+
     useGameStore
       .getState()
-      .actions.removeSkillFromCharacter("f1", "light-punch");
+      .actions.removeSkillFromCharacter("f1", lightPunchInstanceId);
 
     useGameStore.getState().actions.assignSkillToCharacter("f2", "light-punch");
 

@@ -24,6 +24,7 @@ function createIdleAction(): Action {
     type: "idle",
     skill: {
       id: "idle",
+      instanceId: "idle",
       name: "Idle",
       tickCost: 1,
       range: 0,
@@ -166,6 +167,7 @@ describe("RuleEvaluations - Action Summary", () => {
       const attackOnlySkills: Skill[] = [
         {
           id: "light-punch",
+          instanceId: "light-punch",
           name: "Light Punch",
           tickCost: 1,
           range: 1,
@@ -176,6 +178,7 @@ describe("RuleEvaluations - Action Summary", () => {
         },
         {
           id: "heavy-punch",
+          instanceId: "heavy-punch",
           name: "Heavy Punch",
           tickCost: 2,
           range: 2,
@@ -211,6 +214,7 @@ describe("RuleEvaluations - Action Summary", () => {
       const customSkills: Skill[] = [
         {
           id: "heavy-punch",
+          instanceId: "heavy-punch",
           name: "Heavy Punch",
           tickCost: 2,
           range: 2,
@@ -221,6 +225,7 @@ describe("RuleEvaluations - Action Summary", () => {
         },
         {
           id: "light-punch",
+          instanceId: "light-punch",
           name: "Light Punch",
           tickCost: 1,
           range: 1,
@@ -231,6 +236,7 @@ describe("RuleEvaluations - Action Summary", () => {
         },
         {
           id: "move",
+          instanceId: "move",
           name: "Move",
           tickCost: 1,
           range: 0,
@@ -241,6 +247,7 @@ describe("RuleEvaluations - Action Summary", () => {
         },
         {
           id: "extra",
+          instanceId: "extra",
           name: "Extra",
           tickCost: 1,
           range: 1,
@@ -378,6 +385,7 @@ describe("RuleEvaluations - Action Summary", () => {
       const customSkills: Skill[] = [
         {
           id: "light-punch",
+          instanceId: "light-punch",
           name: "Light Punch",
           tickCost: 1,
           range: 1,
@@ -436,6 +444,7 @@ describe("RuleEvaluations - Action Summary", () => {
       const customSkills: Skill[] = [
         {
           id: "heal",
+          instanceId: "heal",
           name: "Heal",
           tickCost: 1,
           range: 1,
@@ -473,6 +482,7 @@ describe("RuleEvaluations - Action Summary", () => {
       const customSkills: Skill[] = [
         {
           id: "heal",
+          instanceId: "heal",
           name: "Heal",
           tickCost: 1,
           range: 1,
@@ -512,6 +522,7 @@ describe("RuleEvaluations - Action Summary", () => {
       const customSkills: Skill[] = [
         {
           id: "short-attack",
+          instanceId: "short-attack",
           name: "Short Attack",
           tickCost: 1,
           range: 2,
@@ -552,6 +563,7 @@ describe("RuleEvaluations - Action Summary", () => {
       const customSkills: Skill[] = [
         {
           id: "disabled-skill",
+          instanceId: "disabled-skill",
           name: "Disabled Skill",
           tickCost: 1,
           range: 1,
@@ -586,6 +598,7 @@ describe("RuleEvaluations - Action Summary", () => {
       const customSkills: Skill[] = [
         {
           id: "attack",
+          instanceId: "attack",
           name: "Attack",
           tickCost: 1,
           range: 1,

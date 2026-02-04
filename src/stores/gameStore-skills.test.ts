@@ -1,6 +1,7 @@
 /**
  * Tests for SkillsPanel store integration (skill configuration, selection, ordering).
  * Extracted from gameStore.test.ts.
+ * Note: Duplication tests moved to gameStore-skills-duplication.test.ts
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -452,9 +453,14 @@ describe("assignSkillToCharacter - slot capacity", () => {
       .gameState.characters.find((c) => c.id === "char1");
     expect(updatedChar?.skills.length).toBe(3);
 
+    // Get instanceId of light-punch to remove it
+    // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
+    const lightPunchInstanceId = updatedChar?.skills.find(
+      (s) => s.id === "light-punch",
+    )?.instanceId!;
     useGameStore
       .getState()
-      .actions.removeSkillFromCharacter("char1", "light-punch");
+      .actions.removeSkillFromCharacter("char1", lightPunchInstanceId);
 
     updatedChar = useGameStore
       .getState()
@@ -472,3 +478,5 @@ describe("assignSkillToCharacter - slot capacity", () => {
     expect(updatedChar?.skills.some((s) => s.id === "light-punch")).toBe(true);
   });
 });
+
+// NOTE: Move skill duplication tests have been extracted to gameStore-skills-duplication.test.ts

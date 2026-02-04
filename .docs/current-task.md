@@ -30,8 +30,6 @@ Hexagonal grid conversion branch finalization -- commit TS error fixes, push, cr
 
 1. Commit TS error fixes + doc updates
 2. Push branch: `git push -u origin feature/hexagonal-grid-conversion`
-3. Create PR to main
-4. Merge after review
 
 ---
 

@@ -6,11 +6,13 @@ version: 3.0.0
 
 # TDD Workflow Orchestrator
 
-**Role**: Lightweight router between specialized agents. Execute COMPLETELY AUTONOMOUSLY until HUMAN_APPROVAL checkpoint.
+**Role**: Lightweight router between specialized agents. Execute COMPLETELY AUTONOMOUSLY (UI changes require HUMAN_APPROVAL).
 
 **Job**: Read `.tdd/session.md` → spawn agent → parse completion block → run checkpoint → update session.md → route to next phase.
 
 **Context discipline**: Orchestrator NEVER reads implementation files. Agents read files. Orchestrator reads only: session.md, agent completion blocks, routing tables.
+
+**Commit policy**: Changes are committed directly to the current branch. NEVER create pull requests. NEVER use `gh pr create` or similar commands.
 
 ---
 
@@ -66,6 +68,7 @@ agent_budgets:
     exchanges: 5
     tokens_est: 10000
     escalation: human
+    note: "Commit to current branch only - NEVER create PRs"
   reviewer:
     exchanges: 10
     tokens_est: 30000
@@ -298,7 +301,7 @@ phases:
 
   HUMAN_APPROVAL:
     agent: self
-    trigger: "MANDATORY - before SYNC_DOCS/COMMIT"
+    trigger: "CONDITIONAL - UI changes only (browser verification passed)"
     next_if_approved: SYNC_DOCS
     next_if_rejected: FIX
 
@@ -310,6 +313,10 @@ phases:
   COMMIT:
     agent: coder
     budget: coder_commit
+    actions:
+      - Commit changes to current branch
+      - Push to remote automatically
+      - DO NOT create pull requests
     next: "Cleanup and completion"
 
 routing_rules:
@@ -321,7 +328,7 @@ routing_rules:
     - condition: "no_critical AND browser_failed"
       next: HUMAN_VERIFY
     - condition: "no_critical AND non_ui AND tests_pass"
-      next: HUMAN_APPROVAL
+      next: SYNC_DOCS
 
   FIX:
     - condition: "review_cycles < 2"
@@ -492,25 +499,26 @@ Count: [0-2]
 
 ## Routing Summary
 
-| After              | Next               | Condition                             |
-| ------------------ | ------------------ | ------------------------------------- |
-| EXPLORE            | PLAN               | Always                                |
-| PLAN               | DESIGN_TESTS       | Always                                |
-| DESIGN_TESTS       | TEST_DESIGN_REVIEW | Always                                |
-| TEST_DESIGN_REVIEW | WRITE_TESTS        | Always                                |
-| WRITE_TESTS        | IMPLEMENT          | Tests fail (red)                      |
-| IMPLEMENT          | REVIEW             | Tests pass + gates pass               |
-| REVIEW             | ANALYZE_FIX        | Critical issues                       |
-| REVIEW             | HUMAN_VERIFY       | No critical, browser failed           |
-| REVIEW             | HUMAN_APPROVAL     | No critical, browser passed or non-UI |
-| ANALYZE_FIX        | FIX                | Always                                |
-| FIX                | REVIEW             | review_cycles < 2                     |
-| FIX                | ESCALATE           | review_cycles >= 2                    |
-| HUMAN_VERIFY       | HUMAN_APPROVAL     | Verified                              |
-| HUMAN_VERIFY       | FIX                | Issues found                          |
-| HUMAN_APPROVAL     | SYNC_DOCS          | Approved                              |
-| HUMAN_APPROVAL     | FIX                | Rejected                              |
-| SYNC_DOCS          | COMMIT             | Always                                |
+| After              | Next               | Condition                            |
+| ------------------ | ------------------ | ------------------------------------ |
+| EXPLORE            | PLAN               | Always                               |
+| PLAN               | DESIGN_TESTS       | Always                               |
+| DESIGN_TESTS       | TEST_DESIGN_REVIEW | Always                               |
+| TEST_DESIGN_REVIEW | WRITE_TESTS        | Always                               |
+| WRITE_TESTS        | IMPLEMENT          | Tests fail (red)                     |
+| IMPLEMENT          | REVIEW             | Tests pass + gates pass              |
+| REVIEW             | ANALYZE_FIX        | Critical issues                      |
+| REVIEW             | HUMAN_VERIFY       | No critical, browser failed          |
+| REVIEW             | HUMAN_APPROVAL     | No critical, UI task, browser passed |
+| REVIEW             | SYNC_DOCS          | No critical, non-UI task             |
+| ANALYZE_FIX        | FIX                | Always                               |
+| FIX                | REVIEW             | review_cycles < 2                    |
+| FIX                | ESCALATE           | review_cycles >= 2                   |
+| HUMAN_VERIFY       | HUMAN_APPROVAL     | Verified                             |
+| HUMAN_VERIFY       | FIX                | Issues found                         |
+| HUMAN_APPROVAL     | SYNC_DOCS          | Approved                             |
+| HUMAN_APPROVAL     | FIX                | Rejected                             |
+| SYNC_DOCS          | COMMIT             | Always                               |
 
 ---
 
@@ -520,9 +528,10 @@ Count: [0-2]
 2. **Agent completion block REQUIRED** - Unparseable = escalate
 3. **Exchange budgets are HARD limits** - Exceed = escalate per agent_budgets
 4. **Escalation at 80K is MANDATORY** - Human must run `/compact`
-5. **Human approval MANDATORY** before SYNC_DOCS/COMMIT
+5. **Human approval MANDATORY for UI changes only** - Non-UI changes proceed directly to SYNC_DOCS
 6. **Max 2 review cycles** - Escalate on 3rd
 7. **Troubleshooter: 10 exchanges** - Then mandatory human escalation
 8. **Orchestrator reads ONLY**: session.md, completion blocks, routing tables
 9. **Agents read files** - Orchestrator never reads implementation files
 10. **Terse routing output** - Details stay in files, not orchestrator context
+11. **NO PULL REQUESTS** - Commit directly to current branch, never create PRs

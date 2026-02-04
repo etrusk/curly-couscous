@@ -29,6 +29,8 @@ describe("Token Hover Integration", () => {
         hp={100}
         maxHp={100}
         slotPosition={1}
+        cx={50}
+        cy={50}
         onMouseEnter={mockOnMouseEnter}
       />,
     );
@@ -60,6 +62,8 @@ describe("Token Hover Integration", () => {
         hp={100}
         maxHp={100}
         slotPosition={1}
+        cx={50}
+        cy={50}
         onMouseLeave={mockOnMouseLeave}
       />,
     );
@@ -81,6 +85,8 @@ describe("Token Hover Integration", () => {
         hp={100}
         maxHp={100}
         slotPosition={1}
+        cx={50}
+        cy={50}
       />,
     );
 
@@ -96,6 +102,8 @@ describe("Token Hover Integration", () => {
         hp={100}
         maxHp={100}
         slotPosition={1}
+        cx={50}
+        cy={50}
         tooltipId="tooltip-char-1"
       />,
     );
@@ -122,6 +130,8 @@ describe("Token Hover Integration", () => {
         hp={100}
         maxHp={100}
         slotPosition={1}
+        cx={50}
+        cy={50}
         onMouseEnter={mockOnMouseEnter}
         onMouseLeave={mockOnMouseLeave}
       />,
@@ -154,6 +164,8 @@ describe("Token Hover Integration", () => {
         hp={100}
         maxHp={100}
         slotPosition={1}
+        cx={50}
+        cy={50}
         onMouseEnter={mockOnMouseEnter}
       />,
     );

@@ -184,13 +184,12 @@ describe("BattleViewer - Container", () => {
 
 describe("BattleViewer - Integration", () => {
   it("overlay viewBox matches grid viewBox", () => {
-    render(<BattleViewer />);
+    const { container } = render(<BattleViewer />);
 
     const grid = screen.getByRole("grid");
     const gridViewBox = grid.getAttribute("viewBox");
 
     // Query all SVG elements in the container
-    const { container } = render(<BattleViewer />);
     const allSvgs = container.querySelectorAll("svg");
 
     // All SVGs should share the same viewBox if overlays are present
@@ -199,9 +198,14 @@ describe("BattleViewer - Integration", () => {
 
     // If overlays render, they should match
     // This test will be more useful once we have game state with intents/damage
+    // Find the grid SVG element for comparison
+    const gridSvg = Array.from(allSvgs).find(
+      (svg) => svg.getAttribute("role") === "grid",
+    );
+
     for (const svg of Array.from(allSvgs)) {
       const vb = svg.getAttribute("viewBox");
-      if (vb && svg !== grid) {
+      if (vb && svg !== gridSvg) {
         // Overlay SVG should match grid viewBox
         expect(vb).toBe(gridViewBox);
       }
@@ -216,13 +220,13 @@ describe("BattleViewer - Integration", () => {
         characters: [
           {
             id: "test-char",
+            name: "Test Character",
             position: { q: 1, r: -1 },
             faction: "friendly",
             hp: 100,
             maxHp: 100,
             slotPosition: 1,
             skills: [],
-            behaviorRules: [],
             currentAction: null,
           },
         ],
@@ -299,13 +303,13 @@ describe("BattleViewer - Click-to-Place", () => {
         characters: [
           {
             id: "existing",
+            name: "Existing Character",
             position: { q: 0, r: 0 },
             faction: "friendly",
             hp: 100,
             maxHp: 100,
             slotPosition: 1,
             skills: [],
-            behaviorRules: [],
             currentAction: null,
           },
         ],

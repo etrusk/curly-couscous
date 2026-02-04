@@ -12,7 +12,7 @@ describe("IntentLine - Action Colors", () => {
   const defaultProps = {
     from: { q: 0, r: 0 } as Position,
     to: { q: 2, r: 3 } as Position,
-    cellSize: 40,
+    hexSize: 40,
   };
 
   describe("Attack Color", () => {

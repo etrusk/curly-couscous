@@ -13,7 +13,7 @@ describe("IntentLine", () => {
   const defaultProps = {
     from: { q: 0, r: 0 } as Position,
     to: { q: 3, r: 1 } as Position,
-    cellSize: 40,
+    hexSize: 40,
   };
 
   describe("Attack Lines", () => {
@@ -371,7 +371,7 @@ describe("IntentLine", () => {
             type="attack"
             faction="friendly"
             ticksRemaining={1}
-            cellSize={40}
+            hexSize={40}
           />
         </svg>,
       );

@@ -8,9 +8,7 @@ import { IntentOverlay } from "./IntentOverlay";
 
 describe("IntentOverlay - Marker Definitions", () => {
   const defaultProps = {
-    gridWidth: 12,
-    gridHeight: 12,
-    cellSize: 40,
+    hexSize: 40,
   };
 
   describe("Marker Outline Rendering", () => {

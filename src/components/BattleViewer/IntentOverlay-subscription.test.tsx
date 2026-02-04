@@ -14,9 +14,7 @@ import { createCharacter, createSkill } from "../../engine/game-test-helpers";
 
 describe("IntentOverlay - Subscription Behavior", () => {
   const defaultProps = {
-    gridWidth: 12,
-    gridHeight: 12,
-    cellSize: 40,
+    hexSize: 40,
   };
 
   beforeEach(() => {

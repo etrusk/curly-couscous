@@ -27,5 +27,3 @@ Ready for next task - all branches merged and cleaned up.
 - 2026-02-04: Phase 2 - TypeScript coordinate conversion (271 errors fixed, 49 files). Committed: e9d3e61.
 
 ## Next Steps
-
-Sentence-builder UI for SkillsPanel configuration. Consider splitting hex.test.ts (493 lines) in future cleanup.

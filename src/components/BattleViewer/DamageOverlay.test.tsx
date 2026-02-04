@@ -36,9 +36,7 @@ describe("DamageOverlay", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     useGameStore.getState().actions.initBattle([char1]);
 
-    const { container } = render(
-      <DamageOverlay gridWidth={12} gridHeight={12} cellSize={50} />,
-    );
+    const { container } = render(<DamageOverlay hexSize={50} />);
 
     const svg = container.querySelector("svg");
     expect(svg).toBeInTheDocument();
@@ -65,9 +63,7 @@ describe("DamageOverlay", () => {
     useGameStore.getState().actions.addEvent(damageEvent);
 
     const cellSize = 40;
-    const { container } = render(
-      <DamageOverlay gridWidth={12} gridHeight={12} cellSize={cellSize} />,
-    );
+    const { container } = render(<DamageOverlay hexSize={cellSize} />);
 
     const textElement = container.querySelector("text");
     expect(textElement).toBeInTheDocument();
@@ -94,9 +90,7 @@ describe("DamageOverlay", () => {
     };
     useGameStore.getState().actions.addEvent(damageEvent);
 
-    const { container } = render(
-      <DamageOverlay gridWidth={12} gridHeight={12} cellSize={50} />,
-    );
+    const { container } = render(<DamageOverlay hexSize={50} />);
 
     const textElement = container.querySelector("text");
     expect(textElement).toBeInTheDocument();
@@ -119,9 +113,7 @@ describe("DamageOverlay", () => {
     };
     useGameStore.getState().actions.addEvent(damageEvent);
 
-    const { container } = render(
-      <DamageOverlay gridWidth={12} gridHeight={12} cellSize={50} />,
-    );
+    const { container } = render(<DamageOverlay hexSize={50} />);
 
     const rectElement = container.querySelector("rect");
     expect(rectElement).toBeInTheDocument();
@@ -144,9 +136,7 @@ describe("DamageOverlay", () => {
     };
     useGameStore.getState().actions.addEvent(damageEvent);
 
-    const { container } = render(
-      <DamageOverlay gridWidth={12} gridHeight={12} cellSize={50} />,
-    );
+    const { container } = render(<DamageOverlay hexSize={50} />);
 
     const rectElement = container.querySelector("rect");
     expect(rectElement).toBeInTheDocument();
@@ -179,9 +169,7 @@ describe("DamageOverlay", () => {
     useGameStore.getState().actions.addEvent(damage1);
     useGameStore.getState().actions.addEvent(damage2);
 
-    const { container } = render(
-      <DamageOverlay gridWidth={12} gridHeight={12} cellSize={50} />,
-    );
+    const { container } = render(<DamageOverlay hexSize={50} />);
 
     const textElements = container.querySelectorAll("text");
     expect(textElements).toHaveLength(2);
@@ -202,9 +190,7 @@ describe("DamageOverlay", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     useGameStore.getState().actions.initBattle([char1]);
 
-    const { container } = render(
-      <DamageOverlay gridWidth={12} gridHeight={12} cellSize={50} />,
-    );
+    const { container } = render(<DamageOverlay hexSize={50} />);
 
     const svg = container.querySelector("svg");
     expect(svg?.getAttribute("class")).toContain("damageOverlay");
@@ -214,9 +200,7 @@ describe("DamageOverlay", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     useGameStore.getState().actions.initBattle([char1]);
 
-    const { container } = render(
-      <DamageOverlay gridWidth={12} gridHeight={12} cellSize={50} />,
-    );
+    const { container } = render(<DamageOverlay hexSize={50} />);
 
     const svg = container.querySelector("svg");
     // CSS class will handle pointer-events: none
@@ -238,9 +222,7 @@ describe("DamageOverlay", () => {
     };
     useGameStore.getState().actions.addEvent(damageEvent);
 
-    const { container } = render(
-      <DamageOverlay gridWidth={12} gridHeight={12} cellSize={50} />,
-    );
+    const { container } = render(<DamageOverlay hexSize={50} />);
 
     const textElement = container.querySelector("text");
     expect(textElement).toHaveAttribute("text-anchor", "middle");
@@ -261,9 +243,7 @@ describe("DamageOverlay", () => {
     };
     useGameStore.getState().actions.addEvent(damageEvent);
 
-    const { container } = render(
-      <DamageOverlay gridWidth={12} gridHeight={12} cellSize={50} />,
-    );
+    const { container } = render(<DamageOverlay hexSize={50} />);
 
     const textElement = container.querySelector("text");
     expect(textElement).toHaveAttribute("dominant-baseline", "middle");

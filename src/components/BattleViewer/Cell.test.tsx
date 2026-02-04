@@ -11,16 +11,8 @@ import type { CellProps } from "./Cell";
 import { hexVertices } from "../../engine/hex";
 
 // Helper to render Cell inside SVG context
-function renderCell(
-  props: Partial<CellProps> & {
-    q: number;
-    r: number;
-    centerX: number;
-    centerY: number;
-    hexSize: number;
-  },
-) {
-  const defaultProps = {
+function renderCell(props?: Partial<CellProps>) {
+  const defaultProps: CellProps = {
     q: 0,
     r: 0,
     centerX: 0,
@@ -103,7 +95,9 @@ describe("Cell - SVG Hex Rendering", () => {
     for (const pair of pairs) {
       if (pair.includes(",")) {
         const [x, y] = pair.split(",").map(parseFloat);
-        coords.push(x, y);
+        if (x !== undefined && y !== undefined) {
+          coords.push(x, y);
+        }
       } else {
         coords.push(parseFloat(pair));
       }
@@ -114,9 +108,9 @@ describe("Cell - SVG Hex Rendering", () => {
 
     // Check each vertex matches (with floating point tolerance)
     for (let i = 0; i < 6; i++) {
-      const x = coords[i * 2];
-      const y = coords[i * 2 + 1];
-      const expected = expectedVertices[i];
+      const x = coords[i * 2]!;
+      const y = coords[i * 2 + 1]!;
+      const expected = expectedVertices[i]!;
 
       expect(x).toBeCloseTo(expected.x, 1);
       expect(y).toBeCloseTo(expected.y, 1);

@@ -12,7 +12,7 @@ describe("TargetingLine", () => {
   const defaultProps = {
     from: { q: 0, r: 0 } as Position,
     to: { q: 3, r: 1 } as Position,
-    cellSize: 40,
+    hexSize: 40,
   };
 
   it("should render exactly one line element (no outline)", () => {
@@ -79,11 +79,7 @@ describe("TargetingLine", () => {
   it("should calculate correct start position (cell center)", () => {
     const { container } = render(
       <svg>
-        <TargetingLine
-          from={{ q: 2, r: 2 }}
-          to={{ q: 3, r: 1 }}
-          cellSize={40}
-        />
+        <TargetingLine from={{ q: 2, r: 2 }} to={{ q: 3, r: 1 }} hexSize={40} />
       </svg>,
     );
 
@@ -96,11 +92,7 @@ describe("TargetingLine", () => {
   it("should calculate correct end position (cell center)", () => {
     const { container } = render(
       <svg>
-        <TargetingLine
-          from={{ q: 2, r: 2 }}
-          to={{ q: 3, r: 1 }}
-          cellSize={40}
-        />
+        <TargetingLine from={{ q: 2, r: 2 }} to={{ q: 3, r: 1 }} hexSize={40} />
       </svg>,
     );
 
@@ -150,7 +142,7 @@ describe("TargetingLine", () => {
         <TargetingLine
           from={{ q: 0, r: 0 }}
           to={{ q: 4, r: 0 }}
-          cellSize={40}
+          hexSize={40}
           offset={{ x: 0, y: 4 }}
         />
       </svg>,
@@ -168,11 +160,7 @@ describe("TargetingLine", () => {
   it("should default to zero offset when offset prop is not provided", () => {
     const { container } = render(
       <svg>
-        <TargetingLine
-          from={{ q: 0, r: 0 }}
-          to={{ q: 4, r: 0 }}
-          cellSize={40}
-        />
+        <TargetingLine from={{ q: 0, r: 0 }} to={{ q: 4, r: 0 }} hexSize={40} />
       </svg>,
     );
 

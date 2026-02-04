@@ -19,10 +19,9 @@ version: 3.0.0
 ```yaml
 # Token budgets
 budgets:
-  orchestrator_max: 100000
-  orchestrator_warning: 50000 # Alert user
-  orchestrator_compact: 60000 # MANDATORY compact
-  orchestrator_critical: 75000 # Offload and restart
+  orchestrator_max: 100000 # Offload and restart
+  orchestrator_warning: 40000 # Alert user
+  orchestrator_compact: 80000 # MANDATORY compact
   session_md_max: 500
 
 # Agent budgets (HARD LIMITS - exceed = escalate)
@@ -175,8 +174,8 @@ Agent invocations: [count]
 | Agent status        | BLOCKED   | STOP. Escalate to human.                              |
 | Agent status        | STUCK     | Route to troubleshooter (or human if troubleshooter). |
 | Agent exchanges     | > budget  | STOP. Escalate per agent_budgets.escalation.          |
-| Orchestrator tokens | > 60K     | MANDATORY `/compact` before next agent.               |
-| Orchestrator tokens | > 75K     | Offload to orchestrator-context.md. Restart.          |
+| Orchestrator tokens | > 80K     | STOP. Escalate to human to run `/compact`.            |
+| Orchestrator tokens | > 100K    | STOP. Escalate to human for task split/restart.       |
 | Review cycles       | >= 2      | STOP. Escalate to human.                              |
 
 ### Step 4: Output Checkpoint Summary
@@ -194,7 +193,7 @@ Status: [PROCEEDING | COMPACTING | ESCALATING]
 ### Step 5: Route or Escalate
 
 - If all checks pass → spawn next agent with budget in prompt
-- If any check fails → execute specified action (compact/escalate/stop)
+- If any check fails → escalate to human (for compaction, troubleshooting, or task split)
 
 **Checkpoint is BLOCKING. Cannot spawn next agent until checkpoint completes.**
 
@@ -343,7 +342,8 @@ Escalate immediately (do NOT attempt to continue) when:
 | Agent status BLOCKED                                | Blocker description from completion block   |
 | Agent exceeded exchange budget after troubleshooter | Exchange count, what was attempted          |
 | Same error after 2 troubleshooter cycles            | Root cause hypotheses, ruled-out causes     |
-| Orchestrator hits 75K despite compaction            | Phase history, recommendation to split task |
+| Orchestrator hits >80K tokens                       | Current token count, request `/compact`     |
+| Orchestrator hits 100K despite compaction           | Phase history, recommendation to split task |
 | Review cycle 3 attempted                            | Review findings from all cycles             |
 | Scope creep: task touches >10 files unexpectedly    | File list, original scope                   |
 
@@ -367,23 +367,28 @@ Awaiting human decision.
 
 ## Context Management (Automatic Enforcement)
 
-| Threshold      | Action                                             | Mandatory?    |
-| -------------- | -------------------------------------------------- | ------------- |
-| >50K           | Output `⚠️ 50K threshold (50%)` to user            | Yes           |
-| >60K           | Execute `/compact` BEFORE spawning next agent      | **MANDATORY** |
-| >75K           | Offload to `.tdd/orchestrator-context.md`, restart | **MANDATORY** |
-| Post-IMPLEMENT | Evaluate; compact if >40K                          | Yes           |
+| Threshold | Action                                         | Mandatory?    |
+| --------- | ---------------------------------------------- | ------------- |
+| >40K      | Output `⚠️ 40K threshold (40%)` to user        | Yes           |
+| >80K      | STOP. Escalate to human to run `/compact`      | **MANDATORY** |
+| >100K     | STOP. Escalate to human for task split/restart | **MANDATORY** |
 
-**Compaction protocol:**
+**Compaction protocol (human-executed):**
 
-1. Update session.md with current state FIRST
-2. `/compact preserve: phase=[X], next=[Y], agent_count=[N], blockers=[list]`
-3. After compact: re-read session.md, verify phase routing
+When orchestrator hits >80K tokens:
 
-**Never compact:**
+1. STOP immediately - do NOT spawn next agent
+2. Update session.md with current state
+3. Escalate to human with message: "⚠️ COMPACTION REQUIRED: Orchestrator at [X]K/100K. Please run `/compact` before continuing."
+4. Wait for human to execute `/compact preserve: phase=[X], next=[Y], agent_count=[N], blockers=[list]`
+5. After human completes compact: re-read session.md, verify phase routing, then continue
 
-- Mid-agent-execution
-- During HUMAN_VERIFY or HUMAN_APPROVAL
+**Orchestrator CANNOT execute `/compact`** - this is a user command only.
+
+**Never request compact:**
+
+- Mid-agent-execution (finish current agent first)
+- During HUMAN_VERIFY or HUMAN_APPROVAL phases
 
 ---
 
@@ -437,7 +442,7 @@ Only expand output for:
 
 ## Context Metrics
 
-Orchestrator: [X]K/100K ([Y]%)
+Orchestrator: [X]K/80K ([Y]%)
 Cumulative agent tokens: [Z]K
 Agent invocations: [N]
 Compactions: [N]
@@ -514,7 +519,7 @@ Count: [0-2]
 1. **Checkpoint is BLOCKING** - Cannot proceed without completing post-agent checkpoint
 2. **Agent completion block REQUIRED** - Unparseable = escalate
 3. **Exchange budgets are HARD limits** - Exceed = escalate per agent_budgets
-4. **Compaction at 60K is MANDATORY** - Not advisory
+4. **Escalation at 80K is MANDATORY** - Human must run `/compact`
 5. **Human approval MANDATORY** before SYNC_DOCS/COMMIT
 6. **Max 2 review cycles** - Escalate on 3rd
 7. **Troubleshooter: 10 exchanges** - Then mandatory human escalation

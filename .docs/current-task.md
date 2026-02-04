@@ -10,9 +10,11 @@
 
 ## Current Focus
 
-Merging feature branches to main.
+Ready for next task - all branches merged and cleaned up.
 
 ## Recent Completions
+
+- 2026-02-04: Branch cleanup (COMPLETE) - Merged hexagonal grid conversion and skill exclusivity to main, deleted 4 conflicting branches, cleaned up remote branches.
 
 - 2026-02-04: Hexagonal grid conversion (COMPLETE, merged to main) - All hex tests passing, TS errors fixed, PR merged.
 

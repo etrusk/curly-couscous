@@ -175,8 +175,8 @@ Battle progresses in discrete ticks. Tick 0 is initial state.
 **Resolution Phase** (simultaneous execution):
 
 1. Healing: Resolve heal actions first (ADR-006)
-2. Attacks: Check if target still in locked hex -> hit or miss
-3. Movement: Apply collision resolution, then move
+2. Movement: Apply collision resolution, then move (ADR-010)
+3. Attacks: Check if target still in locked hex -> hit or miss
 4. Apply other effects
 5. Remove characters with HP <= 0
 

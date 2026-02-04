@@ -30,7 +30,7 @@ src/
 │   ├── types.ts      # Character, Skill, Trigger, Selector, Action, Position {q,r}
 │   ├── hex.ts        # Hex grid utilities: distance, neighbors, validation, pixel conversion
 │   ├── game.ts       # Core tick processing (barrel exports)
-│   ├── game-core.ts  # Tick processing: healing → combat → movement
+│   ├── game-core.ts  # Tick processing: healing → movement → combat (ADR-010)
 │   ├── game-movement.ts # Move destination calculation with hex tiebreaking
 │   ├── combat.ts     # Attack resolution, damage calculation
 │   ├── healing.ts    # Heal resolution, HP restoration (ADR-006)

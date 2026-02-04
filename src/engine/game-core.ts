@@ -24,7 +24,7 @@ export interface TickResult {
  * 1. Create immutable snapshot of current state
  * 2. Decision Phase: Compute decisions for idle characters
  * 3. Resolution Phase: Find actions resolving this tick
- * 4. Calculate outcomes (combat, then movement)
+ * 4. Calculate outcomes (healing, movement, then combat)
  * 5. Apply all mutations, check victory, return new state
  *
  * @param state - Current game state
@@ -48,17 +48,12 @@ export function processTick(state: GameState): TickResult {
   });
 
   // 4. Calculate outcomes
-  // 4a. Healing resolution (heals resolve before combat)
+  // 4a. Healing resolution (heals resolve before movement)
   const healingResult = resolveHealing(characters, state.tick);
   characters = healingResult.updatedCharacters;
   events.push(...healingResult.events);
 
-  // 4b. Combat resolution (attacks resolve after heals)
-  const combatResult = resolveCombat(characters, state.tick);
-  characters = combatResult.updatedCharacters;
-  events.push(...combatResult.events);
-
-  // 4c. Movement resolution (using updated characters from combat)
+  // 4b. Movement resolution (movement before combat enables dodge)
   const movementResult = resolveMovement(
     characters,
     state.tick,
@@ -66,6 +61,11 @@ export function processTick(state: GameState): TickResult {
   );
   characters = movementResult.updatedCharacters;
   events.push(...movementResult.events);
+
+  // 4c. Combat resolution (attacks resolve after movement)
+  const combatResult = resolveCombat(characters, state.tick);
+  characters = combatResult.updatedCharacters;
+  events.push(...combatResult.events);
 
   // 5. Clear resolved actions
   characters = clearResolvedActions(characters, state.tick);

@@ -87,7 +87,7 @@ describe("processTick - combat and movement integration", () => {
     expect(updatedMover?.position).toEqual({ q: 3, r: -1 });
   });
 
-  it("should apply combat before movement", () => {
+  it("should apply movement before combat (enabling dodge)", () => {
     // Attacker and target at same position, target tries to move away
     const attacker = createCharacter({
       id: "attacker",
@@ -110,11 +110,13 @@ describe("processTick - combat and movement integration", () => {
 
     const result = processTick(state);
 
-    // Target should be hit and killed before movement resolves
+    // Target should move before attack resolves, dodging the attack
     const updatedTarget = result.state.characters.find(
       (c) => c.id === "target",
     );
-    expect(updatedTarget).toBeUndefined(); // Dead, removed from characters
+    expect(updatedTarget).toBeDefined(); // Survived
+    expect(updatedTarget?.hp).toBe(50); // No damage taken
+    expect(updatedTarget?.position).toEqual({ q: 2, r: 0 }); // Successfully moved
   });
 
   it("should thread RNG state through movement", () => {

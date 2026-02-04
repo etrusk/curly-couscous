@@ -32,5 +32,5 @@ Option 2 would make healing reactive rather than predictive, reducing tactical d
 
 - Healing is predictive, not reactive -- healer must commit 2 ticks before damage lands
 - Last-moment saves are possible: a heal resolving the same tick as a lethal attack will save the target
-- Resolution order in `game-core.ts` processTick: `resolveHealing()` → `resolveCombat()` → `resolveMovement()`
+- Resolution order in `game-core.ts` processTick: `resolveHealing()` → `resolveMovement()` → `resolveCombat()` (updated by ADR-010)
 - Cell-based targeting means the heal can "miss" if the ally moves away during the wind-up period

@@ -16,7 +16,7 @@ describe("computeDecisions - mid-action skip", () => {
     const character = createCharacter({
       id: "char1",
       position: { q: 3, r: 2 },
-      currentAction: createAttackAction({ x: 6, y: 5 }, 10, 2),
+      currentAction: createAttackAction({ q: 3, r: -1 }, 10, 2),
       skills: [
         createSkill({
           id: "skill1",
@@ -39,7 +39,7 @@ describe("computeDecisions - mid-action skip", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 6, y: 5 },
+      position: { q: 3, r: -1 },
       currentAction: createAttackAction({ q: 3, r: 2 }, 10, 2),
     });
     const character = createCharacter({
@@ -69,13 +69,13 @@ describe("computeDecisions - mid-action skip", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 7, y: 5 },
-      currentAction: createAttackAction({ x: 6, y: 5 }, 10, 2),
+      position: { q: 4, r: -1 },
+      currentAction: createAttackAction({ q: 3, r: -1 }, 10, 2),
     });
     const midAction = createCharacter({
       id: "mid-action",
       position: { q: 3, r: 2 },
-      currentAction: createAttackAction({ x: 6, y: 5 }, 10, 2),
+      currentAction: createAttackAction({ q: 3, r: -1 }, 10, 2),
       skills: [
         createSkill({
           id: "skill1",
@@ -86,7 +86,7 @@ describe("computeDecisions - mid-action skip", () => {
     });
     const idle = createCharacter({
       id: "idle",
-      position: { x: 6, y: 5 },
+      position: { q: 3, r: -1 },
       currentAction: null,
       skills: [
         createSkill({

@@ -18,14 +18,14 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [lightPunchSkill],
       currentAction: null,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       skills: [],
     });
     useGameStore.getState().actions.initBattle([friendly, enemy]);
@@ -34,7 +34,7 @@ describe("selectIntentData - preview intent lines", () => {
 
     const friendlyIntent = result.find((r) => r.characterId === "friendly");
     expect(friendlyIntent?.action.type).toBe("attack");
-    expect(friendlyIntent?.action.targetCell).toEqual({ x: 1, y: 0 });
+    expect(friendlyIntent?.action.targetCell).toEqual({ q: 1, r: 0 });
     expect(friendlyIntent?.action.skill.damage).toBe(10);
     expect(friendlyIntent?.ticksRemaining).toBe(1);
   });
@@ -48,14 +48,14 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [moveSkill],
       currentAction: null,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 2, r: 3 },
       skills: [],
     });
     useGameStore.getState().actions.initBattle([friendly, enemy]);
@@ -73,14 +73,14 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [],
       currentAction: null,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 2, r: 3 },
       skills: [],
     });
     useGameStore.getState().actions.initBattle([friendly, enemy]);
@@ -100,14 +100,14 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [moveSkill],
       currentAction: null, // Action resolved, character is idle again
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 2, r: 3 },
       skills: [],
     });
     useGameStore.getState().actions.initBattle([friendly, enemy]);
@@ -142,12 +142,12 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [attackSkill],
       currentAction: {
         type: "attack",
         skill: attackSkill,
-        targetCell: { x: 1, y: 0 },
+        targetCell: { q: 1, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 1,
@@ -158,7 +158,7 @@ describe("selectIntentData - preview intent lines", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 2, r: 3 },
       skills: [moveSkill],
       currentAction: null,
     });
@@ -167,7 +167,7 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly2 = createCharacter({
       id: "friendly2",
       faction: "friendly",
-      position: { x: 6, y: 6 },
+      position: { q: 3, r: 2 },
       skills: [],
     });
 
@@ -199,14 +199,14 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [lightPunchSkill],
       currentAction: null,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       skills: [],
     });
     useGameStore.getState().actions.initBattle([friendly, enemy]);
@@ -227,14 +227,14 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [heavyPunchSkill],
       currentAction: null,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 2, y: 0 }, // Within range
+      position: { q: 2, r: 0 }, // Within range
       skills: [],
     });
     useGameStore.getState().actions.initBattle([friendly, enemy]);
@@ -255,14 +255,14 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 3, y: 7 }, // Specific position
+      position: { q: 3, r: -1 }, // Specific position
       skills: [attackSkill],
       currentAction: null,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 4, y: 7 },
+      position: { q: 4, r: -1 },
       skills: [],
     });
     useGameStore.getState().actions.initBattle([friendly, enemy]);
@@ -270,7 +270,7 @@ describe("selectIntentData - preview intent lines", () => {
     const result = selectIntentData(useGameStore.getState());
 
     const friendlyIntent = result.find((r) => r.characterId === "friendly");
-    expect(friendlyIntent?.characterPosition).toEqual({ x: 3, y: 7 });
+    expect(friendlyIntent?.characterPosition).toEqual({ q: 3, r: -1 });
     expect(friendlyIntent?.action.targetCell).not.toEqual(
       friendlyIntent?.characterPosition,
     );
@@ -286,12 +286,12 @@ describe("selectIntentData - preview intent lines", () => {
     const char1 = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [skill],
       currentAction: {
         type: "attack",
         skill,
-        targetCell: { x: 1, y: 0 },
+        targetCell: { q: 1, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 1,
@@ -300,12 +300,12 @@ describe("selectIntentData - preview intent lines", () => {
     const char2 = createCharacter({
       id: "char2",
       faction: "enemy",
-      position: { x: 2, y: 0 },
+      position: { q: 2, r: 0 },
       skills: [skill],
       currentAction: {
         type: "attack",
         skill,
-        targetCell: { x: 1, y: 0 },
+        targetCell: { q: 1, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 1,
@@ -328,14 +328,14 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [moveSkill],
       currentAction: null,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 11, y: 11 },
+      position: { q: -5, r: 5 },
       skills: [moveSkill],
       currentAction: null,
     });
@@ -373,14 +373,14 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [disabledAttack, enabledMove],
       currentAction: null,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 1, y: 0 },
+      position: { q: 1, r: 0 },
       skills: [],
     });
     useGameStore.getState().actions.initBattle([friendly, enemy]);
@@ -408,14 +408,14 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [attackSkill, moveSkill],
       currentAction: null,
     });
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 2, r: 3 },
       skills: [],
     });
     useGameStore.getState().actions.initBattle([friendly, enemy]);
@@ -435,7 +435,7 @@ describe("selectIntentData - preview intent lines", () => {
     const friendly = createCharacter({
       id: "friendly",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [moveSkill],
       currentAction: null,
       hp: 0,
@@ -443,7 +443,7 @@ describe("selectIntentData - preview intent lines", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 2, r: 3 },
       skills: [],
       hp: 100,
     });
@@ -468,14 +468,14 @@ describe("selectIntentData - preview intent lines", () => {
       const friendly = createCharacter({
         id: "friendly",
         faction: "friendly",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         skills: [instantAttack],
         currentAction: null,
       });
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { x: 1, y: 0 },
+        position: { q: 1, r: 0 },
         skills: [],
       });
       useGameStore.getState().actions.initBattle([friendly, enemy]);
@@ -504,12 +504,12 @@ describe("selectIntentData - preview intent lines", () => {
       const charWithAction = createCharacter({
         id: "char1",
         faction: "friendly",
-        position: { x: 0, y: 0 },
+        position: { q: 0, r: 0 },
         skills: [heavySkill],
         currentAction: {
           type: "attack",
           skill: heavySkill,
-          targetCell: { x: 2, y: 0 },
+          targetCell: { q: 2, r: 0 },
           targetCharacter: null,
           startedAtTick: 0,
           resolvesAtTick: 2,
@@ -518,14 +518,14 @@ describe("selectIntentData - preview intent lines", () => {
       const idleChar = createCharacter({
         id: "char2",
         faction: "enemy",
-        position: { x: 3, y: 0 },
+        position: { q: 3, r: 0 },
         skills: [instantSkill],
         currentAction: null,
       });
       const target = createCharacter({
         id: "target",
         faction: "friendly",
-        position: { x: 4, y: 0 },
+        position: { q: 4, r: 0 },
         skills: [],
       });
       useGameStore

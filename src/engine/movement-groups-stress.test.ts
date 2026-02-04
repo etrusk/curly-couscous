@@ -103,27 +103,27 @@ describe("Movement Groups and Stress Tests", () => {
       // Create collision groups at different target cells
       const moverA1 = createCharacter({
         id: "moverA1",
-        position: { x: 0, y: 0 },
+        position: { q: 1, r: 3 },
         slotPosition: 1,
-        currentAction: createMoveAction({ x: 2, y: 3 }, 1), // Target Y=3, X=2
+        currentAction: createMoveAction({ q: 2, r: 3 }, 1), // Target Y=3, X=2
       });
       const moverA2 = createCharacter({
         id: "moverA2",
-        position: { x: 1, y: 2 },
+        position: { q: 2, r: 2 },
         slotPosition: 2,
-        currentAction: createMoveAction({ x: 2, y: 3 }, 1),
+        currentAction: createMoveAction({ q: 2, r: 3 }, 1),
       });
       const moverB1 = createCharacter({
         id: "moverB1",
-        position: { x: 4, y: 4 },
+        position: { q: -1, r: -1 },
         slotPosition: 3,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1), // Target Y=5, X=5
+        currentAction: createMoveAction({ q: -2, r: -1 }, 1), // Target Y=5, X=5
       });
       const moverB2 = createCharacter({
         id: "moverB2",
-        position: { x: 5, y: 4 },
+        position: { q: -2, r: 0 },
         slotPosition: 4,
-        currentAction: createMoveAction({ x: 5, y: 5 }, 1),
+        currentAction: createMoveAction({ q: -2, r: -1 }, 1),
       });
 
       const result1 = resolveMovement(

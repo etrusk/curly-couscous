@@ -10,8 +10,8 @@ import type { Position } from "../../engine/types";
 
 describe("IntentLine - Action Colors", () => {
   const defaultProps = {
-    from: { x: 0, y: 0 } as Position,
-    to: { x: 5, y: 5 } as Position,
+    from: { q: 0, r: 0 } as Position,
+    to: { q: 2, r: 3 } as Position,
     cellSize: 40,
   };
 

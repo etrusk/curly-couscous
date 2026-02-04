@@ -23,7 +23,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const action: Action = {
       type: "attack",
       skill: lightPunchSkill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -52,7 +52,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const action: Action = {
       type: "attack",
       skill: lightPunchSkill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -84,7 +84,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const action: Action = {
       type: "attack",
       skill: lightPunchSkill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -114,7 +114,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const action: Action = {
       type: "attack",
       skill: heavyPunchSkill,
-      targetCell: { x: 2, y: 0 },
+      targetCell: { q: 2, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -142,7 +142,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const action: Action = {
       type: "attack",
       skill: heavyPunchSkill,
-      targetCell: { x: 2, y: 0 },
+      targetCell: { q: 2, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -173,7 +173,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const action: Action = {
       type: "attack",
       skill: heavyPunchSkill,
-      targetCell: { x: 2, y: 0 },
+      targetCell: { q: 2, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -204,7 +204,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const action: Action = {
       type: "attack",
       skill: heavyPunchSkill,
-      targetCell: { x: 2, y: 0 },
+      targetCell: { q: 2, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -233,7 +233,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const action: Action = {
       type: "move",
       skill: moveSkill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -261,7 +261,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const action: Action = {
       type: "move",
       skill: moveSkill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -292,7 +292,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const action: Action = {
       type: "move",
       skill: moveSkill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,

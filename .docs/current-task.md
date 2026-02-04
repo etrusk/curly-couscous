@@ -10,29 +10,25 @@
 
 ## Current Focus
 
-Hexagonal grid conversion (99% tests passing, all source files type-safe). Branch: feature/hexagonal-grid-conversion. Core complete: hex.ts, Position {q,r}, pathfinding, movement, stores, all rendering overlays with pixel-space offsets. 1035/1045 tests passing (99.0%). All CRITICAL issues resolved. Remaining: 10 pre-existing React testing failures (CharacterTooltip/battle-viewer-tooltip act() warnings), 271 TypeScript errors in 38 test files (mechanical {x,y} to {q,r}), SVG hex rendering deferred.
+Hexagonal grid conversion - Phase 3: SVG Hex Rendering. Branch: feature/hexagonal-grid-conversion. Core hex engine complete: hex.ts, Position {q,r}, pathfinding, movement, stores, overlays. All source and test files type-safe with {q,r} coordinates. 1036/1045 tests passing (99.1%). Next: Rewrite Grid.tsx/Cell.tsx as SVG hex components, update BattleViewer for hex-aware dimensions, remove CSS Grid dependencies.
 
 ## Recent Completions
 
-- 2026-02-04: Hex topology test rewrites (41 tests fixed) - Fixed all hex topology test failures across 4 files: movement-groups-stress (3), game-movement-wall-boundary (18), game-decisions-move-destination-wall-boundary (14), game-movement-escape-routes (6). Test-only changes. Tests improved from 994/1045 (95.1%) to 1035/1045 (99.0%). Established hex test vocabulary: "vertex" replaces "corner" (6 positions, 3 neighbors), "tangential escape" replaces "perpendicular escape", 6-way collision replaces 8-way.
+- 2026-02-04: Phase 2 - TypeScript coordinate conversion (271 errors fixed, 49 files modified). All test files converted from {x,y} to {q,r} format. All coordinates validated: max(|q|, |r|, |q+r|) <= 5. Quality gates: TypeScript 0 errors, ESLint pass, Tests 1036/1045 (99.1%, +1 above baseline).
 
-- 2026-02-03: Hexagonal grid conversion (95% complete) - Fixed all CRITICAL issues from TDD review. Updated 20 test files with hex coordinates, fixed 5 source files (IntentOverlay, TargetingLine, TargetingLineOverlay, 2 test helpers). Tests improved from 931/1045 (89.1%) to 994/1045 (95.1%). All source files now compile with 0 TypeScript errors.
+- 2026-02-04: Phase 1 - Hex topology test rewrites (41 tests fixed). Fixed all hex topology test failures across 4 files. Tests improved from 994/1045 (95.1%) to 1035/1045 (99.0%). Established hex test vocabulary: "vertex" replaces "corner", 6-way collision replaces 8-way.
 
-- 2026-02-03: Heal skill and action-based intent colors - Completed. Added Heal skill (tickCost: 2, range: 5, healing: 25, lowest_hp_ally). Refactored intent line colors from faction-based to action-based (red=attack, green=heal, blue=move) using Okabe-Ito palette.
+- 2026-02-03: Hexagonal grid conversion (source files complete). Fixed all CRITICAL issues. Updated 20 test files, fixed 5 source files. Tests improved from 931/1045 to 994/1045. All source files compile with 0 TypeScript errors.
 
-- 2026-02-02: Instant attacks and simplified intent line visuals - Completed (commit 6e88fea). Light Punch as instant attack (tickCost: 0). Simplified intent line visual encoding with timing-based styling.
+- 2026-02-03: Heal skill and action-based intent colors. Added Heal skill (tickCost: 2, range: 5, healing: 25). Refactored intent line colors from faction-based to action-based (Okabe-Ito palette).
 
 ## Next Steps
 
 ### Hexagonal Grid Conversion - Remaining Work (branch: feature/hexagonal-grid-conversion)
 
-**Current Status:** 1035/1045 tests passing (99.0%), 0 TypeScript errors in source files
+**Current Status:** 1036/1045 tests passing (99.1%), 0 TypeScript errors, all coordinates {q,r}
 
-**Phase 2: Fix TypeScript Errors in Test Files (271 errors in 38 files)**
-
-All mechanical {x,y} to {q,r} coordinate updates. Ensure coordinates satisfy hex validity: max(|q|, |r|, |q+r|) <= 5.
-
-**Phase 3: SVG Hex Rendering (SUBSTANTIAL WORK - Can be separate task)**
+**Phase 3: SVG Hex Rendering (SUBSTANTIAL WORK)**
 
 - Rewrite Grid.tsx, Cell.tsx as SVG hex components
 - Update BattleViewer.tsx for hex-aware dimensions
@@ -45,9 +41,9 @@ All mechanical {x,y} to {q,r} coordinate updates. Ensure coordinates satisfy hex
 
 **Phase 5: Documentation Updates**
 
-1. **spec.md** - Update grid section: 12x12 square grid to hex radius 5 (91 hexes), Chebyshev to hex distance, 8-directional to 6-directional
-2. **architecture.md** - Add hex.ts utility module, document SVG-based hex rendering
-3. **decisions/** - New ADR for hex coordinate system (axial {q,r}, flat-top, radius 5, uniform cost)
+1. **spec.md** - Update remaining grid references (UI Layout section)
+2. **architecture.md** - Document SVG-based hex rendering approach
+3. **decisions/** - ADR-007 already created for hex coordinate system
 
 **Phase 6: Commit and PR**
 

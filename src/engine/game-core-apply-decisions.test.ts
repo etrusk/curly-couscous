@@ -13,7 +13,7 @@ describe("applyDecisions", () => {
       position: { q: 3, r: 2 },
       currentAction: null,
     });
-    const action = createAttackAction({ x: 6, y: 5 }, 10, 1);
+    const action = createAttackAction({ q: 3, r: -1 }, 10, 1);
     const decisions = [{ characterId: "char1", action }];
 
     const result = applyDecisions([character], decisions);
@@ -24,7 +24,7 @@ describe("applyDecisions", () => {
   it("should preserve characters without decisions", () => {
     const char1 = createCharacter({ id: "char1", position: { q: 3, r: 2 } });
     const char2 = createCharacter({ id: "char2", position: { q: 4, r: 2 } });
-    const action = createAttackAction({ x: 7, y: 7 }, 10, 1);
+    const action = createAttackAction({ q: 3, r: 2 }, 10, 1);
     const decisions = [{ characterId: "char1", action }];
 
     const result = applyDecisions([char1, char2], decisions);
@@ -46,7 +46,7 @@ describe("applyDecisions", () => {
   });
 
   it("should handle empty characters array", () => {
-    const action = createAttackAction({ x: 6, y: 5 }, 10, 1);
+    const action = createAttackAction({ q: 3, r: -1 }, 10, 1);
     const decisions = [{ characterId: "char1", action }];
 
     const result = applyDecisions([], decisions);
@@ -61,7 +61,7 @@ describe("applyDecisions", () => {
       currentAction: null,
     });
     const originalCharacters = [character];
-    const action = createAttackAction({ x: 6, y: 5 }, 10, 1);
+    const action = createAttackAction({ q: 3, r: -1 }, 10, 1);
     const decisions = [{ characterId: "char1", action }];
 
     applyDecisions(originalCharacters, decisions);
@@ -74,8 +74,8 @@ describe("applyDecisions", () => {
       id: "char1",
       position: { q: 3, r: 2 },
     });
-    const action1 = createAttackAction({ x: 6, y: 5 }, 10, 1);
-    const action2 = createAttackAction({ x: 7, y: 7 }, 15, 1);
+    const action1 = createAttackAction({ q: 3, r: -1 }, 10, 1);
+    const action2 = createAttackAction({ q: 3, r: 2 }, 15, 1);
     const decisions = [
       { characterId: "nonexistent", action: action1 },
       { characterId: "char1", action: action2 },

@@ -95,7 +95,7 @@ describe("processTick decision integration", () => {
   });
 
   it("mid-action character should continue action, not receive new decision", () => {
-    const action = createAttackAction({ x: 6, y: 5 }, 25, 2);
+    const action = createAttackAction({ q: 3, r: -1 }, 25, 2);
     const attacker = createCharacter({
       id: "attacker",
       faction: "friendly",

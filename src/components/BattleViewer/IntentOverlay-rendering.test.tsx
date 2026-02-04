@@ -24,7 +24,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const attackAction = {
       type: "attack" as const,
       skill,
-      targetCell: { x: 5, y: 5 },
+      targetCell: { q: 2, r: 3 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -32,7 +32,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const idleAction = {
       type: "idle" as const,
       skill: createSkill({ id: "idle", tickCost: 0 }),
-      targetCell: { x: 0, y: 0 },
+      targetCell: { q: 0, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 0,
@@ -40,13 +40,13 @@ describe("IntentOverlay - Basic Rendering", () => {
     const char1 = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: attackAction,
     });
     const char2 = createCharacter({
       id: "char2",
       faction: "enemy",
-      position: { x: 10, y: 10 },
+      position: { q: 5, r: 0 },
       currentAction: idleAction,
     });
     useGameStore.getState().actions.initBattle([char1, char2]);
@@ -68,7 +68,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const action = {
       type: "attack" as const,
       skill,
-      targetCell: { x: 3, y: 3 },
+      targetCell: { q: 3, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 3,
@@ -76,7 +76,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const char = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 1, y: 1 },
+      position: { q: 1, r: 1 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -102,7 +102,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const action = {
       type: "attack" as const,
       skill: lightPunchSkill,
-      targetCell: { x: 2, y: 2 },
+      targetCell: { q: 2, r: 2 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -110,7 +110,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const char = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -131,7 +131,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const moveAction = {
       type: "move" as const,
       skill: moveSkill,
-      targetCell: { x: 5, y: 5 },
+      targetCell: { q: 2, r: 3 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -139,7 +139,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const char = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 4, y: 5 },
+      position: { q: 4, r: 1 },
       currentAction: moveAction,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -165,7 +165,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const moveAction = {
       type: "move" as const,
       skill: moveSkill,
-      targetCell: { x: 5, y: 5 },
+      targetCell: { q: 2, r: 3 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -173,7 +173,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const char = createCharacter({
       id: "char1",
       faction: "enemy",
-      position: { x: 4, y: 5 },
+      position: { q: 4, r: 1 },
       currentAction: moveAction,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -200,7 +200,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const action = {
       type: "attack" as const,
       skill: lightPunchSkill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -208,7 +208,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const char = createCharacter({
       id: "char-a",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -238,7 +238,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const action = {
       type: "move" as const,
       skill: moveSkill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -246,7 +246,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const char = createCharacter({
       id: "char-a",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -279,7 +279,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const action = {
       type: "attack" as const,
       skill: lightPunchSkill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -287,7 +287,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const char = createCharacter({
       id: "char-a",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);

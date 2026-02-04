@@ -31,12 +31,12 @@ describe("evaluateTrigger - always trigger", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { x: 5, y: 6 }, // dist=1
+      position: { q: 2, r: 3 }, // dist=1
     });
     const ally = createCharacter({
       id: "ally",
       faction: "friendly",
-      position: { x: 5, y: 7 }, // dist=2
+      position: { q: 1, r: 4 }, // dist=2
     });
     const trigger: Trigger = { type: "always" };
 

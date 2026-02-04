@@ -13,6 +13,7 @@
 
 - **Pure Game Engine**: Core game logic in `/src/engine/` with no React dependencies
 - **Centralized Skill Registry**: All skill definitions in `src/engine/skill-registry.ts` (ADR-005)
+- **Hexagonal Grid System**: Axial coordinates {q, r}, flat-top orientation, radius 5 (ADR-007)
 - **Data-Driven Targeting**: Selectors and triggers as declarative data interfaces (not functions)
 - **Command Pattern**: State mutations via named actions for history/undo support
 - **CSS Custom Property Theming**: Theme switching via `:root` data attributes (Phase 5 - planned)
@@ -26,14 +27,16 @@
 ```
 src/
 ├── engine/           # Pure TypeScript game logic (no React)
-│   ├── types.ts      # Character, Skill, Trigger, Selector, Action, etc.
+│   ├── types.ts      # Character, Skill, Trigger, Selector, Action, Position {q,r}
+│   ├── hex.ts        # Hex grid utilities: distance, neighbors, validation, pixel conversion
 │   ├── game.ts       # Core tick processing (barrel exports)
 │   ├── game-core.ts  # Tick processing: healing → combat → movement
+│   ├── game-movement.ts # Move destination calculation with hex tiebreaking
 │   ├── combat.ts     # Attack resolution, damage calculation
 │   ├── healing.ts    # Heal resolution, HP restoration (ADR-006)
 │   ├── movement.ts   # Movement, collision resolution
-│   ├── pathfinding.ts # A* pathfinding algorithm with binary heap
-│   ├── selectors.ts  # Target selection strategies
+│   ├── pathfinding.ts # A* pathfinding on hex grid with binary heap
+│   ├── selectors.ts  # Target selection strategies (hex distance, R/Q tiebreaking)
 │   ├── triggers.ts   # Trigger condition evaluation
 │   └── skill-registry.ts # Centralized skill definitions (ADR-005)
 ├── stores/           # Zustand stores
@@ -52,6 +55,19 @@ src/
 └── styles/           # CSS Modules + theme definitions
 ```
 
+## Hex Grid Architecture
+
+The grid system uses axial coordinates {q, r} with flat-top hexagonal orientation (ADR-007).
+
+- **Coordinate system**: Axial {q, r}. Third cube coordinate derived as s = -q - r.
+- **Map shape**: Hexagonal boundary with radius 5. Validity: `max(|q|, |r|, |q+r|) <= 5`.
+- **Total hexes**: 91 (for radius 5)
+- **Distance**: `hexDistance(a, b)` = `max(|dq|, |dr|, |dq+dr|)`. Uniform cost (all neighbors distance 1).
+- **Neighbors**: 6 directions: E(1,0), W(-1,0), SE(0,1), NW(0,-1), NE(1,-1), SW(-1,1)
+- **Pixel conversion**: `hexToPixel()` for rendering, `pixelToHex()` for input (flat-top formulas)
+- **Tiebreaking**: Lower R coordinate first, then lower Q coordinate (consistent across selectors and movement)
+- **Key module**: `src/engine/hex.ts` provides all hex math utilities
+
 ## Critical Constraints
 
 - Must support TypeScript 5.x strict mode
@@ -68,6 +84,7 @@ src/
 - Component tests: React Testing Library, user-centric
 - No mocking game engine in component tests (use real engine)
 - Test accessibility settings via class/attribute assertions
+- Hex coordinates in tests must satisfy: `max(|q|, |r|, |q+r|) <= 5`
 
 ## Accessibility Requirements
 

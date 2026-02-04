@@ -11,7 +11,7 @@ describe("clearResolvedActions", () => {
     const character = createCharacter({
       id: "char1",
       position: { q: 3, r: 2 },
-      currentAction: createAttackAction({ x: 6, y: 5 }, 10, 3),
+      currentAction: createAttackAction({ q: 3, r: -1 }, 10, 3),
     });
 
     const result = clearResolvedActions([character], 3);
@@ -20,7 +20,7 @@ describe("clearResolvedActions", () => {
   });
 
   it("should preserve action when resolvesAtTick is future tick", () => {
-    const action = createAttackAction({ x: 6, y: 5 }, 10, 5);
+    const action = createAttackAction({ q: 3, r: -1 }, 10, 5);
     const character = createCharacter({
       id: "char1",
       position: { q: 3, r: 2 },
@@ -48,7 +48,7 @@ describe("clearResolvedActions", () => {
     const character = createCharacter({
       id: "char1",
       position: { q: 3, r: 2 },
-      currentAction: createAttackAction({ x: 6, y: 5 }, 10, 1),
+      currentAction: createAttackAction({ q: 3, r: -1 }, 10, 1),
     });
     const originalCharacters = [character];
 

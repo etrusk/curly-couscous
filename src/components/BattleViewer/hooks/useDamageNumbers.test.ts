@@ -14,7 +14,7 @@ describe("useDamageNumbers", () => {
   const createCharacter = (
     id: string,
     faction: "friendly" | "enemy",
-    position: { x: number; y: number },
+    position: { q: number; r: number },
   ): Character => ({
     id,
     name: `Character ${id}`,
@@ -33,7 +33,7 @@ describe("useDamageNumbers", () => {
   });
 
   it("returns empty array when no damage events", () => {
-    const char1 = createCharacter("char1", "friendly", { x: 0, y: 0 });
+    const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     useGameStore.getState().actions.initBattle([char1]);
 
     const { result } = renderHook(() => useDamageNumbers());
@@ -42,8 +42,8 @@ describe("useDamageNumbers", () => {
   });
 
   it("returns DamageNumberData with correct targetPosition", () => {
-    const char1 = createCharacter("char1", "friendly", { x: 2, y: 3 });
-    const char2 = createCharacter("char2", "enemy", { x: 5, y: 7 });
+    const char1 = createCharacter("char1", "friendly", { q: 2, r: 3 });
+    const char2 = createCharacter("char2", "enemy", { q: 1, r: 4 });
     useGameStore.getState().actions.initBattle([char1, char2]);
 
     // Add damage event at tick 0
@@ -60,12 +60,12 @@ describe("useDamageNumbers", () => {
     const { result } = renderHook(() => useDamageNumbers());
 
     expect(result.current).toHaveLength(1);
-    expect(result.current[0]!.targetPosition).toEqual({ x: 5, y: 7 });
+    expect(result.current[0]!.targetPosition).toEqual({ q: 1, r: 4 });
   });
 
   it("includes attackerFaction from TokenData", () => {
-    const char1 = createCharacter("char1", "friendly", { x: 0, y: 0 });
-    const char2 = createCharacter("char2", "enemy", { x: 1, y: 1 });
+    const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
+    const char2 = createCharacter("char2", "enemy", { q: 1, r: 1 });
     useGameStore.getState().actions.initBattle([char1, char2]);
 
     // Add damage event at tick 0
@@ -87,9 +87,9 @@ describe("useDamageNumbers", () => {
   });
 
   it("groups multiple damages by same target", () => {
-    const char1 = createCharacter("char1", "friendly", { x: 0, y: 0 });
-    const char2 = createCharacter("char2", "friendly", { x: 1, y: 0 });
-    const char3 = createCharacter("char3", "enemy", { x: 5, y: 5 });
+    const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
+    const char2 = createCharacter("char2", "friendly", { q: 1, r: 0 });
+    const char3 = createCharacter("char3", "enemy", { q: 2, r: 3 });
     useGameStore.getState().actions.initBattle([char1, char2, char3]);
 
     // Both char1 and char2 attack char3
@@ -120,9 +120,9 @@ describe("useDamageNumbers", () => {
   });
 
   it("calculates totalDamage correctly for grouped damages", () => {
-    const char1 = createCharacter("char1", "friendly", { x: 0, y: 0 });
-    const char2 = createCharacter("char2", "friendly", { x: 1, y: 0 });
-    const char3 = createCharacter("char3", "enemy", { x: 5, y: 5 });
+    const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
+    const char2 = createCharacter("char2", "friendly", { q: 1, r: 0 });
+    const char3 = createCharacter("char3", "enemy", { q: 2, r: 3 });
     useGameStore.getState().actions.initBattle([char1, char2, char3]);
 
     // Add two damage events
@@ -152,9 +152,9 @@ describe("useDamageNumbers", () => {
   });
 
   it("preserves individual damage entries in damages array", () => {
-    const char1 = createCharacter("char1", "friendly", { x: 0, y: 0 });
-    const char2 = createCharacter("char2", "enemy", { x: 1, y: 0 });
-    const char3 = createCharacter("char3", "enemy", { x: 5, y: 5 });
+    const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
+    const char2 = createCharacter("char2", "enemy", { q: 1, r: 0 });
+    const char3 = createCharacter("char3", "enemy", { q: 2, r: 3 });
     useGameStore.getState().actions.initBattle([char1, char2, char3]);
 
     // Multiple attacks on char3
@@ -188,9 +188,9 @@ describe("useDamageNumbers", () => {
   });
 
   it("handles multiple targets independently", () => {
-    const char1 = createCharacter("char1", "friendly", { x: 0, y: 0 });
-    const char2 = createCharacter("char2", "enemy", { x: 5, y: 5 });
-    const char3 = createCharacter("char3", "enemy", { x: 7, y: 7 });
+    const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
+    const char2 = createCharacter("char2", "enemy", { q: 2, r: 3 });
+    const char3 = createCharacter("char3", "enemy", { q: 3, r: 2 });
     useGameStore.getState().actions.initBattle([char1, char2, char3]);
 
     // char1 attacks both enemies

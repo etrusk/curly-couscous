@@ -16,7 +16,7 @@ describe("evaluateSelector", () => {
     it("should return evaluator for self selector", () => {
       const evaluator = createCharacter({
         id: "eval",
-        position: { x: 5, y: 5 },
+        position: { q: 0, r: 0 },
       });
       const selector: Selector = { type: "self" };
 
@@ -29,17 +29,17 @@ describe("evaluateSelector", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
-        position: { x: 3, y: 3 },
+        position: { q: 3, r: 0 },
       });
       const enemy1 = createCharacter({
         id: "enemy1",
         faction: "enemy",
-        position: { x: 3, y: 4 },
+        position: { q: 3, r: 1 },
       });
       const enemy2 = createCharacter({
         id: "enemy2",
         faction: "enemy",
-        position: { x: 4, y: 3 },
+        position: { q: 4, r: 0 },
       });
       const selector: Selector = { type: "self" };
 

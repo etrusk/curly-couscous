@@ -6,7 +6,9 @@
 
 ## Status
 
-Accepted
+Superseded by ADR-007 (Hexagonal Grid with Axial Coordinates)
+
+The dual-distance approach (weighted A* for pathfinding, Chebyshev for range) was rendered unnecessary by the hex grid conversion. On hexagonal grids, all neighbors are equidistant (cost 1), eliminating the cardinal/diagonal distinction that motivated this ADR. A* pathfinding remains but uses uniform cost. Hex distance replaces Chebyshev for all calculations.
 
 ## Context
 

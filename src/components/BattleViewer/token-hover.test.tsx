@@ -41,7 +41,7 @@ describe("Token Hover Integration", () => {
     expect(mockOnMouseEnter).toHaveBeenCalledWith("char-1", expect.any(Object));
     // Second argument is DOMRect object with valid bounds
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const rectArg = mockOnMouseEnter.mock.calls[0][1];
+    const rectArg = mockOnMouseEnter.mock.calls[0]![1];
     expect(rectArg).toHaveProperty("top");
     expect(rectArg).toHaveProperty("left");
     expect(rectArg).toHaveProperty("width");

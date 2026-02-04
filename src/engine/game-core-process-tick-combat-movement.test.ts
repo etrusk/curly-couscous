@@ -73,7 +73,7 @@ describe("processTick - combat and movement integration", () => {
       id: "mover",
       position: { q: 3, r: 2 },
       slotPosition: 1,
-      currentAction: createMoveAction({ x: 6, y: 5 }, 2),
+      currentAction: createMoveAction({ q: 3, r: -1 }, 2),
     });
 
     const state = createGameState({
@@ -84,7 +84,7 @@ describe("processTick - combat and movement integration", () => {
     const result = processTick(state);
 
     const updatedMover = result.state.characters.find((c) => c.id === "mover");
-    expect(updatedMover?.position).toEqual({ x: 6, y: 5 });
+    expect(updatedMover?.position).toEqual({ q: 3, r: -1 });
   });
 
   it("should apply combat before movement", () => {
@@ -120,13 +120,13 @@ describe("processTick - combat and movement integration", () => {
   it("should thread RNG state through movement", () => {
     const moverA = createCharacter({
       id: "moverA",
-      position: { x: 4, y: 5 },
+      position: { q: 4, r: 1 },
       slotPosition: 1,
       currentAction: createMoveAction({ q: 3, r: 2 }, 1),
     });
     const moverB = createCharacter({
       id: "moverB",
-      position: { x: 5, y: 4 },
+      position: { q: 5, r: -1 },
       slotPosition: 2,
       currentAction: createMoveAction({ q: 3, r: 2 }, 1),
     });

@@ -1,202 +1,223 @@
-# Exploration: Hex Topology Test Failures
+# Exploration: TypeScript Errors in Test Files (Phase 2 Hex Conversion)
 
 ## Summary
 
-47 tests across 4 files fail due to rectangular grid assumptions. Failures split into two root causes:
+271 TypeScript errors across 38 test files. All are mechanical {x,y} to {q,r} coordinate updates except 3 outliers. The Position type is now `{ q: number; r: number }` (defined in `src/engine/types.ts:16-19`). All coordinates must satisfy hex validity: `max(|q|, |r|, |q+r|) <= 5`.
 
-1. **Stale {x,y} coordinates** -- positions use `{x, y}` instead of `{q, r}`, yielding `q=undefined, r=undefined` at runtime
-2. **Wrong topology expectations** -- tests expect rectangular boundary properties (edges with 5 neighbors, corners with 3, interior with 8) but hex grid has vertices (3 neighbors), edges (4 neighbors), interior (6 neighbors)
+## Error Classification
 
-## Hex Grid Topology Reference
+### By TypeScript Error Code
 
+| Error Code | Count | Description                                                             |
+| ---------- | ----- | ----------------------------------------------------------------------- |
+| TS2353     | 253   | `'x' does not exist in type 'Position'` - Direct {x,y} object literals  |
+| TS2322     | 10    | Type assignment incompatibility (targetCell has {x,y} instead of {q,r}) |
+| TS2352     | 4     | Type assertion `as Position` on {x,y} objects                           |
+| TS2739     | 1     | Missing properties q,r in useDamageNumbers helper                       |
+| TS2554     | 1     | Wrong argument count for findPath (4 args, expects 3)                   |
+| TS2532     | 1     | Object possibly undefined (token-hover.test.tsx:44)                     |
+| TS2339     | 1     | Property 'advanceTick' does not exist on store actions                  |
+
+### By Category
+
+**Category A: Pure coordinate swap (267 errors, 98.5%)**
+Replace `{ x: N, y: M }` with `{ q: Q, r: R }` where coordinates satisfy hex validity.
+
+- TS2353 (253): Object literal `{ x: ..., y: ... }` where Position expected
+- TS2322 (10): targetCell property has wrong type (same fix)
+- TS2352 (4): `{ x: 0, y: 0 } as Position` type assertions
+- TS2739 (1): Helper function parameter typed as `{ x: number; y: number }`
+
+**Category B: Non-coordinate errors (4 errors, 1.5%)**
+
+1. **TS2554** (1 error) - `pathfinding.test.ts:306` - `findPath(start, goal, obstacles, 5)` passes 4 args but function now takes 3 (radius is no longer a parameter; hex grid has fixed radius). **Fix:** Remove the 4th argument. The test already has a valid 3-arg call on line 300; delete the redundant 4-arg call (lines 305-307).
+
+2. **TS2339** (1 error) - `battle-viewer-tooltip.test.tsx:197` - `actions.advanceTick()` does not exist. Store has `nextTick` and `processTick` but no `advanceTick`. **Fix:** Replace with `actions.nextTick()` (which advances to next tick).
+
+3. **TS2532** (1 error) - `token-hover.test.tsx:44` - `mockOnMouseEnter.mock.calls[0][1]` is possibly undefined. **Fix:** Add non-null assertion or optional chaining. This is a pre-existing issue unrelated to hex conversion. Consider `mockOnMouseEnter.mock.calls[0]?.[1]` or `mockOnMouseEnter.mock.calls[0]![1]`.
+
+## Error Count by File
+
+| #   | File                                                                   | Errors | Category |
+| --- | ---------------------------------------------------------------------- | ------ | -------- |
+| 1   | `src/stores/gameStore-selectors-intent-preview.test.ts`                | 36     | A        |
+| 2   | `src/stores/gameStore-selectors-movement-target.test.ts`               | 20     | A        |
+| 3   | `src/components/BattleViewer/IntentOverlay-rendering.test.tsx`         | 18     | A        |
+| 4   | `src/engine/selectors-tie-breaking.test.ts`                            | 16     | A        |
+| 5   | `src/engine/triggers-cell-targeted.test.ts`                            | 14     | A        |
+| 6   | `src/stores/gameStore-selectors-movement-intent.test.ts`               | 13     | A        |
+| 7   | `src/stores/gameStore-selectors-intent-filter.test.ts`                 | 13     | A        |
+| 8   | `src/components/BattleStatus/BattleStatusBadge.test.tsx`               | 12     | A        |
+| 9   | `src/engine/selectors-nearest-enemy.test.ts`                           | 11     | A        |
+| 10  | `src/stores/gameStore-selectors-intent-ticks.test.ts`                  | 10     | A        |
+| 11  | `src/engine/selectors-lowest-hp-enemy.test.ts`                         | 9      | A        |
+| 12  | `src/engine/selectors-lowest-hp-ally.test.ts`                          | 9      | A        |
+| 13  | `src/engine/selectors-nearest-ally.test.ts`                            | 8      | A        |
+| 14  | `src/engine/movement-groups-stress.test.ts`                            | 8      | A        |
+| 15  | `src/engine/selectors-metric-independence.test.ts`                     | 6      | A        |
+| 16  | `src/engine/game-decisions-mid-action-skip.test.ts`                    | 6      | A        |
+| 17  | `src/engine/game-decisions-action-type-inference.test.ts`              | 6      | A        |
+| 18  | `src/engine/game-core-apply-decisions.test.ts`                         | 6      | A        |
+| 19  | `src/engine/combat-edge-cases.test.ts`                                 | 6      | A        |
+| 20  | `src/components/RuleEvaluations/rule-evaluations-next-action.test.tsx` | 6      | A        |
+| 21  | `src/engine/selectors-edge-cases.test.ts`                              | 5      | A        |
+| 22  | `src/engine/triggers-edge-cases.test.ts`                               | 4      | A        |
+| 23  | `src/engine/selectors-self.test.ts`                                    | 4      | A        |
+| 24  | `src/engine/game-decisions-no-match-idle.test.ts`                      | 3      | A        |
+| 25  | `src/engine/game-core-process-tick-combat-movement.test.ts`            | 3      | A        |
+| 26  | `src/engine/game-core-clear-resolved-actions.test.ts`                  | 3      | A        |
+| 27  | `src/engine/triggers-always.test.ts`                                   | 2      | A        |
+| 28  | `src/engine/game-decisions-disabled-skills.test.ts`                    | 2      | A        |
+| 29  | `src/components/BattleViewer/IntentLine-action-colors.test.tsx`        | 2      | A        |
+| 30  | `src/components/BattleViewer/IntentLine-accessibility.test.tsx`        | 2      | A        |
+| 31  | `src/stores/gameStore-selectors-evaluations.test.ts`                   | 1      | A        |
+| 32  | `src/engine/game-integration.test.ts`                                  | 1      | A        |
+| 33  | `src/engine/combat-multi-attack.test.ts`                               | 1      | A        |
+| 34  | `src/components/RuleEvaluations/rule-evaluations-basic.test.tsx`       | 1      | A        |
+| 35  | `src/components/BattleViewer/hooks/useDamageNumbers.test.ts`           | 1      | A+B      |
+| 36  | `src/engine/pathfinding.test.ts`                                       | 1      | B        |
+| 37  | `src/components/BattleViewer/battle-viewer-tooltip.test.tsx`           | 1      | B        |
+| 38  | `src/components/BattleViewer/token-hover.test.tsx`                     | 1      | B        |
+
+## Sample Errors with Solutions
+
+### Sample 1: TS2353 - Object literal property swap (most common)
+
+**File:** `src/engine/combat-edge-cases.test.ts:35`
+
+```typescript
+// BEFORE:
+position: { x: 5, y: 5 },
+// AFTER:
+position: { q: 5, r: 0 },  // or other valid hex coord
 ```
-Hex radius 5 = 91 hexes total
-6 vertices (3 neighbors):  (5,0), (-5,0), (0,5), (0,-5), (5,-5), (-5,5)
-24 edge hexes (4 neighbors): e.g. (3,2), (4,1), (5,-3)
-61 interior hexes (6 neighbors): e.g. (0,0), (1,1), (-3,3)
 
-Validity: max(|q|, |r|, |q+r|) <= 5
-Distance: max(|dq|, |dr|, |dq+dr|)
-Neighbors: 6 directions (E, W, SE, NW, NE, SW)
+**Note:** Cannot blindly map x->q, y->r. Must ensure `max(|q|, |r|, |q+r|) <= 5`. Example: `{x: 5, y: 5}` cannot become `{q: 5, r: 5}` because `|q+r| = 10 > 5`. Use coordinates like `{q: 2, r: 3}` or `{q: 5, r: 0}`.
 
-Key difference from 12x12 square grid:
-- Square: corners=3, edges=5, interior=8 neighbors
-- Hex: vertices=3, edges=4, interior=6 neighbors
-- No concept of "x=0 wall" or "y=11 wall" -- boundary is hexagonal
-- No "perpendicular escape" concept -- escape routes are among 6 hex directions
+### Sample 2: TS2352 - Type assertion on wrong shape
+
+**File:** `src/components/BattleViewer/IntentLine-accessibility.test.tsx:13-14`
+
+```typescript
+// BEFORE:
+from: { x: 0, y: 0 } as Position,
+to: { x: 5, y: 5 } as Position,
+// AFTER:
+from: { q: 0, r: 0 } as Position,
+to: { q: 2, r: 3 } as Position,
 ```
 
-## File-by-File Analysis
+### Sample 3: TS2322 - Nested targetCell property
 
-### 1. `src/engine/game-movement-wall-boundary.test.ts` (18 failures, 1 pass)
+**File:** `src/components/BattleViewer/IntentOverlay-rendering.test.tsx:43-44`
 
-**Root causes:**
+```typescript
+// BEFORE:
+position: { x: 0, y: 0 },
+currentAction: { ...action, targetCell: { x: 5, y: 5 } }
+// AFTER:
+position: { q: 0, r: 0 },
+currentAction: { ...action, targetCell: { q: 2, r: 3 } }
+```
 
-- 12 of 18 tests use `{x, y}` coordinates -- these positions have `q=undefined, r=undefined` at runtime, making all distance/neighbor calculations meaningless
-- 6 tests already use `{q, r}` but have wrong expected results because they were converted with rectangular-grid mental models
+### Sample 4: TS2739 - Helper function parameter type
 
-**Test-by-test breakdown:**
+**File:** `src/components/BattleViewer/hooks/useDamageNumbers.test.ts:17`
 
-| Test                                    | Category   | Issue                                                                                                                                                                          |
-| --------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| prefer interior over edge at x=0        | MECHANICAL | Uses `{x,y}` positions + expects `{x,y}` result                                                                                                                                |
-| prefer interior over edge at x=11       | MECHANICAL | Uses `{x,y}` positions + expects `{x,y}` result                                                                                                                                |
-| prefer interior over edge at y=0        | MECHANICAL | Uses `{x,y}` positions + expects `{x,y}` result                                                                                                                                |
-| prefer interior over edge at y=11       | MECHANICAL | Uses `{x,y}` positions + expects `{x,y}` result                                                                                                                                |
-| escape perpendicular at x=0 (same row)  | LOGIC      | Concept "perpendicular to wall" doesn't exist in hex                                                                                                                           |
-| escape perpendicular at x=0, y=0        | LOGIC      | Already {q,r} but expects rect-style behavior                                                                                                                                  |
-| escape perpendicular at x=11 (same row) | MECHANICAL | Uses `{x,y}`                                                                                                                                                                   |
-| escape perpendicular at y=0 (same col)  | MECHANICAL | Uses `{x,y}`                                                                                                                                                                   |
-| escape perpendicular at y=0, x=0        | LOGIC      | Mixed -- enemy {x,y}, char {q,r}                                                                                                                                               |
-| escape perpendicular at y=11 (same col) | MECHANICAL | Uses `{x,y}`                                                                                                                                                                   |
-| escape corner (0,0) from (1,1)          | LOGIC      | {q,r} used, but (1,1)->(0,0) is NOT adjacent in hex (distance=2). Comment says corner but (0,0) is center. Escape route counts are wrong (expect 4, but (0,0) has 6 neighbors) |
-| escape corner (11,11)                   | LOGIC      | Uses invalid position {q:5, r:-40} (not on grid). Expects `{x:11, y:10}`                                                                                                       |
-| escape corner (0,11)                    | LOGIC      | Uses {q:0, r:11} which is invalid (max coord = 11 > 5). Expects `{q:0, r:10}`                                                                                                  |
-| escape corner (11,0)                    | LOGIC      | Partially converted. Expects `{x:11, y:1}`                                                                                                                                     |
-| prefer interior (vertical fallback)     | MECHANICAL | Uses `{x,y}`                                                                                                                                                                   |
-| stay in place (dx=dy=0)                 | PASS       | Already correct with {q,r}                                                                                                                                                     |
-| towards mode at wall                    | MECHANICAL | Uses `{x,y}`                                                                                                                                                                   |
-| towards mode at corner                  | LOGIC      | Uses {q,r} but (1,1)->(0,0) has hex distance=2, not adjacent. A\* first step is (0,1) or (1,0), not (0,0)                                                                      |
-| escape from adjacent at wall            | MECHANICAL | Uses `{x,y}`                                                                                                                                                                   |
+```typescript
+// BEFORE:
+const createCharacter = (id, faction, position: { x: number; y: number }): Character => ({
+// AFTER:
+const createCharacter = (id, faction, position: { q: number; r: number }): Character => ({
+```
 
-### 2. `src/engine/game-decisions-move-destination-wall-boundary.test.ts` (14 failures, 1 pass)
+Also update all call sites: `createCharacter("char1", "friendly", { q: 0, r: 0 })`.
 
-**Root causes:** Mirror of file 1 -- same tests wrapped in `computeDecisions()` instead of direct `computeMoveDestination()`. Same 14 coordinate/topology issues.
+### Sample 5: TS2554 - Wrong argument count
 
-| Test                               | Category   | Issue                                   |
-| ---------------------------------- | ---------- | --------------------------------------- |
-| escape perpendicular x=0 same row  | MECHANICAL | `{x,y}` positions                       |
-| escape perpendicular x=0, y=0      | LOGIC      | Already {q,r}, needs rethink for hex    |
-| escape perpendicular x=11 same row | MECHANICAL | `{x,y}`                                 |
-| escape perpendicular y=0 same col  | MECHANICAL | `{x,y}`                                 |
-| escape perpendicular y=0, x=0      | LOGIC      | Mixed coords                            |
-| escape perpendicular y=11 same col | MECHANICAL | `{x,y}`                                 |
-| escape corner (0,0) from (1,1)     | LOGIC      | (0,0) isn't a corner in hex, distance=2 |
-| escape corner (11,11)              | LOGIC      | Invalid position {q:5, r:-40}           |
-| escape corner (0,11)               | LOGIC      | Invalid position {q:0, r:11}            |
-| escape corner (11,0)               | LOGIC      | Partial conversion, wrong expected      |
-| prefer interior vertical fallback  | MECHANICAL | `{x,y}`                                 |
-| stay in place                      | PASS       | Already correct                         |
-| towards at wall                    | MECHANICAL | `{x,y}`                                 |
-| towards at corner                  | LOGIC      | (1,1)->(0,0) is distance 2 in hex       |
-| escape adjacent at wall            | MECHANICAL | `{x,y}`                                 |
+**File:** `src/engine/pathfinding.test.ts:306`
 
-### 3. `src/engine/game-movement-escape-routes.test.ts` (6 failures, 9 pass)
+```typescript
+// BEFORE:
+const pathWithRadius = findPath(start, goal, obstacles, 5);
+// AFTER:
+// Remove entirely - findPath now takes exactly 3 args (no radius param)
+// The hex grid has fixed radius, so this overload no longer exists
+```
 
-**Root causes:** Already fully converted to `{q, r}` coordinates, but escape route counts and expected destinations are based on rectangular topology assumptions.
+### Sample 6: TS2339 - Missing store action
 
-| Test                             | Category | Issue                                                                                                                                                                                                      |
-| -------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| avoid corner positions           | LOGIC    | Test says (0,0) is a "corner" with 2 routes, but (0,0) is center with 6 neighbors. Comment says "vertex" but means rect corner. Expected dest `{q:1,r:1}` may be wrong for hex scoring.                    |
-| penalize low escape routes       | LOGIC    | Blockers at (1,0) and (0,1) -- expects (1,-1) score=6 (dist=2, routes=3). Need to verify: (1,-1) has which neighbors blocked? In hex, neighbor count changes. Actual result: `{q:-1,r:1}`                  |
-| preserve open field equal routes | LOGIC    | Expects `{q:0,r:1}` but gets `{q:0,r:2}`. Tiebreaking produces different winner because hex has different neighbor geometry. All interior candidates have 6 routes (not 8), and relative positions differ. |
-| prefer moving inward from edge   | LOGIC    | Position (-3,3) has maxCoord=3, so it's INTERIOR (6 neighbors) not edge. Comment says "edge" but (-3,3) is well inside hex boundary. Expects (-3,2) but gets (-4,4).                                       |
-| subtract obstacles at edge       | LOGIC    | Position (-3,3) is interior (6 neighbors), not edge. With 2 obstacles, expects 2 routes, but actual is 4 (6-2=4).                                                                                          |
-| escape from corner trap          | LOGIC    | (0,0) is center with 6 neighbors. With enemy at (1,1) (distance=2), expects (-1,0) but gets different result since topology differs.                                                                       |
+**File:** `src/components/BattleViewer/battle-viewer-tooltip.test.tsx:197`
 
-### 4. `src/engine/movement-groups-stress.test.ts` (3 failures, 1 pass)
+```typescript
+// BEFORE:
+actions.advanceTick();
+// AFTER:
+actions.nextTick();
+```
 
-**Root causes:** All positions use `{x, y}` format. When `q=undefined, r=undefined`:
+## Coordinate Mapping Strategy
 
-- `positionsEqual(targetCell, position)` returns `true` (undefined === undefined)
-- Characters are filtered out as "hold actions" in `resolveMovement` line 108
-- No movement events are generated at all
+When converting `{x, y}` to `{q, r}`, the values must satisfy `max(|q|, |r|, |q+r|) <= 5`.
 
-| Test                                 | Category         | Issue                                                                                                                                                             |
-| ------------------------------------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| resolve independent collision groups | MECHANICAL       | All 8 positions use `{x,y}`. Need valid hex coords for 2 collision groups.                                                                                        |
-| consume RNG once per group           | MECHANICAL       | Same `{x,y}` issue.                                                                                                                                               |
-| process groups deterministic order   | PASS             | Passes by accident (both orderings produce same empty result).                                                                                                    |
-| handle 8-way collision               | LOGIC+MECHANICAL | Uses `{x,y}` AND assumes 8 neighbors. Hex only has 6 neighbors. Need 6-way collision test. Also uses `position.x === 5 && position.y === 5` assertion (line 209). |
+**Safe coordinate mappings for common test positions:**
 
-## Classification Summary
+| Old {x, y} | New {q, r} | Validity check: max(\|q\|, \|r\|, \|q+r\|) |
+| ---------- | ---------- | ------------------------------------------ |
+| {0, 0}     | {0, 0}     | max(0, 0, 0) = 0                           |
+| {1, 0}     | {1, 0}     | max(1, 0, 1) = 1                           |
+| {0, 1}     | {0, 1}     | max(0, 1, 1) = 1                           |
+| {1, 1}     | {1, 1}     | max(1, 1, 2) = 2                           |
+| {2, 2}     | {2, 2}     | max(2, 2, 4) = 4                           |
+| {3, 3}     | {3, 2}     | max(3, 2, 5) = 5                           |
+| {5, 5}     | {2, 3}     | max(2, 3, 5) = 5                           |
+| {5, 0}     | {5, 0}     | max(5, 0, 5) = 5                           |
+| {0, 5}     | {0, 5}     | max(0, 5, 5) = 5                           |
+| {6, 6}     | {3, 2}     | max(3, 2, 5) = 5                           |
+| {10, 10}   | {5, 0}     | max(5, 0, 5) = 5                           |
+| {11, 0}    | {5, -5}    | max(5, 5, 0) = 5                           |
+| {0, 11}    | {-5, 5}    | max(5, 5, 0) = 5                           |
+| {11, 11}   | {-5, 5}    | max(5, 5, 0) = 5                           |
 
-### MECHANICAL (coordinate updates only) -- 22 tests
+**Key principle:** Tests only care about relative distances between characters, not absolute positions. So the exact coordinate values do not matter as long as:
 
-Tests that only need `{x, y}` replaced with valid `{q, r}` hex coordinates and updated expected values. The test _logic_ (what behavior is being verified) is sound for hex grids.
+1. They are valid hex coordinates
+2. The relative distances between characters match the test's intent (e.g., "in range" vs "out of range")
+3. No two characters occupy the same hex (unless testing collision)
 
-**Wall-boundary files (both):** 16 tests total (8 per file)
+## Risk Assessment
 
-- "prefer interior over edge" x 4 (per file)
-- "escape perpendicular" at x=11, y=0, y=11 (per file -- 3 each)
-- "towards mode at wall" (per file)
+**Low risk overall.** This is purely mechanical refactoring:
 
-**Movement-groups-stress:** 2 tests
+- 98.5% of errors (267/271) are simple coordinate swaps
+- Test helpers (`createCharacter`, `createAttackAction`, etc.) already use `{q, r}` format
+- No logic changes needed
+- The 4 outlier errors have clear, isolated fixes
 
-- "resolve independent collision groups"
-- "consume RNG once per group"
+**Risks to watch:**
 
-### LOGIC (topology rewrites) -- 19 tests
-
-Tests where the _concept_ being tested doesn't translate to hex grids. These need new scenarios designed around hex boundary shape (vertices with 3 neighbors, edges with 4, hexagonal boundary instead of rectangular walls).
-
-**Wall-boundary files (both):** 12 tests total (6 per file)
-
-- "escape perpendicular at x=0 y=0" -- no perpendicular concept in hex
-- "escape perpendicular at y=0, x=0" -- same
-- "escape corner (0,0)" -- (0,0) is center, not corner; distance (1,1)->(0,0) = 2
-- "escape corner (11,11)" -- invalid position
-- "escape corner (0,11)" -- invalid position
-- "escape corner (11,0)" -- partially converted, still wrong topology
-- "towards at corner" -- (1,1) to (0,0) is not adjacent in hex
-
-Note: "escape corner (0,11)" at line 263-275 in wall-boundary.test.ts uses `{q:0, r:11}` which is INVALID (max(0,11,11)=11 > 5). The position `{q:0, r:10}` is also invalid. These need complete redesign with valid hex vertex/edge positions.
-
-**Escape-routes:** 6 tests
-
-- All 6 failing tests have wrong escape route counts or wrong expected destinations due to hex topology differences
-
-**Movement-groups-stress:** 1 test
-
-- "8-way collision" -- hex only has 6 directions, and assertion uses `position.x/y`
-
-## Key Design Decisions for Rewrites
-
-### Wall-Boundary Tests -> Hex Boundary Tests
-
-The concept of "wall" (x=0, x=11, y=0, y=11) maps to the hexagonal boundary where `max(|q|, |r|, |q+r|) = 5`. Test scenarios should use:
-
-- **Vertex positions** (3 neighbors): `(5,0)`, `(-5,0)`, `(0,5)`, `(0,-5)`, `(5,-5)`, `(-5,5)`
-- **Edge positions** (4 neighbors): e.g. `(3,2)`, `(4,1)`, `(5,-3)`
-- **Interior positions** (6 neighbors): any position with `max(...) < 5`
-
-### Escape Route Counts
-
-- Vertex: 3 unblocked routes (was 3 for corners -- similar!)
-- Edge: 4 unblocked routes (was 5 for edges -- different!)
-- Interior: 6 unblocked routes (was 8 -- different!)
-- The multiplicative scoring formula `distance * escapeRoutes` still works, just with different max values
-
-### "Corner" -> "Vertex" Mapping
-
-- Rectangle had 4 corners (3 neighbors each)
-- Hex has 6 vertices (3 neighbors each)
-- Conceptually similar -- low-mobility positions to escape from
-
-### "Perpendicular Escape" -> "Tangential Escape"
-
-- Rectangle: flee along wall perpendicular to threat approach
-- Hex: flee along boundary tangent, away from threat
-- No clean 1:1 mapping; scenarios must be rethought
-
-### Towards Mode at Boundary
-
-- A\* pathfinding still works correctly on hex grid
-- Tests just need valid hex positions as input
-- Key check: adjacent means hexDistance=1, not Chebyshev distance=1
-- (1,1) to (0,0) in hex = distance 2 (NOT adjacent!)
-
-### 8-Way Collision -> 6-Way Collision
-
-- Hex grid has 6 neighbors, so max collision is 6-way
-- Assertions checking `position.x/y` must use `position.q/r`
+1. **Hex validity constraint:** Cannot simply map x->q, y->r for large values. Values like `{x: 11, y: 11}` (old grid corners) need careful remapping.
+2. **Distance semantics:** Some tests rely on specific distances between characters. Hex distance differs from Chebyshev. Must ensure test positions preserve intended distances.
+3. **Test ordering within files:** Some tests build on state from previous tests. Changing coordinates in one test might affect later tests in the same describe block. However, most tests use `beforeEach` resets.
+4. **`advanceTick` rename** in tooltip test: Need to verify `nextTick` is the correct replacement (it is - the store exposes `nextTick` and `processTick` but not `advanceTick`).
 
 ## Effort Estimate
 
-| Category                 | Tests | Effort                                                               |
-| ------------------------ | ----- | -------------------------------------------------------------------- |
-| MECHANICAL (coord swap)  | 22    | Low -- formulaic replacement                                         |
-| LOGIC (topology rewrite) | 19    | Medium -- need to design new hex scenarios, compute expected results |
-| Combined total           | 41\*  | ~4-6 hours                                                           |
+- **Category A (267 errors):** ~1-2 hours of mechanical work. Can be batched by file. Largest files: intent-preview (36 errors), movement-target (20), IntentOverlay-rendering (18).
+- **Category B (4 errors):** ~10 minutes. Each is a one-line fix.
+- **Validation:** ~15 minutes to run type-check + test suite after changes.
+- **Total estimate:** ~2-3 hours
 
-\*Note: Current task says 47 failures but actual count from test runs is 18+14+6+3 = 41. The discrepancy of 6 may come from counting the wall-boundary files differently or including some that now pass.
+## Files Already Explored
+
+- `src/engine/types.ts` - Position type definition (lines 16-19)
+- `src/engine/pathfinding.ts` - findPath signature (3 args, no radius)
+- `src/engine/game-test-helpers.ts` - createCharacter uses {q,r} already
+- `src/engine/combat-test-helpers.ts` - createAttackAction uses Position type
+- `src/stores/gameStore.ts` - Has `nextTick`/`processTick`, no `advanceTick`
+- `src/engine/combat-edge-cases.test.ts` - Sample of partially converted file
+- `src/components/BattleViewer/IntentLine-accessibility.test.tsx` - TS2352 example
+- `src/components/BattleViewer/hooks/useDamageNumbers.test.ts` - TS2739 example
+- `src/components/BattleViewer/token-hover.test.tsx` - TS2532 example
+- `src/components/BattleViewer/battle-viewer-tooltip.test.tsx` - TS2339 example
+- `src/engine/pathfinding.test.ts` - TS2554 example

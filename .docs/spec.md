@@ -3,7 +3,7 @@
 ## Project Overview
 
 Tick-based auto battler with priority-based skill system (gambit system like FFXII).
-12×12 grid with character tokens, intent lines, damage overlays.
+Hexagonal grid (radius 5, 91 hexes) with character tokens, intent lines, damage overlays.
 Client-side only for v0.3 (foundation for future roguelike meta-progression).
 
 ## Design Vision
@@ -113,7 +113,7 @@ Skills fall into two timing categories:
 
 ### Move
 
-- Tick cost: 1, Distance: 1 cell
+- Tick cost: 1, Distance: 1 hex
 - Default selector: nearest_enemy
 - Modes: **towards** (closer), **away** (farther)
 - **Innate** (automatically assigned, cannot be removed)
@@ -141,20 +141,20 @@ Skills are a shared resource pool with faction exclusivity -- each assignable sk
 
 ### Target Selectors
 
-- `nearest_enemy`: Closest enemy by Chebyshev distance
+- `nearest_enemy`: Closest enemy by hex distance
 - `nearest_ally`: Closest ally (not self)
 - `lowest_hp_enemy`: Enemy with lowest current HP
 - `lowest_hp_ally`: Ally with lowest current HP
 - `self`: Target self (for self-buffs)
 
-**Selector tiebreaking:** Lower Y → Lower X coordinate
+**Selector tiebreaking:** Lower R coordinate, then lower Q coordinate
 
 ### Trigger Conditions
 
-- `enemy_in_range X`: Any enemy within X cells
-- `ally_in_range X`: Any ally within X cells
+- `enemy_in_range X`: Any enemy within X hexes
+- `ally_in_range X`: Any ally within X hexes
 - `hp_below X%`: Own HP below X%
-- `my_cell_targeted_by_enemy`: Enemy has locked-in action targeting this cell
+- `my_cell_targeted_by_enemy`: Enemy has locked-in action targeting this hex
 
 **Note:** `my_cell_targeted_by_enemy` detects any pending action targeting the cell. Wind-up actions (tickCost >= 1) have at least 1 tick of visibility before resolution. Instant actions (tickCost: 0) resolve the same tick they are chosen, so they cannot be dodged via this trigger.
 
@@ -169,40 +169,49 @@ Battle progresses in discrete ticks. Tick 0 is initial state.
 1. If mid-action, continue current action
 2. Scan skill list top-to-bottom
 3. Select first skill whose conditions are met
-4. Lock targeting to target's current cell
+4. Lock targeting to target's current hex
 5. If no skill valid, idle
 
 **Resolution Phase** (simultaneous execution):
 
 1. Healing: Resolve heal actions first (ADR-006)
-2. Attacks: Check if target still in locked cell → hit or miss
+2. Attacks: Check if target still in locked hex -> hit or miss
 3. Movement: Apply collision resolution, then move
 4. Apply other effects
-5. Remove characters with HP ≤ 0
+5. Remove characters with HP <= 0
 
 **Important:** Characters cannot react to same-tick enemy decisions. All decisions are made against game state at tick start.
 
+### Grid System
+
+Hexagonal grid using axial coordinates {q, r} with flat-top orientation (ADR-007).
+
+- **Shape:** Hexagonal map with radius 5 (91 total hexes)
+- **Coordinates:** Axial {q, r} where valid hexes satisfy max(|q|, |r|, |q+r|) <= 5
+- **Center:** {q: 0, r: 0}
+- **Neighbors:** 6 directions (E, W, SE, NW, NE, SW)
+
 ### Distance Metric
 
-Chebyshev distance (8-directional; diagonals cost 1)
+Hex distance: `max(|dq|, |dr|, |dq+dr|)` (equivalent to `(|dq| + |dr| + |dq+dr|) / 2`). All neighbors are equidistant (distance 1). Uniform movement cost across all 6 directions.
 
 ### Movement System
 
-**Towards mode:** Uses A\* pathfinding to find the optimal path around obstacles (other characters). Diagonal moves cost sqrt(2) while cardinal moves cost 1.0, producing natural-looking paths without unnecessary zig-zagging. When no path exists, the character stays in place.
+**Towards mode:** Uses A\* pathfinding on the hex grid to find the optimal path around obstacles (other characters). All hex moves cost 1.0, producing natural paths without diagonal bias. When no path exists, the character stays in place.
 
-**Away mode:** Uses single-step maximization with escape route weighting. Each candidate position is scored using a composite formula: `distance_from_target * escape_routes`, where escape routes are the count of unblocked adjacent cells (0-8). This naturally penalizes corners (3 routes) and edges (5 routes) compared to interior positions (8 routes), preventing AI from getting trapped when fleeing.
+**Away mode:** Uses single-step maximization with escape route weighting. Each candidate position is scored using a composite formula: `distance_from_target * escape_routes`, where escape routes are the count of unblocked adjacent hexes (0-6). This naturally penalizes vertex positions (3 routes) and edge positions (4 routes) compared to interior positions (6 routes), preventing AI from getting trapped when fleeing.
 
 Tiebreaking hierarchy (when composite scores are equal):
 
-1. Maximize resulting Chebyshev distance from target
-2. Maximize resulting |dx|, then |dy|
-3. Then lower Y coordinate
-4. Then lower X coordinate
+1. Maximize resulting hex distance from target
+2. Maximize resulting |dq|, then |dr|
+3. Then lower R coordinate of candidate hex
+4. Then lower Q coordinate of candidate hex
 
 ### Collision Resolution
 
 - **Blocker wins:** Stationary character holds ground; movers cannot displace
-- **Two movers, same destination:** Random winner (seeded for replay consistency); losers stay in original cells
+- **Two movers, same destination:** Random winner (seeded for replay consistency); losers stay in original hexes
 
 ## Intent Lines
 
@@ -241,7 +250,7 @@ Intent lines encode three dimensions: action type (color + endpoint marker), fac
 
 ### Damage Display
 
-- Damage numbers displayed in tile center
+- Damage numbers displayed in hex center
 - Colored border matching attacker faction
 - Multiple attackers: Stack numbers, show combined on hover
 
@@ -286,7 +295,7 @@ Character tokens display alphabetical letters for visual distinction, making it 
 
 Four-panel structure (v0.3 implementation):
 
-1. **Battle Viewer (50% width):** 12×12 grid with tokens, intent lines, damage numbers. Hovering over character tokens displays rule evaluation tooltips.
+1. **Battle Viewer (50% width):** Hexagonal grid (radius 5, 91 hexes) with tokens, intent lines, damage numbers. Hovering over character tokens displays rule evaluation tooltips. Currently uses CSS Grid rendering (SVG hex rendering planned in Phase 3).
 2. **Skills Panel (25% width):** Sentence-builder UI for skill configuration (triggers, selectors, priority). Innate skills display an "Innate" badge next to the skill name. Non-innate skills display an "Unassign" button to return them to the inventory.
 3. **Inventory Panel (25% width):** Displays all available skills from the centralized skill registry. Visible content when any character is selected; otherwise shows placeholder message. Skills can be assigned to or removed from the selected character.
 4. **Event Log (bottom):** Planned for future release

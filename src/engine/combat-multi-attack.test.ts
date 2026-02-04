@@ -311,7 +311,7 @@ describe("resolveCombat", () => {
       });
       const charD = createCharacter({
         id: "charD",
-        position: { x: 7, y: 7 }, // Not at target cell
+        position: { q: 3, r: 2 }, // Not at target cell
         hp: 100,
         slotPosition: 4,
       });

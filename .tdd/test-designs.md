@@ -1,944 +1,852 @@
-## TEST DESIGN REVIEW SUMMARY
+---
+
+## TEST DESIGN REVIEW
 
 **Reviewer**: Architect (TEST_DESIGN_REVIEW phase)
 **Date**: 2026-02-04
-**Verdict**: APPROVED FOR IMPLEMENTATION
+**Status**: APPROVED FOR IMPLEMENTATION (with corrections noted below)
 
-### Completeness Check
+### 1. Completeness Verification
 
-- [x] 41 tests accounted for: 3 (movement-groups-stress) + 18 (wall-boundary) + 14 (decisions-wall-boundary) + 6 (escape-routes) = 41
-- [x] All 4 test files covered
-- [x] Passing tests ("stay in place", "process groups deterministic order") correctly excluded
+**Error count by phase (corrected)**:
 
-### Hex Topology Correctness (Verified)
+| Phase | Errors | Files | Status |
+|-------|--------|-------|--------|
+| Phase 1: Outlier Fixes | 3 | 3 | Correct |
+| Phase 2: Component/Helper | 3 | 2 | Correct |
+| Phase 3: Simple Swap | 29 | 12 | Correct |
+| Phase 4: Partially Converted | 20 | 2 | Correct |
+| Phase 5: Action/Intent Data | 128 | 8 | **CORRECTED** (header says 108/7, actual is 128/8) |
+| Phase 6: Distance-Dependent | 59 | 6 | Correct |
+| Phase 7: Game Decisions | 29 | 5 | Correct |
+| **Total** | **271** | **38** | **Verified** |
 
-- [x] All 6 vertices confirmed: (5,0), (-5,0), (0,5), (0,-5), (5,-5), (-5,5) -- each has exactly 3 valid neighbors
-- [x] All edge positions used satisfy max(|q|,|r|,|q+r|) = 5 and are NOT vertices -- each has exactly 4 neighbors
-- [x] All interior positions satisfy max(|q|,|r|,|q+r|) < 5 -- each has exactly 6 neighbors
-- [x] No invalid positions (all satisfy max(|q|,|r|,|q+r|) <= 5)
+**Issue REVIEW-1 (Minor, documentation only)**: Phase 5 section header on line 193 states "108 errors, 7 files" but the section contains Files 20-27 (8 files) totaling 128 errors: 10+13+13+18+36+20+6+12 = 128. The implementation checklist line 600 also says "108". The document's own recount section (lines 609-628) catches this and arrives at the correct total of 271 using 128 for Phase 5. The final formula (3+3+29+20+128+59+29 = 271) is correct. **Correction**: Implementers should use 128/8 for Phase 5, not 108/7. All 271 errors are fully specified.
 
-**Positions verified by hand-computation:**
+**All 38 files accounted for**: Files 1-38 match the exploration.md error list. Every file from the exploration appears in exactly one phase.
 
-- Vertex (5,-5): neighbors (4,-5),(5,-4),(4,-4) -- 3 neighbors confirmed
-- Vertex (5,0): neighbors (4,0),(5,-1),(4,1) -- 3 neighbors confirmed
-- Vertex (0,5): neighbors (-1,5),(0,4),(1,4) -- 3 neighbors confirmed
-- Vertex (0,-5): neighbors (1,-5),(0,-4),(-1,-4) -- 3 neighbors confirmed
-- Vertex (-5,0): neighbors (-4,0),(-5,1),(-4,-1) -- 3 neighbors confirmed
-- Vertex (-5,5): neighbors (-4,5),(-5,4),(-4,4) -- 3 neighbors confirmed
-- Edge (5,-2): neighbors (4,-2),(5,-1),(5,-3),(4,-1) -- 4 neighbors confirmed
-- Edge (-5,2): neighbors (-4,2),(-5,3),(-5,1),(-4,1) -- 4 neighbors confirmed
-- Edge (2,3): neighbors (1,3),(2,2),(3,2),(1,4) -- 4 neighbors confirmed
-- Edge (-2,-3): neighbors (-1,-3),(-2,-2),(-3,-2),(-1,-4) -- 4 neighbors confirmed
-- Edge (4,1): neighbors (3,1),(4,0),(5,0),(3,2) -- 4 neighbors confirmed
-- Edge (3,2): neighbors (2,2),(3,1),(4,1),(2,3) -- 4 neighbors confirmed
+### 2. Coordinate Validity Verification
 
-### Expected Value Correctness (Verified)
+**All coordinates in the master table (32 entries) verified**: max(|q|, |r|, |q+r|) <= 5 for every entry.
 
-All tiebreaking chains verified against `compareAwayMode` source code in `/home/bob/Projects/auto-battler/src/engine/game-movement.ts` (lines 220-275):
+Spot-checked coordinates from per-file specifications:
+- {-2,-1}: max(2,1,3)=3. Valid.
+- {-1,2}: max(1,2,1)=2. Valid.
+- {-1,-1}: max(1,1,2)=2. Valid.
+- {-2,0}: max(2,0,2)=2. Valid.
+- {1,3}: max(1,3,4)=4. Valid.
+- {0,3}: max(0,3,3)=3. Valid.
+- {0,4}: max(0,4,4)=4. Valid.
+- {3,1}: max(3,1,4)=4. Valid.
+- {0,2}: max(0,2,2)=2. Valid.
 
-1. Maximize composite (distance \* escapeRoutes)
-2. Maximize distance
-3. Maximize absDq (|target.q - candidate.q|)
-4. Maximize absDr (|target.r - candidate.r|)
-5. Minimize r
-6. Minimize q
+**Result**: All coordinates satisfy hex validity constraint. No invalid coordinates found.
 
-**Tests verified by full manual computation (all candidates scored, tiebreakers traced):**
+### 3. Representative Case Validation (10 cases)
 
-| Test | Expected | Composite | Tiebreaker Used           | Verified |
-| ---- | -------- | --------- | ------------------------- | -------- |
-| 2.1  | (4,-2)   | 24        | absDr 2>1 over (4,-1)     | YES      |
-| 2.5  | (5,-1)   | 12        | dist 3>2 over (4,-1)      | YES      |
-| 2.6  | (5,-4)   | 8         | absDq 2>1 over (4,-5)     | YES      |
-| 2.8  | (1,4)    | 12        | dist 3>2 over (1,3)       | YES      |
-| 2.9  | (-1,-4)  | 12        | dist 3>2 over (0,-4)      | YES      |
-| 2.11 | (5,-1)   | 3         | absDq 1>0 over (4,1)      | YES      |
-| 2.13 | (-1,5)   | 8         | absDr 2>1 over (1,4)      | YES      |
-| 2.14 | (-5,4)   | 3         | absDq 1>0 over (-4,5)     | YES      |
-| 2.15 | (4,0)    | 18        | wins outright (composite) | YES      |
-| 4.1  | (-2,4)   | 18        | absDr 2>1 over (-2,3)     | YES      |
-| 4.2  | (0,0)    | 30        | absDq 3>2 over (1,-1)     | YES      |
-| 4.3  | (-1,0)   | 30        | absDq 3>2 over (0,-1)     | YES      |
-| 4.4  | (0,2)    | 24        | absDr 3>2 over (0,1)      | YES      |
-| 4.5  | (4,0)    | 12        | wins outright (composite) | YES      |
-| 4.6  | er=2     | N/A       | 4 neighbors - 2 blocked   | YES      |
+**Case 1: Tiebreaking Test 3 - lowest_hp_enemy prefer lower R** (File 32, test 3)
+- eval {0,0}, A hp=50 {-2,-1} R=-1, B hp=50 {2,1} R=1
+- Both valid. Same HP. Tiebreak R: A.R=-1 < B.R=1. Winner: A. CORRECT.
 
-**Escape route counts verified with obstacle awareness:**
+**Case 2: Tiebreaking Test 5 - three-way tie** (File 32, test 5)
+- eval {0,0}, A {0,-1}, B {1,0}, C {-1,0}
+- All hexDist=1. Tiebreak R: A.R=-1 is lowest. Winner: A. CORRECT.
 
-- Tests correctly account for enemy position in obstacle set (enemy is NOT excluded from obstacles, only mover is)
-- Tests correctly handle boundary reducing neighbor count AND obstacles blocking remaining neighbors
-- Test 4.6 correctly redesigned: edge (3,2) has 4 neighbors, 2 blocked = 2 escape routes
+**Case 3: Metric independence - nearest_enemy ignores HP** (File 33, test 1)
+- eval {0,0}, A hp=100 {0,1} dist=1, B hp=10 {0,4} dist=4
+- nearest_enemy by distance: A closer. Expected: A. CORRECT.
 
-### Distance Calculations (Verified)
+**Case 4: Metric independence - lowest_hp_enemy ignores distance** (File 33, test 2)
+- Same positions. lowest_hp_enemy by HP: B has HP=10. Expected: B. CORRECT.
 
-All distances computed using hexDistance formula: (|dq| + |dr| + |dq+dr|) / 2, which equals max(|dq|, |dr|, |dq+dr|).
+**Case 5: Combat edge cases - action filtering** (File 19)
+- charC at {2,3} attacks {3,2}. charD at {3,2}. targetCell matches charD position.
+- charC action has ticksRemaining=2, does not resolve. charD HP unchanged. CORRECT.
 
-- [x] No impossible adjacency claims (all "adjacent" positions have hexDistance=1)
-- [x] Test 2.17 correctly fixed: original (1,1)->(0,0) had hexDist=2 (NOT adjacent in hex), replaced with (1,0)->(0,0) hexDist=1
-- [x] All movement-groups-stress movers are hexDist=1 from their targets
+**Case 6: Intent preview - characterPosition assertion** (File 24, line 273)
+- friendly at {3,-1}, enemy at {4,-1}. hexDist = max(1,0,1) = 1. In range for range=1.
+- Assertion: characterPosition equals {3,-1}. Matches creation. CORRECT.
 
-### Test Logic Soundness (Verified)
+**Case 7: Process-tick movement assertion** (File 37, lines 76/87)
+- createMoveAction({q:3,r:-1}, 2) and toEqual({q:3,r:-1}). Consistent. CORRECT.
 
-- [x] MECHANICAL tests (coord swap only) correctly preserve test behavior intent
-- [x] LOGIC tests correctly map rectangular concepts to hex equivalents:
-  - "Wall boundary" -> "hex boundary" (max(|q|,|r|,|q+r|) = 5)
-  - "Corner" -> "vertex" (3 neighbors)
-  - "Perpendicular escape" -> "tangential escape"
-  - "8-way collision" -> "6-way collision"
-- [x] Tests 4.5 and 4.6 correctly redesigned with actual edge positions (original used interior position (-3,3) mislabeled as "edge")
-- [x] Test 4.2 correctly renamed and expected value updated (original assumed (0,0) was a corner; in hex it is grid center with 6 neighbors)
+**Case 8: Process-tick RNG threading** (File 37, lines 122-129)
+- moverA {4,1}: max(4,1,5)=5. moverB {5,-1}: max(5,1,4)=5. Both valid.
+- Move targets already {q:3,r:2} in source. Test checks RNG determinism, not movement validity. ACCEPTABLE.
 
-### Minor Issues Found (Non-blocking)
+**Case 9: Movement groups - collision independence** (File 38, revised)
+- Target A {2,3} vs Target B {-2,-1}. Distinct cells = separate collision groups.
+- All movers hex-adjacent to their targets (verified dist=1 for each pair). CORRECT.
 
-1. **Cosmetic typo in Test 2.2 justification**: Says "absDr (4,-2)=2" but should say "absDr (-4,2)=2". The coordinates in the justification text reference the wrong signs. The actual expected value and assertion {q:-4, r:2} are correct.
+**Case 10: Intent filter - characterPosition toEqual** (File 21, line 188)
+- toEqual({q:0,r:0}) matches position creation {q:0,r:0}. CORRECT.
 
-2. **Step 3 mapping table**: The table correctly maps all 14 Step 3 tests to their Step 2 counterparts. However, Step 3 tests 3.12 and 3.13 need the skill mode explicitly set to "towards" (not "away"). Test 3.1 mentions the skill setup but does not state this is "away" mode; for the tangential/vertex escape tests, mode="away" is implicit from the skill trigger. The document should ensure the coder uses the correct mode for each test. The existing test 2.16/3.12 and 2.17/3.13 notes do mention "towards" mode, so this is covered.
+### 4. Issues Found
 
-### Approval
+**Issue REVIEW-1** (Minor): Phase 5 header mismatch. See Completeness section above. Does not affect implementation since per-file specifications are complete and correct.
 
-All 41 test specifications are **APPROVED FOR IMPLEMENTATION**. The expected values are mathematically verified against the hex engine's tiebreaking algorithm. All positions are valid on the hex grid. The test logic correctly translates rectangular grid concepts to hexagonal equivalents.
+**Issue REVIEW-2** (Informational): Master coordinate table has duplicate source entry `{7,5}` mapping to two different targets: `{4,-1}` (mid-action-skip) and `{4,1}` (movement-intent). This is intentional context-sensitivity documented in the plan, but implementers should use per-file specifications (not the master table) as the authoritative source for each file's coordinates.
 
-No revisions required. Proceed to WRITE_TESTS phase.
+**Issue REVIEW-3** (Informational): Movement intent "both factions" test (File 22, lines 142-152) has the enemy's targetCell `{q:4,r:1}` equal to the friendly's position `{q:4,r:1}`. The original test had these as different cells ({7,5} vs {4,5}). Since this test only checks that selectMovementIntentData returns intents for both factions (not movement resolution), this semantic overlap is acceptable. No test behavior change.
 
----
+### 5. Tiebreaking Logic Verification
 
-# Test Designs: Fix 41 Failing Hex Topology Tests
+Source code confirmed (selectors.ts lines 12-17):
+- `tieBreakCompare`: Lower R wins first, then lower Q wins
+- `compareByDistanceThenPosition`: Distance first, then tiebreak
+- `compareByHpThenPosition`: HP first, then tiebreak
 
-All 41 tests are test-only changes. No engine source code modifications required.
+All 5 tiebreaking test conversions (File 32) verified:
+- Test 1: R-first tiebreak with equal distance. CORRECT.
+- Test 2: Q-second tiebreak with equal distance and R. CORRECT.
+- Test 3: R-first tiebreak with equal HP. CORRECT.
+- Test 4: Q-second tiebreak with equal HP and R. CORRECT.
+- Test 5: Three-way R-first tiebreak. CORRECT.
 
-**Tiebreaking Hierarchy (away mode) -- from `compareAwayMode` in game-movement.ts:**
+Test name and comment updates (Y->R, X->Q) are specified. CORRECT.
 
-1. Maximize composite score (distance \* escapeRoutes)
-2. Maximize distance
-3. Maximize absDq (|target.q - candidate.q|)
-4. Maximize absDr (|target.r - candidate.r|)
-5. Minimize r
-6. Minimize q
+### 6. Distance Ordering Verification
 
-**Hex neighbor counts:**
-
-- Vertex (max(|q|,|r|,|q+r|) = 5, on a vertex of the hexagonal boundary): 3 neighbors
-- Edge (max(|q|,|r|,|q+r|) = 5, NOT on a vertex): 4 neighbors
-- Interior (max(|q|,|r|,|q+r|) < 5): 6 neighbors
-
-**6 vertices**: (5,0), (-5,0), (0,5), (0,-5), (5,-5), (-5,5)
-
----
-
-## Step 1: `src/engine/movement-groups-stress.test.ts` (3 tests)
-
-### Test 1.1: resolve-independent-collision-groups
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/movement-groups-stress.test.ts`
-- **Type**: unit
-- **Verifies**: Two separate collision groups each produce exactly one winner
-- **Current Implementation**: All positions use `{x,y}`. At runtime q=undefined, r=undefined. `positionsEqual` returns true (undefined===undefined), so movers are filtered as hold actions and no collision events fire.
-- **Updated Implementation**: Replace all `{x,y}` with `{q,r}`. No structural changes.
-- **Setup**: Two collision groups, each with 2 movers targeting the same cell.
-- **Input Positions**:
-  ```
-  Group 1 target: {q:2, r:1}
-    mover1A: position {q:1, r:1}, slotPosition:1, action target {q:2, r:1}
-    mover1B: position {q:2, r:0}, slotPosition:2, action target {q:2, r:1}
-  Group 2 target: {q:-2, r:-1}
-    mover2A: position {q:-1, r:-1}, slotPosition:3, action target {q:-2, r:-1}
-    mover2B: position {q:-2, r:0}, slotPosition:4, action target {q:-2, r:-1}
-  ```
-- **Assertions**:
-  1. group1Events with collided===false has length 1
-  2. group2Events with collided===false has length 1
-- **Justification**: All positions valid (max coord <= 5). All movers are hex-distance 1 from target (adjacent). Validates collision resolution handles independent groups.
-
----
-
-### Test 1.2: consume-rng-once-per-group
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/movement-groups-stress.test.ts`
-- **Type**: unit
-- **Verifies**: RNG state advances exactly twice for two collision groups
-- **Current Implementation**: Same {x,y} coordinates cause same failure as Test 1.1.
-- **Updated Implementation**: Identical position changes to Test 1.1.
-- **Input Positions**: Same as Test 1.1.
-- **Assertions**:
-  1. `result.rngState === afterTwo.nextState`
-- **Justification**: Ensures deterministic RNG consumption for replay fidelity.
-
----
-
-### Test 1.3: handle-6-way-collision (RENAME from "handle 8-way collision")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/movement-groups-stress.test.ts`
-- **Type**: unit
-- **Verifies**: Maximum hex collision (6 neighbors at one cell) produces 1 winner, 5 losers
-- **Current Implementation**: 8 movers with {x,y} positions surrounding (5,5). Asserts 1 winner / 7 losers. Checks `c.position.x === 5 && c.position.y === 5`.
-- **Updated Implementation**: Complete rewrite. 6 movers (not 8). New test name. New assertions (5 losers not 7). Position check uses q/r.
-- **Hex Topology Concept**: Square grids have 8 neighbors (4 cardinal + 4 diagonal). Hex grids have exactly 6 neighbors. Max collision size is 6.
-- **Input Positions**:
-  ```
-  Target: {q:2, r:1}
-  mover0: {q:3, r:1}, slotPosition:1   (East neighbor)
-  mover1: {q:1, r:1}, slotPosition:2   (West neighbor)
-  mover2: {q:2, r:2}, slotPosition:3   (SE neighbor)
-  mover3: {q:2, r:0}, slotPosition:4   (NW neighbor)
-  mover4: {q:3, r:0}, slotPosition:5   (NE neighbor)
-  mover5: {q:1, r:2}, slotPosition:6   (SW neighbor)
-  All actions: createMoveAction({q:2, r:1}, 1)
-  ```
-- **Assertions**:
-  1. `events.filter(e => e.collided === false)` has length 1
-  2. `events.filter(e => e.collided === true)` has length **5**
-  3. `updatedCharacters.filter(c => c.position.q === 2 && c.position.r === 1)` has length 1
-- **Justification**: Validates max collision group for hex. Prevents regression from square-grid assumption (8 -> 6 neighbors).
-
----
-
-## Step 2: `src/engine/game-movement-wall-boundary.test.ts` (18 tests)
-
-**Rename describe block**: "computeMoveDestination - wall-boundary fallback" -> "computeMoveDestination - hex boundary fallback"
-
-### Test 2.1: prefer-interior-east-boundary
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at east boundary prefers interior neighbor over staying on boundary when fleeing
-- **Current Implementation**: char `{x:0, y:5}`, enemy `{q:3, r:2}`, expected `{x:1, y:4}`. Mixed coords cause q=undefined.
-- **Updated Implementation**: All `{q,r}`. Rename "at x=0" to "(east boundary)".
-- **Input Positions**:
-  - character: `{q:5, r:-2}` (boundary: max(5,2,3)=5, 4 neighbors)
-  - enemy: `{q:0, r:0}`
-- **Expected Output**: `{q:4, r:-2}`
-- **Assertions**:
-  1. `targetCell` equals `{q:4, r:-2}`
-- **Justification**: Interior (4,-2) composite=24 (d=4,er=6) > boundary candidates (5,-1),(5,-3) composite=20 (d=5,er=4). Also beats (4,-1) composite=24 on tiebreak: same dist=4, absDq=4 (tie), absDr: (4,-2) has 2 vs (4,-1) has 1. (4,-2) wins.
-- **Comment**: `"Interior (4,-2) score=24 (dist=4, routes=6) > boundary (5,-1) score=20 (dist=5, routes=4)"`
-
----
-
-### Test 2.2: prefer-interior-west-boundary
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at west boundary prefers interior neighbor when fleeing
-- **Current Implementation**: char `{x:11, y:5}`, expected `{x:10, y:4}`.
-- **Updated Implementation**: All `{q,r}`. Rename "at x=11" to "(west boundary)".
-- **Input Positions**:
-  - character: `{q:-5, r:2}` (boundary: max(5,2,3)=5, 4 neighbors)
-  - enemy: `{q:0, r:0}`
-- **Expected Output**: `{q:-4, r:2}`
-- **Assertions**:
-  1. `targetCell` equals `{q:-4, r:2}`
-- **Justification**: Interior (-4,2) composite=24 (d=4,er=6) > boundary (-5,3),(-5,1) composite=20 (d=5,er=4). Tiebreak over (-4,1): absDr (4,-2)=2 > (-4,1)=1.
-- **Comment**: `"Interior (-4,2) score=24 (dist=4, routes=6) > boundary (-5,3) score=20 (dist=5, routes=4)"`
-
----
-
-### Test 2.3: prefer-interior-se-boundary
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at SE boundary prefers interior neighbor when fleeing
-- **Current Implementation**: char `{x:5, y:0}`, expected `{x:4, y:1}`.
-- **Updated Implementation**: All `{q,r}`. Rename "at y=0" to "(SE boundary)".
-- **Input Positions**:
-  - character: `{q:2, r:3}` (boundary: max(2,3,5)=5, 4 neighbors)
-  - enemy: `{q:-2, r:-1}`
-- **Expected Output**: `{q:2, r:2}`
-- **Assertions**:
-  1. `targetCell` equals `{q:2, r:2}`
-- **Justification**: (2,2) and (1,3) both composite=42 (d=7,er=6). Tiebreak: dist=7 (tie). absDq: (2,2) has |(-2)-2|=4, (1,3) has |(-2)-1|=3. (2,2) wins absDq 4>3.
-- **Comment**: `"Interior (2,2) score=42 (dist=7, routes=6), tiebreak absDq 4>3 over (1,3)"`
-
----
-
-### Test 2.4: prefer-interior-nw-boundary
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at NW boundary prefers interior neighbor when fleeing
-- **Current Implementation**: char `{x:5, y:11}`, expected `{x:4, y:10}`.
-- **Updated Implementation**: All `{q,r}`. Rename "at y=11" to "(NW boundary)".
-- **Input Positions**:
-  - character: `{q:-2, r:-3}` (boundary: max(2,3,5)=5, 4 neighbors)
-  - enemy: `{q:2, r:1}`
-- **Expected Output**: `{q:-2, r:-2}`
-- **Assertions**:
-  1. `targetCell` equals `{q:-2, r:-2}`
-- **Justification**: (-2,-2) and (-1,-3) both composite=42 (d=7,er=6). absDq: (-2,-2) has |2-(-2)|=4, (-1,-3) has |2-(-1)|=3. (-2,-2) wins absDq 4>3.
-- **Comment**: `"Interior (-2,-2) score=42 (dist=7, routes=6), tiebreak absDq 4>3 over (-1,-3)"`
-
----
-
-### Test 2.5: tangential-escape-east-boundary (RENAME from "perpendicular...x=0 same row")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at east boundary escapes tangentially when threat approaches along same axis
-- **Current Implementation**: char `{x:0, y:5}`, enemy `{x:2, y:5}`, expected `{x:0, y:4}`.
-- **Updated Implementation**: All `{q,r}`. Rename to "tangential escape along east boundary (same axis)".
-- **Hex Topology Concept**: "Perpendicular escape along wall" does not exist in hex. Instead, characters at boundary positions flee tangentially (along the boundary perimeter) when the interior is towards the threat. The tangential move maintains greater distance at the cost of fewer escape routes.
-- **Input Positions**:
-  - character: `{q:5, r:-2}` (east boundary, 4 neighbors)
-  - enemy: `{q:3, r:-2}` (2 hexes away on same axis)
-- **Expected Output**: `{q:5, r:-1}`
-- **Assertions**:
-  1. `targetCell` equals `{q:5, r:-1}`
-- **Justification**: (5,-1) and (4,-1) both composite=12. (5,-1) dist=3 > (4,-1) dist=2. (5,-1) wins distance tiebreak.
-- **Comment**: `"Tangential (5,-1) score=12 (dist=3, routes=4), tiebreak dist 3>2 over (4,-1)"`
-
----
-
-### Test 2.6: tangential-escape-vertex-5neg5 (RENAME+REWRITE from "perpendicular...x=0 y=0")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at vertex escapes tangentially when doubly constrained
-- **Current Implementation**: char `{q:0, r:0}`, enemy `{q:2, r:0}`, expected `{q:0, r:1}`. Position (0,0) is grid CENTER with 6 neighbors, not a corner.
-- **Updated Implementation**: Complete scenario rewrite. Use actual hex vertex position.
-- **Hex Topology Concept**: "Double-boundary" (corner in rectangle = both x and y at wall) maps to hex "vertex" (3 neighbors only). The vertex is maximally constrained with only 3 escape options.
-- **Input Positions**:
-  - character: `{q:5, r:-5}` (vertex, 3 neighbors: (4,-5),(5,-4),(4,-4))
-  - enemy: `{q:3, r:-3}` (2 hexes away)
-- **Expected Output**: `{q:5, r:-4}`
-- **Assertions**:
-  1. `targetCell` equals `{q:5, r:-4}`
-- **Justification**: (5,-4) and (4,-5) both composite=8 (d=2,er=4). Tiebreak: dist=2 (tie). absDq: (5,-4) has |3-5|=2, (4,-5) has |3-4|=1. (5,-4) wins absDq 2>1. (4,-4) composite=5 (d=1,er=5) loses.
-- **Comment**: `"Tangential (5,-4) score=8 (dist=2, routes=4), tiebreak absDq 2>1 over (4,-5)"`
-
----
-
-### Test 2.7: tangential-escape-west-boundary (RENAME from "perpendicular...x=11 same row")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at west boundary escapes tangentially
-- **Current Implementation**: char `{x:11, y:5}`, enemy `{x:9, y:5}`, expected `{x:11, y:4}`.
-- **Updated Implementation**: All `{q,r}`. Rename to "tangential escape along west boundary (same axis)".
-- **Input Positions**:
-  - character: `{q:-5, r:2}` (west boundary, 4 neighbors)
-  - enemy: `{q:-3, r:2}` (2 hexes away on same axis)
-- **Expected Output**: `{q:-5, r:1}`
-- **Assertions**:
-  1. `targetCell` equals `{q:-5, r:1}`
-- **Justification**: (-5,1) and (-4,1) both composite=12. (-5,1) dist=3 > (-4,1) dist=2. (-5,1) wins distance tiebreak.
-- **Comment**: `"Tangential (-5,1) score=12 (dist=3, routes=4), tiebreak dist 3>2 over (-4,1)"`
-
----
-
-### Test 2.8: tangential-escape-se-boundary (RENAME from "perpendicular...y=0 same col")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at SE boundary escapes tangentially
-- **Current Implementation**: char `{x:5, y:0}`, enemy `{x:5, y:2}`, expected `{x:4, y:0}`.
-- **Updated Implementation**: All `{q,r}`. Rename to "tangential escape along SE boundary (same axis)".
-- **Input Positions**:
-  - character: `{q:2, r:3}` (SE boundary)
-  - enemy: `{q:2, r:1}` (2 hexes away on same q axis)
-- **Expected Output**: `{q:1, r:4}`
-- **Assertions**:
-  1. `targetCell` equals `{q:1, r:4}`
-- **Justification**: (1,3) composite=12 (d=2,er=6) and (1,4) composite=12 (d=3,er=4). Tiebreak: (1,4) dist=3 > (1,3) dist=2. (1,4) wins.
-- **Comment**: `"Tangential (1,4) score=12 (dist=3, routes=4), tiebreak dist 3>2 over (1,3)"`
-
----
-
-### Test 2.9: tangential-escape-vertex-0neg5 (RENAME+REWRITE from "perpendicular...y=0 x=0")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at vertex (0,-5) escapes tangentially from approaching threat
-- **Current Implementation**: enemy `{x:0, y:2}`, char `{q:0, r:0}`, expected `{q:1, r:0}`. (0,0) is center, not a corner.
-- **Updated Implementation**: Complete scenario rewrite with actual vertex.
-- **Hex Topology Concept**: Vertex (0,-5) has 3 neighbors: (1,-5), (0,-4), (-1,-4). Same "double-boundary" concept as Test 2.6.
-- **Input Positions**:
-  - character: `{q:0, r:-5}` (vertex, 3 neighbors)
-  - enemy: `{q:2, r:-4}` (2 hexes away)
-- **Expected Output**: `{q:-1, r:-4}`
-- **Assertions**:
-  1. `targetCell` equals `{q:-1, r:-4}`
-- **Justification**: (-1,-4) composite=12 (d=3,er=4) and (0,-4) composite=12 (d=2,er=6). Tiebreak: (-1,-4) dist=3 > (0,-4) dist=2. (-1,-4) wins. (1,-5) composite=8 (d=2,er=4) loses.
-- **Comment**: `"(-1,-4) score=12 (dist=3, routes=4), tiebreak dist 3>2 over (0,-4)"`
-
----
-
-### Test 2.10: tangential-escape-nw-boundary (RENAME from "perpendicular...y=11 same col")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at NW boundary escapes tangentially
-- **Current Implementation**: char `{x:5, y:11}`, enemy `{x:5, y:9}`, expected `{x:4, y:11}`.
-- **Updated Implementation**: All `{q,r}`. Rename to "tangential escape along NW boundary (same axis)".
-- **Input Positions**:
-  - character: `{q:-2, r:-3}` (NW boundary)
-  - enemy: `{q:-2, r:-1}` (2 hexes away)
-- **Expected Output**: `{q:-1, r:-4}`
-- **Assertions**:
-  1. `targetCell` equals `{q:-1, r:-4}`
-- **Justification**: (-1,-3) composite=12 (d=2,er=6) and (-1,-4) composite=12 (d=3,er=4). (-1,-4) dist=3 > (-1,-3) dist=2. (-1,-4) wins.
-- **Comment**: `"Tangential (-1,-4) score=12 (dist=3, routes=4), tiebreak dist 3>2 over (-1,-3)"`
-
----
-
-### Test 2.11: vertex-escape-5_0 (RENAME+REWRITE from "corner (0,0)")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at vertex (5,0) flees from adjacent threat to best escape position
-- **Current Implementation**: char `{q:0, r:0}`, enemy `{q:1, r:1}`, expected `{q:0, r:1}`. (0,0) is center with 6 neighbors, not a corner. hex dist(1,1 -> 0,0)=2, not adjacent.
-- **Updated Implementation**: Complete scenario rewrite with actual vertex.
-- **Hex Topology Concept**: Rectangle "corner" (3 neighbors) maps to hex "vertex" (3 neighbors). The 6 hex vertices are the most constrained positions on the grid.
-- **Input Positions**:
-  - character: `{q:5, r:0}` (vertex, 3 neighbors: (5,-1), (4,1), (4,0))
-  - enemy: `{q:4, r:0}` (adjacent, dist=1)
-- **Expected Output**: `{q:5, r:-1}`
-- **Assertions**:
-  1. `targetCell` equals `{q:5, r:-1}`
-- **Justification**: (5,-1) and (4,1) both composite=3 (d=1,er=3). Tiebreak: dist=1 (tie). absDq: (5,-1) has |4-5|=1, (4,1) has |4-4|=0. (5,-1) wins absDq 1>0. Stay at (5,0) composite=2.
-- **Comment**: `"Vertex (5,-1) score=3 (dist=1, routes=3), tiebreak absDq 1>0 over (4,1)"`
-
----
-
-### Test 2.12: vertex-escape-neg5_0 (RENAME+REWRITE from "corner (11,11)")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at vertex (-5,0) flees from distant threat
-- **Current Implementation**: char `{q:5, r:0}`, enemy `{q:5, r:-40}`. Enemy position INVALID (max(5,40,35)=40 > 5). Expected uses `{x:11, y:10}`.
-- **Updated Implementation**: Complete rewrite with valid positions.
-- **Input Positions**:
-  - character: `{q:-5, r:0}` (vertex, 3 neighbors: (-5,1), (-4,0), (-4,-1))
-  - enemy: `{q:-3, r:0}` (2 hexes away)
-- **Expected Output**: `{q:-5, r:1}`
-- **Assertions**:
-  1. `targetCell` equals `{q:-5, r:1}`
-- **Justification**: (-5,1) and (-4,-1) both composite=8 (d=2,er=4). Tiebreak: dist=2 (tie). absDq: (-5,1) has |(-3)-(-5)|=2, (-4,-1) has |(-3)-(-4)|=1. (-5,1) wins absDq 2>1. (-4,0) composite=5 loses.
-- **Comment**: `"(-5,1) score=8 (dist=2, routes=4), tiebreak absDq 2>1 over (-4,-1)"`
-
----
-
-### Test 2.13: vertex-escape-0_5 (RENAME+REWRITE from "corner (0,11)")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at vertex (0,5) flees from distant threat
-- **Current Implementation**: char `{q:0, r:11}`, enemy `{q:1, r:10}`. Both INVALID (r=11 > 5, r=10 > 5). Expected `{q:0, r:10}`.
-- **Updated Implementation**: Complete rewrite with valid positions.
-- **Input Positions**:
-  - character: `{q:0, r:5}` (vertex, 3 neighbors: (-1,5), (0,4), (1,4))
-  - enemy: `{q:0, r:3}` (2 hexes away)
-- **Expected Output**: `{q:-1, r:5}`
-- **Assertions**:
-  1. `targetCell` equals `{q:-1, r:5}`
-- **Justification**: (-1,5) and (1,4) both composite=8 (d=2,er=4). Tiebreak: dist=2 (tie). absDq: (-1,5) has |0-(-1)|=1, (1,4) has |0-1|=1 (tie). absDr: (-1,5) has |3-5|=2, (1,4) has |3-4|=1. (-1,5) wins absDr 2>1.
-- **Comment**: `"(-1,5) score=8 (dist=2, routes=4), tiebreak absDr 2>1 over (1,4)"`
-
----
-
-### Test 2.14: vertex-escape-neg5_5 (RENAME+REWRITE from "corner (11,0)")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character at vertex (-5,5) flees from adjacent threat
-- **Current Implementation**: char `{q:5, r:-5}`, enemy `{q:5, r:-4}`. Expected `{x:11, y:1}` (stale {x,y}).
-- **Updated Implementation**: Complete rewrite.
-- **Input Positions**:
-  - character: `{q:-5, r:5}` (vertex, 3 neighbors: (-5,4), (-4,5), (-4,4))
-  - enemy: `{q:-4, r:4}` (adjacent, dist=1)
-- **Expected Output**: `{q:-5, r:4}`
-- **Assertions**:
-  1. `targetCell` equals `{q:-5, r:4}`
-- **Justification**: (-5,4) and (-4,5) both composite=3 (d=1,er=3). Tiebreak: dist=1 (tie). absDq: (-5,4) has |(-4)-(-5)|=1, (-4,5) has |(-4)-(-4)|=0. (-5,4) wins absDq 1>0.
-- **Comment**: `"(-5,4) score=3 (dist=1, routes=3), tiebreak absDq 1>0 over (-4,5)"`
-
----
-
-### Test 2.15: interior-over-boundary-angled-flee (RENAME from "vertical fallback")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Interior position with more escape routes beats boundary position at same distance
-- **Current Implementation**: char `{x:0, y:3}`, enemy `{x:2, y:5}`, expected `{x:1, y:2}`.
-- **Updated Implementation**: All `{q,r}`. Rename to "interior over boundary (angled flee)".
-- **Input Positions**:
-  - character: `{q:4, r:1}` (boundary: max(4,1,5)=5, 4 neighbors)
-  - enemy: `{q:2, r:3}`
-- **Expected Output**: `{q:4, r:0}`
-- **Assertions**:
-  1. `targetCell` equals `{q:4, r:0}`
-- **Justification**: Interior (4,0) composite=18 (d=3,er=6) > vertex (5,0) composite=9 (d=3,er=3). (3,1) composite=12 loses. (3,2) composite=3 loses.
-- **Comment**: `"Interior (4,0) score=18 (dist=3, routes=6) > vertex (5,0) score=9 (dist=3, routes=3)"`
-
----
-
-### Test 2.16: towards-mode-approaching-boundary (RENAME from "approaching wall")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Towards mode correctly moves to boundary target (A\* pathfinding works at boundary)
-- **Current Implementation**: char `{x:1, y:5}`, enemy `{x:0, y:5}`, expected `{x:0, y:5}`.
-- **Updated Implementation**: All `{q,r}`. Rename to "towards mode approaching boundary".
-- **Input Positions**:
-  - character: `{q:4, r:1}` (boundary, 4 neighbors)
-  - enemy: `{q:5, r:0}` (vertex, adjacent to character at dist=1)
-- **Expected Output**: `{q:5, r:0}`
-- **Assertions**:
-  1. `targetCell` equals `{q:5, r:0}`
-- **Justification**: A\* pathfinding: hexDistance(4,1 -> 5,0) = 1 (adjacent). Path returns [start, target]. First step is target directly.
-- **Comment**: `"A* returns adjacent target directly (hexDist=1)"`
-
----
-
-### Test 2.17: towards-mode-at-interior (RENAME+REWRITE from "towards at corner")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Towards mode navigates to adjacent target from interior position
-- **Current Implementation**: char `{q:1, r:1}`, enemy `{q:0, r:0}`, expected `{q:0, r:0}`. BUT hexDist(1,1 -> 0,0) = 2 (NOT adjacent). A\* first step would be (0,1) or (1,0), not (0,0).
-- **Updated Implementation**: Change character position so target IS adjacent.
-- **Hex Topology Concept**: In hex, (1,1) is distance 2 from (0,0), unlike square grid where it is distance 1. The original test assumed square-grid adjacency.
-- **Input Positions**:
-  - character: `{q:1, r:0}` (interior, 6 neighbors)
-  - enemy: `{q:0, r:0}` (adjacent at dist=1)
-- **Expected Output**: `{q:0, r:0}`
-- **Assertions**:
-  1. `targetCell` equals `{q:0, r:0}`
-- **Justification**: hexDistance(1,0 -> 0,0) = 1. A\* returns [start, target]. First step is target.
-- **Comment**: `"A* returns adjacent target directly (hexDist=1)"`
-
----
-
-### Test 2.18: escape-adjacent-at-boundary (RENAME from "escape adjacent at wall")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: Character adjacent to enemy at boundary escapes to interior position with more routes
-- **Current Implementation**: char `{x:0, y:5}`, enemy `{x:1, y:5}`, expected `{x:1, y:4}`.
-- **Updated Implementation**: All `{q,r}`. Rename to "escape from adjacent threat at boundary".
-- **Input Positions**:
-  - character: `{q:5, r:-2}` (east boundary, 4 neighbors)
-  - enemy: `{q:5, r:-1}` (adjacent at dist=1, also boundary)
-- **Expected Output**: `{q:4, r:-2}`
-- **Assertions**:
-  1. `targetCell` equals `{q:4, r:-2}`
-- **Justification**: Interior (4,-2) composite=12 (d=2,er=6) > boundary (5,-3) composite=8 (d=2,er=4). (4,-1) composite=5 (d=1,er=5) loses.
-- **Comment**: `"Interior (4,-2) score=12 (dist=2, routes=6) > boundary (5,-3) score=8 (dist=2, routes=4)"`
-
----
-
-## Step 3: `src/engine/game-decisions-move-destination-wall-boundary.test.ts` (14 tests)
-
-This file mirrors Step 2 exactly, but wraps each scenario in `createGameState()` and `computeDecisions()`. Each test also adds a skill with `createSkill()` and asserts `decisions[0]!.action.type === "move"` plus `decisions[0]!.action.targetCell`.
-
-**Rename describe block**: "computeDecisions - move destination - wall-boundary fallback" -> "computeDecisions - move destination - hex boundary fallback"
-
-The 14 failing tests map directly to Step 2 tests. The "prefer interior over edge" tests (2.1-2.4) do not exist in this file, and "stay in place" already passes, leaving 14 failing tests:
-
-| Step 2 Test                  | This File Test | Same Positions | Same Expected  |
-| ---------------------------- | -------------- | -------------- | -------------- |
-| 2.5 (tangential east)        | 3.1            | Yes            | `{q:5, r:-1}`  |
-| 2.6 (tangential vertex 5,-5) | 3.2            | Yes            | `{q:5, r:-4}`  |
-| 2.7 (tangential west)        | 3.3            | Yes            | `{q:-5, r:1}`  |
-| 2.8 (tangential SE)          | 3.4            | Yes            | `{q:1, r:4}`   |
-| 2.9 (tangential vertex 0,-5) | 3.5            | Yes            | `{q:-1, r:-4}` |
-| 2.10 (tangential NW)         | 3.6            | Yes            | `{q:-1, r:-4}` |
-| 2.11 (vertex 5,0)            | 3.7            | Yes            | `{q:5, r:-1}`  |
-| 2.12 (vertex -5,0)           | 3.8            | Yes            | `{q:-5, r:1}`  |
-| 2.13 (vertex 0,5)            | 3.9            | Yes            | `{q:-1, r:5}`  |
-| 2.14 (vertex -5,5)           | 3.10           | Yes            | `{q:-5, r:4}`  |
-| 2.15 (interior angled)       | 3.11           | Yes            | `{q:4, r:0}`   |
-| 2.16 (towards boundary)      | 3.12           | Yes            | `{q:5, r:0}`   |
-| 2.17 (towards interior)      | 3.13           | Yes            | `{q:0, r:0}`   |
-| 2.18 (escape adjacent)       | 3.14           | Yes            | `{q:4, r:-2}`  |
-
-Each test below follows the same pattern. Only the boilerplate differs.
-
----
-
-### Test 3.1: tangential-escape-east-boundary (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions returns tangential escape along east boundary
-- **Current Implementation**: char `{x:0, y:5}`, enemy `{x:2, y:5}`, expected `{x:0, y:4}`. Named "perpendicular...x=0 same row".
-- **Updated Implementation**: Same as Test 2.5. Add `skills: [createSkill({id:"skill1", mode:"away", triggers:[{type:"always"}]})]` to character.
-- **Input Positions**:
-  - character: `{q:5, r:-2}`, enemy: `{q:3, r:-2}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:5, r:-1}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:5, r:-1}`
-- **Justification**: Same as Test 2.5.
-
----
-
-### Test 3.2: tangential-escape-vertex-5neg5 (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions returns tangential escape from vertex (5,-5)
-- **Current Implementation**: char `{q:0, r:0}`, enemy `{q:2, r:0}`, expected `{q:0, r:1}`. Named "perpendicular...x=0 y=0".
-- **Updated Implementation**: Same as Test 2.6.
-- **Input Positions**:
-  - character: `{q:5, r:-5}`, enemy: `{q:3, r:-3}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:5, r:-4}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:5, r:-4}`
-- **Justification**: Same as Test 2.6.
-
----
-
-### Test 3.3: tangential-escape-west-boundary (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions returns tangential escape along west boundary
-- **Current Implementation**: char `{x:11, y:5}`, enemy `{x:9, y:5}`, expected `{x:11, y:4}`. Named "perpendicular...x=11 same row".
-- **Updated Implementation**: Same as Test 2.7.
-- **Input Positions**:
-  - character: `{q:-5, r:2}`, enemy: `{q:-3, r:2}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:-5, r:1}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:-5, r:1}`
-- **Justification**: Same as Test 2.7.
-
----
-
-### Test 3.4: tangential-escape-se-boundary (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions returns tangential escape along SE boundary
-- **Current Implementation**: char `{x:5, y:0}`, enemy `{x:5, y:2}`, expected `{x:4, y:0}`. Named "perpendicular...y=0 same col".
-- **Updated Implementation**: Same as Test 2.8.
-- **Input Positions**:
-  - character: `{q:2, r:3}`, enemy: `{q:2, r:1}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:1, r:4}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:1, r:4}`
-- **Justification**: Same as Test 2.8.
-
----
-
-### Test 3.5: tangential-escape-vertex-0neg5 (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions returns tangential escape from vertex (0,-5)
-- **Current Implementation**: enemy `{x:0, y:2}`, char `{q:0, r:0}`, expected `{q:1, r:0}`. Named "perpendicular...y=0 x=0". Mixed coords.
-- **Updated Implementation**: Same as Test 2.9.
-- **Input Positions**:
-  - character: `{q:0, r:-5}`, enemy: `{q:2, r:-4}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:-1, r:-4}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:-1, r:-4}`
-- **Justification**: Same as Test 2.9.
-
----
-
-### Test 3.6: tangential-escape-nw-boundary (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions returns tangential escape along NW boundary
-- **Current Implementation**: char `{x:5, y:11}`, enemy `{x:5, y:9}`, expected `{x:4, y:11}`. Named "perpendicular...y=11 same col".
-- **Updated Implementation**: Same as Test 2.10.
-- **Input Positions**:
-  - character: `{q:-2, r:-3}`, enemy: `{q:-2, r:-1}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:-1, r:-4}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:-1, r:-4}`
-- **Justification**: Same as Test 2.10.
-
----
-
-### Test 3.7: vertex-escape-5_0 (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions returns vertex (5,0) escape
-- **Current Implementation**: char `{q:0, r:0}`, enemy `{q:1, r:1}`, expected `{q:0, r:1}`. Named "corner (0,0)".
-- **Updated Implementation**: Same as Test 2.11.
-- **Input Positions**:
-  - character: `{q:5, r:0}`, enemy: `{q:4, r:0}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:5, r:-1}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:5, r:-1}`
-- **Justification**: Same as Test 2.11.
-
----
-
-### Test 3.8: vertex-escape-neg5_0 (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions returns vertex (-5,0) escape
-- **Current Implementation**: char `{q:5, r:0}`, enemy `{q:5, r:-40}`, expected `{x:11, y:10}`. Named "corner (11,11)". Invalid positions.
-- **Updated Implementation**: Same as Test 2.12.
-- **Input Positions**:
-  - character: `{q:-5, r:0}`, enemy: `{q:-3, r:0}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:-5, r:1}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:-5, r:1}`
-- **Justification**: Same as Test 2.12.
-
----
-
-### Test 3.9: vertex-escape-0_5 (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions returns vertex (0,5) escape
-- **Current Implementation**: char `{q:0, r:11}`, enemy `{q:1, r:10}`, expected `{q:0, r:10}`. Named "corner (0,11)". Invalid positions.
-- **Updated Implementation**: Same as Test 2.13.
-- **Input Positions**:
-  - character: `{q:0, r:5}`, enemy: `{q:0, r:3}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:-1, r:5}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:-1, r:5}`
-- **Justification**: Same as Test 2.13.
-
----
-
-### Test 3.10: vertex-escape-neg5_5 (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions returns vertex (-5,5) escape
-- **Current Implementation**: char `{q:5, r:-5}`, enemy `{q:5, r:-4}`, expected `{x:11, y:1}`. Named "corner (11,0)". Stale {x,y} expected.
-- **Updated Implementation**: Same as Test 2.14.
-- **Input Positions**:
-  - character: `{q:-5, r:5}`, enemy: `{q:-4, r:4}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:-5, r:4}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:-5, r:4}`
-- **Justification**: Same as Test 2.14.
-
----
-
-### Test 3.11: interior-over-boundary-angled-flee (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions prefers interior position when fleeing at angle
-- **Current Implementation**: char `{x:0, y:3}`, enemy `{x:2, y:5}`, expected `{x:1, y:2}`. Named "vertical fallback".
-- **Updated Implementation**: Same as Test 2.15.
-- **Input Positions**:
-  - character: `{q:4, r:1}`, enemy: `{q:2, r:3}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:4, r:0}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:4, r:0}`
-- **Justification**: Same as Test 2.15.
-
----
-
-### Test 3.12: towards-mode-approaching-boundary (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions towards mode works correctly at boundary
-- **Current Implementation**: char `{x:1, y:5}`, enemy `{x:0, y:5}`, expected `{x:0, y:5}`. Named "approaching wall".
-- **Updated Implementation**: Same as Test 2.16. Skill mode="towards".
-- **Input Positions**:
-  - character: `{q:4, r:1}`, enemy: `{q:5, r:0}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:5, r:0}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:5, r:0}`
-- **Justification**: Same as Test 2.16.
-
----
-
-### Test 3.13: towards-mode-at-interior (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions towards mode at interior hex works correctly
-- **Current Implementation**: char `{q:1, r:1}`, enemy `{q:0, r:0}`, expected `{q:0, r:0}`. Named "towards at corner". hex dist(1,1->0,0)=2 (not adjacent).
-- **Updated Implementation**: Same as Test 2.17. Skill mode="towards".
-- **Input Positions**:
-  - character: `{q:1, r:0}`, enemy: `{q:0, r:0}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:0, r:0}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:0, r:0}`
-- **Justification**: Same as Test 2.17.
-
----
-
-### Test 3.14: escape-adjacent-at-boundary (decisions)
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-move-destination-wall-boundary.test.ts`
-- **Type**: unit
-- **Verifies**: computeDecisions returns correct escape from adjacent threat at boundary
-- **Current Implementation**: char `{x:0, y:5}`, enemy `{x:1, y:5}`, expected `{x:1, y:4}`. Named "escape adjacent at wall".
-- **Updated Implementation**: Same as Test 2.18.
-- **Input Positions**:
-  - character: `{q:5, r:-2}`, enemy: `{q:5, r:-1}`
-- **Expected Output**: `decisions[0]!.action.targetCell` equals `{q:4, r:-2}`
-- **Assertions**:
-  1. `decisions[0]!.action.type` equals `"move"`
-  2. `decisions[0]!.action.targetCell` equals `{q:4, r:-2}`
-- **Justification**: Same as Test 2.18.
-
----
-
-## Step 4: `src/engine/game-movement-escape-routes.test.ts` (6 tests)
-
-All tests in this file already use `{q,r}` coordinates. Fixes are updating expected values and/or redesigning scenarios where position descriptions are wrong (interior positions described as "edge" or "corner").
-
----
-
-### Test 4.1: prefer-interior-over-edge-close-distances
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-escape-routes.test.ts`
-- **Type**: unit
-- **Verifies**: Character at interior prefers higher composite score position when fleeing
-- **Current Implementation**: char `{q:-1, r:3}`, enemy `{q:1, r:2}`. Expects `{q:-1, r:2}`. Actual result: `{q:-2, r:4}`.
-- **Updated Implementation**: Change expected from `{q:-1, r:2}` to `{q:-2, r:4}`. Update comment.
-- **Input Positions** (unchanged):
-  - mover: `{q:-1, r:3}` (interior, 6 neighbors)
-  - enemy: `{q:1, r:2}`
-- **Expected Output**: `{q:-2, r:4}`
-- **Assertions**:
-  1. `result` equals `{q:-2, r:4}`
-- **Justification**: (-2,4) and (-2,3) both composite=18 (d=3,er=6). Tiebreak: dist=3 (tie), absDq: (-2,4) has |1-(-2)|=3, (-2,3) has |1-(-2)|=3 (tie). absDr: (-2,4) has |2-4|=2, (-2,3) has |2-3|=1. (-2,4) wins absDr 2>1.
-- **Comment Update**: `"(-2,4) score=18 (dist=3, routes=6), tiebreak absDr 2>1 over (-2,3)"`
-
----
-
-### Test 4.2: maximize-composite-score-fleeing (RENAME from "avoid corner positions")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-escape-routes.test.ts`
-- **Type**: unit
-- **Verifies**: Character maximizes composite score (distance \* escapeRoutes) when fleeing
-- **Current Implementation**: char `{q:1, r:0}`, enemy `{q:3, r:2}`. Expects `{q:1, r:1}` (score=18). Actual: `{q:0, r:0}` (score=30).
-- **Updated Implementation**: Change expected from `{q:1, r:1}` to `{q:0, r:0}`. Rename test. Update comment.
-- **Hex Topology Concept**: The original test assumed (0,0) was a "corner" with limited routes. In hex, (0,0) is the grid CENTER with 6 neighbors and maximum mobility. The test now verifies correct composite scoring instead.
-- **Input Positions** (unchanged):
-  - mover: `{q:1, r:0}` (interior)
-  - enemy: `{q:3, r:2}`
-- **Expected Output**: `{q:0, r:0}`
-- **Assertions**:
-  1. `result` equals `{q:0, r:0}`
-- **Justification**: (0,0) and (1,-1) both composite=30 (d=5,er=6). Tiebreak: dist=5 (tie), absDq: (0,0) has |3-0|=3, (1,-1) has |3-1|=2. (0,0) wins absDq 3>2.
-- **Comment Update**: `"(0,0) score=30 (dist=5, routes=6), tiebreak absDq 3>2 over (1,-1)"`
-- **Name Update**: "should maximize composite score when fleeing" (was "should avoid corner positions in favor of interior positions")
-
----
-
-### Test 4.3: penalize-low-escape-routes
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-escape-routes.test.ts`
-- **Type**: unit
-- **Verifies**: Blocked adjacent cells reduce composite score, causing character to prefer open positions
-- **Current Implementation**: char `{q:0, r:0}`, enemy `{q:2, r:2}`, blockers at `{q:1, r:0}` and `{q:0, r:1}`. Expects `{q:1, r:-1}`. Actual: `{q:-1, r:0}`.
-- **Updated Implementation**: Change expected from `{q:1, r:-1}` to `{q:-1, r:0}`. Update comment.
-- **Input Positions** (unchanged):
-  - mover: `{q:0, r:0}`, enemy: `{q:2, r:2}`
-  - blocker1: `{q:1, r:0}`, blocker2: `{q:0, r:1}`
-- **Expected Output**: `{q:-1, r:0}`
-- **Assertions**:
-  1. `result` equals `{q:-1, r:0}`
-- **Justification**: (-1,0) composite=30 (d=5,er=6) > (1,-1) composite=20 (d=4,er=5). (-1,0) is unblocked interior, far from threat. (0,-1) also composite=30 but loses tiebreak: absDq (-1,0)=3 > (0,-1)=2.
-- **Comment Update**: `"(-1,0) score=30 (dist=5, routes=6) beats (1,-1) score=20 (dist=4, routes=5)"`
-
----
-
-### Test 4.4: preserve-open-field-equal-routes
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-escape-routes.test.ts`
-- **Type**: unit
-- **Verifies**: When all candidates have equal escape routes (6), tiebreaking produces correct winner
-- **Current Implementation**: char `{q:1, r:1}`, enemy `{q:4, r:-1}`. Expects `{q:0, r:1}`. Actual: `{q:0, r:2}`.
-- **Updated Implementation**: Change expected from `{q:0, r:1}` to `{q:0, r:2}`. Update comment.
-- **Input Positions** (unchanged):
-  - mover: `{q:1, r:1}`, enemy: `{q:4, r:-1}`
-- **Expected Output**: `{q:0, r:2}`
-- **Assertions**:
-  1. `result` equals `{q:0, r:2}`
-- **Justification**: (0,1) and (0,2) both composite=24 (d=4,er=6). Tiebreak: dist=4 (tie), absDq: both |4-0|=4 (tie). absDr: (0,2) has |(-1)-2|=3, (0,1) has |(-1)-1|=2. (0,2) wins absDr 3>2.
-- **Comment Update**: `"(0,2) score=24 (dist=4, routes=6), tiebreak absDr 3>2 over (0,1)"`
-
----
-
-### Test 4.5: prefer-interior-from-edge (REDESIGN from "prefer moving inward from edge")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-escape-routes.test.ts`
-- **Type**: unit
-- **Verifies**: Character at actual edge position prefers interior neighbor over vertex when fleeing
-- **Current Implementation**: char `{q:-3, r:3}`, enemy `{q:2, r:1}`. Expects `{q:-3, r:2}`. Actual: `{q:-4, r:4}`. Problem: (-3,3) has max(3,3,0)=3, which is INTERIOR (6 neighbors), not edge. Test description is misleading.
-- **Updated Implementation**: Complete scenario redesign with actual edge position.
-- **Hex Topology Concept**: An "edge" position in hex has max(|q|,|r|,|q+r|)=5 and is NOT a vertex, giving it 4 neighbors. The test verifies that interior neighbors (6 routes) beat vertex neighbors (3 routes) even when the vertex is farther away.
-- **Input Positions** (changed):
-  - mover: `{q:4, r:1}` (edge: max(4,1,5)=5, 4 neighbors)
-  - enemy: `{q:2, r:1}` (2 hexes away)
-- **Expected Output**: `{q:4, r:0}`
-- **Assertions**:
-  1. `result` equals `{q:4, r:0}`
-- **Justification**: Interior (4,0) composite=12 (d=2,er=6) > vertex (5,0) composite=9 (d=3,er=3). Interior wins because 6 escape routes outweigh the vertex's extra distance.
-- **Name Update**: "should prefer interior neighbor over vertex when fleeing from edge"
-- **Comment Update**: `"Interior (4,0) score=12 (dist=2, routes=6) > vertex (5,0) score=9 (dist=3, routes=3)"`
-
----
-
-### Test 4.6: subtract-obstacles-at-edge (REDESIGN from "subtract obstacles at edge")
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-movement-escape-routes.test.ts`
-- **Type**: unit
-- **Verifies**: calculateCandidateScore correctly subtracts blocked neighbors from escape route count at actual edge position
-- **Current Implementation**: `calculateCandidateScore({q:-3,r:3}, {q:2,r:1}, new Set(["-3,2","-2,3"]))`. Expects escapeRoutes=2. Problem: (-3,3) has 6 neighbors (interior), so with 2 blocked = 4, not 2.
-- **Updated Implementation**: Change position to actual edge hex. Adjust obstacle keys.
-- **Hex Topology Concept**: Edge positions have 4 neighbors. Blocking 2 of them leaves 2 escape routes. Interior positions have 6 neighbors; blocking 2 leaves 4.
-- **Input Positions** (changed):
-  - position: `{q:3, r:2}` (edge: max(3,2,5)=5, 4 neighbors: (2,2),(3,1),(4,1),(2,3))
-  - target: `{q:0, r:0}` (used for distance calc only)
-  - obstacles: `new Set(["2,3", "4,1"])`
-- **Expected Output**: `escapeRoutes` equals 2
-- **Assertions**:
-  1. `result.escapeRoutes` equals 2
-- **Justification**: (3,2) has 4 neighbors: (4,2)--invalid so actually need to recheck. Let me verify: neighbors of (3,2) = (4,2): max(4,2,6)=6>5 INVALID. (2,2): max(2,2,4)=4 valid. (3,3): max(3,3,6)=6>5 INVALID. (3,1): max(3,1,4)=4 valid. (4,1): max(4,1,5)=5 valid. (2,3): max(2,3,5)=5 valid. So 4 valid neighbors. Blocked: "2,3" and "4,1". Unblocked: (2,2) and (3,1). Routes = 2. Correct.
-- **Comment Update**: `"Edge (3,2) has 4 neighbors, 2 blocked by obstacles -> 2 escape routes"`
-
----
-
-## Verification Checklist
-
-After implementing all 41 tests, run:
-
-```bash
-npm run test -- --run src/engine/movement-groups-stress.test.ts
-npm run test -- --run src/engine/game-movement-wall-boundary.test.ts
-npm run test -- --run src/engine/game-decisions-move-destination-wall-boundary.test.ts
-npm run test -- --run src/engine/game-movement-escape-routes.test.ts
-npm run test
+Hex distance formula confirmed (hex.ts lines 52-56):
 ```
+hexDistance(a, b) = (|dq| + |dr| + |dq+dr|) / 2
+```
+Equivalent to: `max(|dq|, |dr|, |dq+dr|)`
 
-All 41 previously-failing tests should now pass. No other tests should be affected (these 4 files are independent test suites with no cross-dependencies).
+All distance-dependent tests (Phase 6) verified to preserve ordering:
+- nearest-enemy tests: dist(A) < dist(B) preserved in all cases
+- nearest-ally tests: same pattern, correct
+- metric independence: distance vs HP independence preserved
+
+### 7. Assertion Consistency
+
+All toEqual assertions verified to match their creation coordinates:
+- File 21 line 188: toEqual({q:0,r:0}) matches line 179 position. OK.
+- File 22 lines 99-100: toEqual matches lines 84, 91. OK.
+- File 24 line 37: toEqual({q:1,r:0}) matches targetCell. OK.
+- File 24 line 273: toEqual({q:3,r:-1}) matches line 258. OK.
+- File 25 lines 70-71: toEqual matches lines 57, 62. OK.
+- File 25 lines 281-282: toEqual matches lines 261, 275. OK.
+- File 37 line 87: toEqual({q:3,r:-1}) matches line 76. OK.
+
+No mismatched assertions found.
+
+### Reviewer Sign-off
+
+**APPROVED FOR IMPLEMENTATION**
+
+All 271 errors are fully specified with exact line-level transformations. Coordinate validity, tiebreaking semantics, distance orderings, and assertion consistency are verified. Three informational issues noted (none blocking). The Phase 5 header should be mentally corrected to "128 errors, 8 files" during implementation.
+
+The document is ready for the WRITE_TESTS phase.
 
 ---
 
-## Spec Alignment Check
+# Test Designs: Fix 271 TypeScript Errors in 38 Test Files
 
-- [x] Plan aligns with `.docs/spec.md` -- hex conversion feature work
-- [x] Approach consistent with `.docs/architecture.md` -- engine-only tests, no React
-- [x] Patterns follow `.docs/patterns/index.md` -- no new patterns needed
-- [x] No conflicts with `.docs/decisions/index.md` -- ADR-003 pathfinding still applies
-- [x] All expected values independently verified using hex engine tiebreaking algorithm
+## Overview
 
-## New Decision
+This document specifies the exact coordinate transformations, outlier fixes, and validation requirements for converting 271 TypeScript errors across 38 test files from `{x, y}` to `{q, r}` format.
 
-**Decision**: "Perpendicular escape" vocabulary replaced by "tangential escape along boundary" in test names and comments.
+## Master Coordinate Transformation Table
 
-**Context**: Rectangular grids have linear walls (x=0, x=11) where perpendicular escape is meaningful. Hex grids have a hexagonal boundary without the concept of walls, so characters flee tangentially along the boundary perimeter or inward toward higher-mobility positions.
+All coordinates must satisfy: `max(|q|, |r|, |q+r|) <= 5`
 
-**Consequences**: Test names and comments updated. No source code impact. Recommend adding note to `.docs/decisions/index.md` when hex ADR is formalized.
+| Old {x, y} | New {q, r} | Validity: max(\|q\|,\|r\|,\|q+r\|) | Used In                                   |
+| ---------- | ---------- | ---------------------------------- | ----------------------------------------- |
+| {0, 0}     | {0, 0}     | 0                                  | Everywhere                                |
+| {1, 0}     | {1, 0}     | 1                                  | Intent ticks, filters, accessibility      |
+| {0, 1}     | {0, 1}     | 1                                  | Simple swap files                         |
+| {1, 1}     | {1, 1}     | 2                                  | Movement target, useDamageNumbers         |
+| {1, 2}     | {1, 2}     | 3                                  | Movement intent                           |
+| {2, 0}     | {2, 0}     | 2                                  | Intent ticks, intent filter               |
+| {2, 2}     | {2, 2}     | 4                                  | Movement intent, IntentOverlay            |
+| {2, 3}     | {2, 3}     | 5                                  | Intent preview, movement intent           |
+| {3, 3}     | {3, 2}     | 5                                  | Intent filter, IntentOverlay              |
+| {3, 7}     | {3, -1}    | 3                                  | Intent preview (characterPosition)        |
+| {4, 4}     | {2, 2}     | 4                                  | Movement intent, lowest-hp                |
+| {4, 5}     | {4, 1}     | 5                                  | Movement intent, processTick              |
+| {4, 7}     | {4, -1}    | 4                                  | Intent preview                            |
+| {5, 0}     | {5, 0}     | 5                                  | Boundary                                  |
+| {5, 4}     | {5, -1}    | 5                                  | processTick (moverB)                      |
+| {5, 5}     | {2, 3}     | 5                                  | Everywhere (far away)                     |
+| {5, 6}     | {2, 3}     | 5                                  | Triggers cell-targeted (enemy pos)        |
+| {5, 7}     | {1, 4}     | 5                                  | Triggers cell-targeted (enemyB)           |
+| {5, 8}     | {0, 5}     | 5                                  | Nearest enemy/ally                        |
+| {5, 9}     | {-1, 5}    | 5                                  | Metric independence                       |
+| {6, 3}     | {3, -1}    | 3                                  | Movement intent                           |
+| {6, 5}     | {3, -1}    | 3                                  | Game decisions (enemy pos)                |
+| {6, 6}     | {3, 2}     | 5                                  | Movement target, useDamageNumbers         |
+| {7, 3}     | {4, -1}    | 4                                  | Movement intent                           |
+| {7, 4}     | {4, -1}    | 4                                  | Tiebreaking (lowest-hp)                   |
+| {7, 5}     | {4, -1}    | 4                                  | Mid-action skip (enemy)                   |
+| {7, 7}     | {3, 2}     | 5                                  | useDamageNumbers                          |
+| {7, 5}     | {4, 1}     | 5                                  | Movement intent (enemyAction)             |
+| {8, 5}     | {5, -2}    | 5                                  | Game decisions (far enemy), nearest enemy |
+| {10, 10}   | {5, 0}     | 5                                  | IntentOverlay, BattleStatusBadge          |
+| {11, 0}    | {5, -5}    | 5                                  | Boundary                                  |
+| {11, 11}   | {-5, 5}    | 5                                  | Intent preview, BattleStatusBadge         |
+
+---
+
+## Phase 1: Outlier Fixes (3 errors, 3 files)
+
+### File 1: `src/engine/pathfinding.test.ts`
+
+- **Error**: TS2554 at line 306 - `findPath(start, goal, obstacles, 5)` passes 4 args, expects 3
+- **Fix**: Delete lines 305-307 entirely (comment + 4-arg call + assertion)
+- **Validation**: The 3-arg call on line 300 already tests findPath
+
+### File 2: `src/components/BattleViewer/battle-viewer-tooltip.test.tsx`
+
+- **Error**: TS2339 at line 197 - `actions.advanceTick()` does not exist
+- **Fix**: Replace `actions.advanceTick()` with `actions.nextTick()`
+- **Validation**: Store exposes `nextTick` and `processTick`, not `advanceTick`
+
+### File 3: `src/components/BattleViewer/token-hover.test.tsx`
+
+- **Error**: TS2532 at line 44 - `mockOnMouseEnter.mock.calls[0][1]` possibly undefined
+- **Fix**: Change `mockOnMouseEnter.mock.calls[0][1]` to `mockOnMouseEnter.mock.calls[0]![1]`
+- **Validation**: Line 40 asserts `toHaveBeenCalledTimes(1)`, guaranteeing calls[0] exists
+
+---
+
+## Phase 2: Component/Helper Fixes (3 errors, 2 files)
+
+### File 4: `src/components/BattleViewer/hooks/useDamageNumbers.test.ts` (1 error)
+
+- **Error**: TS2739 at line 17 - helper function parameter typed as `{x: number; y: number}`
+- **Transformations**:
+  - Line 17: `position: { x: number; y: number }` -> `position: { q: number; r: number }`
+  - Line 36: `{ x: 0, y: 0 }` -> `{ q: 0, r: 0 }`
+  - Line 45: `{ x: 2, y: 3 }` -> `{ q: 2, r: 3 }` (valid: max(2,3,5)=5)
+  - Line 46: `{ x: 5, y: 7 }` -> `{ q: 1, r: 4 }` (valid: max(1,4,5)=5)
+  - Line 63: assertion `{ x: 5, y: 7 }` -> `{ q: 1, r: 4 }` (matches line 46)
+  - Line 67: `{ x: 0, y: 0 }` -> `{ q: 0, r: 0 }`
+  - Line 68: `{ x: 1, y: 1 }` -> `{ q: 1, r: 1 }`
+  - Line 90-92: `{ x: 0, y: 0 }`, `{ x: 1, y: 0 }`, `{ x: 5, y: 5 }` -> `{ q: 0, r: 0 }`, `{ q: 1, r: 0 }`, `{ q: 2, r: 3 }`
+  - Line 123-125: same as 90-92
+  - Line 155-157: `{ x: 0, y: 0 }`, `{ x: 1, y: 0 }`, `{ x: 5, y: 5 }` -> `{ q: 0, r: 0 }`, `{ q: 1, r: 0 }`, `{ q: 2, r: 3 }`
+  - Line 191-193: `{ x: 0, y: 0 }`, `{ x: 5, y: 5 }`, `{ x: 7, y: 7 }` -> `{ q: 0, r: 0 }`, `{ q: 2, r: 3 }`, `{ q: 3, r: 2 }`
+- **Assertions to update**: Line 63 `toEqual({ x: 5, y: 7 })` -> `toEqual({ q: 1, r: 4 })`
+
+### File 5: `src/components/BattleViewer/IntentLine-accessibility.test.tsx` (2 errors)
+
+- **Error**: TS2352 at lines 13-14 - type assertion `as Position` on `{x,y}` objects
+- **Transformations**:
+  - Line 13: `{ x: 0, y: 0 } as Position` -> `{ q: 0, r: 0 } as Position`
+  - Line 14: `{ x: 5, y: 5 } as Position` -> `{ q: 2, r: 3 } as Position`
+- **Validation**: max(2,3,5)=5, valid
+
+---
+
+## Phase 3: Simple Swap Files (29 errors, 12 files)
+
+All values in these files are small (0-5) and valid for direct x->q, y->r swap. No assertions reference specific coordinate values.
+
+### File 6: `src/stores/gameStore-selectors-evaluations.test.ts` (1 error)
+
+- Simple position swap, no coordinate assertions
+
+### File 7: `src/engine/game-integration.test.ts` (1 error)
+
+- Simple position swap
+
+### File 8: `src/engine/combat-multi-attack.test.ts` (1 error)
+
+- Simple position swap
+
+### File 9: `src/components/RuleEvaluations/rule-evaluations-basic.test.tsx` (1 error)
+
+- Simple position swap
+
+### File 10: `src/engine/triggers-always.test.ts` (2 errors)
+
+- Simple position swaps
+
+### File 11: `src/engine/game-decisions-disabled-skills.test.ts` (2 errors)
+
+- Simple position swaps
+
+### File 12: `src/components/BattleViewer/IntentLine-action-colors.test.tsx` (2 errors)
+
+- Simple position swaps
+
+### File 13: `src/engine/game-decisions-no-match-idle.test.ts` (3 errors)
+
+- Simple position swaps
+
+### File 14: `src/engine/game-core-clear-resolved-actions.test.ts` (3 errors)
+
+- Simple position swaps
+
+### File 15: `src/engine/selectors-self.test.ts` (4 errors)
+
+- Simple position swaps
+
+### File 16: `src/engine/triggers-edge-cases.test.ts` (4 errors)
+
+- Simple position swaps
+
+### File 17: `src/engine/selectors-edge-cases.test.ts` (5 errors)
+
+- Simple position swaps
+
+**Conversion rule for all Group 1 files**: Replace every `{ x: N, y: M }` with `{ q: N, r: M }`. All coordinates in these files have N,M in range [0,5] with N+M <= 5, so direct swap is valid.
+
+---
+
+## Phase 4: Partially Converted Files (20 errors, 2 files)
+
+### File 18: `src/engine/triggers-cell-targeted.test.ts` (14 errors)
+
+This file is partially converted. Evaluator positions already use `{q, r}`. Only enemy/ally `position` properties and non-matching `targetCell` values still use `{x, y}`.
+
+**Pattern**: Every remaining `{x, y}` is an enemy/ally position field. The evaluator is at `{q: 3, r: 2}` in all tests.
+
+| Line(s) | Old Value                    | New Value                    | Context                                               |
+| ------- | ---------------------------- | ---------------------------- | ----------------------------------------------------- |
+| 25      | `position: { x: 5, y: 6 }`   | `position: { q: 2, r: 3 }`   | enemy position (doesn't need to match evaluator)      |
+| 48      | `position: { x: 5, y: 6 }`   | `position: { q: 2, r: 3 }`   | enemy position                                        |
+| 51      | `targetCell: { x: 6, y: 6 }` | `targetCell: { q: 3, r: 1 }` | enemy targetCell (must NOT match evaluator {q:3,r:2}) |
+| 71      | `position: { x: 5, y: 6 }`   | `position: { q: 2, r: 3 }`   | enemy position                                        |
+| 90      | `position: { x: 5, y: 6 }`   | `position: { q: 2, r: 3 }`   | ally position                                         |
+| 113     | `position: { x: 5, y: 6 }`   | `position: { q: 2, r: 3 }`   | enemyA position                                       |
+| 116     | `targetCell: { x: 6, y: 6 }` | `targetCell: { q: 3, r: 1 }` | enemyA targetCell (not evaluator)                     |
+| 123     | `position: { x: 5, y: 7 }`   | `position: { q: 1, r: 4 }`   | enemyB position                                       |
+| 150     | `position: { x: 5, y: 6 }`   | `position: { q: 2, r: 3 }`   | enemy position                                        |
+| 174     | `position: { x: 5, y: 6 }`   | `position: { q: 2, r: 3 }`   | enemy position                                        |
+| 198     | `position: { x: 5, y: 6 }`   | `position: { q: 2, r: 3 }`   | enemyA position                                       |
+| 208     | `position: { x: 6, y: 5 }`   | `position: { q: 3, r: 1 }`   | enemyB position                                       |
+| 234     | `position: { x: 5, y: 6 }`   | `position: { q: 2, r: 3 }`   | enemy position                                        |
+| 258     | `position: { x: 5, y: 6 }`   | `position: { q: 2, r: 3 }`   | enemy position                                        |
+
+**Validation**:
+
+- `{q:2, r:3}`: max(2,3,5) = 5 -- valid
+- `{q:3, r:1}`: max(3,1,4) = 4 -- valid (and != evaluator {3,2} for "not matching" test)
+- `{q:1, r:4}`: max(1,4,5) = 5 -- valid
+
+### File 19: `src/engine/combat-edge-cases.test.ts` (6 errors)
+
+Most tests already use `{q, r}`. Remaining errors in two tests:
+
+**Test: "should only resolve actions with ticksRemaining === 1"** (lines 35-42):
+| Line | Old Value | New Value | Context |
+|------|-----------|-----------|---------|
+| 35 | `position: { x: 5, y: 5 }` | `position: { q: 2, r: 3 }` | charC position |
+| 37 | `createAttackAction({ x: 6, y: 6 }, null, 25, 2)` | `createAttackAction({ q: 3, r: 2 }, null, 25, 2)` | charC attackAction targetCell |
+| 41 | `position: { x: 6, y: 6 }` | `position: { q: 3, r: 2 }` | charD position (must match charC targetCell for hit test) |
+
+**Test: "should order all DamageEvents before DeathEvents"** (lines 371-386):
+| Line | Old Value | New Value | Context |
+|------|-----------|-----------|---------|
+| 371 | `position: { x: 1, y: 1 }` | `position: { q: 1, r: 1 }` | attackerB position |
+| 373 | `createAttackAction({ x: 3, y: 3 }, null, 100, 1)` | `createAttackAction({ q: 3, r: 0 }, null, 100, 1)` | attackerB targetCell |
+| 383 | `position: { x: 3, y: 3 }` | `position: { q: 3, r: 0 }` | targetB position (must match attackerB targetCell) |
+
+**Validation**:
+
+- `{q:3, r:0}`: max(3,0,3) = 3 -- valid
+- charC -> charD: charC at {2,3}, attacks {3,2} where charD sits, charD gets hit -- correct
+- attackerB at {1,1}, attacks {3,0} where targetB sits -- correct
+
+---
+
+## Phase 5: Action/Intent Data Files (108 errors, 7 files)
+
+### File 20: `src/stores/gameStore-selectors-intent-ticks.test.ts` (10 errors)
+
+All errors are `targetCell` values in Action literals. No assertions on coordinate values; tests check `ticksRemaining` and `action.type` only.
+
+| Line | Old Value                    | New Value                    | Notes              |
+| ---- | ---------------------------- | ---------------------------- | ------------------ |
+| 27   | `targetCell: { x: 1, y: 0 }` | `targetCell: { q: 1, r: 0 }` | Direct swap, valid |
+| 55   | `targetCell: { x: 1, y: 0 }` | `targetCell: { q: 1, r: 0 }` | Same               |
+| 87   | `targetCell: { x: 1, y: 0 }` | `targetCell: { q: 1, r: 0 }` | Same               |
+| 117  | `targetCell: { x: 2, y: 0 }` | `targetCell: { q: 2, r: 0 }` | Direct swap        |
+| 145  | `targetCell: { x: 2, y: 0 }` | `targetCell: { q: 2, r: 0 }` | Same               |
+| 177  | `targetCell: { x: 2, y: 0 }` | `targetCell: { q: 2, r: 0 }` | Same               |
+| 208  | `targetCell: { x: 2, y: 0 }` | `targetCell: { q: 2, r: 0 }` | Same               |
+| 237  | `targetCell: { x: 1, y: 0 }` | `targetCell: { q: 1, r: 0 }` | Movement action    |
+| 264  | `targetCell: { x: 1, y: 0 }` | `targetCell: { q: 1, r: 0 }` | Movement action    |
+| 295  | `targetCell: { x: 1, y: 0 }` | `targetCell: { q: 1, r: 0 }` | Movement action    |
+
+### File 21: `src/stores/gameStore-selectors-intent-filter.test.ts` (13 errors)
+
+Mix of `targetCell` in Action literals and `position` in createCharacter + position assertions.
+
+| Line | Old Value                                       | New Value                    | Notes                |
+| ---- | ----------------------------------------------- | ---------------------------- | -------------------- | --- | ------------------------- |
+| 36   | `targetCell: { x: 2, y: 0 }`                    | `targetCell: { q: 2, r: 0 }` |                      |
+| 44   | `position: { x: 0, y: 0 }`                      | `position: { q: 0, r: 0 }`   |                      |
+| 67   | `targetCell: { x: 1, y: 0 }`                    | `targetCell: { q: 1, r: 0 }` |                      |
+| 75   | `position: { x: 0, y: 0 }`                      | `position: { q: 0, r: 0 }`   |                      |
+| 93   | `targetCell: { x: 0, y: 0 }`                    | `targetCell: { q: 0, r: 0 }` |                      |
+| 113  | `targetCell: { x: 1, y: 0 }`                    | `targetCell: { q: 1, r: 0 }` |                      |
+| 138  | `targetCell: { x: 5, y: 5 }`                    | `targetCell: { q: 2, r: 3 }` | Remapped             |
+| 168  | `targetCell: { x: 3, y: 3 }` (Position literal) | `{ q: 3, r: 0 }`             | Remapped (           | 3+3 | =6>5), used as targetCell |
+| 179  | `position: { x: 0, y: 0 }`                      | `position: { q: 0, r: 0 }`   |                      |
+| 188  | `characterPosition ... toEqual({ x: 0, y: 0 })` | `toEqual({ q: 0, r: 0 })`    | **Assertion update** |
+| 196  | `targetCell: { x: 1, y: 0 }`                    | `targetCell: { q: 1, r: 0 }` |                      |
+| 223  | `targetCell: { x: 1, y: 0 }`                    | `targetCell: { q: 1, r: 0 }` |                      |
+| 269  | `targetCell: { x: 2, y: 0 }`                    | `targetCell: { q: 2, r: 0 }` |                      |
+
+**Critical**: Line 188 has a `toEqual` assertion on `characterPosition` that must also be updated.
+
+### File 22: `src/stores/gameStore-selectors-movement-intent.test.ts` (13 errors)
+
+Contains positions in character setup and `toEqual` assertions on `targetCell` and `characterPosition`.
+
+| Line    | Old Value                                                                                                          | New Value                                                                                                           | Notes                              |
+| ------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| 25      | `targetCell: { x: 5, y: 5 }`                                                                                       | `targetCell: { q: 2, r: 3 }`                                                                                        | Remapped                           |
+| 32      | `position: { x: 4, y: 5 }`                                                                                         | `position: { q: 4, r: 1 }`                                                                                          | max(4,1,5)=5, valid                |
+| 55      | `targetCell: { x: 6, y: 6 }`                                                                                       | `targetCell: { q: 3, r: 2 }`                                                                                        | Remapped                           |
+| 62      | `position: { x: 4, y: 4 }`                                                                                         | `position: { q: 2, r: 2 }`                                                                                          | Direct swap OK                     |
+| 84      | `targetCell: { x: 7, y: 3 }`                                                                                       | `targetCell: { q: 4, r: -1 }`                                                                                       | max(4,1,3)=4, valid                |
+| 91      | `position: { x: 6, y: 3 }`                                                                                         | `position: { q: 3, r: -1 }`                                                                                         | max(3,1,2)=3, valid                |
+| 99      | `toEqual({ x: 7, y: 3 })`                                                                                          | `toEqual({ q: 4, r: -1 })`                                                                                          | **Assertion** - must match line 84 |
+| 100     | `toEqual({ x: 6, y: 3 })`                                                                                          | `toEqual({ q: 3, r: -1 })`                                                                                          | **Assertion** - must match line 91 |
+| 112     | `targetCell: { x: 2, y: 2 }`                                                                                       | `targetCell: { q: 2, r: 2 }`                                                                                        | Direct swap                        |
+| 119     | `position: { x: 1, y: 2 }`                                                                                         | `position: { q: 1, r: 2 }`                                                                                          | Direct swap                        |
+| 142-152 | `targetCell: { x: 5, y: 5 }`, `position: { x: 4, y: 5 }`, `targetCell: { x: 7, y: 5 }`, `position: { x: 6, y: 5 }` | `targetCell: { q: 2, r: 3 }`, `position: { q: 4, r: 1 }`, `targetCell: { q: 4, r: 1 }`, `position: { q: 3, r: -1 }` | Both factions test                 |
+| 189     | `targetCell: { x: 5, y: 5 }`                                                                                       | `targetCell: { q: 2, r: 3 }`                                                                                        | Stale action test                  |
+
+**Note for "both factions" test**: The key semantic is that both friendly and enemy have movement intents. The exact coordinate values don't matter as long as positions differ from targetCells. Simplified: friendlyAction targetCell `{q:2, r:3}`, friendly position `{q:4, r:1}`, enemyAction targetCell `{q:4, r:1}`, enemy position `{q:3, r:-1}`.
+
+### File 23: `src/components/BattleViewer/IntentOverlay-rendering.test.tsx` (18 errors)
+
+All are `targetCell` and `position` in action/character objects for rendering tests. No coordinate assertions; tests check DOM elements (line counts, attributes).
+
+| Lines          | Old Values                                           | New Values                                         | Notes                       |
+| -------------- | ---------------------------------------------------- | -------------------------------------------------- | --------------------------- |
+| 27, 35, 43, 49 | `{x:5,y:5}`, `{x:0,y:0}`, `{x:0,y:0}`, `{x:10,y:10}` | `{q:2,r:3}`, `{q:0,r:0}`, `{q:0,r:0}`, `{q:5,r:0}` | Filter idle test            |
+| 71, 79         | `{x:3,y:3}`, `{x:1,y:1}`                             | `{q:3,r:0}`, `{q:1,r:1}`                           | Stroke width test           |
+| 105, 113       | `{x:2,y:2}`, `{x:0,y:0}`                             | `{q:2,r:2}`, `{q:0,r:0}`                           | Light Punch render          |
+| 134, 142       | `{x:5,y:5}`, `{x:4,y:5}`                             | `{q:2,r:3}`, `{q:4,r:1}`                           | Movement dash pattern       |
+| 168, 176       | `{x:5,y:5}`, `{x:4,y:5}`                             | `{q:2,r:3}`, `{q:4,r:1}`                           | Enemy movement dash         |
+| 203, 211       | `{x:1,y:0}`, `{x:0,y:0}`                             | `{q:1,r:0}`, `{q:0,r:0}`                           | Light Punch visible         |
+| 242, 250       | `{x:1,y:0}`, `{x:0,y:0}`                             | `{q:1,r:0}`, `{q:0,r:0}`                           | Movement visible            |
+| 282, 290       | `{x:1,y:0}`, `{x:0,y:0}`                             | `{q:1,r:0}`, `{q:0,r:0}`                           | Disappears after resolution |
+
+### File 24: `src/stores/gameStore-selectors-intent-preview.test.ts` (36 errors)
+
+Largest file. Positions in createCharacter calls and targetCell in Action literals + some `toEqual` assertions.
+
+**Coordinate transformations** (systematic):
+
+Every `position: { x: 0, y: 0 }` -> `position: { q: 0, r: 0 }` (occurs ~16 times)
+Every `position: { x: 1, y: 0 }` -> `position: { q: 1, r: 0 }` (occurs ~5 times)
+Every `position: { x: 5, y: 5 }` -> `position: { q: 2, r: 3 }` (occurs ~7 times)
+Every `position: { x: 2, y: 0 }` -> `position: { q: 2, r: 0 }` (occurs ~2 times)
+Every `position: { x: 11, y: 11 }` -> `position: { q: -5, r: 5 }` (occurs 1 time, line 338)
+Every `position: { x: 6, y: 6 }` -> `position: { q: 3, r: 2 }` (occurs 1 time, line 170)
+Every `position: { x: 3, y: 0 }` -> `position: { q: 3, r: 0 }` (occurs 1 time, line 521)
+Every `position: { x: 4, y: 0 }` -> `position: { q: 4, r: 0 }` (occurs 1 time, line 528)
+
+`targetCell` in Action literals:
+Every `targetCell: { x: 1, y: 0 }` -> `targetCell: { q: 1, r: 0 }` (occurs ~3 times)
+Every `targetCell: { x: 2, y: 0 }` -> `targetCell: { q: 2, r: 0 }` (occurs 1 time, line 512)
+
+`toEqual` assertions on coordinate values:
+
+- Line 37: `toEqual({ x: 1, y: 0 })` -> `toEqual({ q: 1, r: 0 })` (targetCell assertion)
+- Line 273: `toEqual({ x: 3, y: 7 })` -> `toEqual({ q: 3, r: -1 })` (characterPosition assertion)
+
+**Special: Line 258, 265** - `position: { x: 3, y: 7 }` and `{ x: 4, y: 7 }`:
+
+- `{3, 7}` -> `{q: 3, r: -1}` (max(3,1,2)=3, valid). Enemy at range 1 from {3,-1}: `{4, -1}` (max(4,1,3)=4, valid).
+  hex distance({3,-1}, {4,-1}) = max(1,0,1) = 1. In range for range=1 attack.
+- Line 265: `{ x: 4, y: 7 }` -> `{ q: 4, r: -1 }`
+
+**Validation**: {-5,5}: max(5,5,0) = 5 -- valid. Characters far apart for movement tests.
+
+### File 25: `src/stores/gameStore-selectors-movement-target.test.ts` (20 errors)
+
+Positions in createCharacter calls and `toEqual` assertions on `fromPosition` and `toPosition`.
+
+| Line(s)            | Old Value                                                        | New Value                                                        | Notes                       |
+| ------------------ | ---------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------- |
+| 32                 | `{ x: 0, y: 0 }`                                                 | `{ q: 0, r: 0 }`                                                 | deadChar1 position          |
+| 38                 | `{ x: 1, y: 1 }`                                                 | `{ q: 1, r: 1 }`                                                 | deadChar2 position          |
+| 57                 | `{ x: 0, y: 0 }`                                                 | `{ q: 0, r: 0 }`                                                 | friendly position           |
+| 62                 | `{ x: 5, y: 5 }`                                                 | `{ q: 2, r: 3 }`                                                 | enemy position              |
+| 70                 | `toEqual({ x: 0, y: 0 })`                                        | `toEqual({ q: 0, r: 0 })`                                        | **Assertion**               |
+| 71                 | `toEqual({ x: 5, y: 5 })`                                        | `toEqual({ q: 2, r: 3 })`                                        | **Assertion**               |
+| 85                 | `{ x: 0, y: 0 }`                                                 | `{ q: 0, r: 0 }`                                                 |                             |
+| 90                 | `{ x: 2, y: 2 }`                                                 | `{ q: 2, r: 2 }`                                                 |                             |
+| 96                 | `{ x: 1, y: 1 }`                                                 | `{ q: 1, r: 1 }`                                                 |                             |
+| 116                | `{ x: 0, y: 0 }`                                                 | `{ q: 0, r: 0 }`                                                 |                             |
+| 122                | `{ x: 5, y: 5 }`                                                 | `{ q: 2, r: 3 }`                                                 |                             |
+| 128                | `{ x: 1, y: 1 }`                                                 | `{ q: 1, r: 1 }`                                                 |                             |
+| 148                | `{ x: 0, y: 0 }`                                                 | `{ q: 0, r: 0 }`                                                 |                             |
+| 167                | `{ x: 0, y: 0 }`                                                 | `{ q: 0, r: 0 }`                                                 |                             |
+| 186, 192, 198, 204 | `{x:0,y:0}`, `{x:1,y:1}`, `{x:5,y:5}`, `{x:6,y:6}`               | `{q:0,r:0}`, `{q:1,r:1}`, `{q:2,r:3}`, `{q:3,r:2}`               | Multiple targets test       |
+| 240                | `{ x: 0, y: 0 }`                                                 | `{ q: 0, r: 0 }`                                                 |                             |
+| 261, 265, 275      | `{ x: 0, y: 0 }`, `targetCell: { x: 2, y: 0 }`, `{ x: 5, y: 0 }` | `{ q: 0, r: 0 }`, `targetCell: { q: 2, r: 0 }`, `{ q: 5, r: 0 }` | Uses current positions test |
+| 281                | `toEqual({ x: 0, y: 0 })`                                        | `toEqual({ q: 0, r: 0 })`                                        | **Assertion**               |
+| 282                | `toEqual({ x: 5, y: 0 })`                                        | `toEqual({ q: 5, r: 0 })`                                        | **Assertion**               |
+
+### File 26: `src/components/RuleEvaluations/rule-evaluations-next-action.test.tsx` (6 errors)
+
+All `targetCell` values in Action literals. No coordinate assertions (tests check rendered text).
+
+| Line | Old Value                    | New Value                    |
+| ---- | ---------------------------- | ---------------------------- |
+| 35   | `targetCell: { x: 1, y: 0 }` | `targetCell: { q: 1, r: 0 }` |
+| 63   | `targetCell: { x: 1, y: 0 }` | `targetCell: { q: 1, r: 0 }` |
+| 91   | `targetCell: { x: 1, y: 0 }` | `targetCell: { q: 1, r: 0 }` |
+| 120  | `targetCell: { x: 1, y: 0 }` | `targetCell: { q: 1, r: 0 }` |
+| 153  | `targetCell: { x: 1, y: 0 }` | `targetCell: { q: 1, r: 0 }` |
+| 191  | `targetCell: { x: 1, y: 0 }` | `targetCell: { q: 1, r: 0 }` |
+
+### File 27: `src/components/BattleStatus/BattleStatusBadge.test.tsx` (12 errors)
+
+Full Character literals with `position: { x: N, y: M }`. No coordinate assertions.
+
+| Line(s)                    | Old Value                    | New Value                   | Notes                             |
+| -------------------------- | ---------------------------- | --------------------------- | --------------------------------- |
+| 41, 67, 94, 145, 182, 221  | `position: { x: 0, y: 0 }`   | `position: { q: 0, r: 0 }`  | Friendly position (6 occurrences) |
+| 52, 79, 107, 157, 193, 232 | `position: { x: 11, y: 11 }` | `position: { q: -5, r: 5 }` | Enemy position (6 occurrences)    |
+
+**Validation**: {-5, 5}: max(5, 5, 0) = 5 -- valid
+
+---
+
+## Phase 6: Distance-Dependent Selector Tests (59 errors, 6 files)
+
+These tests require careful coordinate selection to preserve distance ordering and tiebreaking semantics.
+
+### File 28: `src/engine/selectors-nearest-enemy.test.ts` (11 errors)
+
+**Test 1: "closest enemy by Chebyshev distance"** (lines 20-30)
+
+- Old: eval {5,5}, enemyA {5,7} (Chebyshev=2), enemyB {8,5} (Chebyshev=3)
+- New: eval {0,0}, enemyA {0,2} (hex=2), enemyB {3,0} (hex=3)
+- Expected: enemyA (closer)
+- Verification: hexDist(0,0 -> 0,2) = max(0,2,2) = 2; hexDist(0,0 -> 3,0) = max(3,0,3) = 3. OK.
+
+**Test 2: "ignore allies"** (lines 47-57)
+
+- Old: eval {5,5}, ally {5,6} (dist=1), enemy {5,8} (dist=3)
+- New: eval {0,0}, ally {0,1} (hex=1), enemy {0,3} (hex=3)
+- Expected: enemy (only enemy)
+- Verification: {0,3}: max(0,3,3)=3, valid. hexDist=3. OK.
+
+**Test 3: "diagonal distances"** (lines 74-84)
+
+- Old: eval {5,5}, enemyA {7,7} (Chebyshev=2 diagonal), enemyB {5,8} (dist=3)
+- New: eval {0,0}, enemyA {1,1} (hex=2), enemyB {0,3} (hex=3)
+- Expected: enemyA (closer)
+- Verification: hexDist(0,0 -> 1,1) = max(1,1,2) = 2; hexDist(0,0 -> 0,3) = max(0,3,3) = 3. OK.
+- Comment update: "dist=2 (diagonal)" -> "hex dist=2" (no diagonals in hex)
+
+**Test 4: "no enemies"** (lines 101-107)
+
+- Old: eval {5,5}, ally {6,6}
+- New: eval {0,0}, ally {1,1}
+- Expected: null
+
+### File 29: `src/engine/selectors-nearest-ally.test.ts` (8 errors)
+
+**Test 1: "closest ally by Chebyshev distance"** (lines 20-30)
+
+- Old: eval {5,5}, allyA {5,7} (dist=2), allyB {8,5} (dist=3)
+- New: eval {0,0}, allyA {0,2} (hex=2), allyB {3,0} (hex=3)
+- Expected: allyA
+
+**Test 2: "exclude self"** (line 47)
+
+- Old: eval {5,5}
+- New: eval {0,0}
+
+**Test 3: "ignore enemies"** (lines 60-70)
+
+- Old: eval {5,5}, enemy {5,6} (dist=1), ally {5,8} (dist=3)
+- New: eval {0,0}, enemy {0,1} (hex=1), ally {0,3} (hex=3)
+- Expected: ally
+
+**Test 4: "only evaluator exists"** (line 87)
+
+- Old: eval {5,5}
+- New: eval {0,0}
+
+### File 30: `src/engine/selectors-lowest-hp-enemy.test.ts` (9 errors)
+
+No distance dependencies. Positions just need to be valid and distinct.
+
+**Test 1: "lowest current HP"** (lines 20-38)
+
+- Old: eval {5,5}, A hp=75 {3,3}, B hp=50 {4,4}, C hp=90 {6,6}
+- New: eval {0,0}, A hp=75 {3,0} (valid: max(3,0,3)=3), B hp=50 {2,2} (valid: max(2,2,4)=4), C hp=90 {3,2} (valid: max(3,2,5)=5)
+- Expected: B (lowest HP)
+
+**Test 2: "ignore allies"** (lines 55-68)
+
+- Old: eval {5,5}, ally hp=10 {4,4}, enemy hp=50 {6,6}
+- New: eval {0,0}, ally hp=10 {2,2}, enemy hp=50 {3,2}
+- Expected: enemy
+
+**Test 3: "no enemies"** (lines 84-90)
+
+- Old: eval {5,5}, ally {4,4}
+- New: eval {0,0}, ally {2,2}
+
+### File 31: `src/engine/selectors-lowest-hp-ally.test.ts` (9 errors)
+
+**Test 1: "lowest current HP"** (lines 20-38)
+
+- Old: eval {5,5}, A hp=75 {3,3}, B hp=50 {4,4}, C hp=90 {6,6}
+- New: eval {0,0}, A hp=75 {3,0}, B hp=50 {2,2}, C hp=90 {3,2}
+- Expected: B (lowest HP)
+
+**Test 2: "exclude self"** (lines 55-65)
+
+- Old: eval hp=10 {5,5}, ally hp=50 {4,4}
+- New: eval hp=10 {0,0}, ally hp=50 {2,2}
+- Expected: ally
+
+**Test 3: "ignore enemies"** (lines 75-88)
+
+- Old: eval {5,5}, enemy hp=10 {6,6}, ally hp=50 {4,4}
+- New: eval {0,0}, enemy hp=10 {3,2}, ally hp=50 {2,2}
+- Expected: ally
+
+### File 32: `src/engine/selectors-tie-breaking.test.ts` (16 errors)
+
+**CRITICAL FILE** - All tests verify tiebreaking logic. Must update tiebreaking dimension references (Y->R, X->Q).
+
+**Test 1: "nearest_enemy: prefer lower Y when distances equal"** (lines 16-41)
+
+- Old: eval {5,5}, enemyA {6,4} Y=4, enemyB {4,6} Y=6
+- New: eval {0,0}, enemyA {1,-1} R=-1, enemyB {-1,1} R=1
+- Expected: enemyA (lower R)
+- Verification: hexDist(0,0 -> 1,-1) = max(1,1,0) = 1; hexDist(0,0 -> -1,1) = max(1,1,0) = 1. Equal.
+  Tiebreak: enemyA.R=-1 < enemyB.R=1. Winner: enemyA. Correct.
+- Comment update: "dist=1, Y=4" -> "hex dist=1, R=-1", "Y=4 < Y=6" -> "R=-1 < R=1"
+- Test name update: "prefer lower Y" -> "prefer lower R"
+
+**Test 2: "nearest_enemy: prefer lower X when Y and distances equal"** (lines 43-67)
+
+- Old: eval {5,5}, enemyA {4,5} X=4, enemyB {6,5} X=6
+- New: eval {0,0}, enemyA {-1,0} Q=-1, enemyB {1,0} Q=1
+- Expected: enemyA (lower Q)
+- Verification: hexDist(0,0 -> -1,0) = max(1,0,1) = 1; hexDist(0,0 -> 1,0) = max(1,0,1) = 1. Equal.
+  R: both 0. Tiebreak by Q: enemyA.Q=-1 < enemyB.Q=1. Winner: enemyA. Correct.
+- Comment update: "X=4" -> "Q=-1", "X=4 < X=6" -> "Q=-1 < Q=1"
+- Test name update: "prefer lower X when Y" -> "prefer lower Q when R"
+
+**Test 3: "lowest_hp_enemy: prefer lower Y when HP equal"** (lines 70-96)
+
+- Old: eval {5,5}, A hp=50 {3,2} Y=2, B hp=50 {7,4} Y=4
+- New: eval {0,0}, A hp=50 {-2,-1} R=-1, B hp=50 {2,1} R=1
+- Expected: enemyA (lower R)
+- Verification: {-2,-1}: max(2,1,3)=3, valid. {2,1}: max(2,1,3)=3, valid.
+  Same HP=50. Tiebreak by R: A.R=-1 < B.R=1. Winner: A. Correct.
+- Comment update: "Y=2" -> "R=-1", "Y=2 < Y=4" -> "R=-1 < R=1"
+- Test name update: "prefer lower Y when HP equal" -> "prefer lower R when HP equal"
+
+**Test 4: "lowest_hp_enemy: prefer lower X when HP and Y equal"** (lines 99-126)
+
+- Old: eval {0,0}, A hp=50 {2,3} X=2, B hp=50 {5,3} X=5
+- New: eval {0,0}, A hp=50 {-1,2} Q=-1 R=2, B hp=50 {2,2} Q=2 R=2
+- Expected: enemyA (lower Q when HP and R equal)
+- Verification: {-1,2}: max(1,2,1)=2, valid. {2,2}: max(2,2,4)=4, valid.
+  Same HP=50. Same R=2. Tiebreak by Q: A.Q=-1 < B.Q=2. Winner: A. Correct.
+- Comment update: "X=2" -> "Q=-1", "X=2 < X=5" -> "Q=-1 < Q=2"
+- Test name update: "prefer lower X when HP and Y" -> "prefer lower Q when HP and R"
+
+**Test 5: "nearest_enemy: three-way tie"** (lines 128-158)
+
+- Old: eval {5,5}, A {5,4} Y=4, B {6,5} Y=5, C {4,5} Y=5
+- New: eval {0,0}, A {0,-1} R=-1, B {1,0} R=0, C {-1,0} R=0
+- Expected: enemyA (lowest R)
+- Verification: All hex dist 1. A.R=-1 lowest. Winner: A. Correct.
+- Comment update: "Lowest Y=4" -> "Lowest R=-1"
+
+### File 33: `src/engine/selectors-metric-independence.test.ts` (6 errors)
+
+**Test 1: "nearest_enemy: select by distance regardless of HP"** (lines 20-32)
+
+- Old: eval {5,5}, A hp=100 {5,6} dist=1, B hp=10 {5,9} dist=4
+- New: eval {0,0}, A hp=100 {0,1} hex=1, B hp=10 {0,4} hex=4
+- Expected: A (closer despite higher HP)
+- Verification: {0,4}: max(0,4,4)=4, valid. hexDist=4. OK.
+
+**Test 2: "lowest_hp_enemy: select by HP regardless of distance"** (lines 49-62)
+
+- Old: eval {5,5}, A hp=100 {5,6} dist=1, B hp=10 {5,9} dist=4
+- New: eval {0,0}, A hp=100 {0,1} hex=1, B hp=10 {0,4} hex=4
+- Expected: B (lower HP despite farther)
+
+---
+
+## Phase 7: Game Decision Tests (29 errors, 5 files)
+
+### File 34: `src/engine/game-decisions-action-type-inference.test.ts` (6 errors)
+
+All `position: { x: N, y: M }` on enemy characters. The `character` positions already use `{q, r}`.
+
+| Line | Old Value                  | New Value                   | Notes                         |
+| ---- | -------------------------- | --------------------------- | ----------------------------- |
+| 18   | `position: { x: 6, y: 5 }` | `position: { q: 3, r: -1 }` | enemy position (max(3,1,2)=3) |
+| 44   | `position: { x: 8, y: 5 }` | `position: { q: 5, r: -2 }` | enemy position (max(5,2,3)=5) |
+| 72   | `position: { x: 6, y: 5 }` | `position: { q: 3, r: -1 }` | Same                          |
+| 102  | `position: { x: 6, y: 5 }` | `position: { q: 3, r: -1 }` | Same                          |
+| 127  | `position: { x: 6, y: 5 }` | `position: { q: 3, r: -1 }` | Same                          |
+| 159  | `position: { x: 6, y: 5 }` | `position: { q: 3, r: -1 }` | Same                          |
+
+### File 35: `src/engine/game-decisions-mid-action-skip.test.ts` (6 errors)
+
+Mix of enemy positions and createAttackAction targetCells still using `{x, y}`.
+
+| Line | Old Value                                   | New Value                                    | Notes                         |
+| ---- | ------------------------------------------- | -------------------------------------------- | ----------------------------- |
+| 19   | `createAttackAction({ x: 6, y: 5 }, 10, 2)` | `createAttackAction({ q: 3, r: -1 }, 10, 2)` | targetCell                    |
+| 42   | `position: { x: 6, y: 5 }`                  | `position: { q: 3, r: -1 }`                  | enemy position                |
+| 72   | `position: { x: 7, y: 5 }`                  | `position: { q: 4, r: -1 }`                  | enemy position (max(4,1,3)=4) |
+| 73   | `createAttackAction({ x: 6, y: 5 }, 10, 2)` | `createAttackAction({ q: 3, r: -1 }, 10, 2)` | enemy targetCell              |
+| 78   | `createAttackAction({ x: 6, y: 5 }, 10, 2)` | `createAttackAction({ q: 3, r: -1 }, 10, 2)` | midAction targetCell          |
+| 89   | `position: { x: 6, y: 5 }`                  | `position: { q: 3, r: -1 }`                  | idle position                 |
+
+### File 36: `src/engine/game-core-apply-decisions.test.ts` (6 errors)
+
+All `createAttackAction` calls with `{x, y}` targetCells.
+
+| Line | Old Value                                   | New Value                                    | Notes          |
+| ---- | ------------------------------------------- | -------------------------------------------- | -------------- |
+| 16   | `createAttackAction({ x: 6, y: 5 }, 10, 1)` | `createAttackAction({ q: 3, r: -1 }, 10, 1)` |                |
+| 27   | `createAttackAction({ x: 7, y: 7 }, 10, 1)` | `createAttackAction({ q: 3, r: 2 }, 10, 1)`  | {7,7} remapped |
+| 49   | `createAttackAction({ x: 6, y: 5 }, 10, 1)` | `createAttackAction({ q: 3, r: -1 }, 10, 1)` |                |
+| 64   | `createAttackAction({ x: 6, y: 5 }, 10, 1)` | `createAttackAction({ q: 3, r: -1 }, 10, 1)` |                |
+| 77   | `createAttackAction({ x: 6, y: 5 }, 10, 1)` | `createAttackAction({ q: 3, r: -1 }, 10, 1)` |                |
+| 78   | `createAttackAction({ x: 7, y: 7 }, 15, 1)` | `createAttackAction({ q: 3, r: 2 }, 15, 1)`  |                |
+
+### File 37: `src/engine/game-core-process-tick-combat-movement.test.ts` (3 errors)
+
+| Line    | Old Value                                                 | New Value                                                  | Notes                      |
+| ------- | --------------------------------------------------------- | ---------------------------------------------------------- | -------------------------- |
+| 76      | `createMoveAction({ x: 6, y: 5 }, 2)`                     | `createMoveAction({ q: 3, r: -1 }, 2)`                     | Movement target            |
+| 87      | `toEqual({ x: 6, y: 5 })`                                 | `toEqual({ q: 3, r: -1 })`                                 | **Assertion** - must match |
+| 122-129 | `position: { x: 4, y: 5 }` and `position: { x: 5, y: 4 }` | `position: { q: 4, r: 1 }` and `position: { q: 5, r: -1 }` | Two movers to same target  |
+
+**Validation**:
+
+- {q:3, r:-1}: max(3,1,2) = 3, valid
+- {q:4, r:1}: max(4,1,5) = 5, valid
+- {q:5, r:-1}: max(5,1,4) = 5, valid
+
+### File 38: `src/engine/movement-groups-stress.test.ts` (8 errors)
+
+Only the "deterministic order" test (lines 104-127) still has `{x, y}`. Other tests already use `{q, r}`.
+
+| Line | Old Value                             | New Value                             | Notes                  |
+| ---- | ------------------------------------- | ------------------------------------- | ---------------------- | --- | ----- |
+| 106  | `position: { x: 0, y: 0 }`            | `position: { q: 0, r: 0 }`            | moverA1                |
+| 107  | `createMoveAction({ x: 2, y: 3 }, 1)` | `createMoveAction({ q: 2, r: 3 }, 1)` | Target (max(2,3,5)=5)  |
+| 110  | `position: { x: 1, y: 2 }`            | `position: { q: 1, r: 2 }`            | moverA2                |
+| 113  | `createMoveAction({ x: 2, y: 3 }, 1)` | `createMoveAction({ q: 2, r: 3 }, 1)` | Same target            |
+| 116  | `position: { x: 4, y: 4 }`            | `position: { q: 2, r: 2 }`            | moverB1 (remapped,     | 4+4 | =8>5) |
+| 120  | `createMoveAction({ x: 5, y: 5 }, 1)` | `createMoveAction({ q: 2, r: 3 }, 1)` | Target B (remapped)    |
+| 123  | `position: { x: 5, y: 4 }`            | `position: { q: 3, r: 1 }`            | moverB2 (max(3,1,4)=4) |
+| 126  | `createMoveAction({ x: 5, y: 5 }, 1)` | `createMoveAction({ q: 2, r: 3 }, 1)` | Same target B          |
+
+**Validation**:
+
+- Targets A {q:2,r:3} and B {q:2,r:3} -- WAIT, both groups target the same cell! That would merge them into one collision group instead of two.
+- Correction: Need distinct targets. Target A stays at {q:2,r:3}. Target B should be different, e.g., {q:-2,r:-1} (max(2,1,3)=3, valid).
+- moverB1 at {q:2,r:2} should be neighbor of target B. If target B is {q:-2,r:-1}, moverB1 needs to be near that. Use moverB1 {q:-1,r:-1} (max(1,1,2)=2) and moverB2 {q:-2,r:0} (max(2,0,2)=2).
+
+**Revised mapping for deterministic order test**:
+
+| Line | Old Value                             | New Value                               | Notes                   |
+| ---- | ------------------------------------- | --------------------------------------- | ----------------------- |
+| 106  | `position: { x: 0, y: 0 }`            | `position: { q: 1, r: 3 }`              | moverA1 (near target A) |
+| 107  | `createMoveAction({ x: 2, y: 3 }, 1)` | `createMoveAction({ q: 2, r: 3 }, 1)`   | Target A                |
+| 110  | `position: { x: 1, y: 2 }`            | `position: { q: 2, r: 2 }`              | moverA2 (near target A) |
+| 113  | `createMoveAction({ x: 2, y: 3 }, 1)` | `createMoveAction({ q: 2, r: 3 }, 1)`   | Same target A           |
+| 116  | `position: { x: 4, y: 4 }`            | `position: { q: -1, r: -1 }`            | moverB1 (near target B) |
+| 120  | `createMoveAction({ x: 5, y: 5 }, 1)` | `createMoveAction({ q: -2, r: -1 }, 1)` | Target B                |
+| 123  | `position: { x: 5, y: 4 }`            | `position: { q: -2, r: 0 }`             | moverB2 (near target B) |
+| 126  | `createMoveAction({ x: 5, y: 5 }, 1)` | `createMoveAction({ q: -2, r: -1 }, 1)` | Same target B           |
+
+**Verification**:
+
+- Target A {2,3}: max(2,3,5)=5. moverA1 {1,3}: max(1,3,4)=4. moverA2 {2,2}: max(2,2,4)=4. Both adjacent to {2,3}? hexDist({1,3},{2,3})=max(1,0,1)=1. hexDist({2,2},{2,3})=max(0,1,1)=1. Yes.
+- Target B {-2,-1}: max(2,1,3)=3. moverB1 {-1,-1}: max(1,1,2)=2. moverB2 {-2,0}: max(2,0,2)=2. hexDist({-1,-1},{-2,-1})=max(1,0,1)=1. hexDist({-2,0},{-2,-1})=max(0,1,1)=1. Yes.
+- Target A != Target B. Two separate collision groups. Correct.
+- Test asserts `result1.rngState === result2.rngState` regardless of input order. This is a determinism test, not dependent on specific coords.
+
+---
+
+## Implementation Checklist
+
+- [ ] Phase 1: Fix 3 outlier errors (3 files)
+- [ ] Phase 2: Fix 3 component/helper errors (2 files)
+- [ ] Phase 3: Fix 29 simple swap errors (12 files)
+- [ ] Phase 4: Fix 20 partially converted errors (2 files)
+- [ ] Phase 5: Fix 108 action/intent data errors (7 files)
+- [ ] Phase 6: Fix 59 distance-dependent selector errors (6 files)
+- [ ] Phase 7: Fix 29 game decision errors (5 files)
+- [ ] Run `npm run type-check` - expect 0 errors
+- [ ] Run `npm run test` - expect 1035/1045 passing (no regressions)
+- [ ] Run `npm run lint` - expect pass
+
+**Total: 271 errors across 38 files**
+
+Error count verification: 3 + 3 + 29 + 20 + 108 + 59 + 29 = 251. Discrepancy check: The Group 8 files (IntentLine-accessibility 2 + useDamageNumbers 1) are counted in Phase 2 (3 errors), but the original plan counts them as Group 8 separate from Group 9 outliers. Let me recount:
+
+- Phase 1 (outliers): 3 errors (pathfinding, tooltip, token-hover)
+- Phase 2 (component/helper): 3 errors (useDamageNumbers 1, IntentLine-accessibility 2)
+- Phase 3 (simple swap): 29 errors (12 files)
+- Phase 4 (partial): 14 + 6 = 20 errors (2 files)
+- Phase 5 (action/intent): 10 + 13 + 13 + 18 + 36 + 20 + 6 + 12 = 128 errors...
+
+Recount from exploration.md: 36+20+18+16+14+13+13+12+11+10+9+9+8+8+6+6+6+6+6+6+5+4+4+3+3+3+2+2+2+2+1+1+1+1+1+1+1+1 = 271. Correct.
+
+Phase breakdown recount:
+
+- Phase 1: 3 (pathfinding 1, tooltip 1, token-hover 1)
+- Phase 2: 3 (useDamageNumbers 1, IntentLine-accessibility 2)
+- Phase 3: 29 (12 files from Group 1)
+- Phase 4: 20 (triggers-cell-targeted 14, combat-edge-cases 6)
+- Phase 5: 108 (intent-ticks 10, intent-filter 13, movement-intent 13, IntentOverlay 18, intent-preview 36, movement-target 20... that's 110 already - but plan says 108 for 7 files)
+
+Let me recount Phase 5: intent-ticks 10 + intent-filter 13 + movement-intent 13 + IntentOverlay 18 + intent-preview 36 + rule-evaluations-next-action 6 + BattleStatusBadge 12 = 108. Movement-target 20 is in Group 7 (Phase 5 in the plan but I labeled it Phase 5 above). Actually: the plan includes movement-target in Phase 5. So: 10+13+13+18+36+20+6+12 = 128. But plan says 108 for Group 2 (7 files) + 20 for Group 7 (1 file) = 128 total for combined Phase 5+. Let me just keep the implementation phases as the plan defines them.
+
+Final verification of total: 3+3+29+20+128+59+29 = 271. Correct.
+
+---
+
+## Validation Notes
+
+### Hand-verified representative cases:
+
+1. **Tiebreaking Test 1** (selectors-tie-breaking.test.ts, test 1):
+   - eval {0,0}, enemyA {1,-1}, enemyB {-1,1}
+   - hexDist: max(1,1,0)=1 for both -- TIED
+   - Tiebreak: R first. A.R=-1 < B.R=1. Winner: A. CORRECT.
+
+2. **Tiebreaking Test 4** (selectors-tie-breaking.test.ts, test 4):
+   - eval {0,0}, A hp=50 {-1,2}, B hp=50 {2,2}
+   - Same HP. Tiebreak: R first. Both R=2, tied. Q next: A.Q=-1 < B.Q=2. Winner: A. CORRECT.
+
+3. **Nearest enemy distance ordering** (selectors-nearest-enemy.test.ts, test 1):
+   - eval {0,0}, enemyA {0,2}, enemyB {3,0}
+   - hexDist({0,0},{0,2}) = max(0,2,2)=2. hexDist({0,0},{3,0}) = max(3,0,3)=3.
+   - 2 < 3, so A is closer. CORRECT.
+
+4. **Combat hit detection** (combat-edge-cases.test.ts, "action filtering"):
+   - charC at {2,3} attacks {3,2}. charD at {3,2}. charD should be hit.
+   - targetCell == charD.position. CORRECT.
+
+5. **Movement target assertion** (gameStore-selectors-movement-target.test.ts, "uses current positions"):
+   - friendly at {0,0}, action targetCell {2,0}, enemy at {5,0}
+   - fromPosition assertion: {0,0} (current position, not targetCell). CORRECT.
+
+6. **Movement groups deterministic order** (movement-groups-stress.test.ts):
+   - Group A targets {2,3}. Group B targets {-2,-1}. Distinct targets = separate collision groups. CORRECT.
+
+### All coordinates satisfy hex validity:
+
+Every `{q, r}` in this document has been verified: `max(|q|, |r|, |q+r|) <= 5`.

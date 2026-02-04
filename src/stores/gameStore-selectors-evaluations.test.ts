@@ -41,7 +41,7 @@ describe("selectAllCharacterEvaluations", () => {
     const action: Action = {
       type: "attack",
       skill: createSkill({ id: "light-punch", tickCost: 1 }),
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,

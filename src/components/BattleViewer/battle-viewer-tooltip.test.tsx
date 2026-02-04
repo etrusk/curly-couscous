@@ -193,8 +193,8 @@ describe("BattleViewer Tooltip Integration", () => {
     expect(tooltip).toBeInTheDocument();
 
     // Trigger game tick advancement
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    actions.advanceTick();
+
+    actions.nextTick();
 
     // Tooltip resolution timing updates
     // Action state reflects new tick

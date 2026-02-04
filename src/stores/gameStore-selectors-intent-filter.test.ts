@@ -33,7 +33,7 @@ describe("selectIntentData - Filtering Logic", () => {
     const action: Action = {
       type: "attack",
       skill: heavyPunchSkill,
-      targetCell: { x: 2, y: 0 },
+      targetCell: { q: 2, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -41,7 +41,7 @@ describe("selectIntentData - Filtering Logic", () => {
     const char = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -64,7 +64,7 @@ describe("selectIntentData - Filtering Logic", () => {
     const action: Action = {
       type: "attack",
       skill: lightPunchSkill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -72,7 +72,7 @@ describe("selectIntentData - Filtering Logic", () => {
     const char = createCharacter({
       id: "char1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -89,7 +89,7 @@ describe("selectIntentData - Filtering Logic", () => {
     const idleAction: Action = {
       type: "idle",
       skill: createSkill({ id: "idle", tickCost: 0 }),
-      targetCell: { x: 0, y: 0 },
+      targetCell: { q: 0, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 0,
@@ -110,7 +110,7 @@ describe("selectIntentData - Filtering Logic", () => {
     const action: Action = {
       type: "attack",
       skill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 2,
@@ -135,7 +135,7 @@ describe("selectIntentData - Filtering Logic", () => {
     const action: Action = {
       type: "attack",
       skill,
-      targetCell: { x: 5, y: 5 },
+      targetCell: { q: 2, r: 3 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 3,
@@ -165,7 +165,7 @@ describe("selectIntentData - Filtering Logic", () => {
 
   it("should lock targetCell position at time of decision (character position may change)", () => {
     const skill = createSkill({ id: "skill", tickCost: 2 });
-    const targetCell: Position = { x: 3, y: 3 };
+    const targetCell: Position = { q: 3, r: 0 };
     const action: Action = {
       type: "attack",
       skill,
@@ -176,7 +176,7 @@ describe("selectIntentData - Filtering Logic", () => {
     };
     const char = createCharacter({
       id: "char1",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       currentAction: action,
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -185,7 +185,7 @@ describe("selectIntentData - Filtering Logic", () => {
 
     expect(result[0]?.action.targetCell).toEqual(targetCell);
     // characterPosition should be the character's current position (not targetCell)
-    expect(result[0]?.characterPosition).toEqual({ x: 0, y: 0 });
+    expect(result[0]?.characterPosition).toEqual({ q: 0, r: 0 });
   });
 
   it("should include attack actions with ticksRemaining = 0 (resolving this tick)", () => {
@@ -193,7 +193,7 @@ describe("selectIntentData - Filtering Logic", () => {
     const action: Action = {
       type: "attack",
       skill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -220,7 +220,7 @@ describe("selectIntentData - Filtering Logic", () => {
     const action: Action = {
       type: "move",
       skill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -253,7 +253,7 @@ describe("selectIntentData - Filtering Logic", () => {
     const attackAction: Action = {
       type: "attack",
       skill: attackSkill,
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,
@@ -266,7 +266,7 @@ describe("selectIntentData - Filtering Logic", () => {
     const moveAction: Action = {
       type: "move",
       skill: moveSkill,
-      targetCell: { x: 2, y: 0 },
+      targetCell: { q: 2, r: 0 },
       targetCharacter: null,
       startedAtTick: 0,
       resolvesAtTick: 1,

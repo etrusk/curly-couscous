@@ -301,10 +301,6 @@ describe("findPath - API Signature", () => {
 
     expect(path.length).toBeGreaterThan(0);
     expect(path[path.length - 1]).toEqual(goal);
-
-    // Can also accept radius parameter
-    const pathWithRadius = findPath(start, goal, obstacles, 5);
-    expect(pathWithRadius.length).toBeGreaterThan(0);
   });
 
   it("positionKey uses q,r format", () => {

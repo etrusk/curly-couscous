@@ -29,13 +29,13 @@ describe("selectMovementTargetData", () => {
       id: "dead1",
       hp: 0,
       skills: [moveSkill],
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
     });
     const deadChar2 = createCharacter({
       id: "dead2",
       hp: -5,
       skills: [moveSkill],
-      position: { x: 1, y: 1 },
+      position: { q: 1, r: 1 },
     });
     useGameStore.getState().actions.initBattle([deadChar1, deadChar2]);
 
@@ -53,13 +53,13 @@ describe("selectMovementTargetData", () => {
     const friendly = createCharacter({
       id: "friendly1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [moveSkill],
     });
     const enemy = createCharacter({
       id: "enemy1",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 2, r: 3 },
     });
     useGameStore.getState().actions.initBattle([friendly, enemy]);
 
@@ -67,8 +67,8 @@ describe("selectMovementTargetData", () => {
 
     expect(result).toHaveLength(1);
     expect(result?.[0]?.fromId).toBe("friendly1");
-    expect(result?.[0]?.fromPosition).toEqual({ x: 0, y: 0 });
-    expect(result?.[0]?.toPosition).toEqual({ x: 5, y: 5 });
+    expect(result?.[0]?.fromPosition).toEqual({ q: 0, r: 0 });
+    expect(result?.[0]?.toPosition).toEqual({ q: 2, r: 3 });
     expect(result?.[0]?.toId).toBe("enemy1");
   });
 
@@ -82,18 +82,18 @@ describe("selectMovementTargetData", () => {
     const friendly1 = createCharacter({
       id: "friendly1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [moveSkillWithOverride],
     });
     const friendly2 = createCharacter({
       id: "friendly2",
       faction: "friendly",
-      position: { x: 2, y: 2 },
+      position: { q: 2, r: 2 },
     });
     const enemy = createCharacter({
       id: "enemy1",
       faction: "enemy",
-      position: { x: 1, y: 1 },
+      position: { q: 1, r: 1 },
     });
     useGameStore.getState().actions.initBattle([friendly1, friendly2, enemy]);
 
@@ -113,19 +113,19 @@ describe("selectMovementTargetData", () => {
     const friendly = createCharacter({
       id: "friendly1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [moveSkillWithOverride],
     });
     const enemy1 = createCharacter({
       id: "enemy1",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 2, r: 3 },
       hp: 100,
     });
     const enemy2 = createCharacter({
       id: "enemy2",
       faction: "enemy",
-      position: { x: 1, y: 1 },
+      position: { q: 1, r: 1 },
       hp: 50,
     });
     useGameStore.getState().actions.initBattle([friendly, enemy1, enemy2]);
@@ -145,7 +145,7 @@ describe("selectMovementTargetData", () => {
     });
     const char = createCharacter({
       id: "char1",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [attackSkill],
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -164,7 +164,7 @@ describe("selectMovementTargetData", () => {
     });
     const char = createCharacter({
       id: "char1",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [moveSkillWithSelf],
     });
     useGameStore.getState().actions.initBattle([char]);
@@ -183,25 +183,25 @@ describe("selectMovementTargetData", () => {
     const friendly1 = createCharacter({
       id: "friendly1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [moveSkill],
     });
     const friendly2 = createCharacter({
       id: "friendly2",
       faction: "friendly",
-      position: { x: 1, y: 1 },
+      position: { q: 1, r: 1 },
       skills: [moveSkill],
     });
     const enemy1 = createCharacter({
       id: "enemy1",
       faction: "enemy",
-      position: { x: 5, y: 5 },
+      position: { q: 2, r: 3 },
       skills: [moveSkill],
     });
     const enemy2 = createCharacter({
       id: "enemy2",
       faction: "enemy",
-      position: { x: 6, y: 6 },
+      position: { q: 3, r: 2 },
       skills: [moveSkill],
     });
     useGameStore
@@ -237,7 +237,7 @@ describe("selectMovementTargetData", () => {
     const friendly = createCharacter({
       id: "friendly1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [moveSkill],
     });
     // No enemies
@@ -257,12 +257,12 @@ describe("selectMovementTargetData", () => {
     const friendly = createCharacter({
       id: "friendly1",
       faction: "friendly",
-      position: { x: 0, y: 0 },
+      position: { q: 0, r: 0 },
       skills: [moveSkill],
       currentAction: {
         type: "move",
         skill: moveSkill,
-        targetCell: { x: 2, y: 0 },
+        targetCell: { q: 2, r: 0 },
         targetCharacter: null,
         startedAtTick: 0,
         resolvesAtTick: 1,
@@ -271,14 +271,14 @@ describe("selectMovementTargetData", () => {
     const enemy = createCharacter({
       id: "enemy1",
       faction: "enemy",
-      position: { x: 5, y: 0 },
+      position: { q: 5, r: 0 },
     });
     useGameStore.getState().actions.initBattle([friendly, enemy]);
 
     const result = useGameStore.getState().selectMovementTargetData?.();
 
     expect(result).toHaveLength(1);
-    expect(result?.[0]?.fromPosition).toEqual({ x: 0, y: 0 }); // Current position, not (2, 0)
-    expect(result?.[0]?.toPosition).toEqual({ x: 5, y: 0 });
+    expect(result?.[0]?.fromPosition).toEqual({ q: 0, r: 0 }); // Current position, not (2, 0)
+    expect(result?.[0]?.toPosition).toEqual({ q: 5, r: 0 });
   });
 });

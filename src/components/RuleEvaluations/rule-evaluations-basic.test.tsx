@@ -248,7 +248,7 @@ describe("RuleEvaluations - Basic Rendering", () => {
         enabled: true,
         triggers: [{ type: "enemy_in_range" as const, value: 1 }],
       },
-      targetCell: { x: 1, y: 0 },
+      targetCell: { q: 1, r: 0 },
       targetCharacter: target,
       startedAtTick: 0,
       resolvesAtTick: 3,

@@ -72,6 +72,13 @@ checks:
     action: "click 'Reset' button"
     expect: "grid empty, tick 0, badge 'Active', app ready for new battle"
 
+  # === SCRIPT: Trigger Conditions ===
+  # Tests trigger system expansion: ally_hp_below, NOT modifier, AND logic
+
+  - id: 05-trigger-compound
+    action: "Configure skill with two triggers and verify activation"
+    expect: "Skill activates only when both triggers pass (AND logic)"
+
   # === VERIFICATION ===
 
   - id: 16-no-console-errors

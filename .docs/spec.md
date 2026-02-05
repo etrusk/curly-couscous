@@ -191,10 +191,24 @@ Each skill specifies a **target** (which group to select from) and a **criterion
 
 ### Trigger Conditions
 
-- `enemy_in_range X`: Any enemy within X hexes
-- `ally_in_range X`: Any ally within X hexes
-- `hp_below X%`: Own HP below X%
-- `my_cell_targeted_by_enemy`: Enemy has locked-in action targeting this hex
+Skills can have 0, 1, or 2 triggers evaluated with AND logic. All triggers in a skill's trigger list must pass for the skill to activate.
+
+**Trigger types:**
+
+- `always`: Triggers unconditionally (no parameter)
+- `enemy_in_range X`: True if any enemy within X hexes
+- `ally_in_range X`: True if any ally within X hexes
+- `hp_below X%`: True if own HP below X% of maxHp
+- `ally_hp_below X%`: True if any ally (excluding self) has HP below X% of maxHp
+- `my_cell_targeted_by_enemy`: True if enemy has locked-in action targeting this hex
+
+**Trigger modifiers:**
+
+- `NOT` (negation): Any trigger can be inverted with a NOT modifier. When applied, the trigger result is inverted (true becomes false, false becomes true). For example, "NOT hp_below 50%" triggers when HP is at or above 50%.
+
+**Trigger logic:**
+
+When a skill has multiple triggers, they are evaluated with AND logic—all triggers must pass for the skill to activate. A skill can have 0 triggers (always activates), 1 trigger, or 2 triggers (maximum). Empty trigger arrays are treated as always-pass (vacuous truth).
 
 **Note:** `my_cell_targeted_by_enemy` detects any pending action targeting the cell. Wind-up actions (tickCost >= 1) have at least 1 tick of visibility before resolution. Instant actions (tickCost: 0) resolve the same tick they are chosen, so they cannot be dodged via this trigger.
 

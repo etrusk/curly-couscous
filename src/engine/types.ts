@@ -78,8 +78,10 @@ export interface Trigger {
     | "enemy_in_range"
     | "ally_in_range"
     | "hp_below"
+    | "ally_hp_below"
     | "my_cell_targeted_by_enemy";
   value?: number; // for range X or X% (undefined for 'always' and 'my_cell_targeted_by_enemy')
+  negated?: boolean; // If true, invert the trigger result
 }
 
 /**

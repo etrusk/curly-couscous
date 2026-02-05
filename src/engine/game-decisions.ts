@@ -44,6 +44,74 @@ export const IDLE_SKILL: Skill = {
 export interface Decision {
   characterId: string;
   action: Action;
+  evaluations?: CharacterEvaluationResult; // Optional: populated by computeDecisions for UI display
+}
+
+/**
+ * Evaluate a single skill for execution eligibility.
+ * Returns an action if the skill can be executed, null otherwise.
+ */
+function tryExecuteSkill(
+  skill: Skill,
+  character: Character,
+  allCharacters: Character[],
+  tick: number,
+): Action | null {
+  // Skip disabled skills
+  if (!skill.enabled) {
+    return null;
+  }
+
+  // Skip skills on cooldown
+  if (skill.cooldownRemaining && skill.cooldownRemaining > 0) {
+    return null;
+  }
+
+  // Graceful degradation for legacy "hold" behavior
+  if (skill.behavior === "hold") {
+    console.warn(
+      `[game-decisions] Deprecated "hold" behavior found on skill "${skill.name}". ` +
+        `Treating as disabled.`,
+    );
+    return null;
+  }
+
+  // Check all triggers (AND logic)
+  const allTriggersPass = skill.triggers.every((trigger) =>
+    evaluateTrigger(trigger, character, allCharacters),
+  );
+  if (!allTriggersPass) {
+    return null;
+  }
+
+  // Use target/criterion to find target
+  const target = evaluateTargetCriterion(
+    skill.target,
+    skill.criterion,
+    character,
+    allCharacters,
+  );
+  if (!target) {
+    return null;
+  }
+
+  // Validate action-specific conditions
+  const actionType = getActionType(skill);
+
+  // Range check only applies to attack and heal, not move actions
+  if (actionType === "attack" || actionType === "heal") {
+    const distance = hexDistance(character.position, target.position);
+    if (distance > skill.range) {
+      return null;
+    }
+    // Reject heal if target is at full HP
+    if (actionType === "heal" && target.hp >= target.maxHp) {
+      return null;
+    }
+  }
+
+  // Create action with locked targetCell
+  return createSkillAction(skill, character, target, tick, allCharacters);
 }
 
 /**
@@ -71,90 +139,20 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
       continue;
     }
 
-    // 2. Scan skills top-to-bottom to find a valid executable skill
+    // 2. Get detailed evaluation results for UI display
+    const evaluations = evaluateSkillsForCharacter(character, state.characters);
+
+    // 3. Scan skills top-to-bottom to find a valid executable skill
     let action: Action | null = null;
 
     for (const skill of character.skills) {
-      // 3. Skip disabled skills
-      if (!skill.enabled) {
-        continue;
+      action = tryExecuteSkill(skill, character, state.characters, state.tick);
+      if (action !== null) {
+        break;
       }
-
-      // 3b. Skip skills on cooldown
-      if (skill.cooldownRemaining && skill.cooldownRemaining > 0) {
-        continue;
-      }
-
-      // Graceful degradation for legacy "hold" behavior
-      if (skill.behavior === "hold") {
-        console.warn(
-          `[game-decisions] Deprecated "hold" behavior found on skill "${skill.name}". ` +
-            `Treating as disabled.`,
-        );
-        continue;
-      }
-
-      // 4. Check all triggers (AND logic)
-      const allTriggersPass = skill.triggers.every((trigger) =>
-        evaluateTrigger(trigger, character, state.characters),
-      );
-
-      if (!allTriggersPass) {
-        continue;
-      }
-
-      // 5. Skill triggers passed - now validate target and range
-
-      // 6. Use target/criterion to find target
-      const target = evaluateTargetCriterion(
-        skill.target,
-        skill.criterion,
-        character,
-        state.characters,
-      );
-
-      // Check if we have a valid target
-      if (!target) {
-        // No valid target → continue to next skill
-        continue;
-      }
-
-      // Determine action type and validate
-      const actionType = getActionType(skill);
-
-      if (actionType === "attack") {
-        // Validate range for attack skills
-        if (hexDistance(character.position, target.position) > skill.range) {
-          // Target out of range → continue to next skill
-          continue;
-        }
-      }
-
-      if (actionType === "heal") {
-        // Validate range for heal skills
-        if (hexDistance(character.position, target.position) > skill.range) {
-          // Target out of range → continue to next skill
-          continue;
-        }
-        // Reject if target is at full HP
-        if (target.hp >= target.maxHp) {
-          // Target at full HP → continue to next skill
-          continue;
-        }
-      }
-
-      // 7. Create Action with locked targetCell
-      action = createSkillAction(
-        skill,
-        character,
-        target,
-        state.tick,
-        state.characters,
-      );
-      break;
     }
 
-    // 8. If no valid skill found → create idle action
+    // 4. If no valid skill found → create idle action
     if (action === null) {
       action = createIdleAction(character, state.tick);
     }
@@ -162,6 +160,7 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
     decisions.push({
       characterId: character.id,
       action,
+      evaluations,
     });
   }
 

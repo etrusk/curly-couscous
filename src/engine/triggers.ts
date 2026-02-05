@@ -24,39 +24,59 @@ export function evaluateTrigger(
   evaluator: Character,
   allCharacters: Character[],
 ): boolean {
+  let result: boolean;
+
   switch (trigger.type) {
     case "always":
-      return true;
+      result = true;
+      break;
 
     case "enemy_in_range": {
       const range = trigger.value ?? 0;
-      return allCharacters.some(
+      result = allCharacters.some(
         (c) =>
           c.faction !== evaluator.faction &&
           c.hp > 0 &&
           hexDistance(c.position, evaluator.position) <= range,
       );
+      break;
     }
 
     case "ally_in_range": {
       const range = trigger.value ?? 0;
-      return allCharacters.some(
+      result = allCharacters.some(
         (c) =>
           c.faction === evaluator.faction &&
           c.id !== evaluator.id &&
           c.hp > 0 &&
           hexDistance(c.position, evaluator.position) <= range,
       );
+      break;
     }
 
     case "hp_below": {
       const thresholdPercent = trigger.value ?? 0;
       // Guard against division by zero; if maxHp <= 0, treat as undefined and return false
       if (evaluator.maxHp <= 0) {
-        return false;
+        result = false;
+        break;
       }
       const currentPercent = (evaluator.hp / evaluator.maxHp) * 100;
-      return currentPercent < thresholdPercent;
+      result = currentPercent < thresholdPercent;
+      break;
+    }
+
+    case "ally_hp_below": {
+      const thresholdPercent = trigger.value ?? 0;
+      result = allCharacters.some(
+        (c) =>
+          c.faction === evaluator.faction &&
+          c.id !== evaluator.id &&
+          c.hp > 0 &&
+          c.maxHp > 0 &&
+          (c.hp / c.maxHp) * 100 < thresholdPercent,
+      );
+      break;
     }
 
     case "my_cell_targeted_by_enemy": {
@@ -64,13 +84,14 @@ export function evaluateTrigger(
       // Currently detects any enemy action targeting this cell, including same-tick actions.
       // According to design, same-tick actions (e.g., Light Punch) should be invisible.
       // For now, check if action exists and targets this cell.
-      return allCharacters.some(
+      result = allCharacters.some(
         (c) =>
           c.faction !== evaluator.faction &&
           c.hp > 0 &&
           c.currentAction !== null &&
           positionsEqual(c.currentAction.targetCell, evaluator.position),
       );
+      break;
     }
 
     default: {
@@ -78,4 +99,7 @@ export function evaluateTrigger(
       return _exhaustive; // Compile-time error if case missing
     }
   }
+
+  // Apply negation if specified
+  return trigger.negated ? !result : result;
 }

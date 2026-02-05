@@ -33,10 +33,19 @@ export function formatActionSummary(action: Action | null): string {
  * Format trigger with parameter for debugging display.
  */
 export function formatTrigger(trigger: Trigger): string {
+  const prefix = trigger.negated ? "NOT " : "";
   if (trigger.value !== undefined) {
-    return `${trigger.type}(${trigger.value})`;
+    return `${prefix}${trigger.type}(${trigger.value})`;
   }
-  return trigger.type;
+  return `${prefix}${trigger.type}`;
+}
+
+/**
+ * Format multiple triggers with AND logic.
+ */
+export function formatTriggers(triggers: Trigger[]): string {
+  if (triggers.length === 0) return "always";
+  return triggers.map(formatTrigger).join(" AND ");
 }
 
 /**

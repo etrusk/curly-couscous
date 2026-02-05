@@ -1,561 +1,463 @@
-# Test Designs: Per-Skill Targeting Mode and Cooldown System
+# Test Designs: Trigger System Expansion
 
 ## Overview
 
-This document contains test designs for two independent features:
+Test designs for B3 (ally_hp_below), B2 (NOT modifier), and B1 (AND combinator UI).
 
-- **C1: Per-skill targeting mode** - Character vs. cell-based targeting for skills
-- **C2: Cooldown system** - Per-instance skill cooldowns with post-resolution timing
+**Implementation order**: B3 → B2 → B1
 
-Tests are ordered for RED phase implementation: unit tests first, then integration tests.
-
----
-
-## C1: Per-Skill Targeting Mode
-
-### Test File: `/home/bob/Projects/auto-battler/src/engine/healing-targeting-mode.test.ts`
-
-New file for character-targeting behavior in healing resolution.
+**Total tests**: 34 tests across 4 files
 
 ---
 
-### Test: heal-character-targeting-lands-on-moved-target
+## Feature B3: ally_hp_below Trigger
 
-- **File**: `/home/bob/Projects/auto-battler/src/engine/healing-targeting-mode.test.ts`
+**Test File**: `src/engine/triggers-ally-hp-below.test.ts` (NEW)
+
+### Test: ally-hp-below-returns-true-when-ally-below-threshold
+
+- **File**: `src/engine/triggers-ally-hp-below.test.ts`
 - **Type**: unit
-- **Verifies**: Heal with `targetingMode: "character"` lands on target even when target has moved during wind-up
-- **Setup**:
-  - Create healer with currentAction containing:
-    - type="heal"
-    - targetCell={q:1, r:0}
-    - targetCharacter: full Character object with id="target", position at original {q:1, r:0}
-  - Create target character (same id="target") at NEW position {q:2, r:0} (simulating movement during wind-up)
-  - Both have hp < maxHp so healing applies
-  - Skill registry must have "heal" with `targetingMode: "character"` (use actual registry or mock)
+- **Verifies**: Trigger returns true when at least one ally has HP below threshold
+- **Setup**: Evaluator at 100%, ally at 30%, threshold 50%
 - **Assertions**:
-  1. Target HP increases by heal amount
-  2. Heal event has targetId="target"
-  3. Heal event resultingHp is correct
-- **Justification**: Core behavior of character targeting - heal must track the actual character, not the cell they were in when action started. This is the primary fix for the "heal whiff" bug where heals miss allies who move.
+  1. `evaluateTrigger(trigger, evaluator, [evaluator, ally])` returns `true`
+- **Justification**: Core functionality for support skills
 
----
+### Test: ally-hp-below-returns-false-when-no-ally-below-threshold
 
-### Test: heal-character-targeting-fails-on-dead-target
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/healing-targeting-mode.test.ts`
+- **File**: `src/engine/triggers-ally-hp-below.test.ts`
 - **Type**: unit
-- **Verifies**: Heal with `targetingMode: "character"` misses if target died during wind-up
-- **Setup**:
-  - Create healer with currentAction containing:
-    - type="heal"
-    - targetCell={q:1, r:0}
-    - targetCharacter: full Character object with id="target"
-  - Create target character (same id="target") with hp=0 (died during wind-up)
+- **Verifies**: Trigger returns false when all allies at/above threshold
+- **Setup**: Evaluator at 100%, ally at 70%, threshold 50%
 - **Assertions**:
-  1. No heal events generated
-  2. Target remains at hp=0
-- **Justification**: Dead characters should not be healed. Edge case where target dies before heal resolves (e.g., killed by enemy attack that resolved first).
+  1. Returns `false`
+- **Justification**: Prevents false positives
 
----
+### Test: ally-hp-below-excludes-self
 
-### Test: heal-character-targeting-finds-target-by-id
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/healing-targeting-mode.test.ts`
+- **File**: `src/engine/triggers-ally-hp-below.test.ts`
 - **Type**: unit
-- **Verifies**: Character targeting looks up target by ID, not object reference
-- **Setup**:
-  - Create healer with currentAction containing targetCharacter with id="target"
-  - Create target character with same ID ("target") but as a DIFFERENT JavaScript object (simulating immutable state updates - e.g., `{ ...originalTarget, position: newPosition }`)
-  - Target is at a different position than targetCell
+- **Verifies**: Evaluator's own HP is not considered
+- **Setup**: Evaluator at 30% (below threshold), ally at 100%, threshold 50%
 - **Assertions**:
-  1. Heal lands on the character found by ID lookup
-  2. Heal event generated with correct targetId
-- **Justification**: Since state is immutable, the targetCharacter reference from decision time may be stale. Lookup by ID ensures we find the current character state.
+  1. Returns `false` (self excluded, ally healthy)
+- **Justification**: Critical - evaluator should use hp_below for self
 
----
+### Test: ally-hp-below-returns-false-at-exact-threshold
 
-### Test: heal-character-targeting-fallback-when-targetCharacter-null
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/healing-targeting-mode.test.ts`
+- **File**: `src/engine/triggers-ally-hp-below.test.ts`
 - **Type**: unit
-- **Verifies**: Heal falls back to cell targeting if targetCharacter is null (defensive coding)
-- **Setup**:
-  - Create healer with currentAction containing:
-    - type="heal"
-    - targetCell={q:1, r:0}
-    - targetCharacter=null (edge case: malformed action)
-  - Create character at targetCell {q:1, r:0}
+- **Verifies**: Strict inequality ("below" not "at or below")
+- **Setup**: Ally at exactly 50%, threshold 50%
 - **Assertions**:
-  1. Heal lands on character at targetCell
-  2. No errors thrown
-- **Justification**: Defensive coding - ensures backwards compatibility and graceful handling of edge cases where targetCharacter is unexpectedly null.
+  1. Returns `false`
+- **Justification**: Consistent with hp_below behavior
 
----
+### Test: ally-hp-below-returns-true-one-below-threshold
 
-### Test: attack-still-uses-cell-targeting
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/combat-targeting-mode.test.ts`
+- **File**: `src/engine/triggers-ally-hp-below.test.ts`
 - **Type**: unit
-- **Verifies**: Attack skills with `targetingMode: "cell"` continue to use cell-based targeting (dodge works)
-- **Setup**:
-  - Create attacker with currentAction: type="attack", targetCell={q:2, r:0}
-  - Create target character at NEW position {q:3, r:0} (moved away from targetCell)
+- **Verifies**: Trigger fires at 49% when threshold is 50%
+- **Setup**: Ally at 49%, threshold 50%
 - **Assertions**:
-  1. No damage events targeting the moved character
-  2. Attack "misses" the cell (no character there)
-- **Justification**: Preserves existing dodge behavior. Attacks hit cells, not characters, so movement creates dodge opportunities.
+  1. Returns `true`
+- **Justification**: Boundary condition
 
----
+### Test: ally-hp-below-returns-false-when-only-evaluator-alive
 
-### Test: attack-hits-different-character-in-cell
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/combat-targeting-mode.test.ts`
+- **File**: `src/engine/triggers-ally-hp-below.test.ts`
 - **Type**: unit
-- **Verifies**: Cell-targeted attack hits any character in the target cell
-- **Setup**:
-  - Create attacker with currentAction: type="attack", targetCell={q:2, r:0}
-  - Create original target at different position (moved away)
-  - Create bystander at {q:2, r:0}
+- **Verifies**: No allies to check = false
+- **Setup**: Only evaluator (at 30%) and enemy, no other allies
 - **Assertions**:
-  1. Damage event targets bystander, not original target
-  2. Bystander HP reduced
-- **Justification**: Cell targeting means the skill hits whoever is in the cell at resolution time. This is existing behavior that must be preserved.
+  1. Returns `false`
+- **Justification**: Cannot heal when no allies exist
 
----
+### Test: ally-hp-below-ignores-dead-allies
 
-### Test File: `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-intent-targeting.test.ts`
-
-New file for intent line behavior with targeting modes.
-
----
-
-### Test: intent-line-tracks-character-targeted-heal
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-intent-targeting.test.ts`
+- **File**: `src/engine/triggers-ally-hp-below.test.ts`
 - **Type**: unit
-- **Verifies**: IntentData.targetPosition updates to reflect character's current position for character-targeted skills
-- **Setup**:
-  - Create character A with heal action targeting character B
-  - Character B's position differs from action.targetCell (B has moved)
-  - Action uses skill with id="heal" (character targeting mode)
+- **Verifies**: Dead allies (HP <= 0) excluded
+- **Setup**: Dead ally at 0 HP
 - **Assertions**:
-  1. selectIntentData returns entry with targetPosition equal to B's current position
-  2. targetPosition is NOT equal to action.targetCell
-- **Justification**: Visual intent lines should show where the heal will land, which for character-targeted skills is the target's current position.
+  1. Returns `false`
+- **Justification**: Don't heal dead characters
 
----
+### Test: ally-hp-below-ignores-enemies
 
-### Test: intent-line-uses-cell-for-attack
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-intent-targeting.test.ts`
+- **File**: `src/engine/triggers-ally-hp-below.test.ts`
 - **Type**: unit
-- **Verifies**: IntentData.targetPosition uses locked targetCell for cell-targeted skills
-- **Setup**:
-  - Create character A with attack action targeting cell {q:2, r:0}
-  - Original target has moved to {q:3, r:0}
-  - Action uses skill with id="light-punch" (cell targeting mode)
+- **Verifies**: Enemy HP not considered
+- **Setup**: Enemy at 10%, no friendly allies
 - **Assertions**:
-  1. selectIntentData returns entry with targetPosition equal to {q:2, r:0}
-  2. targetPosition matches action.targetCell exactly
-- **Justification**: Attack intent lines show the targeted cell, not where the enemy might have moved.
+  1. Returns `false`
+- **Justification**: Faction separation
+
+### Test: ally-hp-below-with-threshold-100
+
+- **File**: `src/engine/triggers-ally-hp-below.test.ts`
+- **Type**: unit
+- **Verifies**: 100% threshold triggers for any damage
+- **Setup**: Ally at 99%
+- **Assertions**:
+  1. Returns `true`
+- **Justification**: "Heal any damaged ally" use case
+
+### Test: ally-hp-below-with-threshold-0
+
+- **File**: `src/engine/triggers-ally-hp-below.test.ts`
+- **Type**: unit
+- **Verifies**: 0% threshold always false
+- **Setup**: Ally at 1%
+- **Assertions**:
+  1. Returns `false`
+- **Justification**: Nothing below 0%
+
+### Test: ally-hp-below-handles-zero-maxhp
+
+- **File**: `src/engine/triggers-ally-hp-below.test.ts`
+- **Type**: unit
+- **Verifies**: Division by zero guard
+- **Setup**: Ally with maxHp=0
+- **Assertions**:
+  1. Returns `false`
+  2. No exception
+- **Justification**: Defensive programming
+
+### Test: ally-hp-below-with-multiple-allies-one-below
+
+- **File**: `src/engine/triggers-ally-hp-below.test.ts`
+- **Type**: unit
+- **Verifies**: ANY ally below triggers true
+- **Setup**: AllyA at 80%, AllyB at 30%, threshold 50%
+- **Assertions**:
+  1. Returns `true`
+- **Justification**: Uses `some()` logic
 
 ---
 
-### Test File: `/home/bob/Projects/auto-battler/src/engine/game-targeting-integration.test.ts`
+## Feature B2: NOT Modifier
 
-Integration tests for targeting mode through full processTick flow.
+**Test File**: `src/engine/triggers-not-modifier.test.ts` (NEW)
+
+### Test: not-inverts-true-to-false
+
+- **File**: `src/engine/triggers-not-modifier.test.ts`
+- **Type**: unit
+- **Verifies**: NOT modifier inverts true -> false
+- **Setup**: `{ type: "always", negated: true }`
+- **Assertions**:
+  1. Returns `false`
+- **Justification**: Core NOT functionality
+
+### Test: not-inverts-false-to-true
+
+- **File**: `src/engine/triggers-not-modifier.test.ts`
+- **Type**: unit
+- **Verifies**: NOT modifier inverts false -> true
+- **Setup**: HP at 70%, `{ type: "hp_below", value: 50, negated: true }`
+- **Assertions**:
+  1. Returns `true`
+- **Justification**: "When HP is NOT low" conditions
+
+### Test: not-with-parameterized-trigger
+
+- **File**: `src/engine/triggers-not-modifier.test.ts`
+- **Type**: unit
+- **Verifies**: NOT with value parameters
+- **Setup**: Enemy at distance 1, `{ type: "enemy_in_range", value: 2, negated: true }`
+- **Assertions**:
+  1. Returns `false` (enemy IS in range, NOT inverts)
+- **Justification**: Negation after parameter evaluation
+
+### Test: not-with-enemy-out-of-range
+
+- **File**: `src/engine/triggers-not-modifier.test.ts`
+- **Type**: unit
+- **Verifies**: NOT enemy_in_range for kiting
+- **Setup**: Enemy at distance 5, `{ type: "enemy_in_range", value: 2, negated: true }`
+- **Assertions**:
+  1. Returns `true`
+- **Justification**: Kiting behavior use case
+
+### Test: not-with-undefined-negated-field
+
+- **File**: `src/engine/triggers-not-modifier.test.ts`
+- **Type**: unit
+- **Verifies**: Missing negated = non-negated (backward compat)
+- **Setup**: `{ type: "always" }` (no negated field)
+- **Assertions**:
+  1. Returns `true`
+- **Justification**: Backward compatibility
+
+### Test: not-with-explicit-false-negated
+
+- **File**: `src/engine/triggers-not-modifier.test.ts`
+- **Type**: unit
+- **Verifies**: Explicit false same as undefined
+- **Setup**: `{ type: "always", negated: false }`
+- **Assertions**:
+  1. Returns `true`
+- **Justification**: False not treated as truthy
+
+### Test: not-with-ally-hp-below
+
+- **File**: `src/engine/triggers-not-modifier.test.ts`
+- **Type**: unit
+- **Verifies**: NOT works with new ally_hp_below
+- **Setup**: Ally at 30%, `{ type: "ally_hp_below", value: 50, negated: true }`
+- **Assertions**:
+  1. Returns `false` (ally IS below, NOT inverts)
+- **Justification**: B2 + B3 integration
+
+### Test: not-with-my-cell-targeted
+
+- **File**: `src/engine/triggers-not-modifier.test.ts`
+- **Type**: unit
+- **Verifies**: NOT works with my_cell_targeted_by_enemy
+- **Setup**: No enemy targeting evaluator's cell, `{ type: "my_cell_targeted_by_enemy", negated: true }`
+- **Assertions**:
+  1. Returns `true` (cell NOT targeted, negation inverts to true)
+- **Justification**: Covers all existing trigger types with NOT
 
 ---
 
-### Test: heal-tracks-ally-through-full-tick
+## Feature B2: NOT Modifier - Formatter Tests
 
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-targeting-integration.test.ts`
+**Test File**: `src/components/RuleEvaluations/rule-evaluations-formatters.test.ts` (NEW file)
+
+### Test: formatTrigger-adds-not-prefix-when-negated
+
+- **File**: `src/components/RuleEvaluations/rule-evaluations-formatters.test.ts`
+- **Type**: unit
+- **Verifies**: "NOT " prefix when negated: true
+- **Setup**: `{ type: "hp_below", value: 50, negated: true }`
+- **Assertions**:
+  1. Returns `"NOT hp_below(50)"`
+- **Justification**: User-facing display
+
+### Test: formatTrigger-no-prefix-when-not-negated
+
+- **File**: `src/components/RuleEvaluations/rule-evaluations-formatters.test.ts`
+- **Type**: unit
+- **Verifies**: No prefix for non-negated
+- **Setup**: Triggers without negated or with negated: false
+- **Assertions**:
+  1. Both return `"hp_below(50)"`
+- **Justification**: Non-negated normal display
+
+### Test: formatTrigger-not-with-no-value
+
+- **File**: `src/components/RuleEvaluations/rule-evaluations-formatters.test.ts`
+- **Type**: unit
+- **Verifies**: NOT with value-less triggers
+- **Setup**: `{ type: "always", negated: true }`
+- **Assertions**:
+  1. Returns `"NOT always"`
+- **Justification**: NOT works without values
+
+### Test: formatTrigger-ally-hp-below
+
+- **File**: `src/components/RuleEvaluations/rule-evaluations-formatters.test.ts`
+- **Type**: unit
+- **Verifies**: New trigger type formats correctly
+- **Setup**: `{ type: "ally_hp_below", value: 50 }`
+- **Assertions**:
+  1. Returns `"ally_hp_below(50)"`
+- **Justification**: New trigger type display
+
+### Test: formatRejectionReasonCompact-shows-not-prefix
+
+- **File**: `src/components/RuleEvaluations/rule-evaluations-formatters.test.ts`
+- **Type**: unit
+- **Verifies**: Rejection reasons display NOT prefix for negated triggers
+- **Setup**: SkillEvaluationResult with `failedTriggers: [{ type: "hp_below", value: 50, negated: true }]`
+- **Assertions**:
+  1. Returns `"trigger_failed: NOT hp_below(50)"`
+- **Justification**: Rejection reasons must show what actually failed
+
+---
+
+## Feature B1: AND Combinator - Formatter Tests
+
+### Test: formatTriggers-joins-with-and
+
+- **File**: `src/components/RuleEvaluations/rule-evaluations-formatters.test.ts`
+- **Type**: unit
+- **Verifies**: New formatTriggers joins with " AND "
+- **Setup**: `[{ type: "enemy_in_range", value: 3 }, { type: "hp_below", value: 50 }]`
+- **Assertions**:
+  1. Returns `"enemy_in_range(3) AND hp_below(50)"`
+- **Justification**: Compound trigger display
+
+### Test: formatTriggers-handles-single-trigger
+
+- **File**: `src/components/RuleEvaluations/rule-evaluations-formatters.test.ts`
+- **Type**: unit
+- **Verifies**: Single trigger works
+- **Setup**: `[{ type: "always" }]`
+- **Assertions**:
+  1. Returns `"always"`
+- **Justification**: Common case
+
+### Test: formatTriggers-handles-empty-array
+
+- **File**: `src/components/RuleEvaluations/rule-evaluations-formatters.test.ts`
+- **Type**: unit
+- **Verifies**: Empty = "always"
+- **Setup**: `[]`
+- **Assertions**:
+  1. Returns `"always"`
+- **Justification**: Vacuous truth
+
+### Test: formatTriggers-handles-negated-in-compound
+
+- **File**: `src/components/RuleEvaluations/rule-evaluations-formatters.test.ts`
+- **Type**: unit
+- **Verifies**: NOT in compound expressions
+- **Setup**: `[{ type: "enemy_in_range", value: 3 }, { type: "hp_below", value: 50, negated: true }]`
+- **Assertions**:
+  1. Returns `"enemy_in_range(3) AND NOT hp_below(50)"`
+- **Justification**: Integration
+
+---
+
+## Feature B1: AND Combinator - Engine Integration
+
+**Test File**: `src/engine/game-decisions-trigger-and-logic.test.ts` (extend)
+
+### Test: and-logic-with-negated-trigger-all-pass
+
+- **File**: `src/engine/game-decisions-trigger-and-logic.test.ts`
 - **Type**: integration
-- **Verifies**: Heal lands on ally who moves during wind-up in full processTick
-- **Setup**:
-  - Healer with 2-tick heal action (started tick 0, resolves tick 2)
-  - Target ally with move action (resolves tick 2, same tick as heal)
-  - Ally moves from targetCell to new position
+- **Verifies**: AND with positive + negated triggers both passing
+- **Setup**: HP at 80%, triggers: `[enemy_in_range(3), NOT hp_below(50)]`
 - **Assertions**:
-  1. Heal event generated with correct targetId
-  2. Ally HP increases
-  3. Movement event shows ally moved
-  4. Final ally HP reflects both heal and position change
-- **Justification**: End-to-end validation that heal + movement on same tick work correctly with character targeting.
+  1. Skill selected
+- **Justification**: AND with NOT modifier
 
----
+### Test: and-logic-with-negated-trigger-one-fails
 
-### Test: attack-misses-dodging-character
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-targeting-integration.test.ts`
+- **File**: `src/engine/game-decisions-trigger-and-logic.test.ts`
 - **Type**: integration
-- **Verifies**: Attack misses when target moves away (dodge), existing behavior preserved
-- **Setup**:
-  - Attacker with 2-tick attack (resolves tick 2)
-  - Target with 1-tick move away (resolves tick 2, movement before combat)
+- **Verifies**: AND fails when negated trigger fails
+- **Setup**: HP at 30%, triggers: `[enemy_in_range(3), NOT hp_below(50)]`
 - **Assertions**:
-  1. No damage event for the dodging character
-  2. Target HP unchanged
-  3. Movement event shows target moved
-- **Justification**: Regression test ensuring cell targeting for attacks remains unchanged.
+  1. Skill rejected (idle action)
+- **Justification**: Negated trigger failure
 
----
+### Test: and-logic-with-ally-hp-below
 
-## C2: Cooldown System
-
-### Test File: `/home/bob/Projects/auto-battler/src/engine/game-decisions-cooldown.test.ts`
-
-New file for cooldown rejection in decision phase.
-
----
-
-### Test: skill-on-cooldown-rejected
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-cooldown.test.ts`
-- **Type**: unit
-- **Verifies**: Skill with `cooldownRemaining > 0` is rejected with reason `on_cooldown`
-- **Setup**:
-  - Create character with skill having cooldownRemaining=2 (use updated createSkill helper)
-  - Skill has triggers=[{type:"always"}] so would normally fire
-  - Enemy in range so targeting would succeed
-- **Assertions**:
-  1. evaluateSkillsForCharacter returns status="rejected"
-  2. rejectionReason="on_cooldown"
-- **Justification**: Core cooldown behavior - skills cannot be used while on cooldown.
-
----
-
-### Test: skill-cooldown-zero-is-available
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-cooldown.test.ts`
-- **Type**: unit
-- **Verifies**: Skill with `cooldownRemaining=0` is available for selection
-- **Setup**:
-  - Create character with skill having cooldownRemaining=0 (explicitly set)
-  - Skill has triggers=[{type:"always"}], enemy in range
-- **Assertions**:
-  1. evaluateSkillsForCharacter returns status="selected"
-  2. No rejectionReason
-- **Justification**: Cooldown of 0 means ready to use.
-
----
-
-### Test: skill-cooldown-undefined-is-available
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-cooldown.test.ts`
-- **Type**: unit
-- **Verifies**: Skill without cooldownRemaining field is available (backward compatibility)
-- **Setup**:
-  - Create character with skill having NO cooldownRemaining property (undefined)
-  - Skill has triggers=[{type:"always"}], enemy in range
-- **Assertions**:
-  1. evaluateSkillsForCharacter returns status="selected"
-- **Justification**: Existing skills don't have cooldownRemaining. They must continue to work.
-
----
-
-### Test: cooldown-skips-to-next-skill
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-cooldown.test.ts`
-- **Type**: unit
-- **Verifies**: When first skill is on cooldown, second skill is evaluated and selected
-- **Setup**:
-  - Character with two skills: skill1 (cooldownRemaining=3), skill2 (no cooldown)
-  - Both skills have valid triggers and target
-- **Assertions**:
-  1. skill1 status="rejected", rejectionReason="on_cooldown"
-  2. skill2 status="selected"
-  3. selectedSkillIndex=1
-- **Justification**: Priority fallthrough must work with cooldown rejection.
-
----
-
-### Test File: `/home/bob/Projects/auto-battler/src/engine/game-core-cooldown.test.ts`
-
-New file for cooldown decrement and apply logic in game-core.
-
----
-
-### Test: cooldown-set-when-action-applied
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-core-cooldown.test.ts`
-- **Type**: unit
-- **Verifies**: applyDecisions sets cooldownRemaining on the used skill
-- **Setup**:
-  - Create a test skill definition with cooldown=3 (either mock getSkillDefinition or use a real skill)
-  - Character with skill having id matching the test definition
-  - Decision to use that skill
-- **Assertions**:
-  1. After applyDecisions, skill.cooldownRemaining=3
-  2. Other skills on character unaffected
-- **Justification**: Cooldown must be initialized when skill is used.
-
----
-
-### Test: cooldown-set-uses-instanceId
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-core-cooldown.test.ts`
-- **Type**: unit
-- **Verifies**: applyDecisions sets cooldown on correct instance when duplicates exist
-- **Setup**:
-  - Character with 2 instances of same skill (e.g., move-towards with instanceId "move1" and "move2")
-  - Both have same id but different instanceId
-  - Decision uses skill with instanceId="move2"
-  - Skill definition in registry has cooldown defined
-- **Assertions**:
-  1. Skill with instanceId="move2" has cooldownRemaining set
-  2. Skill with instanceId="move1" has no cooldownRemaining (undefined or 0)
-- **Justification**: Duplicate skills must have independent cooldowns tracked by instanceId.
-
----
-
-### Test: cooldown-not-set-for-skills-without-registry-cooldown
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-core-cooldown.test.ts`
-- **Type**: unit
-- **Verifies**: Skills without cooldown in registry don't get cooldownRemaining set
-- **Setup**:
-  - Character with skill that has no cooldown defined in registry (e.g., current light-punch)
-  - Decision to use that skill
-- **Assertions**:
-  1. After applyDecisions, skill.cooldownRemaining is undefined or 0
-- **Justification**: Backward compatibility - existing skills without cooldown stay ready.
-
----
-
-### Test: cooldown-not-set-for-registry-cooldown-zero
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-core-cooldown.test.ts`
-- **Type**: unit
-- **Verifies**: Skills with cooldown=0 in registry don't get cooldownRemaining set
-- **Setup**:
-  - Create skill definition with cooldown=0 (explicit zero)
-  - Character with skill matching that definition
-  - Decision to use that skill
-- **Assertions**:
-  1. After applyDecisions, skill.cooldownRemaining is undefined or 0 (not set to 0 explicitly)
-- **Justification**: cooldown=0 in registry should behave same as undefined - no lockout.
-
----
-
-### Test: cooldown-decrements-when-idle
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-core-cooldown.test.ts`
-- **Type**: unit
-- **Verifies**: decrementCooldowns reduces cooldownRemaining by 1 when character has no currentAction
-- **Setup**:
-  - Character with currentAction=null
-  - Skill with cooldownRemaining=3
-- **Assertions**:
-  1. After decrementCooldowns, skill.cooldownRemaining=2
-- **Justification**: Core cooldown timing - decrements each tick when idle.
-
----
-
-### Test: cooldown-paused-during-action
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-core-cooldown.test.ts`
-- **Type**: unit
-- **Verifies**: decrementCooldowns does NOT reduce cooldownRemaining when character has currentAction
-- **Setup**:
-  - Character with currentAction (mid-action, any valid action)
-  - Skill with cooldownRemaining=3
-- **Assertions**:
-  1. After decrementCooldowns, skill.cooldownRemaining=3 (unchanged)
-- **Justification**: Cooldown only ticks when idle - this is the "post-resolution" timing model.
-
----
-
-### Test: cooldown-decrements-to-zero
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-core-cooldown.test.ts`
-- **Type**: unit
-- **Verifies**: Cooldown stops at 0, does not go negative
-- **Setup**:
-  - Character with currentAction=null
-  - Skill with cooldownRemaining=1
-- **Assertions**:
-  1. After decrementCooldowns, skill.cooldownRemaining=0
-  2. Call decrementCooldowns again, still 0
-- **Justification**: Cooldown should not go negative or wrap.
-
----
-
-### Test: cooldown-independent-per-instance
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-core-cooldown.test.ts`
-- **Type**: unit
-- **Verifies**: Multiple instances of same skill have independent cooldowns
-- **Setup**:
-  - Character with 2 move skills: move1 (cooldownRemaining=2), move2 (cooldownRemaining=0)
-  - Character has currentAction=null
-- **Assertions**:
-  1. After decrementCooldowns: move1.cooldownRemaining=1, move2.cooldownRemaining=0
-- **Justification**: Duplicate skills must track cooldowns independently.
-
----
-
-### Test File: `/home/bob/Projects/auto-battler/src/engine/game-cooldown-integration.test.ts`
-
-Integration tests for cooldown through full processTick flow.
-
----
-
-### Test: cooldown-full-cycle-tickCost-then-cooldown
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-cooldown-integration.test.ts`
+- **File**: `src/engine/game-decisions-trigger-and-logic.test.ts`
 - **Type**: integration
-- **Verifies**: Total lockout = tickCost + cooldown (post-resolution timing)
-- **Setup**:
-  - Skill with tickCost=2 and cooldown=3 (from registry or mock)
-  - Character uses skill at tick 0
-  - Run processTick through tick 5
+- **Verifies**: ally_hp_below in AND combination
+- **Setup**: Ally at 30%, triggers: `[ally_in_range(3), ally_hp_below(50)]`
 - **Assertions**:
-  1. Tick 0: Action committed, cooldownRemaining=3 set by applyDecisions
-  2. Tick 1: Mid-action (currentAction exists), cooldown unchanged (still 3) because decrement skipped for active characters
-  3. Tick 2: Action resolves. Decrement runs BEFORE clear (character still has action), so cooldown unchanged (still 3). Then clearResolvedActions clears action.
-  4. Tick 3: Idle (no action), cooldown=2
-  5. Tick 4: Idle, cooldown=1
-  6. Tick 5: Idle, cooldown=0 (ready)
-- **Justification**: End-to-end validation of the "tickCost + cooldown" lockout model. Total lockout = 2 (wind-up) + 3 (cooldown) = 5 ticks.
+  1. Heal skill selected
+- **Justification**: New trigger type in compound
 
----
+### Test: failed-triggers-include-negated-display
 
-### Test: cooldown-blocks-skill-until-ready
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-cooldown-integration.test.ts`
+- **File**: `src/engine/game-decisions-trigger-and-logic.test.ts`
 - **Type**: integration
-- **Verifies**: Skill on cooldown cannot be selected by decision system until cooldown=0
-- **Setup**:
-  - Character with skill having cooldownRemaining=2
-  - Character has a fallback skill without cooldown
-  - Run processTick, character should select fallback skill
-  - Decrement cooldown to 0 (run 2 more idle ticks)
-  - Run processTick again
+- **Verifies**: failedTriggers includes negated field
+- **Setup**: HP at 30%, trigger: `[NOT hp_below(50)]` (fails)
 - **Assertions**:
-  1. First processTick: fallback skill selected (not the cooled-down skill)
-  2. After cooldown=0: original skill can be selected
-- **Justification**: Integration of cooldown check with decision system.
+  1. failedTriggers[0].negated equals true
+- **Justification**: Rejection reasons display "NOT"
 
----
+### Test: evaluateSkillsForCharacter-captures-negated-failed-triggers
 
-### Test: duplicate-skills-independent-cooldowns-through-ticks
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-cooldown-integration.test.ts`
+- **File**: `src/engine/game-decisions-trigger-and-logic.test.ts`
 - **Type**: integration
-- **Verifies**: Using skill instance A doesn't affect cooldown of instance B
-- **Setup**:
-  - Character with 2 move skills (cooldown=1 each in registry)
-  - Use move1 at tick 0
-  - Run 2 ticks
-  - Check move2 is still available while move1 is on cooldown
+- **Verifies**: evaluateSkillsForCharacter captures negated field in failedTriggers
+- **Setup**: HP at 30%, skill with trigger `[{ type: "hp_below", value: 50, negated: true }]` (fails because HP IS below 50, negated makes trigger false)
 - **Assertions**:
-  1. move1.cooldownRemaining starts at 1 after use
-  2. move2.cooldownRemaining stays undefined/0
-  3. Decision system can select move2 even while move1 on cooldown
-- **Justification**: Per-instance cooldown tracking for duplicate skills.
+  1. Result status is "rejected"
+  2. rejectionReason is "trigger_failed"
+  3. failedTriggers[0].type equals "hp_below"
+  4. failedTriggers[0].negated equals true
+- **Justification**: Ensures UI has complete trigger info for display
 
 ---
 
-## Implementation Order for RED Phase
+## Summary
 
-### Phase 1: C1 Unit Tests (healing-targeting-mode.test.ts, combat-targeting-mode.test.ts)
-
-1. heal-character-targeting-lands-on-moved-target
-2. heal-character-targeting-fails-on-dead-target
-3. heal-character-targeting-finds-target-by-id
-4. heal-character-targeting-fallback-when-targetCharacter-null (NEW)
-5. attack-still-uses-cell-targeting
-6. attack-hits-different-character-in-cell
-
-### Phase 2: C1 Selector Tests (gameStore-selectors-intent-targeting.test.ts)
-
-7. intent-line-tracks-character-targeted-heal
-8. intent-line-uses-cell-for-attack
-
-### Phase 3: C1 Integration Tests (game-targeting-integration.test.ts)
-
-9. heal-tracks-ally-through-full-tick
-10. attack-misses-dodging-character
-
-### Phase 4: C2 Decision Tests (game-decisions-cooldown.test.ts)
-
-11. skill-on-cooldown-rejected
-12. skill-cooldown-zero-is-available
-13. skill-cooldown-undefined-is-available
-14. cooldown-skips-to-next-skill
-
-### Phase 5: C2 Core Tests (game-core-cooldown.test.ts)
-
-15. cooldown-set-when-action-applied
-16. cooldown-set-uses-instanceId
-17. cooldown-not-set-for-skills-without-registry-cooldown
-18. cooldown-not-set-for-registry-cooldown-zero (NEW)
-19. cooldown-decrements-when-idle
-20. cooldown-paused-during-action
-21. cooldown-decrements-to-zero
-22. cooldown-independent-per-instance
-
-### Phase 6: C2 Integration Tests (game-cooldown-integration.test.ts)
-
-23. cooldown-full-cycle-tickCost-then-cooldown
-24. cooldown-blocks-skill-until-ready
-25. duplicate-skills-independent-cooldowns-through-ticks
+| Feature                          | Test Count | Test File                                  |
+| -------------------------------- | ---------- | ------------------------------------------ |
+| B3: ally_hp_below                | 12         | `triggers-ally-hp-below.test.ts`           |
+| B2: NOT modifier (engine)        | 8          | `triggers-not-modifier.test.ts`            |
+| B2: NOT modifier (formatter)     | 5          | `rule-evaluations-formatters.test.ts`      |
+| B1: AND combinator (formatter)   | 4          | `rule-evaluations-formatters.test.ts`      |
+| B1: AND combinator (integration) | 5          | `game-decisions-trigger-and-logic.test.ts` |
+| **Total**                        | **34**     | 4 files                                    |
 
 ---
 
-## Test Helper Updates Needed
+## Smoke Test Evaluation
 
-The `createSkill` helper in `/home/bob/Projects/auto-battler/src/engine/game-test-helpers.ts` needs to support:
+This task modifies user-facing functionality on critical paths.
 
-- `cooldownRemaining?: number` - for creating skills with active cooldowns
+**Smoke tests needed**: YES
 
-Add to the Skill interface extension in the helper:
-
-```typescript
-export function createSkill(overrides: Partial<Skill> & { id: string }): Skill {
-  return {
-    // ... existing fields ...
-    cooldownRemaining: overrides.cooldownRemaining, // NEW - optional field
-  };
-}
+```yaml
+smoke_tests:
+  - id: 05-trigger-compound
+    action: "Configure skill with two triggers and verify activation"
+    expect: "Skill activates only when both triggers pass (AND logic)"
 ```
-
-No other helper updates expected - existing helpers should suffice.
 
 ---
 
 ## Spec Alignment
 
-- [x] Tests verify heal tracks target during wind-up (spec: heal-whiff fix)
-- [x] Tests verify attack still uses cell targeting (spec: dodge preserved)
-- [x] Tests verify cooldown rejection with clear reason (spec: rejection reasons)
-- [x] Tests verify cooldown decrements each tick when idle (spec: post-resolution timing)
-- [x] Tests verify per-instance cooldown tracking (spec: duplicate skills)
-- [x] Tests verify total lockout = tickCost + cooldown (spec: timing model)
+- [x] ally_hp_below follows existing trigger pattern
+- [x] NOT modifier extends Trigger interface (backward compatible)
+- [x] AND logic already in engine, this adds UI
+- [x] Test organization: one file per trigger type
+- [x] Pure engine tests: no React in /src/engine/
 
 ---
 
 ## Review Status
 
-**APPROVED**
+**Status: APPROVED**
 
-### Review Summary
+### Review Findings
 
-The test designs have been reviewed and approved with the following additions:
+The test designs were reviewed against the acceptance criteria. The following gaps were identified and addressed:
 
-**Added Tests (2):**
+1. **Added test**: `not-with-my-cell-targeted` - Ensures NOT modifier works with all existing trigger types, not just a subset.
 
-1. `heal-character-targeting-fallback-when-targetCharacter-null` - Defensive coding edge case
-2. `cooldown-not-set-for-registry-cooldown-zero` - Explicit zero cooldown edge case
+2. **Added test**: `formatTrigger-ally-hp-below` - Ensures the new trigger type displays correctly in the formatter.
 
-**Clarifications Made:**
+3. **Added test**: `formatRejectionReasonCompact-shows-not-prefix` - Ensures rejection reasons display the NOT prefix for negated triggers, satisfying the acceptance criterion "Rejection reasons in evaluation display the specific trigger that failed."
 
-- Setup for `heal-character-targeting-lands-on-moved-target` clarified that targetCharacter must be a full Character object
-- Setup for `cooldown-set-when-action-applied` clarified that test must mock or use real skill with cooldown
-- Assertions for `cooldown-full-cycle-tickCost-then-cooldown` clarified timing order (decrement runs before clearResolvedActions)
+4. **Added test**: `evaluateSkillsForCharacter-captures-negated-failed-triggers` - Ensures the evaluation function (used by UI) properly captures negated triggers in failedTriggers array.
 
-**Total Test Count:** 25 tests (was 23, added 2)
+### Coverage Verification
 
-**Review Date:** 2026-02-05
-**Reviewer:** Architect Agent (TEST_DESIGN_REVIEW phase)
+All acceptance criteria are now covered:
+
+| Acceptance Criterion                                            | Test(s)                                                                                                                                                   |
+| --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Skills can have 0, 1, or 2 triggers with AND logic              | `formatTriggers-handles-empty-array`, `formatTriggers-handles-single-trigger`, `formatTriggers-joins-with-and`, existing AND tests                        |
+| Any trigger can be negated with NOT                             | Full B2 test suite (8 tests)                                                                                                                              |
+| ally_hp_below evaluates correctly against all allies (not self) | Full B3 test suite (12 tests), especially `ally-hp-below-excludes-self`                                                                                   |
+| AND with both passing                                           | `and-logic-with-negated-trigger-all-pass` + existing tests                                                                                                |
+| AND with one failing                                            | `and-logic-with-negated-trigger-one-fails` + existing tests                                                                                               |
+| NOT inverted triggers                                           | `not-inverts-true-to-false`, `not-inverts-false-to-true`                                                                                                  |
+| Compound NOT + AND combinations                                 | `and-logic-with-negated-trigger-all-pass`, `formatTriggers-handles-negated-in-compound`                                                                   |
+| Rejection reasons display specific failed trigger               | `formatRejectionReasonCompact-shows-not-prefix`, `failed-triggers-include-negated-display`, `evaluateSkillsForCharacter-captures-negated-failed-triggers` |
+| All existing single-trigger behavior unchanged                  | `not-with-undefined-negated-field`, `not-with-explicit-false-negated`                                                                                     |
+
+### Notes for Implementation
+
+1. The formatter test file `src/components/RuleEvaluations/rule-evaluations-formatters.test.ts` is NEW and should be created during WRITE_TESTS phase.
+
+2. The `formatTriggers` function does not exist yet and must be added to `rule-evaluations-formatters.ts`.
+
+3. The `formatTrigger` function must be updated to handle the `negated` field.
+
+4. Test count updated from 30 to 34 to reflect the 4 new tests added during review.

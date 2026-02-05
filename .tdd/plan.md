@@ -1,598 +1,309 @@
-# Implementation Plan: Per-Skill Targeting Mode and Cooldown System
+# Implementation Plan: Trigger System Expansion
 
 ## Overview
 
-Two independent features extending the existing skill system:
-
-1. **C1: Per-skill targeting mode** - Add `targetingMode: "cell" | "character"` field to skill definitions. Attack skills use cell targeting (preserves dodge), Heal uses character targeting (fixes heal-whiff when ally moves).
-
-2. **C2: Cooldown system** - Add optional `cooldown` field to skill definitions and `cooldownRemaining` to skill instances. Skills on cooldown are rejected during decision phase.
-
-Both features are independent. C1 is implemented first, then C2.
-
----
-
-## C1: Per-Skill Targeting Mode
-
-### Rationale
-
-Currently all skills use cell-based targeting: the decision phase locks `targetCell` at decision time, and resolution checks if ANY character is in that cell. This enables dodge for attacks (target moves away, attack misses) but causes heals to "whiff" if the ally moves during wind-up.
-
-Adding `targetingMode` allows heal skills to lock onto the target character rather than the cell, ensuring the heal tracks the ally regardless of movement.
-
-### Implementation Steps
-
-#### Step 1: Add `targetingMode` to SkillDefinition
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts`
-
-**Changes at lines 26-40 (SkillDefinition interface):**
-
-- Add new field: `targetingMode: "cell" | "character"`
-
-**Changes at lines 46-102 (SKILL_REGISTRY constant):**
-
-- Add `targetingMode: "cell"` to `light-punch` (line ~59)
-- Add `targetingMode: "cell"` to `heavy-punch` (line ~73)
-- Add `targetingMode: "cell"` to `move-towards` (line ~86)
-- Add `targetingMode: "character"` to `heal` (line ~100)
-
-**Changes at lines 112-128 (getDefaultSkills function):**
-
-- No changes needed - does not include non-innate skills
-
-**Changes at lines 134-150 (createSkillFromDefinition function):**
-
-- No changes needed - `targetingMode` is not copied to Skill instance (only used at resolution time)
-
-#### Step 2: Update Healing Resolution
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/healing.ts`
-
-**Changes at lines 29-70 (resolveHealing function):**
-
-Replace the target lookup logic (lines 49-54) with:
-
-```typescript
-// Determine target based on targeting mode
-let target: Character | undefined;
-const skillDef = getSkillDefinition(action.skill.id);
-const targetingMode = skillDef?.targetingMode ?? "cell";
-
-if (targetingMode === "character" && action.targetCharacter) {
-  // Character-targeted: find the stored target (by ID, in case reference is stale)
-  target = updatedCharacters.find(
-    (c) => c.id === action.targetCharacter!.id && c.hp > 0,
-  );
-} else {
-  // Cell-targeted: find ANY character in target cell (existing behavior)
-  target = updatedCharacters.find(
-    (c) => positionsEqual(c.position, action.targetCell) && c.hp > 0,
-  );
-}
-```
-
-**Add import at top:**
-
-```typescript
-import { getSkillDefinition } from "./skill-registry";
-```
-
-#### Step 3: Update Intent Line Tracking
-
-**File:** `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors.ts`
-
-**Changes at lines 174-232 (selectIntentData function):**
-
-The `IntentData` interface (lines 146-152) uses `action.targetCell` for the line endpoint. For character-targeted skills, we need the endpoint to reflect the target's current position.
-
-**Add helper function before selectIntentData:**
-
-```typescript
-/**
- * Get the current target position for an action.
- * For character-targeted skills, returns the live position of targetCharacter.
- * For cell-targeted skills, returns the locked targetCell.
- */
-function getActionTargetPosition(
-  action: Action,
-  characters: Character[],
-): Position {
-  const skillDef = SKILL_REGISTRY.find((d) => d.id === action.skill.id);
-  const targetingMode = skillDef?.targetingMode ?? "cell";
-
-  if (targetingMode === "character" && action.targetCharacter) {
-    // Find current position of target character
-    const target = characters.find((c) => c.id === action.targetCharacter!.id);
-    if (target) {
-      return target.position;
-    }
-  }
-
-  // Fall back to locked target cell
-  return action.targetCell;
-}
-```
-
-**Modify IntentData interface (lines 146-152):**
-
-No changes needed - `action` object contains all needed data. The component will compute the target position.
-
-**Alternative approach (preferred):** Add a computed `targetPosition` field to IntentData:
-
-```typescript
-export interface IntentData {
-  characterId: string;
-  characterPosition: Position;
-  faction: Faction;
-  action: Action;
-  ticksRemaining: number;
-  targetPosition: Position; // NEW: computed live position for rendering
-}
-```
-
-Then update the mapping logic in selectIntentData to call `getActionTargetPosition()`.
-
-**Update at line 183-188 (committed actions mapping):**
-
-```typescript
-const committed: IntentData[] = withActions.map((c) => ({
-  characterId: c.id,
-  characterPosition: c.position,
-  faction: c.faction,
-  action: c.currentAction,
-  ticksRemaining: c.currentAction.resolvesAtTick - tick,
-  targetPosition: getActionTargetPosition(c.currentAction, characters), // NEW
-}));
-```
-
-**Update at lines 216-225 (preview decisions mapping):**
-
-```typescript
-const mapped = afterTypeFilter.map((d) => {
-  const character = characters.find((c) => c.id === d.characterId)!;
-  return {
-    characterId: d.characterId,
-    characterPosition: character.position,
-    faction: character.faction,
-    action: d.action,
-    ticksRemaining: d.action.resolvesAtTick - tick,
-    targetPosition: getActionTargetPosition(d.action, characters), // NEW
-  };
-});
-```
-
-#### Step 4: Update IntentLine Component
-
-**File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay.tsx` (or IntentLine.tsx)
-
-The component currently reads `action.targetCell` for the line endpoint. Update to read from `IntentData.targetPosition` instead.
-
-**Changes:** Update the line endpoint from `action.targetCell` to the new `targetPosition` field passed in IntentData.
-
-### C1 Backward Compatibility
-
-- All attack skills continue to use cell targeting (dodge preserved)
-- Move skill uses cell targeting (movement destination is a cell, not a character)
-- Existing tests will pass without modification
-- New `targetingMode` field defaults to "cell" if undefined (defensive coding)
-
----
-
-## C2: Cooldown System
-
-### Rationale
-
-Cooldowns allow skills to have a lockout period after use. This enables design of powerful skills that cannot be spammed. Cooldown is tracked per skill instance, so duplicate skills (e.g., 3x Move) have independent cooldowns.
-
-### Implementation Steps
-
-#### Step 1: Add `cooldown` to SkillDefinition
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts`
-
-**Changes at lines 26-40 (SkillDefinition interface):**
-
-- Add new field: `cooldown?: number` (optional, undefined = no cooldown)
-
-**Changes at lines 46-102 (SKILL_REGISTRY constant):**
-
-- No changes needed for current skills (all have no cooldown)
-- Future skills can add `cooldown: N` to enable cooldown
-
-#### Step 2: Add `cooldownRemaining` to Skill Type
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/types.ts`
-
-**Changes at lines 54-68 (Skill interface):**
-
-- Add new field: `cooldownRemaining?: number` (optional, undefined or 0 = ready)
-
-#### Step 3: Add `on_cooldown` Rejection Reason
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/types.ts`
-
-**Changes at lines 276-280 (SkillRejectionReason type):**
-
-- Add new value: `"on_cooldown"` to the union type
-
-```typescript
-export type SkillRejectionReason =
-  | "disabled"
-  | "trigger_failed"
-  | "no_target"
-  | "out_of_range"
-  | "on_cooldown"; // NEW
-```
-
-#### Step 4: Check Cooldown in Decision Phase
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/game-decisions.ts`
-
-**Changes in computeDecisions function (lines 65-164):**
-
-Add cooldown check after the disabled check (line 79-81):
-
-```typescript
-// 3. Skip disabled skills
-if (!skill.enabled) {
-  continue;
-}
-
-// 3b. Skip skills on cooldown (NEW)
-if (skill.cooldownRemaining && skill.cooldownRemaining > 0) {
-  continue;
-}
-```
-
-**Changes in evaluateSkillsForCharacter function (lines 176-316):**
-
-Add cooldown check after disabled check (line 204-212):
-
-```typescript
-// Check disabled
-if (!skill.enabled) {
-  evaluations.push({
-    skill,
-    status: "rejected",
-    rejectionReason: "disabled",
-  });
-  currentIndex++;
-  continue;
-}
-
-// Check cooldown (NEW)
-if (skill.cooldownRemaining && skill.cooldownRemaining > 0) {
-  evaluations.push({
-    skill,
-    status: "rejected",
-    rejectionReason: "on_cooldown",
-  });
-  currentIndex++;
-  continue;
-}
-```
-
-#### Step 5: Initialize Cooldown When Action Created
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/game-actions.ts`
-
-**Changes in createSkillAction function (lines 61-96):**
-
-After creating the action, update the skill's cooldownRemaining:
-
-**Add import at top:**
-
-```typescript
-import { getSkillDefinition } from "./skill-registry";
-```
-
-**Modify the return to set cooldown on the skill:**
-
-The challenge: `skill` is passed by reference from the character's skill list. We need to mutate it OR return the updated skill for the caller to apply.
-
-**Recommended approach:** Return both the Action and the updated skill cooldown value. The caller (computeDecisions) sets the cooldown when applying the decision.
-
-**Alternative approach (simpler):** Set cooldown in `applyDecisions` in game-core.ts after the action is committed.
-
-**Best approach (chosen):** Modify `applyDecisions` to also set the skill's cooldown when an action is applied.
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/game-core.ts`
-
-**Changes in applyDecisions function (lines 136-154):**
-
-```typescript
-export function applyDecisions(
-  characters: Character[],
-  decisions: Decision[],
-): Character[] {
-  const decisionMap = new Map<string, Action>();
-  for (const decision of decisions) {
-    decisionMap.set(decision.characterId, decision.action);
-  }
-
-  return characters.map((character) => {
-    const action = decisionMap.get(character.id);
-    if (action) {
-      // Find the skill that was used and set its cooldown
-      const skillDef = getSkillDefinition(action.skill.id);
-      const cooldown = skillDef?.cooldown;
-
-      // Update skills array with cooldown (if applicable)
-      const updatedSkills = cooldown
-        ? character.skills.map((s) =>
-            s.instanceId === action.skill.instanceId
-              ? { ...s, cooldownRemaining: cooldown }
-              : s,
-          )
-        : character.skills;
-
-      return {
-        ...character,
-        currentAction: action,
-        skills: updatedSkills,
-      };
-    }
-    return character;
-  });
-}
-```
-
-**Add import at top:**
-
-```typescript
-import { getSkillDefinition } from "./skill-registry";
-```
-
-#### Step 6: Decrement Cooldowns Each Tick
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/game-core.ts`
-
-**Add new function after clearResolvedActions (line 173):**
-
-```typescript
-/**
- * Decrement cooldownRemaining for all skills that have active cooldowns.
- * Called at the end of each tick after actions resolve.
- *
- * @param characters - Characters to update
- * @returns New array with decremented cooldowns (immutable)
- */
-export function decrementCooldowns(characters: Character[]): Character[] {
-  return characters.map((character) => {
-    const hasActiveCooldowns = character.skills.some(
-      (s) => s.cooldownRemaining && s.cooldownRemaining > 0,
-    );
-
-    if (!hasActiveCooldowns) {
-      return character;
-    }
-
-    return {
-      ...character,
-      skills: character.skills.map((skill) => {
-        if (skill.cooldownRemaining && skill.cooldownRemaining > 0) {
-          return { ...skill, cooldownRemaining: skill.cooldownRemaining - 1 };
-        }
-        return skill;
-      }),
-    };
-  });
-}
-```
-
-**Call in processTick (after line 71, before line 75):**
-
-```typescript
-// 5. Clear resolved actions
-characters = clearResolvedActions(characters, state.tick);
-
-// 5b. Decrement cooldowns (NEW)
-characters = decrementCooldowns(characters);
-
-// 6. Apply all mutations
-// Remove dead characters (HP <= 0)
-```
-
-### C2 Timing Analysis
-
-When a skill with tickCost=2 and cooldown=3 is used:
-
-1. **Tick 0 (Decision):** Skill selected, action created with `resolvesAtTick=2`
-   - `applyDecisions` sets `cooldownRemaining=3`
-   - `decrementCooldowns` runs but skill is mid-action (doesn't matter)
-   - Result: `cooldownRemaining=2` (decremented)
-
-2. **Tick 1 (Mid-action):** Character continues action
-   - `decrementCooldowns` runs
-   - Result: `cooldownRemaining=1`
-
-3. **Tick 2 (Resolution):** Action resolves
-   - `clearResolvedActions` clears `currentAction`
-   - `decrementCooldowns` runs
-   - Result: `cooldownRemaining=0`
-
-4. **Tick 3 (Ready):** Skill available again
-
-**Issue identified:** Cooldown decrements during wind-up, reducing effective lockout.
-
-**Correction:** Should cooldown start AFTER resolution, not at decision time?
-
-**Decision:** Set cooldown at decision time, but account for this in cooldown values. A skill with tickCost=2 and cooldown=3 has total gap of 5 ticks (2 wind-up + 3 post-resolution). The spec mentions: "Total lockout = tickCost + cooldown ticks."
-
-However, with current implementation, cooldown decrements during wind-up too, so effective lockout = max(tickCost, cooldown).
-
-**Alternative implementation:** Don't decrement cooldown while action is pending (character has currentAction). This gives true "cooldown starts after resolution" behavior.
-
-**Revised decrementCooldowns:**
-
-```typescript
-export function decrementCooldowns(characters: Character[]): Character[] {
-  return characters.map((character) => {
-    // Skip if character has a pending action - cooldown ticks after resolution
-    if (character.currentAction !== null) {
-      return character;
-    }
-
-    const hasActiveCooldowns = character.skills.some(
-      (s) => s.cooldownRemaining && s.cooldownRemaining > 0,
-    );
-
-    if (!hasActiveCooldowns) {
-      return character;
-    }
-
-    return {
-      ...character,
-      skills: character.skills.map((skill) => {
-        if (skill.cooldownRemaining && skill.cooldownRemaining > 0) {
-          return { ...skill, cooldownRemaining: skill.cooldownRemaining - 1 };
-        }
-        return skill;
-      }),
-    };
-  });
-}
-```
-
-**Wait:** But `clearResolvedActions` already cleared `currentAction` before `decrementCooldowns` runs. Need to check BEFORE clearing.
-
-**Revised approach:** Move cooldown decrement BEFORE clearResolvedActions, and skip characters with pending actions.
-
-**Final implementation:**
-
-In processTick, the order becomes:
-
-1. computeDecisions + applyDecisions (sets cooldown on used skill)
-2. resolveHealing, resolveMovement, resolveCombat
-3. **decrementCooldowns** (skip if currentAction exists)
-4. clearResolvedActions
-5. Remove dead, check victory
-
-This ensures cooldown only ticks when the character is idle.
-
-**Revised processTick order (lines 33-93):**
-
-```typescript
-// ... existing code through line 68 (combat resolution)
-
-// 5a. Decrement cooldowns (before clearing actions)
-// Only decrement for characters without pending actions
-characters = decrementCooldowns(characters);
-
-// 5b. Clear resolved actions
-characters = clearResolvedActions(characters, state.tick);
-```
-
-### C2 Backward Compatibility
-
-- Existing skills have no cooldown (undefined), so no change in behavior
-- Cooldown check uses optional chaining (`skill.cooldownRemaining && skill.cooldownRemaining > 0`)
-- New `on_cooldown` rejection reason extends existing SkillRejectionReason type
-
----
-
-## Test Strategy Overview
-
-### C1 Tests
-
-1. **Heal lands on moved target** - Target moves during wind-up, heal still lands
-2. **Heal fails on dead target** - Target dies during wind-up, heal misses
-3. **Attack still uses cell targeting** - Target dodges, attack misses (existing behavior preserved)
-4. **Intent line tracks moving target** - Character-targeted heal intent follows target position
-
-### C2 Tests
-
-1. **Cooldown rejection** - Skill on cooldown is rejected with `on_cooldown` reason
-2. **Cooldown decrement** - Cooldown decreases by 1 each tick when idle
-3. **Cooldown paused during action** - Cooldown does not decrement while character has pending action
-4. **Cooldown independence** - Duplicate skills (e.g., 3x Move) have independent cooldowns
-5. **Cooldown + tickCost interaction** - Total lockout = tickCost + cooldown ticks
-6. **Cooldown ready at zero** - Skill becomes available when cooldownRemaining reaches 0
-
----
+Expand the trigger system with three features:
+
+- **B3**: `ally_hp_below` trigger type (simplest - engine only)
+- **B2**: NOT modifier via `negated` field (builds on B3)
+- **B1**: AND combinator UI (engine already done)
 
 ## Implementation Order
 
-1. **C1 Step 1:** Add `targetingMode` to SkillDefinition and SKILL_REGISTRY
-2. **C1 Step 2:** Update healing.ts to use character targeting
-3. **C1 Step 3:** Update gameStore-selectors.ts for intent line tracking
-4. **C1 Step 4:** Update IntentOverlay/IntentLine component
-5. Run all existing tests - should pass
-6. Write C1-specific tests
-
-7. **C2 Step 1:** Add `cooldown` to SkillDefinition
-8. **C2 Step 2:** Add `cooldownRemaining` to Skill type
-9. **C2 Step 3:** Add `on_cooldown` rejection reason
-10. **C2 Step 4:** Add cooldown check in game-decisions.ts
-11. **C2 Step 5:** Initialize cooldown in applyDecisions
-12. **C2 Step 6:** Add decrementCooldowns function and integrate into processTick
-13. Run all existing tests - should pass
-14. Write C2-specific tests
+**B3 → B2 → B1** (simplest to most complex, each builds on prior)
 
 ---
 
-## Risk Mitigation
+## Feature B3: ally_hp_below Trigger
 
-### C1 Risks
+### Rationale
 
-| Risk                                      | Mitigation                              |
-| ----------------------------------------- | --------------------------------------- |
-| `targetCharacter` reference becomes stale | Look up by ID, not reference            |
-| Target dies during wind-up                | Check `hp > 0` in resolution            |
-| Intent lines don't update                 | Use live position from characters array |
-| Breaks existing attack dodge              | Attacks explicitly use "cell" mode      |
+New trigger type that checks if any ally has HP below a percentage threshold. Enables support-focused skills (e.g., "Heal when ally below 50% HP").
 
-### C2 Risks
+### Files to Modify
 
-| Risk                                     | Mitigation                               |
-| ---------------------------------------- | ---------------------------------------- |
-| Cooldown ticks during wind-up            | Skip decrement if `currentAction` exists |
-| Mutating skill array breaks immutability | Create new skill objects with spread     |
-| Duplicate skills share cooldown          | Use `instanceId` for matching, not `id`  |
-| UI shows stale cooldown                  | No UI changes in scope (engine-only)     |
+#### 1. `/home/bob/Projects/auto-battler/src/engine/types.ts`
+
+- **Change**: Add `"ally_hp_below"` to Trigger type union (line 77)
+- **Before**: `type: "always" | "enemy_in_range" | "ally_in_range" | "hp_below" | "my_cell_targeted_by_enemy"`
+- **After**: `type: "always" | "enemy_in_range" | "ally_in_range" | "hp_below" | "ally_hp_below" | "my_cell_targeted_by_enemy"`
+
+#### 2. `/home/bob/Projects/auto-battler/src/engine/triggers.ts`
+
+- **Change**: Add new case in `evaluateTrigger` switch statement (after `hp_below` case, ~line 59)
+- **Logic**:
+  ```typescript
+  case "ally_hp_below": {
+    const thresholdPercent = trigger.value ?? 0;
+    return allCharacters.some(
+      (c) =>
+        c.faction === evaluator.faction &&
+        c.id !== evaluator.id &&
+        c.hp > 0 &&
+        c.maxHp > 0 &&
+        (c.hp / c.maxHp) * 100 < thresholdPercent,
+    );
+  }
+  ```
+
+#### 3. `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx`
+
+- **Change 1**: Add option to trigger type dropdown (~line 241-248)
+- **Change 2**: Update `needsValue` check (~line 148-151) to include `"ally_hp_below"`
+- **Change 3**: Update `handleTriggerTypeChange` (~line 49-71) to handle `"ally_hp_below"` with default value 50
+
+#### 4. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-formatters.ts`
+
+- **No change needed**: `formatTrigger` already handles `type(value)` format generically
+
+### New Test File
+
+`/home/bob/Projects/auto-battler/src/engine/triggers-ally-hp-below.test.ts`
+
+### Edge Cases
+
+- Ally at exactly threshold (should return false - "below" not "at or below")
+- No allies alive (should return false)
+- Only evaluator alive (should return false - excludes self)
+- Ally with maxHp <= 0 (should skip that ally, not crash)
+- Value is 0 (always false - nothing is below 0%)
+- Value is 100 (true if any ally not at full HP)
 
 ---
 
-## New Decision (for ADR consideration)
+## Feature B2: NOT Modifier
 
-**Decision:** Cooldown timing follows "post-resolution" model.
+### Rationale
 
-**Context:** When a skill with both `tickCost` and `cooldown` is used, the total lockout must be predictable.
+Allow negating any trigger condition. E.g., "Attack when NOT hp_below 50%" or "Move when NOT enemy_in_range 2".
 
-**Implementation:** Cooldown is set when action is committed, but only decrements when the character is idle (no `currentAction`). This means tickCost and cooldown add together: a skill with tickCost=2 and cooldown=3 is locked for 5 ticks total.
+### Files to Modify
 
-**Consequences:**
+#### 1. `/home/bob/Projects/auto-battler/src/engine/types.ts`
 
-- Simple mental model: "2 ticks to resolve, then 3 ticks to recharge"
-- Cooldown values in registry represent post-resolution lockout, not total lockout
-- UI can show "resolving in X" during wind-up, "ready in Y" during cooldown
+- **Change**: Add `negated?: boolean` field to Trigger interface (~line 83)
+- **After**:
+  ```typescript
+  export interface Trigger {
+    type:
+      | "always"
+      | "enemy_in_range"
+      | "ally_in_range"
+      | "hp_below"
+      | "ally_hp_below"
+      | "my_cell_targeted_by_enemy";
+    value?: number;
+    negated?: boolean; // If true, invert the trigger result
+  }
+  ```
 
-This decision should be documented in `.docs/decisions/` if accepted.
+#### 2. `/home/bob/Projects/auto-battler/src/engine/triggers.ts`
+
+- **Change**: Wrap result with negation check at end of function
+- **Approach**: Extract switch result to variable, apply negation before return
+- **Implementation**:
+  ```typescript
+  export function evaluateTrigger(
+    trigger: Trigger,
+    evaluator: Character,
+    allCharacters: Character[],
+  ): boolean {
+    let result: boolean;
+
+    switch (
+      trigger.type
+      // ... existing cases, assign to result instead of return
+    ) {
+    }
+
+    // Apply negation if specified
+    return trigger.negated ? !result : result;
+  }
+  ```
+
+#### 3. `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx`
+
+- **Change 1**: Add NOT toggle checkbox next to trigger dropdown
+- **Change 2**: Add handler `handleNegatedToggle(instanceId, currentNegated)`
+- **Change 3**: Preserve `negated` field when changing trigger type/value
+- **UI Location**: Before trigger type dropdown in controlRow
+
+#### 4. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-formatters.ts`
+
+- **Change**: Update `formatTrigger` to prefix "NOT " when negated
+- **Implementation**:
+  ```typescript
+  export function formatTrigger(trigger: Trigger): string {
+    const prefix = trigger.negated ? "NOT " : "";
+    if (trigger.value !== undefined) {
+      return `${prefix}${trigger.type}(${trigger.value})`;
+    }
+    return `${prefix}${trigger.type}`;
+  }
+  ```
+
+### New Test File
+
+`/home/bob/Projects/auto-battler/src/engine/triggers-not-modifier.test.ts`
+
+### Edge Cases
+
+- NOT always (should always return false)
+- NOT with undefined negated field (should behave as false/non-negated)
+- Double negation prevented (UI only allows single toggle, no `negated: false` explicit)
+- Negated trigger in failedTriggers display (should show "NOT type(value)")
+
+---
+
+## Feature B1: AND Combinator UI
+
+### Rationale
+
+Engine already supports multiple triggers with AND logic via `skill.triggers.every()`. UI currently only shows/edits the first trigger. Need to expose second trigger slot.
+
+### Current State
+
+- Engine: `triggers: Trigger[]` with AND logic in `game-decisions.ts` line 79
+- UI: Only displays `skill.triggers[0]`
+- Rejection tracking: `failedTriggers` array captures all failed triggers
+
+### Files to Modify
+
+#### 1. `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx`
+
+**Change 1**: Add "Add Trigger" button when triggers.length < 2
+
+- Location: After first trigger row
+- Condition: `skill.triggers.length < 2`
+- Action: Adds `{ type: "always" }` to triggers array
+
+**Change 2**: Display second trigger row when triggers.length === 2
+
+- Reuse existing trigger UI pattern
+- Add "AND" label between triggers
+- Add "Remove" button on second trigger
+
+**Change 3**: Update handlers for multi-trigger support
+
+- `handleTriggerTypeChange(instanceId, triggerType, triggerIndex)`
+- `handleTriggerValueChange(instanceId, triggerType, value, triggerIndex)`
+- `handleNegatedToggle(instanceId, negated, triggerIndex)`
+- New: `handleAddTrigger(instanceId)`
+- New: `handleRemoveTrigger(instanceId, triggerIndex)`
+
+**Change 4**: Update skill update calls to preserve full triggers array
+
+- When modifying trigger at index 0, preserve trigger at index 1
+- When modifying trigger at index 1, preserve trigger at index 0
+
+#### 2. `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.module.css`
+
+- **Change**: Add styles for AND label and trigger rows
+- Classes: `.andLabel`, `.triggerRow`, `.removeTriggerButton`
+
+#### 3. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-formatters.ts`
+
+- **Change**: Add function to format multiple triggers with AND
+- **Implementation**:
+  ```typescript
+  export function formatTriggers(triggers: Trigger[]): string {
+    if (triggers.length === 0) return "always";
+    return triggers.map(formatTrigger).join(" AND ");
+  }
+  ```
+
+### Edge Cases
+
+- Adding trigger when triggers array is empty (initialize with `[{ type: "always" }]`)
+- Removing last trigger (should leave `[{ type: "always" }]`, not empty array)
+- Trigger value preservation when switching types
+- UI state sync when triggers array changes externally (e.g., skill registry update)
+
+---
+
+## Backward Compatibility
+
+### Existing Single-Trigger Behavior
+
+- Skills with `triggers: [{ type: "always" }]` continue to work unchanged
+- Empty triggers array still passes (vacuous truth - tested in `game-decisions-trigger-and-logic.test.ts`)
+- `negated: undefined` treated as `negated: false`
+
+### Migration Path
+
+- No data migration needed - existing skills have valid structure
+- New fields (`negated`, second trigger) are optional additions
 
 ---
 
 ## Spec Alignment Check
 
-- [x] Plan aligns with `.docs/spec.md` requirements (heal tracking, skill system)
-- [x] Approach consistent with `.docs/architecture.md` (pure engine, selector patterns)
-- [x] Patterns follow `.docs/patterns/index.md` (no new patterns needed)
-- [x] No conflicts with `.docs/decisions/index.md` (extends ADR-005 centralized registry, ADR-006 heal timing, ADR-009 instance identity)
+- [x] `ally_hp_below` follows spec trigger pattern (Section 13.3)
+- [x] NOT modifier doesn't conflict with existing trigger logic
+- [x] AND UI exposes existing engine capability (already spec-compliant)
+- [x] Follows architecture: pure engine, no React in `/src/engine/`
+- [x] Test organization: one file per trigger type (pattern from existing tests)
 
 ---
 
-## Summary
+## Risk Assessment
 
-**C1 (Targeting Mode):**
+### Low Risk
 
-- 4 files modified
-- Low complexity, clear separation from combat
-- Preserves all existing dodge behavior
+- B3 (ally_hp_below): Follows established trigger pattern exactly
+- B2 (NOT): Simple boolean inversion, no logic changes
 
-**C2 (Cooldown):**
+### Medium Risk
 
-- 4 files modified
-- Medium complexity due to timing/state management
-- Per-instance tracking leverages existing instanceId infrastructure
+- B1 (AND UI): More complex state management for multiple triggers
+  - Mitigation: Reuse existing trigger UI components
+  - Mitigation: Preserve triggers array immutably
 
-Both features are additive and backward compatible. No breaking changes to existing tests expected.
+### Testing Strategy
+
+- Unit tests for each trigger type (engine)
+- Integration tests for AND logic (already exists, extend)
+- Component tests for UI changes (SkillsPanel)
+
+---
+
+## Implementation Sequence
+
+### Phase 1: B3 - ally_hp_below (Engine)
+
+1. Add type to `types.ts`
+2. Add case to `triggers.ts`
+3. Add UI option to `SkillsPanel.tsx`
+4. Write tests
+
+### Phase 2: B2 - NOT modifier (Engine + UI)
+
+1. Add `negated` field to `types.ts`
+2. Wrap evaluateTrigger result in `triggers.ts`
+3. Update `formatTrigger` in formatters
+4. Add NOT toggle to `SkillsPanel.tsx`
+5. Write tests
+
+### Phase 3: B1 - AND UI (UI only)
+
+1. Refactor SkillsPanel trigger handlers for index parameter
+2. Add second trigger row rendering
+3. Add Add/Remove trigger buttons
+4. Add CSS styles
+5. Update formatters for multi-trigger display
+6. Write component tests
+
+---
+
+## New Decision
+
+**Decision**: Limit UI to maximum 2 triggers per skill
+
+**Context**: Engine supports unlimited triggers, but UI complexity increases exponentially. Two triggers cover most tactical scenarios (e.g., "enemy_in_range AND hp_below").
+
+**Consequences**:
+
+- Simpler UI implementation
+- Clear user mental model
+- Can extend to 3+ later if needed
+- Recommend documenting in ADR if this becomes a permanent constraint

@@ -1,0 +1,111 @@
+.skillRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+}
+
+.skillRow.battleMode {
+  padding: 0.75rem;
+}
+
+.statusIcon {
+  font-size: 1.2rem;
+  font-weight: bold;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.statusSelected {
+  border-left: 3px solid var(--health-high);
+}
+
+.statusSelected .statusIcon {
+  color: var(--health-high);
+}
+
+.statusRejected {
+  border-left: 3px solid var(--health-low);
+}
+
+.statusRejected .statusIcon {
+  color: var(--health-low);
+}
+
+.statusSkipped {
+  opacity: 0.6;
+}
+
+.statusSkipped .statusIcon {
+  color: var(--text-secondary);
+}
+
+.priorityControls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.priorityControls button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--border-primary);
+  background: var(--surface-tertiary);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.priorityControls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.skillName {
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 100px;
+}
+
+.select {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 3px;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.input {
+  width: 60px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 3px;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.duplicateBtn {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border-primary);
+  background: var(--surface-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.target {
+  color: var(--accent-primary);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.rejectionReason {
+  color: var(--health-low);
+  font-size: 0.85rem;
+  font-style: italic;
+}

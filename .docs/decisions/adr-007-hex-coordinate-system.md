@@ -32,6 +32,7 @@ Axial coordinates chosen because:
 - **Uniform movement cost**: All 6 neighbors cost 1, eliminating cardinal/diagonal distinction
 - **Well-established pattern**: Red Blob Games reference implementation widely used
 - **Flat-top orientation**: Matches horizontal UI layout, provides natural left/right movement
+  - _Note: "Flat-top orientation" refers to the board shape (row of hexes at top edge), achieved by using pointy-top individual hexagons (vertices at top/bottom)_
 - **Radius-based boundary**: `max(|q|, |r|, |q+r|) <= 5` creates a symmetric hexagonal map
 - **91 hexes at radius 5**: Comparable playing area to 12x12 (144 cells) with better tactical density
 

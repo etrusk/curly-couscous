@@ -5,6 +5,22 @@
 version: 1
 base_url: "http://localhost:5173"
 
+# === EXECUTION PROTOCOL ===
+# Agents MUST follow this protocol when running smoke tests:
+#
+# 1. Execute checks SEQUENTIALLY - each builds on prior state
+# 2. For EACH check, log explicitly:
+#    - EXECUTING: [id] - [action]
+#    - RESULT: PASS/FAIL - [observed outcome]
+# 3. Take screenshot AFTER each action (not just at end)
+# 4. Read console errors AFTER each action (clear between checks)
+# 5. If ANY check fails, STOP and report - do not continue
+# 6. Final summary must list each check with PASS/FAIL status
+#
+# "Visual inspection" without explicit execution logs = INVALID
+# Checking "elements are visible" without clicking = INVALID
+# Dismissing console errors as "historical" without investigation = INVALID
+
 # === SCRIPT: Victory Path ===
 # Tests app load → setup → battle → victory → reset
 
@@ -23,18 +39,18 @@ checks:
 
   - id: 04-select-friendly
     action: "click friendly token 'A'"
-    expect: "token shows selection border, SkillsPanel header shows 'Friendly A'"
+    expect: "token shows selection border, CharacterPanel header shows 'Friendly A'"
 
   - id: 05-assign-attack
-    action: "in InventoryPanel, click 'Assign' next to 'Light Punch'"
-    expect: "Light Punch appears in SkillsPanel skill list below Move"
+    action: "in Loadout tab, click 'Assign' next to 'Light Punch'"
+    expect: "Light Punch appears in Equipped Skills section below Move"
 
   - id: 06-skill-toggle
-    action: "click toggle switch on Move skill to disable it"
+    action: "click toggle switch on Move skill in Loadout tab to disable it"
     expect: "Move skill shows disabled state (grayed or unchecked)"
 
   - id: 07-skill-reorder
-    action: "click move-up button on Light Punch"
+    action: "in Priority tab, click move-up button on Light Punch"
     expect: "Light Punch moves to position 0 (top of list)"
 
   - id: 08-step-battle
@@ -78,6 +94,29 @@ checks:
   - id: 05-trigger-compound
     action: "Configure skill with two triggers and verify activation"
     expect: "Skill activates only when both triggers pass (AND logic)"
+
+  # === SCRIPT: Two-Panel Layout ===
+  # Tests new tabbed interface for CharacterPanel
+
+  - id: 17-panel-tabs
+    action: "select friendly character, observe CharacterPanel"
+    expect: "Two tabs visible: Loadout and Priority. Loadout tab active by default."
+
+  - id: 18-loadout-tab-content
+    action: "in Loadout tab, observe equipped skills and inventory sections"
+    expect: "Equipped section shows Move skill. Inventory section shows Light Punch, Heavy Punch, Heal."
+
+  - id: 19-priority-tab-content
+    action: "click Priority tab"
+    expect: "Priority tab shows Move skill row with trigger, target, criterion, behavior dropdowns."
+
+  - id: 20-battle-tab-auto-switch
+    action: "add enemy, click 'Step' button to start battle"
+    expect: "Panel auto-switches to Priority tab. Skills show evaluation icons."
+
+  - id: 21-evaluation-inline-display
+    action: "observe Priority tab during battle phase"
+    expect: "Selected skill shows green checkmark and target. Skipped skills show gray dash."
 
   # === VERIFICATION ===
 

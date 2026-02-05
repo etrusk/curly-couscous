@@ -238,7 +238,7 @@ Battle progresses in discrete ticks. Tick 0 is initial state.
 
 ### Grid System
 
-Hexagonal grid using axial coordinates {q, r} with flat-top orientation (ADR-007).
+Hexagonal grid using axial coordinates {q, r} with pointy-top hex orientation creating flat-top board shape (ADR-007).
 
 - **Shape:** Hexagonal map with radius 5 (91 total hexes)
 - **Coordinates:** Axial {q, r} where valid hexes satisfy max(|q|, |r|, |q+r|) <= 5

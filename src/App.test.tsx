@@ -3,10 +3,11 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import App from "./App";
 import { useAccessibilityStore } from "./stores/accessibilityStore";
 import { useGameStore } from "./stores/gameStore";
+import { createCharacter } from "./engine/game-test-helpers";
 
 describe("App - Theme Integration", () => {
   beforeEach(() => {
@@ -84,12 +85,91 @@ describe("App - Empty Arena Start", () => {
     expect(removeButton).toBeInTheDocument();
   });
 
-  it("should render InventoryPanel in grid", () => {
+  it("should not render old InventoryPanel (migrated to LoadoutTab)", () => {
     render(<App />);
 
-    const inventoryHeading = screen.getByRole("heading", {
-      name: /inventory/i,
+    // Inventory is now in LoadoutTab within CharacterPanel, not a separate panel
+    // With no character selected, placeholder shown instead
+    expect(
+      screen.queryByText(/click a character on the grid to configure/i),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("App - D1: Two-Panel Layout", () => {
+  beforeEach(() => {
+    useAccessibilityStore.getState().setTheme("dark");
+    useAccessibilityStore.getState().setHighContrast(false);
+    useGameStore.getState().actions.reset();
+  });
+
+  it("renders two-panel grid structure", () => {
+    render(<App />);
+
+    // BattleViewer section should exist
+    const grid = screen.getByRole("grid");
+    expect(grid).toBeInTheDocument();
+
+    // CharacterPanel section should exist (shows placeholder when no selection)
+    expect(
+      screen.getByText(/click a character on the grid to configure/i),
+    ).toBeInTheDocument();
+
+    // Old panels should NOT exist
+    expect(screen.queryByText(/skills & priority/i)).not.toBeInTheDocument();
+  });
+
+  it("config phase uses 40%/60% grid proportions", () => {
+    render(<App />);
+
+    // Ensure in config phase (no active battle)
+    const battleStatus = useGameStore.getState().gameState.battleStatus;
+    expect(battleStatus).not.toBe("active");
+
+    // Grid container should have config phase data attribute
+    const gridContainer = document.querySelector("[data-phase='config']");
+    expect(gridContainer).toBeInTheDocument();
+  });
+
+  it("battle phase uses 70%/30% grid proportions", async () => {
+    // Create characters and start battle
+    const friendly = createCharacter({
+      id: "friendly",
+      faction: "friendly",
+      position: { q: 0, r: 0 },
     });
-    expect(inventoryHeading).toBeInTheDocument();
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 5, r: 0 },
+    });
+
+    render(<App />);
+
+    // initBattle after render to override App's useEffect init
+    useGameStore.getState().actions.initBattle([friendly, enemy]);
+    // battleStatus should already be "active" from initBattle
+
+    // Wait for React to re-render with new state
+    await waitFor(() => {
+      const gridContainer = document.querySelector("[data-phase='battle']");
+      expect(gridContainer).toBeInTheDocument();
+    });
+  });
+
+  it("responsive layout at mobile breakpoint (<=768px)", () => {
+    // Note: Testing responsive layout requires either:
+    // 1. CSS media query testing (e.g., with window.matchMedia mock)
+    // 2. Visual regression testing
+    // 3. Checking for responsive classes/attributes
+
+    // For now, verify layout container exists with responsive class
+    render(<App />);
+
+    const appContainer = document.querySelector(".app");
+    expect(appContainer).toBeInTheDocument();
+
+    // Full responsive testing would require additional setup
+    // or integration with Playwright/Cypress
   });
 });

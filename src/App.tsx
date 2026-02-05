@@ -3,8 +3,7 @@ import { BattleViewer } from "./components/BattleViewer";
 import { PlayControls } from "./components/PlayControls";
 import { CharacterControls } from "./components/CharacterControls";
 import { BattleStatusBadge } from "./components/BattleStatus";
-import { SkillsPanel } from "./components/SkillsPanel";
-import { InventoryPanel } from "./components/InventoryPanel";
+import { CharacterPanel } from "./components/CharacterPanel";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { useGameStore, selectActions } from "./stores/gameStore";
 import { useAccessibilityStore } from "./stores/accessibilityStore";
@@ -14,6 +13,11 @@ function App() {
   const actions = useGameStore(selectActions);
   const showTargetLines = useAccessibilityStore((s) => s.showTargetLines);
   const setShowTargetLines = useAccessibilityStore((s) => s.setShowTargetLines);
+  const battleStatus = useGameStore((state) => state.gameState.battleStatus);
+  const characters = useGameStore((state) => state.gameState.characters);
+
+  // Determine UI phase for grid proportions
+  const isBattlePhase = battleStatus === "active" && characters.length > 0;
 
   useEffect(() => {
     // Initialize with empty arena for pre-battle character setup
@@ -41,7 +45,10 @@ function App() {
           <ThemeToggle />
         </div>
       </div>
-      <div className="gridContainer">
+      <div
+        className="gridContainer"
+        data-phase={isBattlePhase ? "battle" : "config"}
+      >
         <div className="battleViewer">
           <BattleViewer />
         </div>
@@ -50,11 +57,8 @@ function App() {
           <CharacterControls />
           <PlayControls />
         </div>
-        <div className="skillsPanel">
-          <SkillsPanel />
-        </div>
-        <div className="inventoryPanel">
-          <InventoryPanel />
+        <div className="characterPanel">
+          <CharacterPanel />
         </div>
       </div>
     </div>

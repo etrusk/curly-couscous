@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Comprehensive hex grid test suite requires extensive test coverage */
 /**
  * Unit tests for hex grid utilities.
  * Tests cover hex distance, neighbors, validation, pixel conversion, and enumeration.
@@ -200,24 +201,31 @@ describe("hexToPixel", () => {
     expect(pixel.y).toBe(0);
   });
 
-  it("flat-top formula correctness", () => {
+  it("pointy-top formula correctness for rotated grid", () => {
     const sqrt3 = Math.sqrt(3);
 
+    // D3: After rotation to pointy-top hexes
+    // Formula: x = size * (sqrt(3) * q + sqrt(3)/2 * r), y = size * (3/2) * r
+
+    // Test hex (1,0): x = 30 * sqrt(3) ≈ 51.96, y = 0
     const pixel1 = hexToPixel({ q: 1, r: 0 }, 30);
-    expect(pixel1.x).toBeCloseTo(45, 1);
-    expect(pixel1.y).toBeCloseTo((30 * sqrt3) / 2, 1);
+    expect(pixel1.x).toBeCloseTo(30 * sqrt3, 1);
+    expect(pixel1.y).toBeCloseTo(0, 1);
 
+    // Test hex (0,1): x = 30 * sqrt(3)/2 ≈ 25.98, y = 45
     const pixel2 = hexToPixel({ q: 0, r: 1 }, 30);
-    expect(pixel2.x).toBeCloseTo(0, 1);
-    expect(pixel2.y).toBeCloseTo(30 * sqrt3, 1);
+    expect(pixel2.x).toBeCloseTo((30 * sqrt3) / 2, 1);
+    expect(pixel2.y).toBeCloseTo(45, 1);
 
-    const pixel3 = hexToPixel({ q: 1, r: -1 }, 30);
-    expect(pixel3.x).toBeCloseTo(45, 1);
-    expect(pixel3.y).toBeCloseTo((-30 * sqrt3) / 2, 1);
+    // Test hex (1,1): x = 30 * (sqrt(3) + sqrt(3)/2) ≈ 77.94, y = 45
+    const pixel3 = hexToPixel({ q: 1, r: 1 }, 30);
+    expect(pixel3.x).toBeCloseTo(30 * sqrt3 + (30 * sqrt3) / 2, 1);
+    expect(pixel3.y).toBeCloseTo(45, 1);
 
-    const pixel4 = hexToPixel({ q: -1, r: 0 }, 30);
-    expect(pixel4.x).toBeCloseTo(-45, 1);
-    expect(pixel4.y).toBeCloseTo((-30 * sqrt3) / 2, 1);
+    // Test hex (-1,1): x = 30 * (-sqrt(3) + sqrt(3)/2) ≈ -25.98, y = 45
+    const pixel4 = hexToPixel({ q: -1, r: 1 }, 30);
+    expect(pixel4.x).toBeCloseTo(-30 * sqrt3 + (30 * sqrt3) / 2, 1);
+    expect(pixel4.y).toBeCloseTo(45, 1);
   });
 
   it("adjacent hexes are properly spaced", () => {
@@ -266,6 +274,19 @@ describe("pixelToHex", () => {
     }
   });
 
+  it("pointy-top round-trip for all 91 hexes after rotation", () => {
+    // D3: Test that round-trip conversion works with pointy-top orientation
+    const allHexes = generateAllHexes(5);
+
+    for (const hex of allHexes) {
+      const pixel = hexToPixel(hex, 30);
+      const result = pixelToHex(pixel.x, pixel.y, 30);
+
+      expect(result.q).toBe(hex.q);
+      expect(result.r).toBe(hex.r);
+    }
+  });
+
   it("points near hex edge round to correct hex", () => {
     const center: Position = { q: 0, r: 0 };
     const neighbor: Position = { q: 1, r: 0 };
@@ -274,6 +295,33 @@ describe("pixelToHex", () => {
     const neighborPixel = hexToPixel(neighbor, 30);
 
     // 40% toward neighbor should still resolve to center
+    const point40 = {
+      x: centerPixel.x + 0.4 * (neighborPixel.x - centerPixel.x),
+      y: centerPixel.y + 0.4 * (neighborPixel.y - centerPixel.y),
+    };
+    const result40 = pixelToHex(point40.x, point40.y, 30);
+    expect(result40.q).toBe(center.q);
+    expect(result40.r).toBe(center.r);
+
+    // 80% toward neighbor should resolve to neighbor
+    const point80 = {
+      x: centerPixel.x + 0.8 * (neighborPixel.x - centerPixel.x),
+      y: centerPixel.y + 0.8 * (neighborPixel.y - centerPixel.y),
+    };
+    const result80 = pixelToHex(point80.x, point80.y, 30);
+    expect(result80.q).toBe(neighbor.q);
+    expect(result80.r).toBe(neighbor.r);
+  });
+
+  it("pointy-top edge rounding after rotation", () => {
+    // D3: Test edge rounding with pointy-top orientation
+    const center: Position = { q: 0, r: 0 };
+    const neighbor: Position = { q: 1, r: 0 };
+
+    const centerPixel = hexToPixel(center, 30);
+    const neighborPixel = hexToPixel(neighbor, 30);
+
+    // 40% toward neighbor should resolve to center
     const point40 = {
       x: centerPixel.x + 0.4 * (neighborPixel.x - centerPixel.x),
       y: centerPixel.y + 0.4 * (neighborPixel.y - centerPixel.y),
@@ -354,6 +402,78 @@ describe("HEX_DIRECTIONS", () => {
   it("no duplicates", () => {
     const dirSet = new Set(HEX_DIRECTIONS.map((d) => `${d.q},${d.r}`));
     expect(dirSet.size).toBe(6);
+  });
+});
+
+describe("hexVertices - pointy-top orientation (D3)", () => {
+  it("pointy-top angles at 30, 90, 150, 210, 270, 330 degrees", () => {
+    // D3: After rotation, vertices should be at 30-degree offset
+    const vertices = hexVertices({ x: 0, y: 0 }, 30);
+
+    expect(vertices).toHaveLength(6);
+
+    // Calculate angle of first vertex from center
+    const firstVertex = vertices[0]!;
+    const angle = Math.atan2(firstVertex.y, firstVertex.x) * (180 / Math.PI);
+
+    // First vertex should be at 30 degrees
+    expect(angle).toBeCloseTo(30, 0);
+
+    // Verify 60-degree spacing (counter-clockwise)
+    for (let i = 0; i < 6; i++) {
+      const vertex = vertices[i]!;
+      const expectedAngle = 30 + i * 60;
+      const actualAngle = Math.atan2(vertex.y, vertex.x) * (180 / Math.PI);
+
+      // Normalize angles to 0-360 range
+      const normalizedExpected = ((expectedAngle % 360) + 360) % 360;
+      const normalizedActual = ((actualAngle % 360) + 360) % 360;
+
+      expect(normalizedActual).toBeCloseTo(normalizedExpected, 0);
+    }
+
+    // All vertices at distance = size from center
+    for (const vertex of vertices) {
+      const distance = Math.sqrt(vertex.x ** 2 + vertex.y ** 2);
+      expect(distance).toBeCloseTo(30, 1);
+    }
+  });
+
+  it("flat edge at top (horizontal top edge)", () => {
+    // D3: Pointy-top hexes have vertices at 30, 90, 150, 210, 270, 330 degrees
+    // Vertex 4 (270°) is at top (most negative Y in SVG: y=-30)
+    // Vertex 1 (90°) is at bottom (most positive Y in SVG: y=30)
+    // Upper flat edge: vertices 3 (210°) and 5 (330°) both at y=-15
+    // Lower flat edge: vertices 0 (30°) and 2 (150°) both at y=+15
+    const vertices = hexVertices({ x: 0, y: 0 }, 30);
+
+    // Upper flat edge: vertices 3 and 5 should have same Y (negative, closer to top)
+    const vertex210 = vertices[3]!; // 210 degrees
+    const vertex330 = vertices[5]!; // 330 degrees
+
+    expect(vertex210.y).toBeCloseTo(vertex330.y, 1);
+    expect(vertex210.y).toBeCloseTo(-15, 1);
+
+    // Lower flat edge: vertices 0 and 2 should have same Y (positive, closer to bottom)
+    const vertex30 = vertices[0]!; // 30 degrees
+    const vertex150 = vertices[2]!; // 150 degrees
+
+    expect(vertex30.y).toBeCloseTo(vertex150.y, 1);
+    expect(vertex30.y).toBeCloseTo(15, 1);
+  });
+
+  it("exactly 6 vertices at correct distance", () => {
+    // D3: Verify hexagon completeness
+    const vertices = hexVertices({ x: 100, y: 200 }, 40);
+
+    expect(vertices).toHaveLength(6);
+
+    for (const vertex of vertices) {
+      const dx = vertex.x - 100;
+      const dy = vertex.y - 200;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      expect(distance).toBeCloseTo(40, 1);
+    }
   });
 });
 
@@ -471,12 +591,13 @@ describe("computeHexViewBox", () => {
     expect(Number.isFinite(width)).toBe(true);
     expect(Number.isFinite(height)).toBe(true);
 
-    // Width should be approximately hex width (2 * 30) + margins (2 * 10) = 80
-    expect(width).toBeCloseTo(80, 0);
+    // D3: For pointy-top hexes, width = sqrt(3) * 30, height = 2 * 30
+    // Width should be approximately hex width (sqrt(3) * 30) + margins (2 * 10) ≈ 72
+    const expectedWidth = Math.sqrt(3) * 30 + 2 * 10;
+    expect(width).toBeCloseTo(expectedWidth, 0);
 
-    // Height should be approximately hex height (sqrt(3) * 30) + margins (2 * 10) ≈ 72
-    const expectedHeight = Math.sqrt(3) * 30 + 2 * 10;
-    expect(height).toBeCloseTo(expectedHeight, 0);
+    // Height should be approximately hex height (2 * 30) + margins (2 * 10) = 80
+    expect(height).toBeCloseTo(80, 0);
   });
 
   it("viewBox is symmetric around origin", () => {
@@ -494,5 +615,58 @@ describe("computeHexViewBox", () => {
 
     expect(centerX).toBeCloseTo(0, 1);
     expect(centerY).toBeCloseTo(0, 1);
+  });
+
+  it("pointy-top aspect ratio (D3: width > height for flat-top board)", () => {
+    // D3: After rotation, board is wider than tall
+    const result = computeHexViewBox(30, 5);
+
+    // Parse viewBox
+    const [minX, minY, width, height] = result.viewBox
+      .trim()
+      .split(/\s+/)
+      .map(parseFloat) as [number, number, number, number];
+
+    // Width should be greater than height (landscape orientation)
+    expect(width).toBeGreaterThan(height);
+
+    // Verify all 91 hex vertices fall within viewBox bounds
+    const allHexes = generateAllHexes(5);
+    const maxX = minX + width;
+    const maxY = minY + height;
+
+    for (const hex of allHexes) {
+      const center = hexToPixel(hex, 30);
+      const vertices = hexVertices(center, 30);
+
+      for (const vertex of vertices) {
+        expect(vertex.x).toBeGreaterThanOrEqual(minX);
+        expect(vertex.x).toBeLessThanOrEqual(maxX);
+        expect(vertex.y).toBeGreaterThanOrEqual(minY);
+        expect(vertex.y).toBeLessThanOrEqual(maxY);
+      }
+    }
+
+    // Verify margin (at least 5px beyond outermost vertices)
+    let outerMinX = Infinity,
+      outerMaxX = -Infinity;
+    let outerMinY = Infinity,
+      outerMaxY = -Infinity;
+
+    for (const hex of allHexes) {
+      const center = hexToPixel(hex, 30);
+      const vertices = hexVertices(center, 30);
+      for (const v of vertices) {
+        outerMinX = Math.min(outerMinX, v.x);
+        outerMaxX = Math.max(outerMaxX, v.x);
+        outerMinY = Math.min(outerMinY, v.y);
+        outerMaxY = Math.max(outerMaxY, v.y);
+      }
+    }
+
+    expect(minX).toBeLessThanOrEqual(outerMinX - 5);
+    expect(maxX).toBeGreaterThanOrEqual(outerMaxX + 5);
+    expect(minY).toBeLessThanOrEqual(outerMinY - 5);
+    expect(maxY).toBeGreaterThanOrEqual(outerMaxY + 5);
   });
 });

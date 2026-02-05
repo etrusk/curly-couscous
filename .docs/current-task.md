@@ -13,6 +13,8 @@ None -- ready for next task.
 
 ## Recent Completions
 
+- 2026-02-06: Two-panel tabbed layout + inline evaluation + hex grid rotation (COMPLETE, TDD/Claude Code) - D1: CharacterPanel with Loadout/Priority tabs replacing 3-panel layout. D2: Inline evaluation display in SkillRow (selected/rejected/skipped status). D3: Hex rotation to pointy-top orientation (flat-top board shape). 1220/1220 tests passing. Smoke tests updated. Architecture documented.
+
 - 2026-02-05: Trigger system expansion (COMPLETE, TDD/Claude Code) - Added ally_hp_below trigger type, NOT modifier for all triggers, AND combinator UI deferred. Engine and formatters fully implemented. 1161 tests passing. ADR planned (trigger composition rules). UI changes to SkillsPanel.tsx deferred to v0.4.
 
 - 2026-02-05: Skill system reshape (COMPLETE, TDD/Claude Code) - Universal behavior field replaces Move-specific mode. Target+criterion split replaces monolithic Selector. Universal maxInstances replaces Move-only duplication. Explicit actionType replaces inference. ADR-011 created. 1102/1103 tests passing. ~30 files modified across engine, stores, components, and tests.

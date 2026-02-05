@@ -75,29 +75,7 @@ Update `package.json` version when merging changes. Use conventional commits.
 - Follow patterns established in `.docs/patterns/index.md`
 - Maintain TypeScript strict mode compliance
 - Follow accessibility guidelines (shape redundancy, contrast ratios)
-- **Use Claude CLI tools, NOT bash equivalents** (see below)
-
-## CLI Tool Usage (MANDATORY)
-
-**CRITICAL: Using bash file commands is BLOCKED by hooks and will fail.**
-
-Agents MUST use built-in Claude CLI tools. Bash equivalents are denied in `.claude/settings.json`.
-
-| Need                  | REQUIRED Tool | BLOCKED Bash Commands       |
-| --------------------- | ------------- | --------------------------- |
-| Read file contents    | `Read`        | `cat`, `head`, `tail`       |
-| Search file contents  | `Grep`        | `grep`, `rg`                |
-| Find files by pattern | `Glob`        | `find`, `ls` (for searches) |
-| Edit files            | `Edit`        | `sed`, `awk`                |
-| Create/write files    | `Write`       | `echo >`, `cat <<EOF`       |
-
-**Bash is ONLY permitted for:**
-
-- Git operations: `git log`, `git diff`, `git status`, `git add`, `git commit`, `git push`
-- npm/Node commands: `npm run test`, `npm run lint`, `npm run build`
-- Utilities with no CLI equivalent: `wc`, `mkdir`, `touch`
-
-**Subagents: This constraint applies to ALL agents including architect, coder, and reviewer.**
+- Prefer Claude CLI tools (Read, Write, Edit, Grep, Glob) over bash equivalents where appropriate
 
 ## TDD Workflow
 

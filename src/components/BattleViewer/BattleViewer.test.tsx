@@ -324,4 +324,142 @@ describe("BattleViewer - Click-to-Place", () => {
     expect(occupiedCell.getAttribute("class")).not.toContain("clickable");
     expect(emptyCell.getAttribute("class")).toContain("clickable");
   });
+
+  describe("D3: Hex Grid Rotation Integration", () => {
+    it("grid renders flat-top hexes (pointy-top orientation)", () => {
+      // D3: After rotation, hexes should have flat edges at top/bottom
+      render(<BattleViewer />);
+
+      const grid = screen.getByRole("grid");
+      const polygons = grid.querySelectorAll("polygon");
+
+      expect(polygons.length).toBeGreaterThan(0);
+
+      // Check first polygon has pointy-top vertex arrangement
+      const firstPolygon = polygons[0];
+      if (!firstPolygon) throw new Error("Expected at least one polygon");
+      const points = firstPolygon.getAttribute("points");
+      expect(points).toBeTruthy();
+
+      // Parse points to verify flat top edge
+      const coords = points!
+        .trim()
+        .split(/\s+/)
+        .map((pair) => {
+          const parts = pair.split(",").map(parseFloat);
+          if (
+            parts.length < 2 ||
+            parts[0] === undefined ||
+            parts[1] === undefined
+          ) {
+            throw new Error("Invalid point format");
+          }
+          return { x: parts[0], y: parts[1] };
+        });
+
+      // Should have 6 vertices
+      expect(coords).toHaveLength(6);
+
+      // For pointy-top hexes:
+      // - 1 vertex at top (smallest Y)
+      // - 2 vertices forming upper flat edge (same Y)
+      // - 2 vertices forming lower flat edge (same Y)
+      // - 1 vertex at bottom (largest Y)
+      const sortedByY = [...coords].sort((a, b) => a.y - b.y);
+
+      // Group vertices by Y coordinate (within tolerance)
+      const yGroups = sortedByY.reduce(
+        (groups, coord) => {
+          const existing = groups.find((g) => Math.abs(g[0]!.y - coord.y) < 1);
+          if (existing) {
+            existing.push(coord);
+          } else {
+            groups.push([coord]);
+          }
+          return groups;
+        },
+        [] as Array<Array<{ x: number; y: number }>>,
+      );
+
+      // Should have 4 Y-levels: top point, upper edge, lower edge, bottom point
+      expect(yGroups.length).toBe(4);
+
+      // Top and bottom should be single vertices (points)
+      const topGroup = yGroups[0];
+      const bottomGroup = yGroups[3];
+      if (!topGroup || !bottomGroup) throw new Error("Expected 4 Y-groups");
+      expect(topGroup.length).toBe(1); // top point
+      expect(bottomGroup.length).toBe(1); // bottom point
+
+      // Middle two should be pairs (flat edges)
+      const upperEdge = yGroups[1];
+      const lowerEdge = yGroups[2];
+      if (!upperEdge || !lowerEdge)
+        throw new Error("Expected middle edge groups");
+      expect(upperEdge.length).toBe(2); // upper flat edge
+      expect(lowerEdge.length).toBe(2); // lower flat edge
+    });
+
+    it("grid viewBox has landscape aspect ratio (width > height)", () => {
+      // D3: Flat-top board is wider than tall
+      render(<BattleViewer />);
+
+      const grid = screen.getByRole("grid");
+      const viewBox = grid.getAttribute("viewBox");
+      expect(viewBox).toBeTruthy();
+
+      const viewBoxParts = viewBox!.split(/\s+/).map(parseFloat);
+      if (viewBoxParts.length < 4) throw new Error("Invalid viewBox format");
+      const width = viewBoxParts[2];
+      const height = viewBoxParts[3];
+      if (width === undefined || height === undefined)
+        throw new Error("Invalid viewBox values");
+
+      // Width should be greater than height
+      expect(width).toBeGreaterThan(height);
+    });
+
+    it("token centers in pointy-top hex", () => {
+      // D3: Character tokens should center correctly after rotation
+      useGameStore.setState({
+        gameState: {
+          ...useGameStore.getState().gameState,
+          characters: [
+            {
+              id: "test-token",
+              name: "Test",
+              position: { q: 1, r: 0 },
+              faction: "friendly",
+              hp: 100,
+              maxHp: 100,
+              slotPosition: 1,
+              skills: [],
+              currentAction: null,
+            },
+          ],
+        },
+      });
+
+      render(<BattleViewer />);
+
+      const token = screen.getByTestId("token-test-token");
+      expect(token).toBeInTheDocument();
+
+      // Token should be positioned using transform attribute
+      const transform = token.getAttribute("transform");
+      expect(transform).toContain("translate");
+
+      // Extract translate values and verify they match expected pointy-top pixel coordinates
+      // For (1,0) with size 30: hex center at x ≈ 51.96, y = 0
+      // Token transform offsets by TOKEN_RADIUS (20), so translate is at (31.96, -20)
+      const match = transform?.match(/translate\(([-\d.]+)[,\s]+([-\d.]+)\)/);
+      if (match) {
+        const [, x, y] = match.map(parseFloat);
+        const sqrt3 = Math.sqrt(3);
+        const TOKEN_RADIUS = 20;
+        expect(x).toBeCloseTo(30 * sqrt3 - TOKEN_RADIUS, 0);
+        expect(y).toBeCloseTo(0 - TOKEN_RADIUS, 0);
+      }
+    });
+  });
 });

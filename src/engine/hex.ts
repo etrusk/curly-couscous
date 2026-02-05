@@ -1,5 +1,5 @@
 /**
- * Hexagonal grid utilities for flat-top hexagons using axial coordinates.
+ * Hexagonal grid utilities for pointy-top hexagons using axial coordinates.
  * Provides hex math, validation, and pixel conversion functions.
  */
 
@@ -24,13 +24,13 @@ export const HEX_RADIUS = 5;
 
 /**
  * Six hex neighbor directions in axial coordinates.
- * Flat-top hexagon neighbors: E, W, SE, NW, NE, SW
+ * Pointy-top hexagon neighbors: SE, NW, E, W, NE, SW
  */
 export const HEX_DIRECTIONS: readonly HexCoordinate[] = [
-  { q: 1, r: 0 }, // East
-  { q: -1, r: 0 }, // West
-  { q: 0, r: 1 }, // Southeast
-  { q: 0, r: -1 }, // Northwest
+  { q: 1, r: 0 }, // Southeast
+  { q: -1, r: 0 }, // Northwest
+  { q: 0, r: 1 }, // East
+  { q: 0, r: -1 }, // West
   { q: 1, r: -1 }, // Northeast
   { q: -1, r: 1 }, // Southwest
 ];
@@ -149,16 +149,16 @@ export function positionKey(hex: HexCoordinate): string {
 }
 
 // ============================================================================
-// Pixel Conversion (Flat-Top Orientation)
+// Pixel Conversion (Pointy-Top Orientation)
 // ============================================================================
 
 /**
  * Convert hex axial coordinates to pixel coordinates.
- * Uses flat-top hexagon orientation.
+ * Uses pointy-top hexagon orientation.
  *
  * Formulas:
- *   x = hexSize * (3/2) * q
- *   y = hexSize * (sqrt(3)/2 * q + sqrt(3) * r)
+ *   x = hexSize * (sqrt(3) * q + sqrt(3)/2 * r)
+ *   y = hexSize * (3/2) * r
  *
  * @param hex - Hex coordinate
  * @param hexSize - Size of hexagon (distance from center to vertex)
@@ -168,15 +168,15 @@ export function hexToPixel(
   hex: HexCoordinate,
   hexSize: number,
 ): { x: number; y: number } {
-  const x = hexSize * (3 / 2) * hex.q;
-  const y = hexSize * ((Math.sqrt(3) / 2) * hex.q + Math.sqrt(3) * hex.r);
+  const x = hexSize * (Math.sqrt(3) * hex.q + (Math.sqrt(3) / 2) * hex.r);
+  const y = hexSize * ((3 / 2) * hex.r);
 
   return { x, y };
 }
 
 /**
  * Convert pixel coordinates to hex axial coordinates using cube rounding.
- * Uses flat-top hexagon orientation.
+ * Uses pointy-top hexagon orientation.
  *
  * Algorithm:
  * 1. Convert pixel to fractional axial coordinates
@@ -196,8 +196,8 @@ export function pixelToHex(
   hexSize: number,
 ): HexCoordinate {
   // Convert pixel to fractional axial coordinates
-  const q = ((2 / 3) * px) / hexSize;
-  const r = ((-1 / 3) * px + (Math.sqrt(3) / 3) * py) / hexSize;
+  const q = ((Math.sqrt(3) / 3) * px - (1 / 3) * py) / hexSize;
+  const r = ((2 / 3) * py) / hexSize;
 
   // Convert axial to cube coordinates
   const s = -q - r;
@@ -231,7 +231,7 @@ export function pixelToHex(
 // ============================================================================
 
 /**
- * Generate the 6 vertex coordinates for a flat-top hexagon.
+ * Generate the 6 vertex coordinates for a pointy-top hexagon.
  * Vertices are returned in order for polygon rendering.
  *
  * @param center - Pixel coordinates of hex center
@@ -244,9 +244,9 @@ export function hexVertices(
 ): Array<{ x: number; y: number }> {
   const vertices: Array<{ x: number; y: number }> = [];
 
-  // Flat-top hexagon vertices at angles: 0°, 60°, 120°, 180°, 240°, 300°
+  // Pointy-top hexagon vertices at angles: 30°, 90°, 150°, 210°, 270°, 330°
   for (let i = 0; i < 6; i++) {
-    const angleDeg = 60 * i;
+    const angleDeg = 60 * i + 30;
     const angleRad = (Math.PI / 180) * angleDeg;
 
     vertices.push({

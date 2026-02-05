@@ -13,7 +13,7 @@
 
 - **Pure Game Engine**: Core game logic in `/src/engine/` with no React dependencies
 - **Centralized Skill Registry**: All skill definitions in `src/engine/skill-registry.ts` (ADR-005)
-- **Hexagonal Grid System**: Axial coordinates {q, r}, flat-top orientation, radius 5 (ADR-007)
+- **Hexagonal Grid System**: Axial coordinates {q, r}, pointy-top hex orientation (flat-top board shape), radius 5 (ADR-007)
 - **Data-Driven Targeting**: Target + criterion pairs and triggers as declarative data interfaces (not functions)
 - **Command Pattern**: State mutations via named actions for history/undo support
 - **CSS Custom Property Theming**: Theme switching via `:root` data attributes (Phase 5 - planned)
@@ -46,8 +46,9 @@ src/
 #   └── accessibilityStore.ts
 ├── components/       # React components (view layer)
 │   ├── BattleViewer/ # Grid, Cell, Token, IntentLine, IntentOverlay, CharacterTooltip
-│   ├── SkillsPanel/  # Skill configuration with category/strategy dropdowns
-│   ├── InventoryPanel/ # Skill inventory with assign/remove for selected characters
+│   ├── CharacterPanel/ # Two-panel tabbed interface (Loadout + Priority tabs, SkillRow)
+│   ├── SkillsPanel/  # (Legacy - to be deleted)
+│   ├── InventoryPanel/ # (Legacy - to be deleted)
 │   ├── RuleEvaluations/ # Formatters and display components (used by CharacterTooltip)
 │   ├── EventLog/     # (planned)
 │   └── common/       # (planned)
@@ -80,6 +81,53 @@ The grid renders using SVG elements instead of CSS Grid (ADR-008). All rendering
 - **Hex sizing**: Default `hexSize = 30`. Hex width = 60px, height ~52px. Column spacing = 45px, row spacing ~52px.
 - **Event handling**: `pointer-events="all"` on Cell `<g>` elements. Hex-shaped polygon provides natural hit area. CSS `:hover` and `cursor: pointer` work on SVG elements.
 - **Tooltip positioning**: Token's `<g>` element supports `getBoundingClientRect()` for portal tooltip anchoring (ADR-004).
+
+## Character Panel Architecture
+
+The CharacterPanel replaces the three-panel layout (BattleViewer + SkillsPanel + InventoryPanel) with a two-panel design (BattleViewer + CharacterPanel). The panel implements phase-based rendering with responsive grid proportions.
+
+### Component Hierarchy
+
+```
+CharacterPanel (container, tab state, character selector)
+├── LoadoutTab (equipped skills + inventory sections)
+│   └── SkillRow (config mode: enable/disable, unassign, duplicate)
+└── PriorityTab (priority configuration)
+    └── SkillRow (config mode: reorder, dropdowns, duplicate)
+                 (battle mode: evaluation status, resolved target, rejection reason)
+```
+
+### Tab Behavior
+
+- **Default tab (config phase)**: Loadout - Users primarily configure equipment and inventory
+- **Battle phase auto-switch**: Priority tab auto-selects when battle starts
+- **Tab memory**: Selected tab preserved when returning to config phase from battle
+- **Keyboard/ARIA**: Tabs follow ARIA tab pattern with roles, aria-selected, aria-controls
+
+### Phase-Based Layout
+
+The App-level grid container uses data attributes to drive responsive proportions:
+
+```css
+[data-phase="config"] {
+  --grid-cols: 2fr 3fr;
+} /* 40% battle, 60% panel */
+[data-phase="battle"] {
+  --grid-cols: 7fr 3fr;
+} /* 70% battle, 30% panel */
+```
+
+### Inline Evaluation Display
+
+During battle phase, SkillRow shifts from config mode to battle mode:
+
+- **Config mode** (Loadout/Priority tabs): Shows priority controls, dropdowns, enable/disable checkbox
+- **Battle mode** (Priority tab only): Shows evaluation results with status icons
+  - Selected: Green check mark + resolved target character (e.g., "→ Enemy B")
+  - Rejected: Red X mark + rejection reason (e.g., "No valid target")
+  - Skipped: Gray dash + visual de-emphasis
+- Evaluation data flows from character's evaluation results to SkillRow via props
+- Rejection reasons use formatters from `src/components/RuleEvaluations/` for consistency
 
 ## Critical Constraints
 

@@ -212,6 +212,7 @@ export const useGameStore = create<GameStore>()(
             seed: state.initialSeed,
             rngState: state.initialRngState,
           };
+          state.selectedCharacterId = null;
         }),
 
       selectCharacter: (id) =>

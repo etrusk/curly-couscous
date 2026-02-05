@@ -1,0 +1,78 @@
+/**
+ * CharacterPanel styles - Tabbed interface for character configuration
+ */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--surface-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  padding: 2rem;
+  text-align: center;
+}
+
+.header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--surface-secondary);
+}
+
+.title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border-primary);
+  background: var(--surface-secondary);
+}
+
+.tab {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.tab:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-primary);
+  background: var(--surface-primary);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}

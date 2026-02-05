@@ -71,6 +71,11 @@ agent_budgets:
     tokens_est: 10000
     escalation: human
     note: "Commit to current branch only - NEVER create PRs"
+  reflection:
+    exchanges: 3
+    tokens_est: 5000
+    escalation: human
+    note: "Process analysis requires analytical distance - most sessions return 0 items"
   reviewer:
     exchanges: 10
     tokens_est: 30000
@@ -135,6 +140,7 @@ models:
   opus: # High reasoning - architectural decisions, problem diagnosis
     - architect # plan, design_tests, test_review, analyze_fix
     - troubleshooter # Must find what others missed
+    - reflection # Process analysis requires analytical distance
 
   sonnet: # Balanced - standard coding and review tasks
     - architect-explore # Comprehension, not deep reasoning
@@ -221,13 +227,34 @@ Agent invocations: [count]
 
 ```
 ═══ CHECKPOINT ═══
-Phase: [COMPLETED] → [NEXT]
-Agent: [exchanges]/[limit] exchanges, ~[tokens]K tokens
-Orchestrator: [current]K/100K ([percent]%)
-Cumulative: ~[sum]K agent tokens
-Status: [PROCEEDING | COMPACTING | ESCALATING]
+Task: [task name from session.md]
+Phase: [COMPLETED] → [NEXT] ([N]/7 phases)
+
+Completed: [1-2 sentence summary of what prior phase achieved]
+
+Tests: [passing] passing, [failing] failing, [skipped] skipped
+Gates: TS [✓|✗]  ESLint [✓|✗]  Tests [✓|✗]
+Files: [count] modified ([truncated list...])
+Agent: [exchanges]/[limit] exchanges | Orchestrator: [current]K ([percent]%)
+Status: [PROCEEDING | COMPACTING | ESCALATING] → [brief next step]
 ══════════════════
 ```
+
+**Phase-specific "Completed" examples:**
+
+| Phase              | Completed Summary Example                                        |
+| ------------------ | ---------------------------------------------------------------- |
+| EXPLORE            | Found 4 relevant patterns, identified SkillSystem as entry point |
+| PLAN               | Created 6-step plan targeting 3 files, no architectural changes  |
+| DESIGN_TESTS       | Designed 8 test cases covering cooldown init, decrement, reset   |
+| TEST_DESIGN_REVIEW | Validated coverage, added edge case for zero cooldown            |
+| WRITE_TESTS        | Wrote 8 tests in 2 files, all failing (red confirmed)            |
+| IMPLEMENT          | All tests passing, added CooldownManager class                   |
+| REVIEW             | Found 2 critical issues: missing edge case, type error           |
+| ANALYZE_FIX        | Root cause: cooldown not reset on battle end                     |
+| FIX                | Resolved 2 issues, added cleanup in BattleManager                |
+| SYNC_DOCS          | Updated spec.md with cooldown rules, added pattern doc           |
+| COMMIT             | Committed: "feat(skills): add cooldown system"                   |
 
 ### Step 5: Route or Escalate
 
@@ -353,6 +380,13 @@ phases:
       - Commit changes to current branch
       - Push to remote automatically
       - DO NOT create pull requests
+    next: REFLECT
+
+  REFLECT:
+    agent: reflection-subagent
+    budget: { exchanges: 3, tokens_est: 5000 }
+    inputs: [".tdd/session.md", ".docs/lessons-learned/index.md"]
+    outputs: ["inline text only - no files"]
     next: "Cleanup and completion"
 
 routing_rules:
@@ -560,9 +594,80 @@ Count: [0-2]
 | HUMAN_APPROVAL     | SYNC_DOCS          | Approved                                               |
 | HUMAN_APPROVAL     | FIX                | Rejected                                               |
 | SYNC_DOCS          | COMMIT             | Always                                                 |
+| COMMIT             | REFLECT            | Always                                                 |
+| REFLECT            | Cleanup            | Always                                                 |
 | ANY_PHASE          | (document first)   | If unrelated_issues found → add to current-task.md     |
 
 **100% pass** = tests_failing == 0 AND tests_skipped == 0 AND all_gates_pass == true
+
+---
+
+## REFLECT → Session Reflection
+
+After COMMIT, spawn reflection subagent (Task tool with opus model):
+
+```
+You are a workflow reflection agent. Read `.tdd/session.md` and `.docs/lessons-learned/index.md`.
+
+Your job: identify 0-2 observations about how the *workflow process* performed. You are NOT reviewing code or tests — those were already reviewed.
+
+Two categories:
+
+**ISSUE**: Something went wrong in the process (blocker hit, phase repeated, instruction was unclear, context degraded). These are reactive — a problem happened.
+
+**OBSERVATION**: A kaizen-style improvement opportunity even when nothing went wrong. The session completed successfully, but a small workflow adjustment could make future sessions smoother or more efficient. These are proactive — the process worked but could work better.
+
+Examples of valid observations:
+- 'Explore phase read 8 files but only 2 were touched in implementation. The explore prompt could suggest reading files named in the plan first, deferring others.'
+- 'Test design produced 14 tests for a 2-function change. A guideline of 3-5 tests per function for standard features would improve scope calibration.'
+- 'The review caught only a naming issue. The test design review phase could include a fault-detection check (would these tests catch a wrong implementation?).'
+
+Examples of fabricated observations (DO NOT produce these):
+- 'Consider adding more logging.' (Not a workflow observation — this is a code suggestion.)
+- 'The session went well but communication could be improved.' (Vague, not actionable.)
+- 'Future sessions might benefit from more thorough planning.' (Generic, no evidence.)
+
+**Actionability test**: An observation is worth reporting ONLY if you can name the specific file and section of the workflow that would change. If you cannot complete the sentence 'Update [file]:[section] to [specific change]' — drop it.
+
+**Baseline assumption**: The workflow worked correctly. Most sessions should produce 0 items. Producing an item requires specific evidence from THIS session.
+
+**Anti-recurrence check**: If a blocker in this session matches an existing lesson in lessons-learned/, flag it: 'RECURRING: matches lesson-NNN — workflow encoding insufficient.'
+
+Output format (inline text, NOT a file):
+REFLECTION: [0-2 items]
+- [ISSUE|OBSERVATION]: [1-2 sentences]. → Update [file]:[section] to [change].
+- [RECURRING]: Matches lesson-NNN. [What recurred and why the prior fix didn't prevent it].
+OR
+REFLECTION: Clean session. No process observations.
+```
+
+**Orchestrator handles the output:**
+
+| Subagent Returns | Orchestrator Action                                                      |
+| ---------------- | ------------------------------------------------------------------------ |
+| "Clean session"  | Log `Process: ✓ Clean` in final summary. Proceed to cleanup.             |
+| Items found      | Present inline (non-blocking): `[type]: [summary]. Log as lesson? (y/n)` |
+
+**Non-blocking**: If human says yes → create lesson-learned entry. If human says no or moves on → proceed to cleanup. Do NOT wait indefinitely for response.
+
+---
+
+## Final Completion Summary
+
+After REFLECT, output completion banner:
+
+```
+═══ TDD COMPLETE ═══
+Task: [task name]
+Commit: [hash] [message]
+Tests: [X] passing
+Gates: TS ✓  ESLint ✓  Tests ✓
+Files: [N] modified
+Process: [Clean session | type: summary (logged/noted)]
+════════════════════
+```
+
+Then delete ephemeral files: `.tdd/session.md`, `.tdd/exploration.md`, `.tdd/plan.md`, `.tdd/test-designs.md`, `.tdd/review-findings.md`, `.tdd/fix-plan.md`
 
 ---
 

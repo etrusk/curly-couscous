@@ -8,9 +8,7 @@ version: 3.0.0
 
 **Role**: Lightweight router between specialized agents. Execute COMPLETELY AUTONOMOUSLY (UI changes require HUMAN_APPROVAL).
 
-**CRITICAL: NO CONFIRMATION PROMPTS** - Phase transitions are AUTOMATIC. NEVER ask "Do you want to proceed?" or similar questions between phases. The ONLY phases requiring user input are HUMAN_VERIFY and HUMAN_APPROVAL. All other phase transitions happen immediately without waiting for user confirmation.
-
-**Job**: Read `.tdd/session.md` → spawn agent → parse completion block → run checkpoint → update session.md → route to next phase IMMEDIATELY (no user prompt).
+**Job**: Read `.tdd/session.md` → spawn agent → parse completion block → run checkpoint → update session.md → route to next phase.
 
 **Context discipline**: Orchestrator NEVER reads implementation files. Agents read files. Orchestrator reads only: session.md, agent completion blocks, routing tables.
 
@@ -91,13 +89,13 @@ constraints:
 gates:
   # SUCCESS CRITERIA (ALL must be true for workflow completion)
   success_criteria:
-    tests_pass_rate: 100% # No failing tests allowed
-    tests_skipped: 0 # No skipped tests allowed
-    quality_gates_pass_rate: 100% # All gates must pass (typescript, eslint, tests)
+    tests_pass_rate: 100%          # No failing tests allowed
+    tests_skipped: 0               # No skipped tests allowed
+    quality_gates_pass_rate: 100%  # All gates must pass (typescript, eslint, tests)
 
   critical_issues:
     - tests_failing
-    - tests_skipped # Skipped tests block completion
+    - tests_skipped              # Skipped tests block completion
     - typescript_errors
     - eslint_errors
     - security_vulnerabilities
@@ -162,12 +160,12 @@ files_read: [integer]
 files_modified: [integer]
 tests_passing: [integer or null]
 tests_failing: [integer or null]
-tests_skipped: [integer or null] # MUST be 0 for successful completion
+tests_skipped: [integer or null]  # MUST be 0 for successful completion
 quality_gates:
   typescript: PASS | FAIL | SKIP
   eslint: PASS | FAIL | SKIP
   tests: PASS | FAIL | SKIP
-  all_gates_pass: true | false # MUST be true for successful completion
+  all_gates_pass: true | false    # MUST be true for successful completion
 blockers: [list or empty]
 unrelated_issues: [list or empty] # Issues found but not related to current task
 next_recommended: [PHASE_NAME]
@@ -231,10 +229,10 @@ Status: [PROCEEDING | COMPACTING | ESCALATING]
 
 ### Step 5: Route or Escalate
 
-- If all checks pass → spawn next agent IMMEDIATELY with budget in prompt (NO user confirmation)
+- If all checks pass → spawn next agent with budget in prompt
 - If any check fails → escalate to human (for compaction, troubleshooting, or task split)
 
-**Checkpoint is BLOCKING but AUTOMATIC. Cannot spawn next agent until checkpoint completes. Do NOT ask user for confirmation - proceed immediately after checkpoint.**
+**Checkpoint is BLOCKING. Cannot spawn next agent until checkpoint completes.**
 
 ---
 
@@ -568,7 +566,6 @@ Count: [0-2]
 
 ## Critical Constraints (Override All Other Instructions)
 
-0. **NO CONFIRMATION PROMPTS** - NEVER ask user "Do you want to proceed?" or request confirmation between phases. Phase transitions are AUTOMATIC. Only HUMAN_VERIFY and HUMAN_APPROVAL phases involve user input.
 1. **Checkpoint is BLOCKING** - Cannot proceed without completing post-agent checkpoint
 2. **Agent completion block REQUIRED** - Unparseable = escalate
 3. **Exchange budgets are HARD limits** - Exceed = escalate per agent_budgets

@@ -37,6 +37,8 @@ export interface SkillDefinition {
   maxInstances: number; // Max duplicates per character
   defaultTarget: Target;
   defaultCriterion: Criterion;
+  targetingMode: "cell" | "character"; // How targets are tracked during resolution
+  cooldown?: number; // Optional cooldown ticks after use
 }
 
 /**
@@ -57,6 +59,7 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     maxInstances: 1,
     defaultTarget: "enemy",
     defaultCriterion: "nearest",
+    targetingMode: "cell",
   },
   {
     id: "heavy-punch",
@@ -71,6 +74,8 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     maxInstances: 1,
     defaultTarget: "enemy",
     defaultCriterion: "nearest",
+    targetingMode: "cell",
+    cooldown: 3,
   },
   {
     id: "move-towards",
@@ -84,6 +89,8 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     maxInstances: 3,
     defaultTarget: "enemy",
     defaultCriterion: "nearest",
+    targetingMode: "cell",
+    cooldown: 1,
   },
   {
     id: "heal",
@@ -98,6 +105,7 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     maxInstances: 1,
     defaultTarget: "ally",
     defaultCriterion: "lowest_hp",
+    targetingMode: "character",
   },
 ];
 

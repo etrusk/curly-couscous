@@ -65,6 +65,7 @@ export interface Skill {
   triggers: Trigger[];
   target: Target;
   criterion: Criterion;
+  cooldownRemaining?: number; // Ticks remaining until skill is ready
 }
 
 /**
@@ -277,7 +278,8 @@ export type SkillRejectionReason =
   | "disabled" // skill.enabled === false
   | "trigger_failed" // One or more triggers didn't pass
   | "no_target" // Selector returned null (no valid target exists)
-  | "out_of_range"; // Target exists but beyond skill.range
+  | "out_of_range" // Target exists but beyond skill.range
+  | "on_cooldown"; // Skill is on cooldown
 
 /**
  * Result of evaluating a single skill for a character.

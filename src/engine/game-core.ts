@@ -8,6 +8,7 @@ import { resolveCombat } from "./combat";
 import { resolveHealing } from "./healing";
 import { resolveMovement } from "./movement";
 import { computeDecisions, Decision } from "./game-decisions";
+import { getSkillDefinition } from "./skill-registry";
 
 /**
  * Result of processing a single tick.
@@ -67,8 +68,12 @@ export function processTick(state: GameState): TickResult {
   characters = combatResult.updatedCharacters;
   events.push(...combatResult.events);
 
-  // 5. Clear resolved actions
+  // 5a. Clear resolved actions
   characters = clearResolvedActions(characters, state.tick);
+
+  // 5b. Decrement cooldowns (after clearing actions)
+  // Only decrement for characters without pending actions (idle after resolution)
+  characters = decrementCooldowns(characters);
 
   // 6. Apply all mutations
   // Remove dead characters (HP <= 0)
@@ -147,7 +152,24 @@ export function applyDecisions(
   return characters.map((character) => {
     const action = decisionMap.get(character.id);
     if (action) {
-      return { ...character, currentAction: action };
+      // Find the skill that was used and set its cooldown
+      const skillDef = getSkillDefinition(action.skill.id);
+      const cooldown = skillDef?.cooldown;
+
+      // Update skills array with cooldown (if applicable)
+      const updatedSkills = cooldown
+        ? character.skills.map((s) =>
+            s.instanceId === action.skill.instanceId
+              ? { ...s, cooldownRemaining: cooldown }
+              : s,
+          )
+        : character.skills;
+
+      return {
+        ...character,
+        currentAction: action,
+        skills: updatedSkills,
+      };
     }
     return character;
   });
@@ -169,5 +191,43 @@ export function clearResolvedActions(
       return { ...character, currentAction: null };
     }
     return character;
+  });
+}
+
+/**
+ * Decrement cooldownRemaining for all skills that have active cooldowns.
+ * Only decrements for characters without pending actions (idle characters).
+ * Called at the end of each tick after actions resolve.
+ *
+ * @param characters - Characters to update
+ * @returns New array with decremented cooldowns (immutable)
+ */
+export function decrementCooldowns(characters: Character[]): Character[] {
+  return characters.map((character) => {
+    // Skip if character has a pending action - cooldown ticks after resolution
+    if (
+      character.currentAction !== null &&
+      character.currentAction.type !== "idle"
+    ) {
+      return character;
+    }
+
+    const hasActiveCooldowns = character.skills.some(
+      (s) => s.cooldownRemaining && s.cooldownRemaining > 0,
+    );
+
+    if (!hasActiveCooldowns) {
+      return character;
+    }
+
+    return {
+      ...character,
+      skills: character.skills.map((skill) => {
+        if (skill.cooldownRemaining && skill.cooldownRemaining > 0) {
+          return { ...skill, cooldownRemaining: skill.cooldownRemaining - 1 };
+        }
+        return skill;
+      }),
+    };
   });
 }

@@ -149,6 +149,31 @@ export interface IntentData {
   faction: Faction;
   action: Action;
   ticksRemaining: number;
+  targetPosition: Position; // Computed live position for rendering
+}
+
+/**
+ * Get the current target position for an action.
+ * For character-targeted skills, returns the live position of targetCharacter.
+ * For cell-targeted skills, returns the locked targetCell.
+ */
+function getActionTargetPosition(
+  action: Action,
+  characters: Character[],
+): Position {
+  const skillDef = SKILL_REGISTRY.find((d) => d.id === action.skill.id);
+  const targetingMode = skillDef?.targetingMode ?? "cell";
+
+  if (targetingMode === "character" && action.targetCharacter) {
+    // Find current position of target character
+    const target = characters.find((c) => c.id === action.targetCharacter!.id);
+    if (target) {
+      return target.position;
+    }
+  }
+
+  // Fall back to locked target cell
+  return action.targetCell;
 }
 
 /**
@@ -186,6 +211,7 @@ export const selectIntentData = (state: GameStore): IntentData[] => {
       faction: c.faction,
       action: c.currentAction,
       ticksRemaining: c.currentAction.resolvesAtTick - tick,
+      targetPosition: getActionTargetPosition(c.currentAction, characters),
     }))
     .filter(
       (intent) => intent.action.type !== "idle" && intent.ticksRemaining >= 0,
@@ -221,6 +247,7 @@ export const selectIntentData = (state: GameStore): IntentData[] => {
       faction: character.faction,
       action: d.action,
       ticksRemaining: d.action.resolvesAtTick - tick,
+      targetPosition: getActionTargetPosition(d.action, characters),
     };
   });
 

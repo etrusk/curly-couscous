@@ -80,6 +80,11 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
         continue;
       }
 
+      // 3b. Skip skills on cooldown
+      if (skill.cooldownRemaining && skill.cooldownRemaining > 0) {
+        continue;
+      }
+
       // Graceful degradation for legacy "hold" behavior
       if (skill.behavior === "hold") {
         console.warn(
@@ -206,6 +211,17 @@ export function evaluateSkillsForCharacter(
         skill,
         status: "rejected",
         rejectionReason: "disabled",
+      });
+      currentIndex++;
+      continue;
+    }
+
+    // Check cooldown
+    if (skill.cooldownRemaining && skill.cooldownRemaining > 0) {
+      evaluations.push({
+        skill,
+        status: "rejected",
+        rejectionReason: "on_cooldown",
       });
       currentIndex++;
       continue;

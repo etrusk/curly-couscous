@@ -4,6 +4,7 @@
  */
 
 import { Character, HealEvent, positionsEqual } from "./types";
+import { getSkillDefinition } from "./skill-registry";
 
 /**
  * Result of healing resolution containing updated state and events.
@@ -46,12 +47,24 @@ export function resolveHealing(
     .sort((a, b) => a.healer.slotPosition - b.healer.slotPosition);
 
   for (const { healer, action } of resolvingHeals) {
-    // Cell-based: find ANY character in target cell
-    const target = updatedCharacters.find(
-      (c) => positionsEqual(c.position, action.targetCell) && c.hp > 0,
-    );
+    // Determine target based on targeting mode
+    let target: Character | undefined;
+    const skillDef = getSkillDefinition(action.skill.id);
+    const targetingMode = skillDef?.targetingMode ?? "cell";
 
-    if (!target) continue; // Miss: cell is empty or character dead
+    if (targetingMode === "character" && action.targetCharacter) {
+      // Character-targeted: find the stored target (by ID, in case reference is stale)
+      target = updatedCharacters.find(
+        (c) => c.id === action.targetCharacter!.id && c.hp > 0,
+      );
+    } else {
+      // Cell-targeted: find ANY character in target cell (existing behavior)
+      target = updatedCharacters.find(
+        (c) => positionsEqual(c.position, action.targetCell) && c.hp > 0,
+      );
+    }
+
+    if (!target) continue; // Miss: target not found or dead
 
     const healing = action.skill.healing ?? 0;
     target.hp = Math.min(target.hp + healing, target.maxHp);

@@ -17,11 +17,6 @@
       "Bash(npm run type-check:*)",
       "Bash(npm run build:*)",
       "Bash(wc:*)",
-      "Bash(cat:*)",
-      "Bash(ls:*)",
-      "Bash(head:*)",
-      "Bash(tail:*)",
-      "Bash(find:*)",
       "Bash(mkdir:*)",
       "Bash(touch:*)"
     ],
@@ -35,10 +30,31 @@
       "Bash(sudo:*)",
       "Bash(chmod:*)",
       "Bash(curl:*)",
-      "Bash(wget:*)"
+      "Bash(wget:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(sed:*)",
+      "Bash(awk:*)",
+      "Bash(echo:*)"
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE '(^|[|;&\"'\\''\\(])\\s*(cat|head|tail|sed|awk|grep|rg|find|ls|echo)\\s'; then echo 'BLOCKED: Use Claude CLI tools instead of bash equivalents. Read→cat/head/tail, Grep→grep/rg, Glob→find/ls, Edit→sed/awk, Write→echo' >&2; exit 1; fi"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",

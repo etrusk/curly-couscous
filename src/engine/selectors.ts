@@ -3,7 +3,24 @@
  * Pure TypeScript - no React dependencies.
  */
 
-import { Selector, Character, hexDistance, Position } from "./types";
+import { Character, hexDistance, Position, Target, Criterion } from "./types";
+
+/**
+ * Legacy selector type for backward compatibility with old tests.
+ * @deprecated Use Target and Criterion instead.
+ */
+type Selector = {
+  type:
+    | "nearest_enemy"
+    | "nearest_ally"
+    | "lowest_hp_enemy"
+    | "lowest_hp_ally"
+    | "self"
+    | "furthest_enemy"
+    | "furthest_ally"
+    | "highest_hp_enemy"
+    | "highest_hp_ally";
+};
 
 /**
  * Tie-breaking comparison: compares by R coordinate, then Q coordinate.
@@ -120,9 +137,126 @@ export function evaluateSelector(
         (a, b) => compareByHpThenPosition(a, b),
       );
 
+    case "furthest_enemy":
+      return findMinimum(
+        allCharacters.filter(
+          (c) => c.faction !== evaluator.faction && c.hp > 0,
+        ),
+        (a, b) => -compareByDistanceThenPosition(a, b, evaluator.position),
+      );
+
+    case "furthest_ally":
+      return findMinimum(
+        allCharacters.filter(
+          (c) =>
+            c.faction === evaluator.faction &&
+            c.id !== evaluator.id &&
+            c.hp > 0,
+        ),
+        (a, b) => -compareByDistanceThenPosition(a, b, evaluator.position),
+      );
+
+    case "highest_hp_enemy":
+      return findMinimum(
+        allCharacters.filter(
+          (c) => c.faction !== evaluator.faction && c.hp > 0,
+        ),
+        (a, b) => -compareByHpThenPosition(a, b),
+      );
+
+    case "highest_hp_ally":
+      return findMinimum(
+        allCharacters.filter(
+          (c) =>
+            c.faction === evaluator.faction &&
+            c.id !== evaluator.id &&
+            c.hp > 0,
+        ),
+        (a, b) => -compareByHpThenPosition(a, b),
+      );
+
     default: {
       const _exhaustive: never = selector.type;
       return _exhaustive; // Compile-time error if case missing
+    }
+  }
+}
+
+/**
+ * Evaluates a target+criterion combination to find a target character.
+ *
+ * @param target - Target group (enemy, ally, or self)
+ * @param criterion - Selection criterion (nearest, furthest, lowest_hp, highest_hp)
+ * @param evaluator - The character performing the evaluation
+ * @param allCharacters - All characters in the battle
+ * @returns The selected character, or null if no valid target exists
+ */
+export function evaluateTargetCriterion(
+  target: Target,
+  criterion: Criterion,
+  evaluator: Character,
+  allCharacters: Character[],
+): Character | null {
+  // Self target always returns evaluator, ignoring criterion
+  if (target === "self") {
+    return evaluator;
+  }
+
+  // Filter candidates based on target type
+  let candidates: Character[];
+  if (target === "enemy") {
+    candidates = allCharacters.filter(
+      (c) => c.faction !== evaluator.faction && c.hp > 0,
+    );
+  } else {
+    // ally
+    candidates = allCharacters.filter(
+      (c) =>
+        c.faction === evaluator.faction && c.id !== evaluator.id && c.hp > 0,
+    );
+  }
+
+  if (candidates.length === 0) return null;
+
+  // Select based on criterion
+  switch (criterion) {
+    case "nearest":
+      return findMinimum(candidates, (a, b) =>
+        compareByDistanceThenPosition(a, b, evaluator.position),
+      );
+
+    case "furthest": {
+      // Furthest = maximum distance
+      // Need custom comparator because negating would invert tiebreaker too
+      const furthest = findMinimum(candidates, (a, b) => {
+        const distA = hexDistance(a.position, evaluator.position);
+        const distB = hexDistance(b.position, evaluator.position);
+        if (distA !== distB) {
+          return distB - distA; // Greater distance wins (reverse of nearest)
+        }
+        return tieBreakCompare(a, b); // Same tiebreaker (lower R, then lower Q)
+      });
+      return furthest;
+    }
+
+    case "lowest_hp":
+      return findMinimum(candidates, (a, b) => compareByHpThenPosition(a, b));
+
+    case "highest_hp": {
+      // Highest HP = maximum HP
+      // Need custom comparator because negating would invert tiebreaker too
+      const highest = findMinimum(candidates, (a, b) => {
+        if (a.hp !== b.hp) {
+          return b.hp - a.hp; // Greater HP wins (reverse of lowest_hp)
+        }
+        return tieBreakCompare(a, b); // Same tiebreaker (lower R, then lower Q)
+      });
+      return highest;
+    }
+
+    default: {
+      const _exhaustive: never = criterion;
+      return _exhaustive;
     }
   }
 }

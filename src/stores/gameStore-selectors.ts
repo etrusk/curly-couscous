@@ -16,7 +16,7 @@ import {
   computeDecisions,
   evaluateSkillsForCharacter as _evaluateSkillsForCharacter,
 } from "../engine/game";
-import { evaluateSelector } from "../engine/selectors";
+import { evaluateTargetCriterion } from "../engine/selectors";
 import { SKILL_REGISTRY } from "../engine/skill-registry";
 import { generateAllHexes, positionKey } from "../engine/hex";
 
@@ -283,17 +283,17 @@ export const selectMovementTargetData = (() => {
     // Compute fresh result
     const result = living
       .map((character) => {
-        // Find Move skill (skill with mode property)
-        const moveSkill = character.skills.find((s) => s.mode !== undefined);
+        // Find Move skill (skill with actionType "move")
+        const moveSkill = character.skills.find((s) => s.actionType === "move");
         if (!moveSkill) return null;
 
-        // Get selector (default to nearest_enemy if no override)
-        const selector = moveSkill.selectorOverride ?? {
-          type: "nearest_enemy",
-        };
-
-        // Evaluate selector to find target
-        const target = evaluateSelector(selector, character, characters);
+        // Evaluate target selection
+        const target = evaluateTargetCriterion(
+          moveSkill.target,
+          moveSkill.criterion,
+          character,
+          characters,
+        );
         if (!target || target.id === character.id) return null;
 
         return {

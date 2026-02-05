@@ -136,13 +136,13 @@ describe("computeDecisions - skill priority order", () => {
         createSkill({
           id: "move-towards",
           instanceId: "move-away-inst",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "hp_below", value: 50 }],
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move-towards-inst",
-          mode: "towards",
+          behavior: "towards",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -155,7 +155,7 @@ describe("computeDecisions - skill priority order", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.skill.mode).toBe("away");
+    expect(decisions[0]!.action.skill.behavior).toBe("away");
   });
 
   it("priority evaluation skips to lower priority move when trigger fails", () => {
@@ -174,13 +174,13 @@ describe("computeDecisions - skill priority order", () => {
         createSkill({
           id: "move-towards",
           instanceId: "move-away-inst",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "hp_below", value: 50 }],
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move-towards-inst",
-          mode: "towards",
+          behavior: "towards",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -193,7 +193,7 @@ describe("computeDecisions - skill priority order", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.skill.mode).toBe("towards");
+    expect(decisions[0]!.action.skill.behavior).toBe("towards");
   });
 
   it("hp conditional movement full scenario low hp triggers away", () => {
@@ -212,16 +212,14 @@ describe("computeDecisions - skill priority order", () => {
         createSkill({
           id: "move-towards",
           instanceId: "move-away-inst",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "hp_below", value: 50 }],
-          selectorOverride: { type: "nearest_enemy" },
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move-towards-inst",
-          mode: "towards",
+          behavior: "towards",
           triggers: [{ type: "always" }],
-          selectorOverride: { type: "nearest_enemy" },
         }),
       ],
     });
@@ -235,7 +233,7 @@ describe("computeDecisions - skill priority order", () => {
     const charDecision = decisions.find((d) => d.characterId === "char1");
     expect(charDecision).toBeDefined();
     expect(charDecision!.action.type).toBe("move");
-    expect(charDecision!.action.skill.mode).toBe("away");
+    expect(charDecision!.action.skill.behavior).toBe("away");
     // Target cell should be farther from enemy (distance increased)
     const originalDistance = Math.abs(character.position.q - enemy.position.q);
     const newDistance = Math.abs(
@@ -260,16 +258,14 @@ describe("computeDecisions - skill priority order", () => {
         createSkill({
           id: "move-towards",
           instanceId: "move-away-inst",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "hp_below", value: 50 }],
-          selectorOverride: { type: "nearest_enemy" },
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move-towards-inst",
-          mode: "towards",
+          behavior: "towards",
           triggers: [{ type: "always" }],
-          selectorOverride: { type: "nearest_enemy" },
         }),
       ],
     });
@@ -281,7 +277,7 @@ describe("computeDecisions - skill priority order", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-    expect(decisions[0]!.action.skill.mode).toBe("towards");
+    expect(decisions[0]!.action.skill.behavior).toBe("towards");
     // Target cell should be closer to enemy (distance decreased)
     const originalDistance = Math.abs(character.position.q - enemy.position.q);
     const newDistance = Math.abs(
@@ -306,13 +302,13 @@ describe("computeDecisions - skill priority order", () => {
         createSkill({
           id: "move-towards",
           instanceId: "charA-away",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "hp_below", value: 50 }],
         }),
         createSkill({
           id: "move-towards",
           instanceId: "charA-towards",
-          mode: "towards",
+          behavior: "towards",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -327,13 +323,13 @@ describe("computeDecisions - skill priority order", () => {
         createSkill({
           id: "move-towards",
           instanceId: "charB-away",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "hp_below", value: 50 }],
         }),
         createSkill({
           id: "move-towards",
           instanceId: "charB-towards",
-          mode: "towards",
+          behavior: "towards",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -348,9 +344,9 @@ describe("computeDecisions - skill priority order", () => {
     const decisionA = decisions.find((d) => d.characterId === "charA");
     const decisionB = decisions.find((d) => d.characterId === "charB");
     expect(decisionA?.action.type).toBe("move");
-    expect(decisionA?.action.skill.mode).toBe("away");
+    expect(decisionA?.action.skill.behavior).toBe("away");
     expect(decisionB?.action.type).toBe("move");
-    expect(decisionB?.action.skill.mode).toBe("towards");
+    expect(decisionB?.action.skill.behavior).toBe("towards");
   });
 
   it("three move instances priority cascade", () => {
@@ -369,19 +365,19 @@ describe("computeDecisions - skill priority order", () => {
         createSkill({
           id: "move-towards",
           instanceId: "move1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "hp_below", value: 25 }],
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move2",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "hp_below", value: 50 }],
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move3",
-          mode: "towards",
+          behavior: "towards",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -393,7 +389,7 @@ describe("computeDecisions - skill priority order", () => {
 
     const decisions = computeDecisions(state);
 
-    expect(decisions[0]!.action.skill.mode).toBe("towards");
+    expect(decisions[0]!.action.skill.behavior).toBe("towards");
     expect(decisions[0]!.action.type).toBe("move");
   });
 
@@ -413,19 +409,19 @@ describe("computeDecisions - skill priority order", () => {
         createSkill({
           id: "move-towards",
           instanceId: "move1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "hp_below", value: 25 }],
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move2",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "hp_below", value: 50 }],
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move3",
-          mode: "towards",
+          behavior: "towards",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -437,7 +433,7 @@ describe("computeDecisions - skill priority order", () => {
 
     const decisions = computeDecisions(state);
 
-    expect(decisions[0]!.action.skill.mode).toBe("away");
+    expect(decisions[0]!.action.skill.behavior).toBe("away");
     expect(decisions[0]!.action.type).toBe("move");
   });
 });

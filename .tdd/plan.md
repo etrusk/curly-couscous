@@ -1,617 +1,484 @@
-# Implementation Plan: Move Skill Duplication
+# Implementation Plan: Skill System Refactor
 
-## Summary
+## Overview
 
-Add `instanceId` to the `Skill` type to enable multiple Move skill instances per character. Each instance has independent behavioral configuration (mode, triggers, selector, priority). Max 3 Move instances per character. Duplication via a button in SkillsPanel. Original innate Move protected from removal; duplicates removable unless they are the last Move instance.
+Three coordinated changes delivered as one coherent refactor:
 
-## New Architectural Decision
+- **A1**: Universal `behavior` property (rename `mode`, add `behaviors` to registry)
+- **A2**: Split `selectorOverride` into `target` + `criterion`
+- **A3**: Universal skill duplication via `maxInstances`
 
-- **Decision**: Add `instanceId` field to `Skill` for instance-level identity, separate from registry `id`.
-- **Context**: Move skill duplication requires multiple instances of the same registry skill on one character. The existing `id` field serves three roles (registry lookup, uniqueness constraint, React key) that conflict with duplication.
-- **Consequences**: All code using `id` for instance-level operations (updateSkill, removeSkill, React keys) must switch to `instanceId`. Code using `id` for registry lookup (innate detection, faction exclusivity) remains unchanged. Recommend documenting as ADR-009.
+## 1. Action Type Inference Decision
 
----
+### Decision: Explicit `actionType` in SkillDefinition (Option A)
 
-## Step 1: Add `instanceId` to Skill Type
+Add `actionType: "attack" | "move" | "heal"` to `SkillDefinition` and propagate to `Skill`.
 
-**Files to modify:**
+### Context
 
-- `/home/bob/Projects/auto-battler/src/engine/types.ts`
+`getActionType()` currently infers action type from presence of optional fields: `damage !== undefined` => attack, `healing !== undefined` => heal, `mode !== undefined` => move. When `mode` becomes `behavior` (universal to all skills), the `mode !== undefined` test no longer distinguishes Move skills. We need a different mechanism.
 
-**Changes:**
+### Options Evaluated
 
-- Add `instanceId: string` to the `Skill` interface, after the `id` field.
+1. **Explicit `actionType` field** -- Every skill declares its type. Simple, unambiguous, zero inference.
+2. **Registry-based lookup** -- Map skill name/id to action type via a separate table. Adds indirection.
+3. **Behavior-value-based inference** -- If behavior value is "towards"|"away" => move. Fragile; future behaviors (e.g., "patrol") become ambiguous.
+
+### Rationale for Option A
+
+- Aligns with spec's "Skill Categories" section which explicitly lists three action categories (Attack, Heal, Move)
+- Aligns with ADR-005's principle: the registry is the single source of truth for skill identity
+- Aligns with architecture.md's "Data-Driven Targeting" pattern: declarative data, not inference
+- Eliminates the existing mutual-exclusion validation in `getActionType()` (the "can only have one of damage, healing, or mode" check becomes unnecessary because `actionType` is always present)
+- Future-proof: new action types (buff, debuff) just add to the union type
+
+### Consequences
+
+- `getActionType()` changes from inference logic to a simple field read
+- The error paths for "must have exactly one" property are removed (compile-time safety replaces runtime checks)
+- 4 tests in `game-decisions-action-type-inference.test.ts` need updating: the "throw for skill with both" and "throw for skill with neither" tests become obsolete; replace with tests that verify the `actionType` field is respected
+- `damage`, `healing` remain as numeric payload fields. `actionType` determines the category. This means a skill could theoretically have `actionType: "attack"` without `damage` -- but TypeScript discriminated unions or runtime validation in the registry can prevent this
+
+### New ADR Recommended
+
+ADR-011: Explicit Action Type on Skill Definitions. Document this decision for future reference.
+
+## 2. Data Model Changes (Before/After)
+
+### 2a. `SkillDefinition` (in `src/engine/skill-registry.ts`)
 
 ```typescript
-export interface Skill {
-  id: string; // Registry ID (shared by duplicates)
-  instanceId: string; // Unique per-instance (for React keys, targeted updates, removal)
+// BEFORE
+export interface SkillDefinition {
+  id: string;
   name: string;
-  // ... rest unchanged
+  tickCost: number;
+  range: number;
+  damage?: number;
+  healing?: number;
+  mode?: "towards" | "away";
+  innate: boolean;
+  defaultSelector?: Selector;
+}
+
+// AFTER
+export interface SkillDefinition {
+  id: string;
+  name: string;
+  actionType: "attack" | "move" | "heal";
+  tickCost: number;
+  range: number;
+  damage?: number; // Required when actionType === "attack"
+  healing?: number; // Required when actionType === "heal"
+  behaviors: string[]; // Available behaviors for this skill (e.g., ["towards", "away"])
+  defaultBehavior: string; // Default behavior value (first in behaviors array)
+  innate: boolean;
+  maxInstances: number; // Max duplicates per character (1 = no duplication, 3 = Move default)
+  defaultTarget?: Target; // Replaces defaultSelector
+  defaultCriterion?: Criterion; // Replaces defaultSelector
 }
 ```
 
-**Dependencies:** None (first step).
-
-**Edge cases:**
-
-- The `IDLE_SKILL` in `game-decisions.ts` and `game-actions.ts` must also get `instanceId`. Use `"__idle__"` for both `id` and `instanceId` since idle is synthetic and never duplicated.
-
----
-
-## Step 2: Add Instance ID Generation Utility
-
-**Files to modify:**
-
-- `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts`
-
-**Changes:**
-
-- Add a module-level counter and `generateInstanceId(registryId: string): string` function.
-- Pattern: `${registryId}-${counter++}` (e.g., `"move-towards-1"`, `"move-towards-2"`).
-- Counter is global and monotonically increasing across all calls to prevent collisions.
+### 2b. `Skill` (in `src/engine/types.ts`)
 
 ```typescript
-let instanceIdCounter = 0;
+// BEFORE
+export interface Skill {
+  id: string;
+  instanceId: string;
+  name: string;
+  tickCost: number;
+  range: number;
+  damage?: number;
+  healing?: number;
+  mode?: "towards" | "away";
+  enabled: boolean;
+  triggers: Trigger[];
+  selectorOverride?: Selector;
+}
 
-export function generateInstanceId(registryId: string): string {
-  return `${registryId}-${++instanceIdCounter}`;
+// AFTER
+export interface Skill {
+  id: string;
+  instanceId: string;
+  name: string;
+  actionType: "attack" | "move" | "heal";
+  tickCost: number;
+  range: number;
+  damage?: number;
+  healing?: number;
+  behavior: string; // Universal: every skill has exactly one active behavior
+  enabled: boolean;
+  triggers: Trigger[];
+  target: Target; // Always present (replaces selectorOverride)
+  criterion: Criterion; // Always present (replaces selectorOverride)
 }
 ```
 
-- Export `generateInstanceId` for use in store actions.
-
-**Why module-level counter:** Simple, deterministic within a session. No need for UUIDs since instanceIds are only used client-side within a single session. The counter never resets, so IDs are unique even across character creation/deletion cycles.
-
-**Dependencies:** Step 1 (Skill type must have `instanceId`).
-
----
-
-## Step 3: Add MAX_MOVE_INSTANCES Constant
-
-**Files to modify:**
-
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-constants.ts`
-
-**Changes:**
-
-- Add `export const MAX_MOVE_INSTANCES = 3;` constant.
-
-**Dependencies:** None.
-
----
-
-## Step 4: Update Skill Creation Functions
-
-**Files to modify:**
-
-- `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts`
-
-**Changes:**
-
-1. **`getDefaultSkills()`**: Add `instanceId` via `generateInstanceId(def.id)` to each created skill. Remove the hardcoded `"Towards"` name suffix -- all Move instances should simply be named `"Move"`. The mode dropdown in the UI already differentiates.
-
-2. **`createSkillFromDefinition(def)`**: Add `instanceId` via `generateInstanceId(def.id)`. Remove the `"Towards"` name suffix here too.
-
-Updated `getDefaultSkills()`:
+### 2c. New `Target` and `Criterion` types (in `src/engine/types.ts`)
 
 ```typescript
-export function getDefaultSkills(): Skill[] {
-  return SKILL_REGISTRY.filter((def) => def.innate).map((def) => ({
-    id: def.id,
-    instanceId: generateInstanceId(def.id),
-    name: def.name, // Use registry name directly ("Move", not "Move Towards")
-    tickCost: def.tickCost,
-    range: def.range,
-    ...(def.damage !== undefined ? { damage: def.damage } : {}),
-    ...(def.healing !== undefined ? { healing: def.healing } : {}),
-    ...(def.mode !== undefined ? { mode: def.mode } : {}),
-    enabled: true,
-    triggers: [{ type: "always" as const }],
-    selectorOverride: def.defaultSelector ?? { type: "nearest_enemy" as const },
-  }));
+// BEFORE
+export interface Selector {
+  type:
+    | "nearest_enemy"
+    | "nearest_ally"
+    | "lowest_hp_enemy"
+    | "lowest_hp_ally"
+    | "self";
 }
+
+// AFTER
+export type Target = "enemy" | "ally" | "self";
+export type Criterion = "nearest" | "furthest" | "lowest_hp" | "highest_hp";
 ```
 
-Updated `createSkillFromDefinition()`:
+Notes:
+
+- `self` target ignores criterion (there is only one possible target)
+- 3 targets x 4 criteria = 12 combinations, but `self` with any criterion always returns self
+- The `Selector` interface is removed entirely
+
+### 2d. Registry entries (updated)
 
 ```typescript
-export function createSkillFromDefinition(def: SkillDefinition): Skill {
-  return {
-    id: def.id,
-    instanceId: generateInstanceId(def.id),
-    name: def.name, // Use registry name directly
-    // ... rest same as before
-  };
-}
+export const SKILL_REGISTRY: readonly SkillDefinition[] = [
+  {
+    id: "light-punch",
+    name: "Light Punch",
+    actionType: "attack",
+    tickCost: 0,
+    range: 1,
+    damage: 10,
+    behaviors: [], // No behavior choices
+    defaultBehavior: "", // N/A (empty string sentinel)
+    innate: false,
+    maxInstances: 1,
+    defaultTarget: "enemy",
+    defaultCriterion: "nearest",
+  },
+  {
+    id: "heavy-punch",
+    name: "Heavy Punch",
+    actionType: "attack",
+    tickCost: 2,
+    range: 2,
+    damage: 25,
+    behaviors: [],
+    defaultBehavior: "",
+    innate: false,
+    maxInstances: 1,
+    defaultTarget: "enemy",
+    defaultCriterion: "nearest",
+  },
+  {
+    id: "move-towards",
+    name: "Move",
+    actionType: "move",
+    tickCost: 1,
+    range: 1,
+    behaviors: ["towards", "away"],
+    defaultBehavior: "towards",
+    innate: true,
+    maxInstances: 3,
+    defaultTarget: "enemy",
+    defaultCriterion: "nearest",
+  },
+  {
+    id: "heal",
+    name: "Heal",
+    actionType: "heal",
+    tickCost: 2,
+    range: 5,
+    healing: 25,
+    behaviors: [],
+    defaultBehavior: "",
+    innate: false,
+    maxInstances: 1,
+    defaultTarget: "ally",
+    defaultCriterion: "lowest_hp",
+  },
+];
 ```
 
-**Dependencies:** Steps 1, 2.
+## 3. Change Sequence
 
-**Edge cases:**
-
-- Existing tests that check `skill.name === "Move Towards"` will need updating to `"Move"`.
+The refactor is sequenced so that tests pass at each step. Steps are grouped into three layers: types, engine logic, and UI/store.
 
 ---
 
-## Step 5: Update Synthetic Idle Skills
+### Step 1: Add `actionType` to SkillDefinition and Skill
 
-**Files to modify:**
-
-- `/home/bob/Projects/auto-battler/src/engine/game-decisions.ts` (IDLE_SKILL constant)
-- `/home/bob/Projects/auto-battler/src/engine/game-actions.ts` (IDLE_SKILL in createIdleAction)
-
-**Changes:**
-
-- Add `instanceId: "__idle__"` to both IDLE_SKILL definitions.
-
-**Dependencies:** Step 1.
-
----
-
-## Step 6: Update Test Helpers
-
-**Files to modify:**
-
-- `/home/bob/Projects/auto-battler/src/engine/game-test-helpers.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-test-helpers.ts`
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-test-helpers.ts`
-
-**Changes:**
-
-- Add `instanceId` to `createSkill()` helpers. Default to `overrides.instanceId ?? overrides.id` so existing tests that pass `id` get a valid instanceId without modification.
-- Update `createAttackAction`, `createMoveAction`, `createHealAction` to include `instanceId` on their inline skills.
-
-```typescript
-export function createSkill(overrides: Partial<Skill> & { id: string }): Skill {
-  return {
-    id: overrides.id,
-    instanceId: overrides.instanceId ?? overrides.id, // Default instanceId to id
-    name: overrides.name ?? `Skill-${overrides.id}`,
-    // ... rest unchanged
-  };
-}
-```
-
-**Dependencies:** Step 1.
-
-**Rationale:** Defaulting `instanceId` to `id` in test helpers means the vast majority of existing tests work unchanged. Only tests creating duplicate skills need explicit instanceIds.
+- **Files**:
+  - `src/engine/skill-registry.ts` -- Add `actionType` field to `SkillDefinition` interface and all 4 registry entries
+  - `src/engine/types.ts` -- Add `actionType` field to `Skill` interface (alongside existing `mode`)
+  - `src/engine/skill-registry.ts` -- `getDefaultSkills()` and `createSkillFromDefinition()` propagate `actionType`
+  - `src/engine/game-test-helpers.ts` -- `createSkill()` adds `actionType` with default based on existing fields
+  - `src/stores/gameStore-test-helpers.ts` -- Same change
+- **Why now**: This is additive-only. No existing field is removed or renamed. All existing tests continue to pass because `actionType` is just a new field alongside the existing `mode`/`damage`/`healing` inference.
+- **Tests affected**: None break. New tests will be designed later.
+- **Backward compat**: Test helpers default `actionType` from existing fields: if `damage` => "attack", if `healing` => "heal", if `mode` => "move", else "attack" (safe default for test-only skills)
 
 ---
 
-## Step 7: Update Store Action Signatures (Types)
+### Step 2: Switch `getActionType()` to use `actionType` field
 
-**Files to modify:**
-
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-types.ts`
-
-**Changes:**
-
-1. **Rename parameter in `updateSkill`**: Change from `skillId: string` to `instanceId: string`.
-2. **Rename parameter in `removeSkillFromCharacter`**: Change from `skillId: string` to `instanceId: string`.
-3. **Add `duplicateSkill` action**:
-
-```typescript
-updateSkill: (
-  charId: string,
-  instanceId: string,  // Changed from skillId
-  updates: Partial<Skill>,
-) => void;
-removeSkillFromCharacter: (charId: string, instanceId: string) => void;  // Changed from skillId
-duplicateSkill: (charId: string, instanceId: string) => void;  // NEW
-```
-
-**Dependencies:** Step 1.
+- **Files**:
+  - `src/engine/game-actions.ts` -- `getActionType()` reads `skill.actionType` instead of inferring from `damage`/`healing`/`mode` presence. Remove the mutual-exclusion validation.
+  - `src/engine/game-actions.ts` -- `createSkillAction()` reads `skill.behavior` for move destination (but `behavior` doesn't exist yet, so for now still reads `skill.mode!`; this is addressed in Step 4)
+- **Why now**: With `actionType` available from Step 1, we can switch the inference. This must happen before removing `mode`.
+- **Tests affected**:
+  - `src/engine/game-decisions-action-type-inference.test.ts` -- "throw for skill with both damage and mode" and "throw for skill with neither" tests: these runtime validation tests become obsolete. Replace with tests that verify `actionType` is read correctly.
+  - All other tests that call `getActionType()` indirectly (via `computeDecisions`, `createSkillAction`) continue to work because test helpers now provide `actionType`.
 
 ---
 
-## Step 8: Update Store Actions (Implementation)
+### Step 3: Split `Selector` into `Target` + `Criterion`
 
-**Files to modify:**
-
-- `/home/bob/Projects/auto-battler/src/stores/gameStore.ts`
-
-**Changes:**
-
-### 8a. `updateSkill` -- find by `instanceId` instead of `id`
-
-```typescript
-updateSkill: (charId, instanceId, updates) =>
-  set((state) => {
-    const character = state.gameState.characters.find((c) => c.id === charId);
-    if (character) {
-      const skill = character.skills.find((s) => s.instanceId === instanceId);
-      if (skill) {
-        Object.assign(skill, updates);
-      }
-    }
-  }),
-```
-
-### 8b. `removeSkillFromCharacter` -- find by `instanceId`, enforce Move protection
-
-```typescript
-removeSkillFromCharacter: (charId, instanceId) =>
-  set((state) => {
-    const character = state.gameState.characters.find((c) => c.id === charId);
-    if (!character) return;
-
-    const skillIndex = character.skills.findIndex((s) => s.instanceId === instanceId);
-    if (skillIndex === -1) return;
-
-    const skill = character.skills[skillIndex]!;
-
-    // Check if skill is innate via registry
-    const skillDef = SKILL_REGISTRY.find((s) => s.id === skill.id);
-
-    if (skillDef?.innate) {
-      // For innate skills (Move): only allow removal if character has >1 instance
-      const moveCount = character.skills.filter((s) => s.id === skill.id).length;
-      if (moveCount <= 1) return; // Cannot remove last Move instance
-    }
-
-    character.skills.splice(skillIndex, 1);
-  }),
-```
-
-**Key change from current behavior:** Currently, innate skills can NEVER be removed. With duplication, innate duplicates CAN be removed as long as at least one instance remains. This means the removal logic changes from "innate = never remove" to "innate = must keep at least one".
-
-### 8c. `assignSkillToCharacter` -- add `instanceId` to created skills
-
-No change needed beyond what `createSkillFromDefinition` already handles (Step 4 adds instanceId there).
-
-### 8d. NEW: `duplicateSkill` action
-
-```typescript
-duplicateSkill: (charId, instanceId) =>
-  set((state) => {
-    const character = state.gameState.characters.find((c) => c.id === charId);
-    if (!character) return;
-
-    // Find source skill
-    const sourceSkill = character.skills.find((s) => s.instanceId === instanceId);
-    if (!sourceSkill) return;
-
-    // Only Move skills can be duplicated (skills with mode property)
-    if (sourceSkill.mode === undefined) return;
-
-    // Check move instance count limit
-    const moveCount = character.skills.filter((s) => s.mode !== undefined).length;
-    if (moveCount >= MAX_MOVE_INSTANCES) return;
-
-    // Check total skill slot limit
-    if (character.skills.length >= MAX_SKILL_SLOTS) return;
-
-    // Create new instance with default config
-    const newSkill: Skill = {
-      id: sourceSkill.id,
-      instanceId: generateInstanceId(sourceSkill.id),
-      name: sourceSkill.name, // "Move"
-      tickCost: sourceSkill.tickCost,
-      range: sourceSkill.range,
-      mode: "towards", // Default mode for new duplicate
-      enabled: true,
-      triggers: [{ type: "always" }],
-      selectorOverride: { type: "nearest_enemy" },
-    };
-
-    // Insert directly after source skill in priority list
-    const sourceIndex = character.skills.findIndex((s) => s.instanceId === instanceId);
-    character.skills.splice(sourceIndex + 1, 0, newSkill);
-  }),
-```
-
-**New imports needed:** `generateInstanceId` from skill-registry, `MAX_MOVE_INSTANCES` from gameStore-constants.
-
-**Dependencies:** Steps 1-4, 7.
-
-**Edge cases:**
-
-- Duplicating when at MAX_SKILL_SLOTS: silently rejected (button should be disabled in UI).
-- Duplicating when at MAX_MOVE_INSTANCES: silently rejected (button should be disabled in UI).
-- Duplicating a non-Move skill: silently rejected (button only shown for Move skills).
-- New duplicate gets default config, not a copy of source config. This is intentional -- the point of duplication is to create a differently-configured instance.
+- **Files**:
+  - `src/engine/types.ts` -- Add `Target` and `Criterion` types. Add `target` and `criterion` fields to `Skill` (alongside existing `selectorOverride`). Keep `Selector` interface temporarily.
+  - `src/engine/selectors.ts` -- Add `evaluateTargetCriterion(target, criterion, evaluator, allCharacters)` function alongside existing `evaluateSelector()`. Add `furthest_enemy`, `furthest_ally`, `highest_hp_enemy`, `highest_hp_ally` logic using reversed comparators.
+  - `src/engine/skill-registry.ts` -- Add `defaultTarget` and `defaultCriterion` to `SkillDefinition` and all registry entries. Update `getDefaultSkills()` and `createSkillFromDefinition()` to set `target` and `criterion` on created Skills.
+  - `src/engine/game-test-helpers.ts` -- `createSkill()` adds `target` and `criterion` with defaults derived from `selectorOverride` if present
+  - `src/stores/gameStore-test-helpers.ts` -- Same
+- **Why now**: Adding the new target/criterion infrastructure alongside the existing selector lets both coexist. No existing code breaks because `evaluateSelector()` is still used by the decision engine.
+- **Tests affected**: None break. New selector tests (furthest, highest_hp) will be added.
 
 ---
 
-## Step 9: Update SkillsPanel UI
+### Step 4: Rename `mode` to `behavior` (universal)
 
-**Files to modify:**
-
-- `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx`
-
-**Changes:**
-
-### 9a. Switch all `skill.id` references to `skill.instanceId` for instance-level operations
-
-- `key={skill.instanceId}` (line 196)
-- `id={`enable-${skill.instanceId}`}` (line 200)
-- `htmlFor={`enable-${skill.instanceId}`}` (line 207)
-- All handler calls: pass `skill.instanceId` instead of `skill.id` to `updateSkill`, `handleEnabledToggle`, `handleUnassignSkill`, `handleTriggerTypeChange`, `handleTriggerValueChange`, `handleCategoryChange`, `handleStrategyChange`, `handleModeChange`
-
-### 9b. Update internal handler signatures
-
-Change all `skillId: string` parameters to `instanceId: string` in handler functions. Update all `find((s) => s.id === skillId)` lookups to `find((s) => s.instanceId === instanceId)`.
-
-### 9c. Keep registry lookup by `skill.id`
-
-The innate detection still uses `SKILL_REGISTRY.find((def) => def.id === skill.id)?.innate` -- this is correct and stays as-is.
-
-### 9d. Update innate badge and unassign button logic
-
-Currently: innate skills show "Innate" badge, non-innate show "Unassign" button.
-
-New logic for Move skills (innate):
-
-- Always show "Innate" badge on the original (first) Move instance? No -- simpler approach: show the badge on ALL Move instances since they're all based on an innate definition. But show "Unassign"/"Remove" button on duplicates.
-- Better: For innate skills, show "Innate" badge. Additionally, show "Remove" button if there are multiple instances of that skill (moveCount > 1). The "Remove" button replaces "Unassign" terminology for innate duplicates since they were never "assigned" from inventory.
-
-Revised logic:
-
-```typescript
-const isInnate = !!SKILL_REGISTRY.find((def) => def.id === skill.id)?.innate;
-const isMove = skill.mode !== undefined;
-const moveCount = isMove
-  ? selectedCharacter.skills.filter((s) => s.mode !== undefined).length
-  : 0;
-const canRemove = !isInnate || (isInnate && moveCount > 1);
-```
-
-- Show "Innate" badge if `isInnate` is true
-- Show "Unassign" button if `!isInnate` (for inventory skills)
-- Show "Remove" button if `isInnate && moveCount > 1` (for duplicate Move instances)
-
-### 9e. Add "Duplicate" button for Move skills
-
-Add a "Duplicate" button next to the Move skill header. Visible only when:
-
-- `isMove === true`
-- `moveCount < MAX_MOVE_INSTANCES` (from gameStore-constants)
-- `selectedCharacter.skills.length < MAX_SKILL_SLOTS`
-
-```tsx
-{
-  isMove &&
-    moveCount < MAX_MOVE_INSTANCES &&
-    selectedCharacter.skills.length < MAX_SKILL_SLOTS && (
-      <button
-        onClick={() => duplicateSkill(selectedCharacter.id, skill.instanceId)}
-        className={styles.duplicateButton}
-        aria-label={`Duplicate ${skill.name}`}
-      >
-        Duplicate
-      </button>
-    );
-}
-```
-
-**New imports needed:** `duplicateSkill` from actions, `MAX_MOVE_INSTANCES` from gameStore-constants.
-
-### 9f. Add `duplicateButton` CSS class
-
-**Files to modify:**
-
-- `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.module.css`
-
-Add minimal styling for the duplicate button (similar to existing button styles).
-
-**Dependencies:** Steps 1-8.
+- **Files**:
+  - `src/engine/types.ts` -- Remove `mode?: "towards" | "away"`, add `behavior: string` (required field, not optional)
+  - `src/engine/skill-registry.ts` -- Remove `mode` from `SkillDefinition`, add `behaviors: string[]` and `defaultBehavior: string`. Update all registry entries and factory functions.
+  - `src/engine/game-actions.ts` -- `createSkillAction()`: replace `skill.mode!` with `skill.behavior` (cast to `"towards" | "away"` for `computeMoveDestination` call)
+  - `src/engine/game-movement.ts` -- No change (still accepts `mode: "towards" | "away"` parameter; the cast happens in the caller)
+  - `src/engine/game-decisions.ts` -- Replace `(skill.mode as string) === "hold"` with `(skill.behavior as string) === "hold"` for legacy check
+  - `src/engine/game-test-helpers.ts` -- `createSkill()`: replace `mode` with `behavior`. Default to `""` for non-move skills, pass through existing `mode` values as `behavior`.
+  - `src/stores/gameStore-test-helpers.ts` -- Same
+  - `src/components/RuleEvaluations/rule-evaluations-formatters.ts` -- Replace `action.skill.mode` with `action.skill.behavior`
+  - `src/components/InventoryPanel/InventoryPanel.tsx` -- Replace `skill.mode` with registry lookup for display
+- **Why now**: With `actionType` in place (Step 2), `mode` is no longer used for action type inference. Safe to rename.
+- **Tests affected**: **All tests that reference `mode`** (~39 occurrences across 16 files). This is a mechanical find-replace of `mode:` to `behavior:` in test skill creation. Test helpers handle the default so most tests that don't set `mode` explicitly are unaffected.
+- **Migration**: Test helpers change `mode` parameter to `behavior`. Since both helpers default `mode` to `undefined`, and the new field defaults `behavior` to `""`, tests that don't set mode explicitly continue to work. Tests that do set `mode: "towards"` change to `behavior: "towards"`.
 
 ---
 
-## Step 10: Update RuleEvaluations and CharacterTooltip React Keys
+### Step 5: Switch decision engine from `evaluateSelector` to `evaluateTargetCriterion`
 
-**Files to modify:**
-
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.tsx`
-
-**Changes:**
-
-- Replace all `key={evaluation.skill.id}` with `key={evaluation.skill.instanceId}`.
-- There are 4 occurrences in RuleEvaluations.tsx (lines 81, 125, 143, 206) and 3 in CharacterTooltip.tsx (lines 142, 160, 190).
-- These are purely React key changes -- no behavioral logic changes.
-
-**Dependencies:** Step 1.
+- **Files**:
+  - `src/engine/game-decisions.ts` -- Replace `evaluateSelector(selector, ...)` calls with `evaluateTargetCriterion(skill.target, skill.criterion, ...)`. Remove `DEFAULT_SELECTOR` constant, replace with `DEFAULT_TARGET` and `DEFAULT_CRITERION`.
+  - `src/engine/game-decisions.ts` -- `evaluateSkillsForCharacter()` same change
+  - `src/stores/gameStore-selectors.ts` -- `selectMovementTargetData`: replace `moveSkill.selectorOverride` with `evaluateTargetCriterion(moveSkill.target, moveSkill.criterion, ...)`
+  - `src/engine/types.ts` -- Remove `selectorOverride` from `Skill` interface. Remove `Selector` interface.
+  - `src/engine/selectors.ts` -- Remove `evaluateSelector()`. Keep `evaluateTargetCriterion()`.
+- **Why now**: Both selector systems coexisted in Step 3. Now switch all consumers to the new system and remove the old.
+- **Tests affected**: **All tests that reference `selectorOverride`** (~120 occurrences across 24 files). Replace `selectorOverride: { type: "nearest_enemy" }` with `target: "enemy", criterion: "nearest"`. This is a mechanical replacement. Test helpers handle the default.
+- **Migration**: Test helpers change `selectorOverride` parameter to `target` + `criterion`. Default values: `target: "enemy"`, `criterion: "nearest"` (matching the old DEFAULT_SELECTOR).
 
 ---
 
-## Step 11: Update `selectMovementTargetData` Selector
+### Step 6: Universal skill duplication
 
-**Files to modify:**
-
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors.ts`
-
-**Changes:**
-The current implementation finds the first Move skill:
-
-```typescript
-const moveSkill = character.skills.find((s) => s.mode !== undefined);
-```
-
-This should find the Move skill that the decision engine would actually select (the highest-priority enabled Move whose triggers pass). However, the current behavior is "show targeting line for the first Move skill's selector", which is a reasonable approximation. For now, **keep the existing behavior** -- the targeting line is a visualization aid, not a game mechanic. A future enhancement could make it aware of trigger evaluation.
-
-No changes needed in this step, but document this as a known limitation.
-
-**Dependencies:** None.
+- **Files**:
+  - `src/stores/gameStore.ts` -- `duplicateSkill()`: Remove `sourceSkill.mode === undefined` guard. Replace `moveCount >= MAX_MOVE_INSTANCES` with registry lookup of `maxInstances`. Replace hardcoded `mode: "towards"` with `behavior: def.defaultBehavior`.
+  - `src/stores/gameStore.ts` -- `removeSkillFromCharacter()`: Replace `mode !== undefined` innate-Move protection with `actionType === "move"` or registry `innate` check combined with instance count.
+  - `src/stores/gameStore-constants.ts` -- Remove `MAX_MOVE_INSTANCES` constant.
+  - `src/engine/skill-registry.ts` -- Add `getSkillDefinition(id: string): SkillDefinition | undefined` helper for registry lookup.
+- **Why now**: Depends on Step 4 (`behavior` field) and Step 1 (`actionType` field). The duplication logic must reference registry `maxInstances` instead of hardcoded move limits.
+- **Tests affected**:
+  - `src/stores/gameStore-skills-duplication.test.ts` -- Update `mode`-based checks to `behavior`-based. Add tests for non-Move skill duplication (designed in test-designs.md).
+  - `src/components/SkillsPanel/SkillsPanel.test.tsx` -- Update duplicate button conditions
 
 ---
 
-## Step 12: Update Existing Tests
+### Step 7: Update SkillsPanel UI
 
-**Files requiring `instanceId` additions to Skill fixtures:**
-
-Many test files create inline Skill objects. With `instanceId` as a required field on `Skill`, all inline Skill objects must include it. Test files that use the `createSkill` helper (Steps 6) are automatically covered by the default `instanceId ?? id` behavior.
-
-Test files with inline Skill objects that need `instanceId`:
-
-- Files creating skills via `createSkill()` helper: **No changes needed** (Step 6 handles default).
-- Files creating skills inline (without helper): Need `instanceId` added.
-
-Key test files to audit:
-
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts` -- uses `createSkill` helper, covered.
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-skills-faction-exclusivity.test.ts` -- uses store actions which generate instanceId, covered.
-- `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx` -- creates inline skills, needs `instanceId` added.
-- `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts` -- tests registry functions, needs to verify `instanceId` is present.
-- Various engine test files that create inline skills in character fixtures.
-
-**Strategy:** Since `instanceId` is required on the `Skill` type, TypeScript will flag every missing occurrence. The coder can fix these by:
-
-1. Adding `instanceId: "some-id"` to inline skill objects.
-2. Using the `createSkill` helper which defaults `instanceId` to `id`.
-
-For SkillsPanel tests that use `find((s) => s.id === "skill1")`, these may need updating to `find((s) => s.instanceId === "skill1")` if the store action now operates on instanceId.
-
-**Dependencies:** Steps 1-8.
+- **Files**:
+  - `src/components/SkillsPanel/SkillsPanel.tsx`:
+    - Replace `decomposeSelector`/`composeSelector` with direct `skill.target`/`skill.criterion` reads
+    - Replace `isMove = skill.mode !== undefined` with `skill.actionType === "move"` or `skill.behaviors.length > 0` check from registry
+    - Replace `handleModeChange` with `handleBehaviorChange` using `updateSkill(charId, instanceId, { behavior: value })`
+    - Show behavior dropdown when registry `behaviors.length > 1` (not just for Move)
+    - Replace `moveCount < MAX_MOVE_INSTANCES` with registry `maxInstances` check for duplicate button
+    - Add "furthest" and "highest_hp" to criterion dropdown
+    - Remove `decomposeSelector` and `composeSelector` functions entirely
+  - `src/components/SkillsPanel/SkillsPanel.tsx` -- Import `getSkillDefinition` from registry for `behaviors` and `maxInstances` lookup
+  - `src/stores/gameStore-constants.ts` -- `MAX_MOVE_INSTANCES` already removed in Step 6
+- **Why now**: Final consumer of old `mode`/`selectorOverride` patterns. All engine logic already migrated.
+- **Tests affected**:
+  - `src/components/SkillsPanel/SkillsPanel.test.tsx` -- Update selector-related tests to use target/criterion. Update mode tests to behavior. Add tests for new criterion options.
 
 ---
 
-## Step 13: Update Skill Name Assertions in Tests
+### Step 8: Cleanup and documentation
 
-**Files to modify:**
+- **Files**:
+  - `src/engine/selectors.ts` -- Verify `evaluateSelector()` is removed (done in Step 5). Clean up any unused imports.
+  - `src/engine/types.ts` -- Verify `Selector` interface is removed (done in Step 5). Verify `mode` is removed (done in Step 4).
+  - `.docs/spec.md` -- Update "Targeting System" section: document Target + Criterion model, add furthest and highest_hp selectors. Update "Starting Skills" section: document behaviors field.
+  - `.docs/architecture.md` -- Update skill system description if needed.
+  - `.docs/decisions/adr-011-explicit-action-type.md` -- Create new ADR for the actionType decision.
+- **Why now**: All code changes are complete and tests pass.
+- **Tests affected**: None.
 
-- `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-default-skills.test.ts`
-- Any test asserting `skill.name === "Move Towards"`
+## 4. UI Changes Summary
 
-**Changes:**
+### SkillsPanel (`src/components/SkillsPanel/SkillsPanel.tsx`)
 
-- Update assertions from `"Move Towards"` to `"Move"` since the hardcoded suffix is removed.
+| Current                                     | After                                                                                          |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `decomposeSelector()` / `composeSelector()` | Removed -- direct `skill.target` / `skill.criterion` access                                    |
+| Target dropdown: enemy, ally, self          | Same (reads `skill.target`)                                                                    |
+| Strategy dropdown: nearest, lowest_hp       | Criterion dropdown: nearest, furthest, lowest_hp, highest_hp                                   |
+| Mode dropdown: towards, away (Move only)    | Behavior dropdown: dynamic from registry `behaviors` array (shown when `behaviors.length > 1`) |
+| `isMove = skill.mode !== undefined`         | `const def = getSkillDefinition(skill.id)` for behaviors/maxInstances                          |
+| `moveCount < MAX_MOVE_INSTANCES`            | `instanceCount < def.maxInstances` (universal)                                                 |
+| `MAX_MOVE_INSTANCES` import                 | Removed                                                                                        |
 
-**Dependencies:** Step 4.
+### InventoryPanel (`src/components/InventoryPanel/InventoryPanel.tsx`)
 
----
+| Current                        | After       |
+| ------------------------------ | ----------- | ------------------------------ | -------------------------------------------- |
+| `skill.mode !== undefined && " | Mode: ..."` | `def.behaviors.length > 0 && " | Behavior: ..."` (or display defaultBehavior) |
 
-## Implementation Order Summary
+### RuleEvaluations formatters (`src/components/RuleEvaluations/rule-evaluations-formatters.ts`)
 
-| Order | Step                         | Scope                    | Risk                                |
-| ----- | ---------------------------- | ------------------------ | ----------------------------------- |
-| 1     | Skill type change            | Engine types             | Low -- additive field               |
-| 2     | Instance ID generator        | Engine utility           | Low -- new function                 |
-| 3     | MAX_MOVE_INSTANCES constant  | Store constants          | Low -- new constant                 |
-| 4     | Skill creation functions     | Engine registry          | Medium -- name change affects tests |
-| 5     | Idle skill updates           | Engine decisions/actions | Low -- synthetic skill              |
-| 6     | Test helper updates          | Test utilities           | Low -- defaults maintain compat     |
-| 7     | Store type signatures        | Store types              | Medium -- API change                |
-| 8     | Store action implementations | Store logic              | High -- core behavior change        |
-| 9     | SkillsPanel UI               | React component          | High -- many ID references          |
-| 10    | RuleEvaluations/Tooltip keys | React components         | Low -- key-only changes             |
-| 11    | selectMovementTargetData     | Store selector           | None -- no changes needed           |
-| 12    | Existing test updates        | Tests                    | Medium -- many files, mechanical    |
-| 13    | Skill name test updates      | Tests                    | Low -- string changes               |
+| Current                                        | After                                                  |
+| ---------------------------------------------- | ------------------------------------------------------ |
+| `action.skill.mode`                            | `action.skill.behavior`                                |
+| Check `mode === "towards"` / `mode === "away"` | Check `behavior === "towards"` / `behavior === "away"` |
 
----
+## 5. Test Strategy
 
-## Validation Strategy
+### Tests that need mechanical updates (find-replace)
 
-### 1. Duplicates Work Correctly
+These tests reference `mode` or `selectorOverride` in their test data and need value substitution but no logic changes:
 
-- Create character with default Move skill
-- Duplicate Move: verify new instance appears after source in priority list
-- Verify new instance has unique `instanceId`
-- Verify new instance has default config (mode: towards, trigger: always)
-- Verify registry `id` is shared between original and duplicate
+| Pattern                             | Count | Replacement                   |
+| ----------------------------------- | ----- | ----------------------------- |
+| `mode: "towards"`                   | ~20   | `behavior: "towards"`         |
+| `mode: "away"`                      | ~10   | `behavior: "away"`            |
+| `selectorOverride: { type: "X_Y" }` | ~120  | `target: "Y", criterion: "X"` |
+| `skill.mode !== undefined`          | ~5    | `skill.actionType === "move"` |
 
-### 2. Priority Evaluation with Multiple Move Instances
+### Tests that need logic changes
 
-- Create character with 2 Move skills: Move-away (hp_below 50%, priority 1) and Move-towards (always, priority 2)
-- At HP=100: Move-away rejected (trigger fails), Move-towards selected
-- At HP=30: Move-away selected (trigger passes, higher priority)
-- This validates the existing `computeDecisions` loop handles duplicates correctly
+| Test File                                      | Change                                                                                                   |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `game-decisions-action-type-inference.test.ts` | Remove "throw for both" and "throw for neither" tests. Add tests for `actionType` field being respected. |
+| `gameStore-skills-duplication.test.ts`         | Replace Move-specific guard tests with universal maxInstances tests. Add non-Move duplication tests.     |
+| `SkillsPanel.test.tsx`                         | Update selector tests to target/criterion. Update duplicate button tests for universal duplication.      |
 
-### 3. Duplication Limits Enforced
+### Tests that remain unchanged
 
-- Cannot duplicate beyond MAX_MOVE_INSTANCES (3)
-- Cannot duplicate when at MAX_SKILL_SLOTS (3)
-- Cannot duplicate non-Move skills
-- Duplicate button hidden when limits reached
+- All selector logic tests (`selectors-nearest-enemy.test.ts`, etc.) -- the underlying comparison functions don't change; only the entry point function name changes
+- Pathfinding tests
+- Hex grid tests
+- Combat/healing resolution tests
+- Collision resolution tests
+- Trigger evaluation tests
 
-### 4. Removal Constraints Work
+### New tests needed
 
-- Cannot remove the only Move instance (last one standing)
-- Can remove a duplicate when 2+ Move instances exist
-- Can remove either the original or a duplicate (as long as one remains)
-- Removing returns no skill to inventory (Move is innate, not assignable)
+- Mirror selectors: `furthest_enemy`, `furthest_ally`, `highest_hp_enemy`, `highest_hp_ally` with tiebreaking
+- `evaluateTargetCriterion()` with all 12 target+criterion combinations
+- `self` target ignoring criterion
+- Non-Move skill duplication with `maxInstances`
+- `maxInstances: 1` preventing duplication
+- Behavior dropdown visibility (UI test: shown only when `behaviors.length > 1`)
+- `getActionType()` reading from `actionType` field
 
-### 5. React Key Uniqueness
+## 6. Migration Path (Tests Passing at Each Step)
 
-- With 3 Move instances, no React key collisions
-- Each instance has distinct `instanceId` used as key
+| Step | What Changes                                               | Tests Status                                                     |
+| ---- | ---------------------------------------------------------- | ---------------------------------------------------------------- |
+| 1    | Add `actionType` (additive)                                | All pass (new field, not read yet)                               |
+| 2    | Switch `getActionType()`                                   | 2 obsolete tests removed, 2+ new tests added. All others pass.   |
+| 3    | Add target/criterion alongside selector (additive)         | All pass (new fields, not read by engine yet)                    |
+| 4    | Rename mode -> behavior                                    | ~30 test files updated mechanically. All pass after rename.      |
+| 5    | Switch engine to target/criterion, remove selectorOverride | ~24 test files updated mechanically. All pass after replacement. |
+| 6    | Universal duplication                                      | ~3 test files updated. All pass.                                 |
+| 7    | Update UI components                                       | ~3 test files updated. All pass.                                 |
+| 8    | Cleanup + docs                                             | No test changes. All pass.                                       |
 
-### 6. Store Operations Target Correct Instance
+**Critical**: Steps 4 and 5 are the highest-risk steps due to volume of mechanical test changes. These should be done as complete sweeps (every reference in every file) to avoid partial migration states.
 
-- `updateSkill` with instanceId updates only the targeted instance
-- `removeSkillFromCharacter` with instanceId removes only the targeted instance
-- Mode change on one instance does not affect others
+## 7. Risk Mitigation
 
-### 7. Backward Compatibility
+### Risk 1: Large mechanical test changes (Steps 4, 5)
 
-- Characters created via `addCharacter` get Move with valid `instanceId`
-- Existing test helpers work with default `instanceId`
-- Inventory assignment flow unchanged (non-innate skills)
-- Faction exclusivity unchanged (Move excluded as innate)
+**Mitigation**: The test helpers (`createSkill()` in both `game-test-helpers.ts` and `gameStore-test-helpers.ts`) handle defaults. When we rename `mode` to `behavior` in the helper, most tests that don't explicitly set `mode` continue to work without changes. Only tests that explicitly pass `mode: "towards"` or `mode: "away"` need updating.
 
----
+For `selectorOverride`, the helper defaults to `undefined` (currently) and will default to `target: "enemy", criterion: "nearest"` (matching the old `DEFAULT_SELECTOR`). Tests that don't set `selectorOverride` explicitly are unaffected.
 
-## Migration Considerations
+### Risk 2: `computeMoveDestination` type mismatch
 
-### New Characters
+**Mitigation**: `computeMoveDestination()` still accepts `mode: "towards" | "away"` as its parameter type. In `createSkillAction()`, we cast `skill.behavior as "towards" | "away"` when calling it for Move skills. This is safe because the registry constrains Move's `behaviors` to `["towards", "away"]`. A runtime assertion could be added if desired.
 
-Characters created via `addCharacter` / `addCharacterAtPosition` use `structuredClone(DEFAULT_SKILLS)`. Since `DEFAULT_SKILLS` is computed from `getDefaultSkills()` at module load time (Step 4), all new characters automatically get Move with an `instanceId`.
+### Risk 3: `Selector` type used in imports across many files
 
-**Warning:** `DEFAULT_SKILLS` in `gameStore-constants.ts` is evaluated ONCE at import time. All characters get clones of the same skill array. The `instanceId` in DEFAULT_SKILLS will be the same for all characters, but since `structuredClone` creates deep copies, we can generate unique IDs at clone time. However, looking at the current code, `structuredClone(DEFAULT_SKILLS)` copies the same instanceId.
+**Mitigation**: In Step 3, we add the new types alongside `Selector`. In Step 5, we remove `Selector` and update all imports. The TypeScript compiler will catch any missed import -- this is a compile-time-safe change.
 
-**Fix needed:** Change `addCharacter` and `addCharacterAtPosition` to generate fresh instanceIds when creating characters, rather than cloning DEFAULT_SKILLS. Use `getDefaultSkills()` directly (which calls `generateInstanceId` each time) instead of `structuredClone(DEFAULT_SKILLS)`.
+### Risk 4: `self` target edge cases
 
-```typescript
-// In addCharacter and addCharacterAtPosition:
-skills: getDefaultSkills(), // Each call generates fresh instanceIds
-```
+**Mitigation**: When `target === "self"`, `criterion` is ignored. The `evaluateTargetCriterion()` function short-circuits for `self` and returns the evaluator regardless of criterion. UI disables criterion dropdown when target is "self" (existing behavior preserved).
 
-This means `DEFAULT_SKILLS` constant in `gameStore-constants.ts` becomes unnecessary for character creation but may still be useful as a reference. Alternatively, keep using it but regenerate instanceIds after cloning. The simpler approach is calling `getDefaultSkills()` directly.
+### Risk 5: Breaking game logic during transition
 
-**Files affected:**
+**Mitigation**: Steps are sequenced so that at each point, exactly one system is active:
 
-- `/home/bob/Projects/auto-battler/src/stores/gameStore.ts` -- `addCharacter` and `addCharacterAtPosition` actions
+- Steps 1-2: `actionType` replaces inference, but `mode`/`damage`/`healing` are still present as data
+- Steps 3-5: `target`+`criterion` replaces `selectorOverride`, with a coexistence window
+- Step 6: Duplication uses `maxInstances` from registry instead of hardcoded constant
+- No step removes an old mechanism before the new one is fully wired
 
-### initBattle
+### Risk 6: SkillsPanel `composeSelector` validation
 
-Characters passed to `initBattle` should already have `instanceId` on their skills. If they don't (e.g., legacy test data), the system will have skills with `undefined` instanceId, which will break lookups. Test data must be updated.
+**Mitigation**: `composeSelector()` currently validates composed selector strings against a whitelist. This function is removed entirely in Step 7 because the data model no longer composes strings -- `target` and `criterion` are stored directly. No validation needed because the dropdown options map directly to the type union values.
 
-### Reset
+## 8. File Change Summary
 
-`reset()` restores from `initialCharacters` which were cloned at `initBattle` time. If `initBattle` characters have valid instanceIds, reset works correctly. No changes needed to reset logic.
+### Modified files (by step)
 
----
+| File                                                            | Steps                                     |
+| --------------------------------------------------------------- | ----------------------------------------- | -------- |
+| `src/engine/types.ts`                                           | 1, 3, 4, 5                                |
+| `src/engine/skill-registry.ts`                                  | 1, 3, 4, 6                                |
+| `src/engine/game-actions.ts`                                    | 2, 4                                      |
+| `src/engine/selectors.ts`                                       | 3, 5                                      |
+| `src/engine/game-decisions.ts`                                  | 4, 5                                      |
+| `src/engine/game-movement.ts`                                   | (none -- parameter stays `mode: "towards" | "away"`) |
+| `src/engine/game-test-helpers.ts`                               | 1, 3, 4, 5                                |
+| `src/stores/gameStore.ts`                                       | 6                                         |
+| `src/stores/gameStore-constants.ts`                             | 6                                         |
+| `src/stores/gameStore-selectors.ts`                             | 5                                         |
+| `src/stores/gameStore-test-helpers.ts`                          | 1, 3, 4, 5                                |
+| `src/components/SkillsPanel/SkillsPanel.tsx`                    | 7                                         |
+| `src/components/InventoryPanel/InventoryPanel.tsx`              | 7                                         |
+| `src/components/RuleEvaluations/rule-evaluations-formatters.ts` | 4                                         |
+| ~30 test files                                                  | 4, 5 (mechanical)                         |
+| `.docs/spec.md`                                                 | 8                                         |
 
-## Files Changed Summary
+### New files
 
-| File                                                              | Type of Change                                                                                            |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `src/engine/types.ts`                                             | Add `instanceId` to Skill interface                                                                       |
-| `src/engine/skill-registry.ts`                                    | Add `generateInstanceId`, update `getDefaultSkills`, `createSkillFromDefinition`, remove name suffix      |
-| `src/engine/game-decisions.ts`                                    | Add `instanceId` to IDLE_SKILL                                                                            |
-| `src/engine/game-actions.ts`                                      | Add `instanceId` to IDLE_SKILL                                                                            |
-| `src/stores/gameStore-constants.ts`                               | Add `MAX_MOVE_INSTANCES`                                                                                  |
-| `src/stores/gameStore-types.ts`                                   | Update `updateSkill`/`removeSkillFromCharacter` params, add `duplicateSkill`                              |
-| `src/stores/gameStore.ts`                                         | Update `updateSkill`, `removeSkillFromCharacter`, add `duplicateSkill`, use `getDefaultSkills()` directly |
-| `src/stores/gameStore-selectors.ts`                               | No changes needed                                                                                         |
-| `src/components/SkillsPanel/SkillsPanel.tsx`                      | Switch to `instanceId`, add Duplicate/Remove buttons                                                      |
-| `src/components/SkillsPanel/SkillsPanel.module.css`               | Add `duplicateButton` style                                                                               |
-| `src/components/RuleEvaluations/RuleEvaluations.tsx`              | Switch React keys to `instanceId`                                                                         |
-| `src/components/BattleViewer/CharacterTooltip.tsx`                | Switch React keys to `instanceId`                                                                         |
-| `src/engine/game-test-helpers.ts`                                 | Add `instanceId` default to `createSkill`                                                                 |
-| `src/stores/gameStore-test-helpers.ts`                            | Add `instanceId` default to `createSkill`                                                                 |
-| `src/components/RuleEvaluations/rule-evaluations-test-helpers.ts` | Add `instanceId` to skill fixtures                                                                        |
-| Multiple test files                                               | Add `instanceId` to inline Skill objects, update name assertions                                          |
+| File                                              | Step |
+| ------------------------------------------------- | ---- |
+| `.docs/decisions/adr-011-explicit-action-type.md` | 8    |
 
----
+### Deleted constants
 
-## Known Limitations
+| Constant              | Location                 | Step |
+| --------------------- | ------------------------ | ---- |
+| `MAX_MOVE_INSTANCES`  | `gameStore-constants.ts` | 6    |
+| `Selector` interface  | `types.ts`               | 5    |
+| `evaluateSelector()`  | `selectors.ts`           | 5    |
+| `decomposeSelector()` | `SkillsPanel.tsx`        | 7    |
+| `composeSelector()`   | `SkillsPanel.tsx`        | 7    |
 
-1. **selectMovementTargetData**: Still uses first Move skill for targeting line visualization. With multiple Move instances, the displayed targeting line may not match the actually-selected Move skill. Acceptable for v0.3.
+## 9. Spec Alignment Check
 
-2. **SkillDecisionEvent / SkillExecutionEvent**: These event types use `skillId: string` which is the registry ID. They don't need `instanceId` since events are for logging/debugging and the registry ID provides sufficient context. If future needs require instance-level event tracking, `instanceId` can be added to these event types later.
-
-3. **DEFAULT_SKILLS constant**: After this change, `DEFAULT_SKILLS` in `gameStore-constants.ts` will have a fixed `instanceId` that should not be reused across characters. Either remove the constant or document that it should only be used as a template.
+- [x] Plan aligns with `.docs/spec.md` -- Skill Categories (Attack/Heal/Move) map to `actionType`. Targeting selectors expanded with furthest and highest_hp per acceptance criteria.
+- [x] Approach consistent with `.docs/architecture.md` -- Data-driven targeting (declarative `target` + `criterion`), centralized registry (ADR-005), pure engine logic.
+- [x] Patterns follow `.docs/patterns/index.md` -- No new UI patterns introduced; existing dropdown patterns preserved.
+- [x] No conflicts with `.docs/decisions/index.md` -- ADR-005 (centralized registry) reinforced. ADR-009 (instance identity) preserved. New ADR-011 proposed.

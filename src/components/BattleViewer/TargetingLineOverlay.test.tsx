@@ -32,7 +32,7 @@ describe("TargetingLineOverlay", () => {
       useAccessibilityStore.setState({ showTargetLines: false });
       const moveSkill = createSkill({
         id: "move-skill",
-        mode: "towards",
+        behavior: "towards",
         tickCost: 1,
       });
       const char1 = createCharacter({
@@ -56,7 +56,7 @@ describe("TargetingLineOverlay", () => {
       useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
-        mode: "towards",
+        behavior: "towards",
         tickCost: 1,
       });
       const char1 = createCharacter({
@@ -85,7 +85,7 @@ describe("TargetingLineOverlay", () => {
       useAccessibilityStore.setState({ showTargetLines: false });
       const moveSkill = createSkill({
         id: "move-skill",
-        mode: "towards",
+        behavior: "towards",
         tickCost: 1,
       });
       const char1 = createCharacter({
@@ -125,7 +125,7 @@ describe("TargetingLineOverlay", () => {
       useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
-        mode: "towards",
+        behavior: "towards",
         tickCost: 1,
       });
       const friendly1 = createCharacter({
@@ -177,7 +177,7 @@ describe("TargetingLineOverlay", () => {
       useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
-        mode: "towards",
+        behavior: "towards",
         tickCost: 1,
       });
       const char1 = createCharacter({
@@ -222,7 +222,7 @@ describe("TargetingLineOverlay", () => {
       useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
-        mode: "towards",
+        behavior: "towards",
         tickCost: 1,
       });
       const char1 = createCharacter({
@@ -276,7 +276,7 @@ describe("TargetingLineOverlay", () => {
       useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
-        mode: "towards",
+        behavior: "towards",
         tickCost: 1,
       });
       const char1 = createCharacter({
@@ -314,14 +314,15 @@ describe("TargetingLineOverlay", () => {
       useAccessibilityStore.setState({ showTargetLines: true });
       const nearestEnemySkill = createSkill({
         id: "move-nearest",
-        mode: "towards",
+        behavior: "towards",
         tickCost: 1,
       });
       const lowestHpEnemySkill = createSkill({
         id: "move-lowest-hp",
-        mode: "towards",
+        behavior: "towards",
         tickCost: 1,
-        selectorOverride: { type: "lowest_hp_enemy" },
+        target: "enemy",
+        criterion: "lowest_hp",
       });
       const charA = createCharacter({
         id: "charA",
@@ -366,7 +367,7 @@ describe("TargetingLineOverlay", () => {
       useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
-        mode: "towards",
+        behavior: "towards",
         tickCost: 1,
       });
       const char1 = createCharacter({
@@ -406,7 +407,7 @@ describe("TargetingLineOverlay", () => {
       useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
-        mode: "towards",
+        behavior: "towards",
         tickCost: 1,
       });
       const friendly1 = createCharacter({
@@ -458,7 +459,7 @@ describe("TargetingLineOverlay", () => {
       useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
-        mode: "towards",
+        behavior: "towards",
         tickCost: 1,
       });
       // char1 and char2 target each other (bidirectional), char3 targets char2 (unidirectional)

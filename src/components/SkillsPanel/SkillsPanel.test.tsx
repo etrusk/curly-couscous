@@ -86,7 +86,7 @@ describe("SkillsPanel", () => {
       const moveSkill = createSkill({
         id: "move-towards",
         name: "Move Towards",
-        mode: "towards",
+        behavior: "towards",
       });
       const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -118,7 +118,7 @@ describe("SkillsPanel", () => {
       const moveSkill = createSkill({
         id: "move-towards",
         name: "Move Towards",
-        mode: "towards",
+        behavior: "towards",
       });
       const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -301,94 +301,6 @@ describe("SkillsPanel", () => {
   });
 
   describe("Target Selector Dropdowns", () => {
-    describe("Helper Functions", () => {
-      it("decomposeSelector correctly parses 'nearest_enemy'", async () => {
-        const { decomposeSelector } = await import("./SkillsPanel");
-        const result = decomposeSelector("nearest_enemy");
-        expect(result).toEqual({ category: "enemy", strategy: "nearest" });
-      });
-
-      it("decomposeSelector correctly parses 'nearest_ally'", async () => {
-        const { decomposeSelector } = await import("./SkillsPanel");
-        const result = decomposeSelector("nearest_ally");
-        expect(result).toEqual({ category: "ally", strategy: "nearest" });
-      });
-
-      it("decomposeSelector correctly parses 'lowest_hp_enemy'", async () => {
-        const { decomposeSelector } = await import("./SkillsPanel");
-        const result = decomposeSelector("lowest_hp_enemy");
-        expect(result).toEqual({ category: "enemy", strategy: "lowest_hp" });
-      });
-
-      it("decomposeSelector correctly parses 'lowest_hp_ally'", async () => {
-        const { decomposeSelector } = await import("./SkillsPanel");
-        const result = decomposeSelector("lowest_hp_ally");
-        expect(result).toEqual({ category: "ally", strategy: "lowest_hp" });
-      });
-
-      it("decomposeSelector correctly handles 'self' special case", async () => {
-        const { decomposeSelector } = await import("./SkillsPanel");
-        const result = decomposeSelector("self");
-        expect(result).toEqual({ category: "self", strategy: "nearest" });
-      });
-
-      it("composeSelector correctly combines enemy+nearest", async () => {
-        const { composeSelector } = await import("./SkillsPanel");
-        const result = composeSelector("enemy", "nearest");
-        expect(result).toBe("nearest_enemy");
-      });
-
-      it("composeSelector correctly combines ally+nearest", async () => {
-        const { composeSelector } = await import("./SkillsPanel");
-        const result = composeSelector("ally", "nearest");
-        expect(result).toBe("nearest_ally");
-      });
-
-      it("composeSelector correctly combines enemy+lowest_hp", async () => {
-        const { composeSelector } = await import("./SkillsPanel");
-        const result = composeSelector("enemy", "lowest_hp");
-        expect(result).toBe("lowest_hp_enemy");
-      });
-
-      it("composeSelector correctly combines ally+lowest_hp", async () => {
-        const { composeSelector } = await import("./SkillsPanel");
-        const result = composeSelector("ally", "lowest_hp");
-        expect(result).toBe("lowest_hp_ally");
-      });
-
-      it("composeSelector returns 'self' regardless of strategy", async () => {
-        const { composeSelector } = await import("./SkillsPanel");
-        const result1 = composeSelector("self", "nearest");
-        const result2 = composeSelector("self", "lowest_hp");
-        expect(result1).toBe("self");
-        expect(result2).toBe("self");
-      });
-
-      it("roundtrip decompose then compose returns original type", async () => {
-        const { decomposeSelector, composeSelector } =
-          await import("./SkillsPanel");
-        const selectorTypes: Array<
-          | "nearest_enemy"
-          | "nearest_ally"
-          | "lowest_hp_enemy"
-          | "lowest_hp_ally"
-          | "self"
-        > = [
-          "nearest_enemy",
-          "nearest_ally",
-          "lowest_hp_enemy",
-          "lowest_hp_ally",
-          "self",
-        ];
-
-        selectorTypes.forEach((type) => {
-          const { category, strategy } = decomposeSelector(type);
-          const roundtrip = composeSelector(category, strategy);
-          expect(roundtrip).toBe(type);
-        });
-      });
-    });
-
     describe("UI Rendering", () => {
       it("renders two dropdowns for target selection", () => {
         const skill1 = createSkill({ id: "skill1" });
@@ -412,7 +324,8 @@ describe("SkillsPanel", () => {
       it("category dropdown shows correct initial value", () => {
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "lowest_hp_ally" },
+          target: "ally",
+          criterion: "lowest_hp",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -429,7 +342,8 @@ describe("SkillsPanel", () => {
       it("strategy dropdown shows correct initial value", () => {
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "lowest_hp_enemy" },
+          target: "enemy",
+          criterion: "lowest_hp",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -495,7 +409,8 @@ describe("SkillsPanel", () => {
       it("strategy dropdown is disabled when self is selected", () => {
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "self" },
+          target: "self",
+          criterion: "nearest",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -512,7 +427,8 @@ describe("SkillsPanel", () => {
       it("strategy dropdown is enabled when enemy is selected", () => {
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "nearest_enemy" },
+          target: "enemy",
+          criterion: "nearest",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -529,7 +445,8 @@ describe("SkillsPanel", () => {
       it("strategy dropdown is enabled when ally is selected", () => {
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "lowest_hp_ally" },
+          target: "ally",
+          criterion: "lowest_hp",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -549,7 +466,8 @@ describe("SkillsPanel", () => {
         const user = userEvent.setup();
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "nearest_enemy" },
+          target: "enemy",
+          criterion: "nearest",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -566,14 +484,16 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("nearest_ally");
+        expect(updatedSkill?.target).toBe("ally");
+        expect(updatedSkill?.criterion).toBe("nearest");
       });
 
       it("changing category from ally to self updates selector", async () => {
         const user = userEvent.setup();
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "lowest_hp_ally" },
+          target: "ally",
+          criterion: "lowest_hp",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -590,14 +510,16 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("self");
+        expect(updatedSkill?.target).toBe("self");
+        expect(updatedSkill?.criterion).toBe("nearest");
       });
 
       it("changing strategy from nearest to lowest_hp updates selector", async () => {
         const user = userEvent.setup();
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "nearest_enemy" },
+          target: "enemy",
+          criterion: "nearest",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -614,14 +536,16 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("lowest_hp_enemy");
+        expect(updatedSkill?.target).toBe("enemy");
+        expect(updatedSkill?.criterion).toBe("lowest_hp");
       });
 
       it("changing strategy from lowest_hp to nearest updates selector", async () => {
         const user = userEvent.setup();
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "lowest_hp_ally" },
+          target: "ally",
+          criterion: "lowest_hp",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -638,14 +562,16 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("nearest_ally");
+        expect(updatedSkill?.target).toBe("ally");
+        expect(updatedSkill?.criterion).toBe("nearest");
       });
 
       it("changing from self to enemy enables strategy dropdown", async () => {
         const user = userEvent.setup();
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "self" },
+          target: "self",
+          criterion: "nearest",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -668,14 +594,16 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("nearest_enemy");
+        expect(updatedSkill?.target).toBe("enemy");
+        expect(updatedSkill?.criterion).toBe("nearest");
       });
 
       it("changing from self to ally enables strategy dropdown", async () => {
         const user = userEvent.setup();
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "self" },
+          target: "self",
+          criterion: "nearest",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -698,14 +626,16 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("nearest_ally");
+        expect(updatedSkill?.target).toBe("ally");
+        expect(updatedSkill?.criterion).toBe("nearest");
       });
 
       it("changing to self sets correct selector and disables strategy", async () => {
         const user = userEvent.setup();
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "lowest_hp_enemy" },
+          target: "enemy",
+          criterion: "lowest_hp",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -728,7 +658,8 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("self");
+        expect(updatedSkill?.target).toBe("self");
+        expect(updatedSkill?.criterion).toBe("nearest");
       });
 
       // eslint-disable-next-line complexity
@@ -755,7 +686,8 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         let updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("nearest_enemy");
+        expect(updatedSkill?.target).toBe("enemy");
+        expect(updatedSkill?.criterion).toBe("nearest");
 
         // Test enemy + lowest_hp
         await user.selectOptions(strategyDropdown, "lowest_hp");
@@ -763,7 +695,8 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("lowest_hp_enemy");
+        expect(updatedSkill?.target).toBe("enemy");
+        expect(updatedSkill?.criterion).toBe("lowest_hp");
 
         // Test ally + nearest
         await user.selectOptions(categoryDropdown, "ally");
@@ -772,7 +705,8 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("nearest_ally");
+        expect(updatedSkill?.target).toBe("ally");
+        expect(updatedSkill?.criterion).toBe("nearest");
 
         // Test ally + lowest_hp
         await user.selectOptions(strategyDropdown, "lowest_hp");
@@ -780,7 +714,8 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("lowest_hp_ally");
+        expect(updatedSkill?.target).toBe("ally");
+        expect(updatedSkill?.criterion).toBe("lowest_hp");
 
         // Test self + nearest (strategy ignored)
         await user.selectOptions(categoryDropdown, "self");
@@ -789,7 +724,8 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("self");
+        expect(updatedSkill?.target).toBe("self");
+        expect(updatedSkill?.criterion).toBe("nearest");
 
         // Test self + lowest_hp (strategy ignored)
         await user.selectOptions(strategyDropdown, "lowest_hp");
@@ -797,7 +733,8 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride?.type).toBe("self");
+        expect(updatedSkill?.target).toBe("self");
+        expect(updatedSkill?.criterion).toBe("nearest");
       });
     });
 
@@ -805,7 +742,8 @@ describe("SkillsPanel", () => {
       it("existing nearest_enemy displays correctly", () => {
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "nearest_enemy" },
+          target: "enemy",
+          criterion: "nearest",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -828,7 +766,8 @@ describe("SkillsPanel", () => {
       it("existing lowest_hp_ally displays correctly", () => {
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "lowest_hp_ally" },
+          target: "ally",
+          criterion: "lowest_hp",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -851,7 +790,8 @@ describe("SkillsPanel", () => {
       it("existing self displays correctly", () => {
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: { type: "self" },
+          target: "self",
+          criterion: "nearest",
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -874,7 +814,6 @@ describe("SkillsPanel", () => {
       it("default selector displays correctly when undefined", () => {
         const skill1 = createSkill({
           id: "skill1",
-          selectorOverride: undefined,
         });
         const char1 = createCharacter({ id: "char1", skills: [skill1] });
         useGameStore.getState().actions.initBattle([char1]);
@@ -916,9 +855,8 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         let updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride).toEqual({
-          type: "nearest_ally",
-        });
+        expect(updatedSkill?.target).toBe("ally");
+        expect(updatedSkill?.criterion).toBe("nearest");
 
         // Change strategy to lowest_hp
         await user.selectOptions(strategyDropdown, "lowest_hp");
@@ -926,16 +864,19 @@ describe("SkillsPanel", () => {
           .getState()
           .gameState.characters.find((c) => c.id === "char1");
         updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-        expect(updatedSkill?.selectorOverride).toEqual({
-          type: "lowest_hp_ally",
-        });
+        expect(updatedSkill?.target).toBe("ally");
+        expect(updatedSkill?.criterion).toBe("lowest_hp");
       });
     });
   });
 
   describe("Mode Dropdown (for Move skill)", () => {
     it("should display current mode for Move skill", () => {
-      const skill1 = createSkill({ id: "move", name: "Move", mode: "towards" });
+      const skill1 = createSkill({
+        id: "move",
+        name: "Move",
+        behavior: "towards",
+      });
       const char1 = createCharacter({ id: "char1", skills: [skill1] });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
@@ -947,14 +888,18 @@ describe("SkillsPanel", () => {
 
     it("should show only towards and away mode options in dropdown", async () => {
       const user = userEvent.setup();
-      const skill1 = createSkill({ id: "move", name: "Move", mode: "towards" });
+      const skill1 = createSkill({
+        id: "move",
+        name: "Move",
+        behavior: "towards",
+      });
       const char1 = createCharacter({ id: "char1", skills: [skill1] });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
       render(<SkillsPanel />);
 
-      const modeSelect = screen.getByRole("combobox", { name: /mode/i });
+      const modeSelect = screen.getByRole("combobox", { name: /behavior/i });
       await user.click(modeSelect);
 
       // Only towards and away mode options should be available
@@ -969,14 +914,18 @@ describe("SkillsPanel", () => {
 
     it("should call updateSkill when mode is changed", async () => {
       const user = userEvent.setup();
-      const skill1 = createSkill({ id: "move", name: "Move", mode: "towards" });
+      const skill1 = createSkill({
+        id: "move",
+        name: "Move",
+        behavior: "towards",
+      });
       const char1 = createCharacter({ id: "char1", skills: [skill1] });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
       render(<SkillsPanel />);
 
-      const modeSelect = screen.getByRole("combobox", { name: /mode/i });
+      const modeSelect = screen.getByRole("combobox", { name: /behavior/i });
       await user.selectOptions(modeSelect, "away");
 
       // After implementation, mode should be updated
@@ -984,7 +933,7 @@ describe("SkillsPanel", () => {
         .getState()
         .gameState.characters.find((c) => c.id === "char1");
       const updatedSkill = updatedChar?.skills.find((s) => s.id === "move");
-      expect(updatedSkill?.mode).toBe("away");
+      expect(updatedSkill?.behavior).toBe("away");
     });
 
     it("should not display mode dropdown for non-Move skills", () => {
@@ -996,12 +945,16 @@ describe("SkillsPanel", () => {
       render(<SkillsPanel />);
 
       expect(
-        screen.queryByRole("combobox", { name: /mode/i }),
+        screen.queryByRole("combobox", { name: /behavior/i }),
       ).not.toBeInTheDocument();
     });
 
     it("should render mode dropdown on same row as target and selection dropdowns", () => {
-      const skill1 = createSkill({ id: "move", name: "Move", mode: "towards" });
+      const skill1 = createSkill({
+        id: "move",
+        name: "Move",
+        behavior: "towards",
+      });
       const char1 = createCharacter({ id: "char1", skills: [skill1] });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
@@ -1014,7 +967,7 @@ describe("SkillsPanel", () => {
       const selectionDropdown = screen.getByRole("combobox", {
         name: /selection strategy/i,
       });
-      const modeDropdown = screen.getByRole("combobox", { name: /mode/i });
+      const modeDropdown = screen.getByRole("combobox", { name: /behavior/i });
 
       // All three dropdowns should share the same parent container
       // Dropdowns are inside labels, labels are in the same div
@@ -1033,7 +986,11 @@ describe("SkillsPanel", () => {
 
     it("should exclude self option from target dropdown for move skills", async () => {
       const user = userEvent.setup();
-      const skill1 = createSkill({ id: "move", name: "Move", mode: "towards" });
+      const skill1 = createSkill({
+        id: "move",
+        name: "Move",
+        behavior: "towards",
+      });
       const char1 = createCharacter({ id: "char1", skills: [skill1] });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
@@ -1185,7 +1142,7 @@ describe("SkillsPanel", () => {
       const moveSkill = createSkill({
         id: "move-towards",
         name: "Move Towards",
-        mode: "towards",
+        behavior: "towards",
       });
       const character = createCharacter({ id: "char1", skills: [moveSkill] });
       useGameStore.getState().actions.initBattle([character]);
@@ -1206,7 +1163,7 @@ describe("SkillsPanel", () => {
       const moveSkill = createSkill({
         id: "move-towards",
         name: "Move Towards",
-        mode: "towards",
+        behavior: "towards",
       });
       const lightPunch = createSkill({
         id: "light-punch",
@@ -1242,7 +1199,7 @@ describe("SkillsPanel", () => {
       const moveSkill = createSkill({
         id: "move-towards",
         name: "Move Towards",
-        mode: "towards",
+        behavior: "towards",
       });
       const lightPunch = createSkill({
         id: "light-punch",
@@ -1281,7 +1238,7 @@ describe("SkillsPanel", () => {
         id: "move-towards",
         instanceId: "move-inst-1",
         name: "Move",
-        mode: "towards",
+        behavior: "towards",
       });
       const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -1315,17 +1272,17 @@ describe("SkillsPanel", () => {
       const move1 = createSkill({
         id: "move-towards",
         instanceId: "move1",
-        mode: "towards",
+        behavior: "towards",
       });
       const move2 = createSkill({
         id: "move-towards",
         instanceId: "move2",
-        mode: "towards",
+        behavior: "towards",
       });
       const move3 = createSkill({
         id: "move-towards",
         instanceId: "move3",
-        mode: "towards",
+        behavior: "towards",
       });
       const char1 = createCharacter({
         id: "char1",
@@ -1345,7 +1302,7 @@ describe("SkillsPanel", () => {
       const move = createSkill({
         id: "move-towards",
         instanceId: "inst1",
-        mode: "towards",
+        behavior: "towards",
       });
       const punch1 = createSkill({
         id: "light-punch",
@@ -1377,7 +1334,7 @@ describe("SkillsPanel", () => {
         id: "move-towards",
         instanceId: "move-inst-1",
         name: "Move",
-        mode: "towards",
+        behavior: "towards",
       });
       const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -1400,7 +1357,9 @@ describe("SkillsPanel", () => {
         updatedChar?.skills[1]?.instanceId,
       );
 
-      const modeDropdowns = screen.getAllByRole("combobox", { name: /mode/i });
+      const modeDropdowns = screen.getAllByRole("combobox", {
+        name: /behavior/i,
+      });
       expect(modeDropdowns).toHaveLength(2);
     });
 
@@ -1408,12 +1367,12 @@ describe("SkillsPanel", () => {
       const move1 = createSkill({
         id: "move-towards",
         instanceId: "move1",
-        mode: "towards",
+        behavior: "towards",
       });
       const move2 = createSkill({
         id: "move-towards",
         instanceId: "move2",
-        mode: "towards",
+        behavior: "towards",
       });
       const char1 = createCharacter({ id: "char1", skills: [move1, move2] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -1430,7 +1389,7 @@ describe("SkillsPanel", () => {
       const moveSkill = createSkill({
         id: "move-towards",
         instanceId: "move1",
-        mode: "towards",
+        behavior: "towards",
       });
       const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -1449,12 +1408,12 @@ describe("SkillsPanel", () => {
       const move1 = createSkill({
         id: "move-towards",
         instanceId: "inst1",
-        mode: "towards",
+        behavior: "towards",
       });
       const move2 = createSkill({
         id: "move-towards",
         instanceId: "inst2",
-        mode: "towards",
+        behavior: "towards",
       });
       const char1 = createCharacter({ id: "char1", skills: [move1, move2] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -1471,7 +1430,9 @@ describe("SkillsPanel", () => {
       expect(updatedChar?.skills).toHaveLength(1);
       expect(updatedChar?.skills[0]?.instanceId).toBe("inst1");
 
-      const modeDropdowns = screen.getAllByRole("combobox", { name: /mode/i });
+      const modeDropdowns = screen.getAllByRole("combobox", {
+        name: /behavior/i,
+      });
       expect(modeDropdowns).toHaveLength(1);
     });
 
@@ -1480,12 +1441,12 @@ describe("SkillsPanel", () => {
       const move1 = createSkill({
         id: "move-towards",
         instanceId: "inst1",
-        mode: "towards",
+        behavior: "towards",
       });
       const move2 = createSkill({
         id: "move-towards",
         instanceId: "inst2",
-        mode: "towards",
+        behavior: "towards",
       });
       const char1 = createCharacter({ id: "char1", skills: [move1, move2] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -1493,7 +1454,9 @@ describe("SkillsPanel", () => {
 
       render(<SkillsPanel />);
 
-      const modeDropdowns = screen.getAllByRole("combobox", { name: /mode/i });
+      const modeDropdowns = screen.getAllByRole("combobox", {
+        name: /behavior/i,
+      });
       await user.selectOptions(modeDropdowns[1]!, "away");
 
       expect(modeDropdowns[0]).toHaveValue("towards");
@@ -1503,10 +1466,10 @@ describe("SkillsPanel", () => {
         .getState()
         .gameState.characters.find((c) => c.id === "char1");
       expect(
-        updatedChar?.skills.find((s) => s.instanceId === "inst1")?.mode,
+        updatedChar?.skills.find((s) => s.instanceId === "inst1")?.behavior,
       ).toBe("towards");
       expect(
-        updatedChar?.skills.find((s) => s.instanceId === "inst2")?.mode,
+        updatedChar?.skills.find((s) => s.instanceId === "inst2")?.behavior,
       ).toBe("away");
     });
 
@@ -1516,14 +1479,14 @@ describe("SkillsPanel", () => {
         id: "move-towards",
         instanceId: "inst1",
         name: "Move",
-        mode: "towards",
+        behavior: "towards",
         triggers: [{ type: "always" }],
       });
       const move2 = createSkill({
         id: "move-towards",
         instanceId: "inst2",
         name: "Move",
-        mode: "towards",
+        behavior: "towards",
         triggers: [{ type: "always" }],
       });
       const char1 = createCharacter({ id: "char1", skills: [move1, move2] });
@@ -1555,17 +1518,17 @@ describe("SkillsPanel", () => {
       const move1 = createSkill({
         id: "move-towards",
         instanceId: "move1",
-        mode: "towards",
+        behavior: "towards",
       });
       const move2 = createSkill({
         id: "move-towards",
         instanceId: "move2",
-        mode: "towards",
+        behavior: "towards",
       });
       const move3 = createSkill({
         id: "move-towards",
         instanceId: "move3",
-        mode: "towards",
+        behavior: "towards",
       });
       const char1 = createCharacter({
         id: "char1",
@@ -1576,7 +1539,9 @@ describe("SkillsPanel", () => {
 
       render(<SkillsPanel />);
 
-      const modeDropdowns = screen.getAllByRole("combobox", { name: /mode/i });
+      const modeDropdowns = screen.getAllByRole("combobox", {
+        name: /behavior/i,
+      });
       expect(modeDropdowns).toHaveLength(3);
 
       const keyWarnings = consoleErrorSpy.mock.calls.filter((call) =>

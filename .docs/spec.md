@@ -69,29 +69,50 @@ Skills are classified as **innate** or **assignable**:
 
 New characters start with only innate skills. Players build their skill loadout by assigning skills from the shared inventory.
 
+### Universal Skill Shape
+
+Every skill instance has a uniform shape with four configurable fields:
+
+- **Trigger**: Conditions that must be met for the skill to activate (AND logic)
+- **Target**: Which group to select from (`enemy`, `ally`, or `self`)
+- **Criterion**: How to pick within the target group (`nearest`, `furthest`, `lowest_hp`, `highest_hp`)
+- **Behavior**: Action-specific modifier (e.g., `towards`/`away` for Move; empty string for skills without behavior choices)
+
+This uniform shape means all skills are configured identically in the UI. The `behavior` field replaces Move's former `mode` field and is now universal to all skills.
+
+### Skill Definitions
+
+Each skill in the registry declares:
+
+- `actionType`: Category (`attack`, `move`, or `heal`)
+- `behaviors`: Available behavior values (e.g., `["towards", "away"]` for Move; `[]` for others)
+- `defaultBehavior`: Default behavior when first assigned
+- `maxInstances`: Maximum duplicates per character (Move: 3, all others: 1)
+- `defaultTarget` and `defaultCriterion`: Defaults when first assigned
+
 ### Light Punch
 
 - Tick cost: 0, Range: 1 (melee), Damage: 10
-- Default selector: nearest_enemy
+- Default target: enemy, Default criterion: nearest
 - Fast and instant. Resolves immediately with no wind-up.
-- **Assignable** (not innate)
+- **Assignable** (not innate), maxInstances: 1
 
 ### Heavy Punch
 
 - Tick cost: 2, Range: 2, Damage: 25
-- Default selector: nearest_enemy
+- Default target: enemy, Default criterion: nearest
 - Slow but powerful. 2-tick wind-up creates dodge window.
-- **Assignable** (not innate)
+- **Assignable** (not innate), maxInstances: 1
 
 ### Heal
 
 - Tick cost: 2, Range: 5, Healing: 25
-- Default selector: lowest_hp_ally
+- Default target: ally, Default criterion: lowest_hp
 - Supportive skill. 2-tick wind-up with cell-based targeting (locks to target's cell at decision time).
 - Heals target for 25 HP, capped at maxHp.
 - Cannot target characters at full HP (rejected as no_target if no wounded allies in range).
 - Healing resolves before combat in the Resolution Phase (ADR-006), making last-moment saves possible.
-- **Assignable** (not innate)
+- **Assignable** (not innate), maxInstances: 1
 
 ### Skill Categories
 
@@ -114,9 +135,13 @@ Skills fall into two timing categories:
 ### Move
 
 - Tick cost: 1, Distance: 1 hex
-- Default selector: nearest_enemy
-- Modes: **towards** (closer), **away** (farther)
-- **Innate** (automatically assigned, cannot be removed)
+- Default target: enemy, Default criterion: nearest
+- Behaviors: **towards** (closer), **away** (farther)
+- **Innate** (automatically assigned, cannot be removed), maxInstances: 3
+
+### Skill Duplication
+
+Any skill can be duplicated up to its registry-defined `maxInstances` limit. When duplicated, each instance gets a unique `instanceId` (ADR-009) and can be configured independently (different triggers, targets, criteria, behaviors). Move allows up to 3 instances; all other current skills allow 1 (no duplication).
 
 ## Skill Assignment
 
@@ -139,15 +164,30 @@ Skills are a shared resource pool with faction exclusivity -- each assignable sk
 
 ## Targeting System
 
-### Target Selectors
+### Target and Criterion
 
-- `nearest_enemy`: Closest enemy by hex distance
-- `nearest_ally`: Closest ally (not self)
-- `lowest_hp_enemy`: Enemy with lowest current HP
-- `lowest_hp_ally`: Ally with lowest current HP
-- `self`: Target self (for self-buffs)
+Each skill specifies a **target** (which group to select from) and a **criterion** (how to pick within that group).
 
-**Selector tiebreaking:** Lower R coordinate, then lower Q coordinate
+**Targets:**
+
+| Target  | Description                          |
+| ------- | ------------------------------------ |
+| `enemy` | Select from living enemy characters  |
+| `ally`  | Select from living allies (not self) |
+| `self`  | Target self (ignores criterion)      |
+
+**Criteria:**
+
+| Criterion    | Description              |
+| ------------ | ------------------------ |
+| `nearest`    | Closest by hex distance  |
+| `furthest`   | Farthest by hex distance |
+| `lowest_hp`  | Lowest current HP        |
+| `highest_hp` | Highest current HP       |
+
+3 targets x 4 criteria = 12 combinations, but `self` target always returns the evaluator regardless of criterion.
+
+**Tiebreaking:** Lower R coordinate, then lower Q coordinate (consistent across all target+criterion combinations).
 
 ### Trigger Conditions
 

@@ -16,7 +16,7 @@ describe("duplicateSkill", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       instanceId: "move-towards-inst1",
-      mode: "towards",
+      behavior: "towards",
     });
     const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
     useGameStore.getState().actions.initBattle([char1]);
@@ -42,7 +42,7 @@ describe("duplicateSkill", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       instanceId: "inst1",
-      mode: "towards",
+      behavior: "towards",
     });
     const punchSkill = createSkill({
       id: "light-punch",
@@ -70,9 +70,10 @@ describe("duplicateSkill", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       instanceId: "source",
-      mode: "away",
+      behavior: "away",
       triggers: [{ type: "hp_below", value: 50 }],
-      selectorOverride: { type: "lowest_hp_enemy" },
+      target: "enemy",
+      criterion: "lowest_hp",
     });
     const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
     useGameStore.getState().actions.initBattle([char1]);
@@ -83,9 +84,10 @@ describe("duplicateSkill", () => {
       .getState()
       .gameState.characters.find((c) => c.id === "char1");
     const newSkill = updatedChar?.skills[1];
-    expect(newSkill?.mode).toBe("towards");
+    expect(newSkill?.behavior).toBe("towards");
+    expect(newSkill?.target).toBe("enemy");
+    expect(newSkill?.criterion).toBe("nearest");
     expect(newSkill?.triggers).toEqual([{ type: "always" }]);
-    expect(newSkill?.selectorOverride).toEqual({ type: "nearest_enemy" });
     expect(newSkill?.enabled).toBe(true);
   });
 
@@ -93,17 +95,17 @@ describe("duplicateSkill", () => {
     const move1 = createSkill({
       id: "move-towards",
       instanceId: "move1",
-      mode: "towards",
+      behavior: "towards",
     });
     const move2 = createSkill({
       id: "move-towards",
       instanceId: "move2",
-      mode: "towards",
+      behavior: "towards",
     });
     const move3 = createSkill({
       id: "move-towards",
       instanceId: "move3",
-      mode: "towards",
+      behavior: "towards",
     });
     const char1 = createCharacter({
       id: "char1",
@@ -123,7 +125,7 @@ describe("duplicateSkill", () => {
     const move = createSkill({
       id: "move-towards",
       instanceId: "move1",
-      mode: "towards",
+      behavior: "towards",
     });
     const punch1 = createSkill({
       id: "light-punch",
@@ -178,7 +180,7 @@ describe("duplicateSkill", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       instanceId: "move1",
-      mode: "towards",
+      behavior: "towards",
     });
     const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
     useGameStore.getState().actions.initBattle([char1]);
@@ -194,6 +196,53 @@ describe("duplicateSkill", () => {
       .gameState.characters.find((c) => c.id === "char1");
     expect(updatedChar?.skills).toHaveLength(1);
   });
+
+  // NEW TESTS FOR NON-MOVE DUPLICATION
+  it("blocks duplication when skill has maxInstances: 1", () => {
+    const lightPunchSkill = createSkill({
+      id: "light-punch",
+      instanceId: "light-punch-inst1",
+      damage: 10,
+    });
+    const char1 = createCharacter({ id: "char1", skills: [lightPunchSkill] });
+    useGameStore.getState().actions.initBattle([char1]);
+
+    useGameStore
+      .getState()
+      .actions.duplicateSkill("char1", "light-punch-inst1");
+
+    const updatedChar = useGameStore
+      .getState()
+      .gameState.characters.find((c) => c.id === "char1");
+    expect(updatedChar?.skills).toHaveLength(1);
+  });
+
+  it("duplicated skill gets default config from registry", () => {
+    const moveSkill = createSkill({
+      id: "move-towards",
+      instanceId: "move-source",
+      behavior: "away",
+      triggers: [{ type: "hp_below", value: 50 }],
+      target: "ally",
+      criterion: "lowest_hp",
+    });
+    const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
+    useGameStore.getState().actions.initBattle([char1]);
+
+    useGameStore.getState().actions.duplicateSkill("char1", "move-source");
+
+    const updatedChar = useGameStore
+      .getState()
+      .gameState.characters.find((c) => c.id === "char1");
+    const newSkill = updatedChar?.skills[1];
+
+    // Should get defaults from registry, not copy source config
+    expect(newSkill?.behavior).toBe("towards");
+    expect(newSkill?.target).toBe("enemy");
+    expect(newSkill?.criterion).toBe("nearest");
+    expect(newSkill?.triggers).toEqual([{ type: "always" }]);
+    expect(newSkill?.enabled).toBe(true);
+  });
 });
 
 describe("removeSkillFromCharacter - with Move duplication", () => {
@@ -205,12 +254,12 @@ describe("removeSkillFromCharacter - with Move duplication", () => {
     const move1 = createSkill({
       id: "move-towards",
       instanceId: "move1",
-      mode: "towards",
+      behavior: "towards",
     });
     const move2 = createSkill({
       id: "move-towards",
       instanceId: "move2",
-      mode: "towards",
+      behavior: "towards",
     });
     const char1 = createCharacter({ id: "char1", skills: [move1, move2] });
     useGameStore.getState().actions.initBattle([char1]);
@@ -231,7 +280,7 @@ describe("removeSkillFromCharacter - with Move duplication", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       instanceId: "move1",
-      mode: "towards",
+      behavior: "towards",
     });
     const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
     useGameStore.getState().actions.initBattle([char1]);
@@ -249,12 +298,12 @@ describe("removeSkillFromCharacter - with Move duplication", () => {
     const original = createSkill({
       id: "move-towards",
       instanceId: "original",
-      mode: "towards",
+      behavior: "towards",
     });
     const duplicate = createSkill({
       id: "move-towards",
       instanceId: "duplicate",
-      mode: "towards",
+      behavior: "towards",
     });
     const char1 = createCharacter({
       id: "char1",
@@ -283,28 +332,28 @@ describe("updateSkill - targets correct instance by instanceId", () => {
     const move1 = createSkill({
       id: "move-towards",
       instanceId: "inst1",
-      mode: "towards",
+      behavior: "towards",
     });
     const move2 = createSkill({
       id: "move-towards",
       instanceId: "inst2",
-      mode: "towards",
+      behavior: "towards",
     });
     const char1 = createCharacter({ id: "char1", skills: [move1, move2] });
     useGameStore.getState().actions.initBattle([char1]);
 
     useGameStore
       .getState()
-      .actions.updateSkill("char1", "inst2", { mode: "away" });
+      .actions.updateSkill("char1", "inst2", { behavior: "away" });
 
     const updatedChar = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === "char1");
     expect(
-      updatedChar?.skills.find((s) => s.instanceId === "inst1")?.mode,
+      updatedChar?.skills.find((s) => s.instanceId === "inst1")?.behavior,
     ).toBe("towards");
     expect(
-      updatedChar?.skills.find((s) => s.instanceId === "inst2")?.mode,
+      updatedChar?.skills.find((s) => s.instanceId === "inst2")?.behavior,
     ).toBe("away");
   });
 });

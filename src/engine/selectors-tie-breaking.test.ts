@@ -5,7 +5,6 @@
 
 import { describe, it, expect } from "vitest";
 import { evaluateSelector } from "./selectors";
-import { Selector } from "./types";
 import { createCharacter } from "./selectors-test-helpers";
 
 describe("evaluateSelector", () => {
@@ -29,7 +28,7 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: -1, r: 1 }, // hex dist=1, R=1
       });
-      const selector: Selector = { type: "nearest_enemy" };
+      const selector = { type: "nearest_enemy" } as const;
 
       const result = evaluateSelector(selector, evaluator, [
         evaluator,
@@ -56,7 +55,7 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: 1, r: 0 }, // hex dist=1, Q=1
       });
-      const selector: Selector = { type: "nearest_enemy" };
+      const selector = { type: "nearest_enemy" } as const;
 
       const result = evaluateSelector(selector, evaluator, [
         evaluator,
@@ -85,7 +84,7 @@ describe("evaluateSelector", () => {
         hp: 50,
         position: { q: 2, r: 1 }, // R=1
       });
-      const selector: Selector = { type: "lowest_hp_enemy" };
+      const selector = { type: "lowest_hp_enemy" } as const;
 
       const result = evaluateSelector(selector, evaluator, [
         evaluator,
@@ -114,7 +113,7 @@ describe("evaluateSelector", () => {
         hp: 50,
         position: { q: 2, r: 2 }, // Q=2
       });
-      const selector: Selector = { type: "lowest_hp_enemy" };
+      const selector = { type: "lowest_hp_enemy" } as const;
 
       const result = evaluateSelector(selector, evaluator, [
         evaluator,
@@ -146,7 +145,7 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: -1, r: 0 }, // hex dist=1, R=0
       });
-      const selector: Selector = { type: "nearest_enemy" };
+      const selector = { type: "nearest_enemy" } as const;
 
       const result = evaluateSelector(selector, evaluator, [
         evaluator,

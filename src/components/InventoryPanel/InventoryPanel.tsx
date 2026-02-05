@@ -56,7 +56,8 @@ export function InventoryPanel() {
                   {skill.damage !== undefined && ` | Damage: ${skill.damage}`}
                   {skill.healing !== undefined &&
                     ` | Healing: ${skill.healing}`}
-                  {skill.mode !== undefined && ` | Mode: ${skill.mode}`}
+                  {skill.behaviors.length > 0 &&
+                    ` | Behavior: ${skill.defaultBehavior}`}
                 </div>
                 <div className={styles.skillActions}>
                   <button

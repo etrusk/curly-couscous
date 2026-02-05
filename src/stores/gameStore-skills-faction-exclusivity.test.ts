@@ -125,7 +125,7 @@ describe("assignSkillToCharacter - faction exclusivity", () => {
   });
 
   it("innate skills do not trigger faction exclusivity guard", () => {
-    const moveSkill = createSkill({ id: "move-towards", mode: "towards" });
+    const moveSkill = createSkill({ id: "move-towards", behavior: "towards" });
     const friendlyA = createCharacter({
       id: "f1",
       faction: "friendly",

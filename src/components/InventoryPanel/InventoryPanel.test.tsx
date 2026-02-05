@@ -66,7 +66,7 @@ describe("InventoryPanel", () => {
       const moveSkill = createSkill({
         id: "move-towards",
         name: "Move",
-        mode: "towards",
+        behavior: "towards",
       });
       const enemy = createCharacter({
         id: "enemy1",
@@ -252,7 +252,7 @@ describe("InventoryPanel", () => {
       const moveSkill = createSkill({
         id: "move-towards",
         name: "Move",
-        mode: "towards",
+        behavior: "towards",
       });
       const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
       useGameStore.getState().actions.initBattle([char1]);

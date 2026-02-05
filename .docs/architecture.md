@@ -14,7 +14,7 @@
 - **Pure Game Engine**: Core game logic in `/src/engine/` with no React dependencies
 - **Centralized Skill Registry**: All skill definitions in `src/engine/skill-registry.ts` (ADR-005)
 - **Hexagonal Grid System**: Axial coordinates {q, r}, flat-top orientation, radius 5 (ADR-007)
-- **Data-Driven Targeting**: Selectors and triggers as declarative data interfaces (not functions)
+- **Data-Driven Targeting**: Target + criterion pairs and triggers as declarative data interfaces (not functions)
 - **Command Pattern**: State mutations via named actions for history/undo support
 - **CSS Custom Property Theming**: Theme switching via `:root` data attributes (Phase 5 - planned)
 - **Functional Components with Hooks**: Custom hooks for shared logic
@@ -27,7 +27,7 @@
 ```
 src/
 ├── engine/           # Pure TypeScript game logic (no React)
-│   ├── types.ts      # Character, Skill, Trigger, Selector, Action, Position {q,r}
+│   ├── types.ts      # Character, Skill, Trigger, Target, Criterion, Action, Position {q,r}
 │   ├── hex.ts        # Hex grid utilities: distance, neighbors, validation, pixel conversion
 │   ├── game.ts       # Core tick processing (barrel exports)
 │   ├── game-core.ts  # Tick processing: healing → movement → combat (ADR-010)

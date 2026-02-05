@@ -273,7 +273,7 @@ describe("cross-module integration", () => {
       skills: [
         createSkill({
           id: "move",
-          mode: "towards",
+          behavior: "towards",
           range: 1, // Need to get within range 1
           triggers: [{ type: "always" }],
         }),

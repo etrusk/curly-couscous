@@ -55,14 +55,16 @@ export interface Skill {
   id: string; // Registry ID (shared by duplicates)
   instanceId: string; // Unique per-instance (for React keys, targeted updates, removal)
   name: string;
+  actionType: "attack" | "move" | "heal";
   tickCost: number;
   range: number;
   damage?: number;
   healing?: number;
-  mode?: "towards" | "away"; // for Move skill
+  behavior: string; // Universal behavior value
   enabled: boolean;
   triggers: Trigger[];
-  selectorOverride?: Selector;
+  target: Target;
+  criterion: Criterion;
 }
 
 /**
@@ -80,17 +82,14 @@ export interface Trigger {
 }
 
 /**
- * Selector determines which character to target.
- * Matches spec Section 13.4.
+ * Target specifies which group to select from.
  */
-export interface Selector {
-  type:
-    | "nearest_enemy"
-    | "nearest_ally"
-    | "lowest_hp_enemy"
-    | "lowest_hp_ally"
-    | "self";
-}
+export type Target = "enemy" | "ally" | "self";
+
+/**
+ * Criterion specifies how to select within the target group.
+ */
+export type Criterion = "nearest" | "furthest" | "lowest_hp" | "highest_hp";
 
 // ============================================================================
 // Action Types

@@ -47,37 +47,38 @@ describe("updateSkill", () => {
     expect(updatedSkill?.triggers).toEqual(newTriggers);
   });
 
-  it("should update skill selectorOverride", () => {
+  it("should update skill target and criterion", () => {
     const skill = createSkill({ id: "skill1" });
     const char1 = createCharacter({ id: "char1", skills: [skill] });
     useGameStore.getState().actions.initBattle([char1]);
 
-    const newSelector = { type: "lowest_hp_enemy" as const };
     useGameStore.getState().actions.updateSkill("char1", "skill1", {
-      selectorOverride: newSelector,
+      target: "ally",
+      criterion: "lowest_hp",
     });
 
     const updatedChar = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === "char1");
     const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-    expect(updatedSkill?.selectorOverride).toEqual(newSelector);
+    expect(updatedSkill?.target).toBe("ally");
+    expect(updatedSkill?.criterion).toBe("lowest_hp");
   });
 
   it("should update skill mode (for Move skill)", () => {
-    const skill = createSkill({ id: "move", mode: "towards" });
+    const skill = createSkill({ id: "move", behavior: "towards" });
     const char1 = createCharacter({ id: "char1", skills: [skill] });
     useGameStore.getState().actions.initBattle([char1]);
 
     useGameStore
       .getState()
-      .actions.updateSkill("char1", "move", { mode: "away" });
+      .actions.updateSkill("char1", "move", { behavior: "away" });
 
     const updatedChar = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === "char1");
     const updatedSkill = updatedChar?.skills.find((s) => s.id === "move");
-    expect(updatedSkill?.mode).toBe("away");
+    expect(updatedSkill?.behavior).toBe("away");
   });
 
   it("should not affect other skills on the same character", () => {

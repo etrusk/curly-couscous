@@ -3,79 +3,18 @@ import {
   selectSelectedCharacter,
   selectActions,
 } from "../../stores/gameStore";
-import type { Trigger, Selector } from "../../engine/types";
+import type { Trigger, Criterion } from "../../engine/types";
 import { SKILL_REGISTRY } from "../../engine/skill-registry";
-import {
-  MAX_SKILL_SLOTS,
-  MAX_MOVE_INSTANCES,
-} from "../../stores/gameStore-constants";
+import { MAX_SKILL_SLOTS } from "../../stores/gameStore-constants";
 import { slotPositionToLetter } from "../../utils/letterMapping";
 import styles from "./SkillsPanel.module.css";
 
 // Default fallbacks extracted to module-level constants to avoid recreating on every render
 const DEFAULT_TRIGGER: Trigger = { type: "always" };
-const DEFAULT_SELECTOR: Selector = { type: "nearest_enemy" };
 
-// Type definitions for decomposed selector
+// Type definitions for target and criterion selection
 type TargetCategory = "enemy" | "ally" | "self";
-type TargetStrategy = "nearest" | "lowest_hp";
-
-/**
- * Decompose a Selector type into category and strategy.
- * Returns { category, strategy } where strategy is "nearest" for "self".
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function decomposeSelector(type: Selector["type"]): {
-  category: TargetCategory;
-  strategy: TargetStrategy;
-} {
-  if (type === "self") {
-    return { category: "self", strategy: "nearest" };
-  }
-  // "nearest_enemy" → ["nearest", "enemy"]
-  // "lowest_hp_ally" → ["lowest", "hp", "ally"] - need special handling
-  if (type.startsWith("lowest_hp_")) {
-    const category = type.replace("lowest_hp_", "") as TargetCategory;
-    return { category, strategy: "lowest_hp" };
-  }
-  const category = type.replace("nearest_", "") as TargetCategory;
-  return { category, strategy: "nearest" };
-}
-
-/**
- * Compose category and strategy into a Selector type.
- * Returns "self" when category is "self", ignoring strategy.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function composeSelector(
-  category: TargetCategory,
-  strategy: TargetStrategy,
-): Selector["type"] {
-  if (category === "self") {
-    return "self";
-  }
-  const composed = `${strategy}_${category}` as Selector["type"];
-
-  // Validation: ensure composed value is valid
-  const validTypes: Selector["type"][] = [
-    "nearest_enemy",
-    "nearest_ally",
-    "lowest_hp_enemy",
-    "lowest_hp_ally",
-    "self",
-  ];
-  if (!validTypes.includes(composed)) {
-    console.error("[composeSelector] Invalid composed selector:", {
-      category,
-      strategy,
-      composed,
-    });
-    // Fallback to nearest_enemy if invalid
-    return "nearest_enemy";
-  }
-
-  return composed;
-}
+type TargetStrategy = "nearest" | "furthest" | "lowest_hp" | "highest_hp";
 
 export function SkillsPanel() {
   const selectedCharacter = useGameStore(selectSelectedCharacter);
@@ -145,7 +84,7 @@ export function SkillsPanel() {
     instanceId: string,
     category: TargetCategory,
   ) => {
-    // Get current selector to preserve strategy when switching categories
+    // Get current skill to preserve criterion when switching target category
     const skill = selectedCharacter.skills.find(
       (s) => s.instanceId === instanceId,
     );
@@ -154,12 +93,14 @@ export function SkillsPanel() {
       return;
     }
 
-    const currentSelector = skill.selectorOverride || DEFAULT_SELECTOR;
-    const { strategy } = decomposeSelector(currentSelector.type);
+    // When changing to "self", always use "nearest" criterion
+    // Otherwise, preserve current criterion
+    const newCriterion =
+      category === "self" ? "nearest" : skill.criterion || "nearest";
 
-    const newType = composeSelector(category, strategy);
     updateSkill(selectedCharacter.id, instanceId, {
-      selectorOverride: { type: newType },
+      target: category,
+      criterion: newCriterion,
     });
   };
 
@@ -167,7 +108,7 @@ export function SkillsPanel() {
     instanceId: string,
     strategy: TargetStrategy,
   ) => {
-    // Get current selector to preserve category when switching strategies
+    // Get current skill to preserve target category when switching criterion
     const skill = selectedCharacter.skills.find(
       (s) => s.instanceId === instanceId,
     );
@@ -176,18 +117,21 @@ export function SkillsPanel() {
       return;
     }
 
-    const currentSelector = skill.selectorOverride || DEFAULT_SELECTOR;
-    const { category } = decomposeSelector(currentSelector.type);
+    // Preserve current target when changing criterion
+    const currentTarget = skill.target || "enemy";
 
-    const newType = composeSelector(category, strategy);
     updateSkill(selectedCharacter.id, instanceId, {
-      selectorOverride: { type: newType },
+      target: currentTarget as "enemy" | "ally" | "self",
+      criterion: strategy as Criterion,
     });
   };
 
-  // Type assertion acceptable for 80/20 - select values are guaranteed to match mode types
-  const handleModeChange = (instanceId: string, mode: "towards" | "away") => {
-    updateSkill(selectedCharacter.id, instanceId, { mode });
+  // Type assertion acceptable for 80/20 - select values are guaranteed to match behavior types
+  const handleBehaviorChange = (
+    instanceId: string,
+    behavior: "towards" | "away",
+  ) => {
+    updateSkill(selectedCharacter.id, instanceId, { behavior });
   };
 
   return (
@@ -198,23 +142,27 @@ export function SkillsPanel() {
       </h2>
 
       <div className={styles.skillsList}>
+        {/* eslint-disable-next-line complexity */}
         {selectedCharacter.skills.map((skill, index) => {
           const trigger = skill.triggers[0] || DEFAULT_TRIGGER;
           const needsValue =
             trigger.type === "enemy_in_range" ||
             trigger.type === "ally_in_range" ||
             trigger.type === "hp_below";
-          const selector = skill.selectorOverride || DEFAULT_SELECTOR;
-          const isMove = skill.mode !== undefined;
-          const isInnate = !!SKILL_REGISTRY.find((def) => def.id === skill.id)
-            ?.innate;
+          const isMove = skill.behavior !== undefined && skill.behavior !== "";
+          const skillDef = SKILL_REGISTRY.find((def) => def.id === skill.id);
+          const isInnate = !!skillDef?.innate;
+          const maxInstances = skillDef?.maxInstances ?? 1;
           const moveCount = isMove
-            ? selectedCharacter.skills.filter((s) => s.mode !== undefined)
-                .length
+            ? selectedCharacter.skills.filter(
+                (s) => s.behavior !== undefined && s.behavior !== "",
+              ).length
             : 0;
           const canRemove = !isInnate || (isInnate && moveCount > 1);
 
-          const decomposed = decomposeSelector(selector.type);
+          // Use target/criterion directly for display
+          const displayTarget = skill.target;
+          const displayCriterion = skill.criterion;
 
           return (
             <div key={skill.instanceId} className={styles.skillRow}>
@@ -244,7 +192,7 @@ export function SkillsPanel() {
                   </span>
                 )}
                 {isMove &&
-                  moveCount < MAX_MOVE_INSTANCES &&
+                  moveCount < maxInstances &&
                   selectedCharacter.skills.length < MAX_SKILL_SLOTS && (
                     <button
                       onClick={() =>
@@ -327,7 +275,7 @@ export function SkillsPanel() {
                   <label>
                     Target:
                     <select
-                      value={decomposed.category}
+                      value={displayTarget}
                       onChange={(e) =>
                         handleCategoryChange(
                           skill.instanceId,
@@ -345,7 +293,7 @@ export function SkillsPanel() {
                   <label>
                     Selection:
                     <select
-                      value={decomposed.strategy}
+                      value={displayCriterion}
                       onChange={(e) =>
                         handleStrategyChange(
                           skill.instanceId,
@@ -353,25 +301,27 @@ export function SkillsPanel() {
                         )
                       }
                       aria-label="Selection strategy"
-                      disabled={decomposed.category === "self"}
+                      disabled={displayTarget === "self"}
                     >
                       <option value="nearest">Nearest</option>
+                      <option value="furthest">Furthest</option>
                       <option value="lowest_hp">Lowest HP</option>
+                      <option value="highest_hp">Highest HP</option>
                     </select>
                   </label>
 
                   {isMove && (
-                    <label className={styles.modeLabel}>
-                      Mode:
+                    <label className={styles.behaviorLabel}>
+                      Behavior:
                       <select
-                        value={skill.mode}
+                        value={skill.behavior}
                         onChange={(e) =>
-                          handleModeChange(
+                          handleBehaviorChange(
                             skill.instanceId,
                             e.target.value as "towards" | "away",
                           )
                         }
-                        aria-label="Mode"
+                        aria-label="Behavior"
                       >
                         <option value="towards">Towards</option>
                         <option value="away">Away</option>

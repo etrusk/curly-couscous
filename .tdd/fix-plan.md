@@ -1,289 +1,301 @@
-# Fix Plan: Post-Review Critical and Important Issues
+# Fix Plan: Skill System Refactor - Post-Review Fixes
 
 ## Summary
 
-Two critical bugs, 44 TypeScript errors in 8 test files, and ESLint violations (3 max-lines, 1 complexity warning, 3 non-null assertions). This plan addresses the critical and important issues. Minor issues (complexity, SkillsPanel file size) are deferred.
+The review found that Plan Steps 5, 6 (partial), and 7 were not completed. The engine still uses `selectorOverride` + `evaluateSelector()`, making the new `target`/`criterion` fields decorative. Additionally, a tiebreaker inversion bug exists in `evaluateSelector` for `furthest_*` and `highest_hp_*` cases.
+
+**Decision**: Complete the refactor (Option A). Remove `selectorOverride` entirely and switch the engine to `evaluateTargetCriterion(skill.target, skill.criterion, ...)`. The new system is already implemented, tested, and correct. Keeping `selectorOverride` contradicts acceptance criteria and leaves a known tiebreaker bug in the active code path.
 
 ---
 
-## 1. Critical Fixes
+## Critical Issue 1: Engine uses selectorOverride, not target/criterion
 
-### Fix 1: `handleTriggerValueChange` passes `skill.id` instead of `skill.instanceId`
+**Root Cause**: Plan Step 5 ("Switch decision engine from `evaluateSelector` to `evaluateTargetCriterion`") was not completed during implementation. The coder sessions ran out of budget fixing test compilation errors and could not reach Step 5.
 
-**File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx`
-**Line**: 317
+**Fix Strategy**: Replace all `evaluateSelector(selectorOverride, ...)` calls with `evaluateTargetCriterion(skill.target, skill.criterion, ...)` in the engine. Remove `selectorOverride` from the `Skill` interface, test helpers, registry factories, and all test files.
 
-**Current code**:
+**Files to Change** (source):
 
-```typescript
-handleTriggerValueChange(
-  skill.id, // <-- BUG: registry ID, not instance ID
-  trigger.type,
-  parseInt(e.target.value, 10),
-);
-```
+1. `src/engine/game-decisions.ts` (lines 110, 247)
+   - Remove `DEFAULT_SELECTOR` constant (line 28)
+   - Line 110: Replace `const selector = skill.selectorOverride ?? DEFAULT_SELECTOR;` and `const target = evaluateSelector(selector, character, state.characters);` with `const target = evaluateTargetCriterion(skill.target, skill.criterion, character, state.characters);`
+   - Line 247: Same replacement in `evaluateSkillsForCharacter()`
+   - Update import: Remove `evaluateSelector`, add `evaluateTargetCriterion` from `./selectors`
+   - Remove import of `Selector` from `./types`
 
-**Fix**: Change `skill.id` to `skill.instanceId`:
+2. `src/engine/types.ts` (line 68)
+   - Remove `selectorOverride?: Selector;` from `Skill` interface
+   - Remove `Selector` interface entirely (lines 88-100) -- BUT only after all consumers are migrated
+   - **Note**: Keep `Selector` temporarily if `evaluateSelector` is still exported for any non-engine consumer. Check consumers first.
 
-```typescript
-handleTriggerValueChange(
-  skill.instanceId, // <-- FIX: use instance ID
-  trigger.type,
-  parseInt(e.target.value, 10),
-);
-```
+3. `src/engine/selectors.ts`
+   - Keep `evaluateSelector()` for now (some tests and `selectMovementTargetData` may still reference it)
+   - OR remove it if no consumers remain after this fix. Decision: Remove it since `selectMovementTargetData` will switch too.
+   - Keep `evaluateTargetCriterion()` -- this becomes the sole entry point
 
-**Why this works**: The `handleTriggerValueChange` function (line 138) already expects an `instanceId` parameter and passes it to `updateSkill(selectedCharacter.id, instanceId, ...)` which looks up skills by `instanceId`. The call site at line 317 is the only place that passes `skill.id` instead of `skill.instanceId`. All other handler call sites were correctly migrated.
+4. `src/engine/skill-registry.ts` (lines 40, 61, 76, 90, 105, 132, 155)
+   - Remove `defaultSelector?: Selector` from `SkillDefinition` interface (line 40)
+   - Remove `defaultSelector` from all 4 registry entries
+   - Remove `selectorOverride` from `getDefaultSkills()` return (line 132)
+   - Remove `selectorOverride` from `createSkillFromDefinition()` return (line 155)
+   - Remove `Selector` from import
 
-**Verification**:
+5. `src/stores/gameStore-selectors.ts` (lines 290-305)
+   - `selectMovementTargetData`: Remove the `if (moveSkill.selectorOverride)` branch; always use `evaluateTargetCriterion(moveSkill.target, moveSkill.criterion, ...)`
+   - Remove `evaluateSelector` import (line 19)
 
-- The existing test suite already covers trigger value changes but was passing because test fixtures used `instanceId === id`. After this fix, create a manual test scenario: add a character, duplicate Move, change trigger type to `hp_below` on one Move instance, change the percentage value. Before fix: silently fails. After fix: value updates correctly.
-- Run `npm run test` to confirm no regressions.
+6. `src/engine/game-test-helpers.ts` (line 67)
+   - Remove `selectorOverride: overrides.selectorOverride,` from `createSkill()`
+   - Remove `selectorOverride` from parameter type if it was manually added
 
----
+7. `src/stores/gameStore-test-helpers.ts` (line 48)
+   - Remove `selectorOverride: overrides.selectorOverride ?? undefined,` from `createSkill()`
 
-### Fix 2: React keys use `evaluation.skill.id` instead of `evaluation.skill.instanceId`
+**Files to Change** (tests -- mechanical removal of `selectorOverride`):
 
-Seven locations across two files need updating.
+The key insight: since test helpers default `target: "enemy"` and `criterion: "nearest"`, removing `selectorOverride` from tests that set it to `{ type: "nearest_enemy" }` requires NO replacement -- the default is equivalent. For non-default selectors, translate to explicit `target`/`criterion`:
 
-#### File: `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx`
+| selectorOverride value         | Replacement                                               |
+| ------------------------------ | --------------------------------------------------------- |
+| `{ type: "nearest_enemy" }`    | Remove entirely (default)                                 |
+| `{ type: "nearest_ally" }`     | `target: "ally", criterion: "nearest"`                    |
+| `{ type: "lowest_hp_ally" }`   | `target: "ally", criterion: "lowest_hp"`                  |
+| `{ type: "lowest_hp_enemy" }`  | `target: "enemy", criterion: "lowest_hp"`                 |
+| `{ type: "self" }`             | `target: "self"` (criterion ignored but can be any value) |
+| `{ type: "furthest_enemy" }`   | `target: "enemy", criterion: "furthest"`                  |
+| `{ type: "highest_hp_enemy" }` | `target: "enemy", criterion: "highest_hp"`                |
 
-| Line | Context                                                                                 | Change                                        |
-| ---- | --------------------------------------------------------------------------------------- | --------------------------------------------- |
-| 81   | `CompactEvaluationList` `.map()` callback: `<li key={evaluation.skill.id}`              | Change to `key={evaluation.skill.instanceId}` |
-| 125  | `SkillPriorityList` primary skills `.map()`: `<SkillListItem key={evaluation.skill.id}` | Change to `key={evaluation.skill.instanceId}` |
-| 143  | `SkillPriorityList` skipped skills `.map()`: `<SkillListItem key={evaluation.skill.id}` | Change to `key={evaluation.skill.instanceId}` |
-| 206  | `SkillListItem` return: `<li key={evaluation.skill.id}`                                 | Change to `key={evaluation.skill.instanceId}` |
+Test files to update (15 files, 97 occurrences total):
 
-Note: Line 206 is a `key` on the root `<li>` element inside `SkillListItem`. This is redundant with the `key` at the call site (lines 125, 143), but should still be updated for consistency.
+- `src/engine/game-healing-integration.test.ts` (9 occurrences)
+- `src/engine/game-core-process-tick-combat-movement.test.ts` (2)
+- `src/engine/game-core-process-tick-resolution-order.test.ts` (2)
+- `src/engine/skill-registry.test.ts` (4) -- assertions about `selectorOverride` on created skills; change to assert `target`/`criterion` instead
+- `src/engine/game-decisions-skill-priority.test.ts` (4)
+- `src/engine/game-decisions-action-type-inference.test.ts` (1)
+- `src/stores/gameStore-selectors-movement-target.test.ts` (6) -- test names reference `selectorOverride`; update names and data
+- `src/stores/gameStore-skills-duplication.test.ts` (1)
+- `src/components/BattleViewer/TargetingLineOverlay.test.tsx` (1)
+- `src/components/BattleViewer/battle-viewer-tooltip.test.tsx` (1)
+- `src/components/BattleViewer/CharacterTooltip.test.tsx` (3)
+- `src/components/PlayControls/PlayControls.test.tsx` (1)
+- `src/components/SkillsPanel/SkillsPanel.test.tsx` (31) -- most complex; assertions about `selectorOverride` in updateSkill calls need rewriting
+- `src/components/RuleEvaluations/rule-evaluations-skill-priority.test.tsx` (18)
+- `src/components/RuleEvaluations/rule-evaluations-action-summary.test.tsx` (13)
 
-#### File: `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.tsx`
+**Test Impact**: All 1119 tests should remain passing. The changes are mechanical: remove `selectorOverride` prop from test skill objects, use `target`/`criterion` instead. Test helpers already default to `target: "enemy", criterion: "nearest"`, so the ~56 occurrences of `selectorOverride: { type: "nearest_enemy" }` can simply be deleted. The remaining ~41 non-default occurrences need translation per the table above.
 
-| Line | Context                                                                                 | Change                                        |
-| ---- | --------------------------------------------------------------------------------------- | --------------------------------------------- |
-| 142  | `SkillPriorityList` primary skills `.map()`: `<SkillListItem key={evaluation.skill.id}` | Change to `key={evaluation.skill.instanceId}` |
-| 160  | `SkillPriorityList` skipped skills `.map()`: `<SkillListItem key={evaluation.skill.id}` | Change to `key={evaluation.skill.instanceId}` |
-| 190  | `SkillListItem` return: `<li key={evaluation.skill.id}`                                 | Change to `key={evaluation.skill.instanceId}` |
+**Risks**:
 
-**Verification**:
-
-- Run `npm run test` to confirm no test regressions.
-- All 7 changes are identical text substitutions: `evaluation.skill.id` -> `evaluation.skill.instanceId`.
-
----
-
-## 2. Important Fixes
-
-### Fix 3: TypeScript errors -- 44 missing `instanceId` on inline Skill objects
-
-**Strategy**: Add `instanceId` property to each inline Skill object literal. For each object, set `instanceId` to the same value as `id` (matching the convention used in test helpers).
-
-**Files and error counts**:
-
-| File                                                                      | Errors | Approach                                                          |
-| ------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------- |
-| `src/components/RuleEvaluations/rule-evaluations-skill-priority.test.tsx` | 18     | Add `instanceId: "<same as id>"` to each inline skill             |
-| `src/components/RuleEvaluations/rule-evaluations-action-summary.test.tsx` | 13     | Add `instanceId: "<same as id>"` to each inline skill             |
-| `src/components/RuleEvaluations/rule-evaluations-next-action.test.tsx`    | 6      | Add `instanceId: "<same as id>"` to each inline skill             |
-| `src/components/BattleViewer/CharacterTooltip.test.tsx`                   | 3      | Add `instanceId: "<same as id>"` to each inline skill             |
-| `src/components/BattleViewer/battle-viewer-tooltip.test.tsx`              | 1      | Add `instanceId: "<same as id>"` to each inline skill             |
-| `src/components/PlayControls/PlayControls.test.tsx`                       | 1      | Add `instanceId: "<same as id>"` to each inline skill             |
-| `src/components/RuleEvaluations/rule-evaluations-basic.test.tsx`          | 1      | Add `instanceId: "<same as id>"` to inline skill in Action object |
-| `src/engine/movement-fairness-edge.test.ts`                               | 1      | Add `instanceId: "<same as id>"` to inline skill                  |
-
-**Mechanical pattern**: For every inline `{ id: "foo", name: ...` missing `instanceId`, add `instanceId: "foo",` immediately after the `id` line.
-
-**Example** (from `rule-evaluations-skill-priority.test.tsx:77`):
-
-```typescript
-// Before:
-{
-  id: "light-punch",
-  name: "Light Punch",
-  ...
-}
-
-// After:
-{
-  id: "light-punch",
-  instanceId: "light-punch",
-  name: "Light Punch",
-  ...
-}
-```
-
-**Special case** -- `rule-evaluations-basic.test.tsx:259`: The error is on an inline Action object whose `skill` property is missing `instanceId`. Same fix: add `instanceId` to the nested skill object.
-
-**Verification**:
-
-- Run `npm run type-check` -- should report 0 errors.
+- High volume of mechanical changes across 15 test files. Mitigated by: TypeScript compiler will flag any remaining references to removed property.
+- SkillsPanel tests that assert `selectorOverride` on `updateSkill` calls (31 occurrences) are the most complex. These need the assertion changed from `expect(updatedSkill?.selectorOverride?.type).toBe(...)` to `expect(updatedSkill?.target).toBe(...)` / `expect(updatedSkill?.criterion).toBe(...)`.
 
 ---
 
-### Fix 4: ESLint max-lines violations
+## Critical Issue 2: Tiebreaker inversion bug in evaluateSelector
 
-Three files exceed the 400-line limit. The approach varies by file.
+**Root Cause**: The `evaluateSelector` function uses `-compareByDistanceThenPosition()` for `furthest_*` cases (lines 128-129, 139). Negating the entire comparator inverts both the primary comparison (distance) AND the tiebreaker (R, Q coordinates). The correct behavior reverses only the primary comparison while keeping tiebreaker direction consistent (lower R, lower Q wins).
 
-#### 4a. `src/stores/gameStore.ts` (583 lines, limit 400)
+**Fix Strategy**: This bug becomes irrelevant when Critical Issue 1 is fixed, because `evaluateSelector()` will be removed entirely. The `evaluateTargetCriterion()` function already has the correct implementation with custom comparators (lines 214-226, 231-241 in `selectors.ts`).
 
-**Current line count**: 583 (ESLint reports error at line 530, meaning it detected >400 lines of non-comment code starting at that point).
+**Files to Change**: None -- the fix is subsumed by Critical Issue 1 (removing `evaluateSelector` entirely).
 
-**Recommended approach**: Extract skill-related store actions (`updateSkill`, `moveSkillUp`, `moveSkillDown`, `assignSkillToCharacter`, `removeSkillFromCharacter`, `duplicateSkill`) into a new file `src/stores/gameStore-skill-actions.ts`. These actions are self-contained and span approximately lines 222-403 (about 180 lines). Import them into `gameStore.ts` as a helper that receives `set` and `get`.
+**Test Impact**: None. The existing tiebreaker tests for `evaluateTargetCriterion` already validate correct behavior. When the engine switches to `evaluateTargetCriterion`, those tests cover the live code path.
 
-However, Zustand with Immer makes action extraction non-trivial because actions use `set()` with draft state. A simpler approach:
-
-**Simpler approach**: Extract the pure logic functions (validation, skill creation) that are embedded in the actions into helper functions in `gameStore-helpers.ts` or a new `gameStore-skill-helpers.ts`. This reduces `gameStore.ts` line count by pulling out the logic without changing the Zustand action structure.
-
-**Alternative (pragmatic)**: Add an ESLint disable comment at the top of the file:
-
-```typescript
-/* eslint-disable max-lines */
-```
-
-This is acceptable as a short-term fix if the team decides extraction is a separate refactoring task. Given gameStore.ts is 583 lines and the limit is 400, extraction is the better long-term fix but is a larger change.
-
-**Recommended for this fix cycle**: Add `/* eslint-disable max-lines -- TODO: extract skill actions into separate module */` at the top of `gameStore.ts`. Flag extraction as a follow-up task. The file was already 400+ lines before this feature; the feature added ~140 lines (duplicateSkill + modified removeSkill).
-
-Wait -- ESLint reports the actual configured max is 400. Let me reconsider. The lint output says `File has too many lines (442). Maximum allowed is 400`. That is only 42 lines over. Some targeted extraction could get it under limit:
-
-- Extract `duplicateSkill` action body into a standalone function (~25 lines of logic).
-- Inline comments could be trimmed.
-
-**Final recommendation**: Suppress with inline comment for now. The store file architecture would benefit from a proper decomposition, but that is a separate task. This fix plan focuses on correctness.
-
-#### 4b. `src/stores/gameStore-skills.test.ts` (781 lines, limit 400)
-
-**Approach**: Split into two test files:
-
-1. Keep existing tests for `updateSkill`, `moveSkillUp`, `moveSkillDown`, `assignSkillToCharacter`, `removeSkillFromCharacter` in `gameStore-skills.test.ts`.
-2. Move the new `duplicateSkill` tests (and related duplication-specific tests) into a new `gameStore-skills-duplication.test.ts`.
-
-The duplication tests were added as part of this feature and form a self-contained group. Moving them to their own file is clean.
-
-**Estimate**: The duplication tests (from the TDD session) are approximately 250-300 lines. Moving them would bring `gameStore-skills.test.ts` down to ~480-530 lines. Still over 400 but significantly better. To get fully under 400, additional splitting would be needed (e.g., separate `gameStore-skills-removal.test.ts`).
-
-**Alternative**: Use `/* eslint-disable max-lines */` comment with a TODO.
-
-**Recommendation**: Split duplication tests into `gameStore-skills-duplication.test.ts`. If still over 400, add eslint-disable on the remaining file.
-
-#### 4c. `src/engine/game-decisions-skill-priority.test.ts` (442 lines, limit 400)
-
-**Approach**: Only 42 lines over. Check if there are blank lines or verbose comments that can be trimmed. Alternatively, move the most recently added tests (duplicate skill priority tests) into `game-decisions-skill-duplication-priority.test.ts`.
-
-**Recommendation**: Add `/* eslint-disable max-lines */` since it is only 42 lines over and the tests are all thematically related (skill priority evaluation). Splitting would create a file with only ~40 lines of tests, which is worse for maintainability.
+**Risks**: None. The buggy code path is removed, replaced by the already-correct code path.
 
 ---
 
-### Fix 5: Non-null assertion ESLint warnings (3 errors)
+## Important Issue 1: MAX_MOVE_INSTANCES not removed; SkillsPanel uses Move-specific logic
 
-These are pre-existing issues not introduced by this feature, but they show up in ESLint output.
+**Root Cause**: Plan Step 6 specified removing `MAX_MOVE_INSTANCES`, but only the store-level duplication logic was updated to use registry `maxInstances`. The UI (SkillsPanel) still imports and uses `MAX_MOVE_INSTANCES`.
 
-| File                                           | Line | Current               | Fix                                                                              |
-| ---------------------------------------------- | ---- | --------------------- | -------------------------------------------------------------------------------- |
-| `InventoryPanel.test.tsx`                      | 357  | `?.skills.find(...)!` | Replace `?.` + `!` with proper null check or `expect(...).toBeDefined()` pattern |
-| `InventoryPanel.test.tsx`                      | 449  | `?.skills.find(...)!` | Same                                                                             |
-| `gameStore-skills-faction-exclusivity.test.ts` | 104  | `?.skills.find(...)!` | Same                                                                             |
-| `gameStore-skills.test.ts`                     | 456  | `?.skills.find(...)!` | Same                                                                             |
+**Fix Strategy**: Replace all `MAX_MOVE_INSTANCES` usage in SkillsPanel with registry-based `getSkillDefinition(skill.id)?.maxInstances` lookup. Replace `isMove` detection (currently `behavior !== ""`) with registry-based check. Remove `MAX_MOVE_INSTANCES` constant.
 
-**Fix pattern**: Replace `char?.skills.find(...)!` with:
+**Files to Change**:
 
-```typescript
-const skill = char?.skills.find(...);
-expect(skill).toBeDefined();
-// Then use skill! or assert skill is defined
-```
+1. `src/components/SkillsPanel/SkillsPanel.tsx` (lines 10, 238-243, 280)
+   - Remove `MAX_MOVE_INSTANCES` import (line 10)
+   - Import `getSkillDefinition` from `../../engine/skill-registry`
+   - Line 238-244: Replace `isMove` logic with `const def = getSkillDefinition(skill.id);` then `const canDuplicate = def && def.maxInstances > 1;`
+   - Line 241-243: Replace `moveCount` with `const instanceCount = selectedCharacter.skills.filter(s => s.id === skill.id).length;`
+   - Line 280: Replace `moveCount < MAX_MOVE_INSTANCES` with `instanceCount < (def?.maxInstances ?? 1)`
+   - The "Duplicate" button should show for ANY skill where `def.maxInstances > 1` and `instanceCount < def.maxInstances`
+   - The behavior dropdown should show when `def?.behaviors?.length > 1` (currently only Move)
+   - The "Remove" button logic for innate skills: replace `moveCount > 1` with `instanceCount > 1`
 
-Or add eslint-disable-next-line comments since these are test files where the assertion failure would catch the issue.
+2. `src/stores/gameStore-constants.ts` (line 25)
+   - Remove `export const MAX_MOVE_INSTANCES = 3;`
 
-**Recommendation**: Add `// eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain` above each line. These are test files where the non-null assertion is intentional (the test would fail on the assertion if the value were null).
+**Test Impact**: SkillsPanel tests that reference duplication behavior may need updating. The behavioral change is: the Duplicate button becomes potentially visible for non-Move skills if their `maxInstances > 1`. Currently all non-Move skills have `maxInstances: 1`, so the visible behavior is unchanged.
 
----
-
-## 3. Validation Plan
-
-### After all fixes, run in sequence:
-
-1. **TypeScript type-check**: `npm run type-check`
-   - Expected: 0 errors
-   - Verifies: Fix 3 (all instanceId additions)
-
-2. **Tests**: `npm run test`
-   - Expected: All 1086+ tests passing, 0 failures
-   - Verifies: Fixes 1, 2, 3 (no regressions)
-
-3. **ESLint**: `npm run lint`
-   - Expected: 0 errors, 0-1 warnings (complexity warning may remain)
-   - Verifies: Fixes 4, 5
-
-4. **Build**: `npm run build`
-   - Expected: Clean build
-   - Verifies: Overall integrity
-
-### Manual verification for Fix 1 (trigger value change):
-
-1. Start the app (`npm run dev`)
-2. Add a character
-3. Duplicate the Move skill
-4. On one Move instance, change trigger type to "HP Below"
-5. Change the percentage value to 30
-6. Verify the value persists (does not revert, no silent failure)
-7. Verify the other Move instance is unaffected
+**Risks**: Low. The store already enforces `maxInstances` correctly; this only changes the UI gating logic.
 
 ---
 
-## 4. Implementation Order
+## Important Issue 2: decomposeSelector/composeSelector not removed
 
-Execute fixes in this order to maintain a passing test suite at each step:
+**Root Cause**: Plan Step 7 specified removing these functions, but they remain because `selectorOverride` was still the primary data path. With Critical Issue 1 fixed, these functions are no longer needed.
 
-| Order | Fix                              | Risk   | Estimated Changes           |
-| ----- | -------------------------------- | ------ | --------------------------- |
-| 1     | Fix 1 (trigger handler)          | Low    | 1 line in 1 file            |
-| 2     | Fix 2 (React keys)               | Low    | 7 lines across 2 files      |
-| 3     | Fix 3 (TypeScript errors)        | Low    | 44 lines across 8 files     |
-| 4     | Fix 5 (non-null assertions)      | Low    | 4 lines across 3 files      |
-| 5     | Fix 4a (gameStore max-lines)     | Low    | 1 eslint-disable comment    |
-| 6     | Fix 4b (test file splitting)     | Medium | Move ~250 lines to new file |
-| 7     | Fix 4c (priority test max-lines) | Low    | 1 eslint-disable comment    |
+**Fix Strategy**: Remove `decomposeSelector()` and `composeSelector()` from SkillsPanel. Update `handleCategoryChange` and `handleStrategyChange` to write directly to `skill.target` and `skill.criterion` via `updateSkill()`. Remove display fallback logic that reads `selectorOverride`.
+
+**Files to Change**:
+
+1. `src/components/SkillsPanel/SkillsPanel.tsx` (lines 28-90, 156-216, 237-250)
+   - Remove `decomposeSelector()` function (lines 28-51)
+   - Remove `composeSelector()` function (lines 58-90)
+   - Remove `DEFAULT_SELECTOR` constant (line 17)
+   - Remove `Selector` from import (line 6)
+   - Simplify `handleCategoryChange` (lines 156-185): Just call `updateSkill(charId, instanceId, { target: category, criterion: currentCriterion })`. No need to compose selector.
+   - Simplify `handleStrategyChange` (lines 187-216): Just call `updateSkill(charId, instanceId, { criterion: strategy })`. No need to compose selector.
+   - Line 237: Remove `const selector = skill.selectorOverride || DEFAULT_SELECTOR;`
+   - Lines 248-250: Remove `decomposed` computation; use `skill.target` and `skill.criterion` directly as display values
+   - Line 363: `value={skill.target}` instead of `displayTarget`
+   - Line 381: `value={skill.criterion}` instead of `displayCriterion`
+   - Line 389: `disabled={skill.target === "self"}` instead of `displayTarget === "self"`
+
+2. `src/components/SkillsPanel/SkillsPanel.test.tsx`
+   - Tests that import `decomposeSelector`/`composeSelector` need updating
+   - Tests that assert `selectorOverride` on updateSkill calls: change to assert `target`/`criterion` (overlaps with Critical Issue 1 test changes)
+
+**Test Impact**: SkillsPanel tests are the most heavily affected (31 `selectorOverride` occurrences). But this overlaps entirely with the test changes needed for Critical Issue 1.
+
+**Risks**: Medium. The SkillsPanel test file has the most changes. Careful sequencing needed.
 
 ---
 
-## 5. Deferred Items (Not in This Fix Cycle)
+## Important Issue 3: Duplicated skills omit selectorOverride
 
-- **SkillsPanel complexity (24 vs max 15)**: Requires extracting `SkillRow` sub-component. Larger refactor, not a correctness issue.
-- **SkillsPanel file length (414 vs 400)**: Related to complexity fix above. Would be resolved by same `SkillRow` extraction.
-- **DEFAULT_SKILLS constant staleness**: Minor documentation issue. Not a bug.
-- **ADR-009 documentation**: Recommended but not blocking.
+**Root Cause**: `gameStore.ts:387-401` creates duplicated skills without `selectorOverride`. Since the engine reads `selectorOverride`, duplicated skills fall back to `DEFAULT_SELECTOR`.
+
+**Fix Strategy**: This issue is fully resolved by Critical Issue 1. Once the engine uses `target`/`criterion` instead of `selectorOverride`, the duplicated skill's `target` and `criterion` (which ARE set from registry defaults, lines 399-400) will be correctly used.
+
+**Files to Change**: None beyond Critical Issue 1 changes.
+
+**Test Impact**: None.
+
+**Risks**: None.
 
 ---
 
-## 6. Files to Modify (Complete List)
+## Change Sequence
 
-### Critical fixes:
+Execute in this exact order to keep tests passing at each step:
 
-- `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx` (1 line change)
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx` (4 line changes)
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.tsx` (3 line changes)
+### Phase 1: Engine Switch (Critical Issues 1 & 2)
 
-### TypeScript error fixes:
+**Step 1.1**: Update test helpers to stop passing `selectorOverride`
 
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-skill-priority.test.tsx` (18 additions)
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-action-summary.test.tsx` (13 additions)
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-next-action.test.tsx` (6 additions)
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.test.tsx` (3 additions)
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/battle-viewer-tooltip.test.tsx` (1 addition)
-- `/home/bob/Projects/auto-battler/src/components/PlayControls/PlayControls.test.tsx` (1 addition)
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-basic.test.tsx` (1 addition)
-- `/home/bob/Projects/auto-battler/src/engine/movement-fairness-edge.test.ts` (1 addition)
+- `src/engine/game-test-helpers.ts` -- Remove `selectorOverride` line from `createSkill()`
+- `src/stores/gameStore-test-helpers.ts` -- Remove `selectorOverride` line from `createSkill()`
+- This is safe because the Skill interface still has `selectorOverride?` (optional), so removing it from defaults does not break compilation.
+- Tests that explicitly pass `selectorOverride` still compile because the property still exists on the interface.
 
-### ESLint fixes:
+**Step 1.2**: Switch engine to evaluateTargetCriterion
 
-- `/home/bob/Projects/auto-battler/src/stores/gameStore.ts` (1 eslint-disable comment)
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts` (split + eslint-disable)
-- `/home/bob/Projects/auto-battler/src/engine/game-decisions-skill-priority.test.ts` (1 eslint-disable comment)
-- `/home/bob/Projects/auto-battler/src/components/InventoryPanel/InventoryPanel.test.tsx` (2 eslint-disable-next-line)
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-skills-faction-exclusivity.test.ts` (1 eslint-disable-next-line)
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts` (1 eslint-disable-next-line)
+- `src/engine/game-decisions.ts` -- Replace both `evaluateSelector` calls with `evaluateTargetCriterion`. Update imports.
+- `src/stores/gameStore-selectors.ts` -- Replace `selectMovementTargetData` selectorOverride branch with direct `evaluateTargetCriterion` call.
+- At this point, `selectorOverride` is still on the type but no longer read by the engine. Tests should still pass because `target`/`criterion` defaults match the old `DEFAULT_SELECTOR` behavior.
 
-### New files:
+**Step 1.3**: Remove `selectorOverride` from Skill interface and registry
 
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-skills-duplication.test.ts` (extracted from gameStore-skills.test.ts)
+- `src/engine/types.ts` -- Remove `selectorOverride?: Selector` from Skill. Keep `Selector` interface temporarily (tests still reference it in their data).
+- `src/engine/skill-registry.ts` -- Remove `defaultSelector` from `SkillDefinition`, remove from all registry entries, remove from `getDefaultSkills()` and `createSkillFromDefinition()`.
+- TypeScript compiler will now flag all remaining references to `selectorOverride`. Fix each in the next step.
+
+**Step 1.4**: Mechanical test migration (15 files, ~97 occurrences)
+
+- For each test file, apply the translation table above.
+- Most are simple: delete `selectorOverride: { type: "nearest_enemy" }` (defaults cover it).
+- Non-default selectors get translated to `target`/`criterion`.
+- SkillsPanel tests: change assertions from `selectorOverride.type` to `target`/`criterion`.
+- Registry tests: change assertions to check `target`/`criterion` instead of `selectorOverride`.
+- Movement target tests: update test names and data.
+
+**Step 1.5**: Remove Selector type and evaluateSelector function
+
+- `src/engine/types.ts` -- Remove `Selector` interface (once no test or source file references it)
+- `src/engine/selectors.ts` -- Remove `evaluateSelector()` function, remove `Selector` from import
+- `src/engine/game-decisions.ts` -- Remove `DEFAULT_SELECTOR` constant, `Selector` import
+- Verify TypeScript compilation clean.
+
+### Phase 2: UI Cleanup (Important Issues 1 & 2)
+
+**Step 2.1**: Remove decomposeSelector/composeSelector from SkillsPanel
+
+- `src/components/SkillsPanel/SkillsPanel.tsx` -- Remove both functions, simplify handlers to write `target`/`criterion` directly.
+- Remove `DEFAULT_SELECTOR`, `Selector` import.
+- Use `skill.target` and `skill.criterion` directly in JSX.
+
+**Step 2.2**: Replace MAX_MOVE_INSTANCES with registry-based maxInstances
+
+- `src/components/SkillsPanel/SkillsPanel.tsx` -- Import `getSkillDefinition`, replace isMove/moveCount with registry-based logic.
+- `src/stores/gameStore-constants.ts` -- Remove `MAX_MOVE_INSTANCES`.
+- Update SkillsPanel tests for new duplication button logic.
+
+### Phase 3: Cleanup (Minor Issues)
+
+**Step 3.1**: Remove `as any` casts from duplication test
+
+- `src/stores/gameStore-skills-duplication.test.ts` -- Remove `as any` on behavior, target, criterion.
+
+**Step 3.2**: Verify no remaining references to removed items
+
+- Grep for `selectorOverride`, `evaluateSelector`, `DEFAULT_SELECTOR`, `MAX_MOVE_INSTANCES`, `decomposeSelector`, `composeSelector`.
+- Verify TypeScript compilation (0 errors).
+- Verify ESLint passes.
+- Verify all 1119+ tests pass.
+
+---
+
+## Risk Assessment
+
+### High Risk: Volume of test changes in Step 1.4
+
+- 97 occurrences across 15 test files
+- **Mitigation**: TypeScript compiler catches all missed references after Step 1.3 removes the property. This is a compile-time-safe migration. Process one file at a time, run `npm run type-check` between each batch.
+
+### Medium Risk: SkillsPanel test rewrite (Step 1.4 + Step 2.1)
+
+- 31 occurrences in SkillsPanel.test.tsx, many are assertions about `updateSkill` behavior
+- **Mitigation**: The assertions change from `expect(updatedSkill?.selectorOverride?.type).toBe("X_Y")` to `expect(updatedSkill?.target).toBe("X"); expect(updatedSkill?.criterion).toBe("Y")`. This is a predictable, mechanical transformation.
+
+### Low Risk: Engine behavior change (Step 1.2)
+
+- Switching from `evaluateSelector` to `evaluateTargetCriterion` could theoretically change targeting results
+- **Mitigation**: For the 6 original selector types (nearest*enemy/ally, lowest_hp_enemy/ally, self), both functions produce identical results. The difference is only for `furthest*_`and`highest*hp*_` tiebreaking -- which is actually a bug fix (Critical Issue 2).
+
+### Low Risk: Removing MAX_MOVE_INSTANCES (Step 2.2)
+
+- Could break SkillsPanel duplication gating
+- **Mitigation**: Registry `maxInstances` already enforces the same limit (3 for Move, 1 for others). The UI change just reads from the same source.
+
+---
+
+## Test Strategy
+
+1. **After Step 1.2 (engine switch)**: Run full test suite. Expect all 1119 to pass because `target`/`criterion` defaults match old `DEFAULT_SELECTOR` behavior, and tests that set explicit `selectorOverride` also have matching `target`/`criterion` set by test helpers.
+
+2. **After Step 1.3 (remove selectorOverride from type)**: Run `npm run type-check`. Expect TypeScript errors on every remaining `selectorOverride` reference. Fix all in Step 1.4.
+
+3. **After Step 1.4 (test migration)**: Run `npm run type-check` and full test suite. Expect 0 TS errors and all tests passing.
+
+4. **After Step 1.5 (remove Selector type)**: Run `npm run type-check`. Verify no remaining imports of `Selector` or `evaluateSelector`.
+
+5. **After Step 2.1 and 2.2 (UI cleanup)**: Run full test suite. Verify SkillsPanel tests pass with new assertion pattern.
+
+6. **Final gate**: `npm run test && npm run type-check && npm run lint`. All must pass clean.
+
+---
+
+## Estimated Effort
+
+- **Step 1.1-1.2**: Small (2 source files, ~10 lines changed)
+- **Step 1.3**: Small (3 source files, ~15 lines removed)
+- **Step 1.4**: Large (15 test files, ~97 mechanical replacements). This is the bulk of the work.
+- **Step 1.5**: Small (2 source files, ~50 lines removed)
+- **Step 2.1**: Medium (1 source file, ~60 lines removed/simplified, test updates)
+- **Step 2.2**: Small (2 source files, ~10 lines changed)
+- **Step 3.1-3.2**: Trivial
+
+**Total**: ~22 source file changes. The critical path is the mechanical test migration (Step 1.4), which is high-volume but low-complexity.

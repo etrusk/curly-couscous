@@ -17,7 +17,7 @@ describe("selectIntentData - movement intents", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const action: Action = {
       type: "move",
@@ -47,7 +47,7 @@ describe("selectIntentData - movement intents", () => {
     const slowMoveSkill = createSkill({
       id: "slow-move",
       tickCost: 2,
-      mode: "towards",
+      behavior: "towards",
     });
     const action: Action = {
       type: "move",
@@ -76,7 +76,7 @@ describe("selectIntentData - movement intents", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const action: Action = {
       type: "move",
@@ -134,7 +134,7 @@ describe("selectIntentData - movement intents", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const friendlyAction: Action = {
       type: "move",
@@ -181,7 +181,7 @@ describe("selectIntentData - movement intents", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const action: Action = {
       type: "move",

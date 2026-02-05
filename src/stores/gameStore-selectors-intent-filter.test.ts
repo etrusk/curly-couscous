@@ -261,7 +261,7 @@ describe("selectIntentData - Filtering Logic", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const moveAction: Action = {
       type: "move",

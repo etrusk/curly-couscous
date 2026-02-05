@@ -24,7 +24,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -53,7 +53,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -82,7 +82,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -111,7 +111,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -140,7 +140,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -169,7 +169,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -198,7 +198,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -227,7 +227,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -256,7 +256,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -285,7 +285,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -314,7 +314,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -343,7 +343,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -372,7 +372,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "towards",
+          behavior: "towards",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -401,7 +401,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "towards",
+          behavior: "towards",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -430,7 +430,7 @@ describe("computeDecisions - move destination - hex boundary fallback", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "away",
+          behavior: "away",
           triggers: [{ type: "always" }],
         }),
       ],

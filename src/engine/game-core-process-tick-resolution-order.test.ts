@@ -24,15 +24,13 @@ describe("processTick - Resolution Order: Healing -> Movement -> Combat", () => 
       range: 2,
       damage: 25,
       triggers: [{ type: "always" }],
-      selectorOverride: { type: "nearest_enemy" },
     });
     const dodgeMoveSkill = createSkill({
       id: "dodge-move",
-      mode: "away",
+      behavior: "away",
       tickCost: 1,
       range: 1,
       triggers: [{ type: "my_cell_targeted_by_enemy" }],
-      selectorOverride: { type: "nearest_enemy" },
     });
 
     const enemy = createCharacter({

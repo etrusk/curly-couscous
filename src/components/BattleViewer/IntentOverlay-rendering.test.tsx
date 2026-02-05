@@ -124,7 +124,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const moveAction = {
       type: "move" as const,
@@ -158,7 +158,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const moveAction = {
       type: "move" as const,
@@ -231,7 +231,7 @@ describe("IntentOverlay - Basic Rendering", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const action = {
       type: "move" as const,

@@ -5,7 +5,6 @@
 
 import { describe, it, expect } from "vitest";
 import { evaluateSelector } from "./selectors";
-import { Selector } from "./types";
 import { createCharacter } from "./selectors-test-helpers";
 
 describe("evaluateSelector", () => {
@@ -19,7 +18,7 @@ describe("evaluateSelector", () => {
         faction: "friendly",
         position: { q: 0, r: 0 },
       });
-      const selector: Selector = { type: "nearest_enemy" };
+      const selector = { type: "nearest_enemy" } as const;
 
       const result = evaluateSelector(selector, evaluator, []);
 
@@ -32,7 +31,7 @@ describe("evaluateSelector", () => {
         faction: "friendly",
         position: { q: 0, r: 0 },
       });
-      const selector: Selector = { type: "nearest_enemy" };
+      const selector = { type: "nearest_enemy" } as const;
 
       const result = evaluateSelector(selector, evaluator, [evaluator]);
 
@@ -55,7 +54,7 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: 0, r: 0 }, // Same position
       });
-      const selector: Selector = { type: "nearest_enemy" };
+      const selector = { type: "nearest_enemy" } as const;
 
       const result = evaluateSelector(selector, evaluator, [
         evaluator,

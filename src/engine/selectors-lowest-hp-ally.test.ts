@@ -5,7 +5,6 @@
 
 import { describe, it, expect } from "vitest";
 import { evaluateSelector } from "./selectors";
-import { Selector } from "./types";
 import { createCharacter } from "./selectors-test-helpers";
 
 describe("evaluateSelector", () => {
@@ -37,7 +36,7 @@ describe("evaluateSelector", () => {
         hp: 90,
         position: { q: 3, r: 2 },
       });
-      const selector: Selector = { type: "lowest_hp_ally" };
+      const selector = { type: "lowest_hp_ally" } as const;
 
       const result = evaluateSelector(selector, evaluator, [
         evaluator,
@@ -62,7 +61,7 @@ describe("evaluateSelector", () => {
         hp: 50,
         position: { q: 2, r: 2 },
       });
-      const selector: Selector = { type: "lowest_hp_ally" };
+      const selector = { type: "lowest_hp_ally" } as const;
 
       const result = evaluateSelector(selector, evaluator, [evaluator, ally]);
 
@@ -87,7 +86,7 @@ describe("evaluateSelector", () => {
         hp: 50,
         position: { q: 2, r: 2 },
       });
-      const selector: Selector = { type: "lowest_hp_ally" };
+      const selector = { type: "lowest_hp_ally" } as const;
 
       const result = evaluateSelector(selector, evaluator, [
         evaluator,

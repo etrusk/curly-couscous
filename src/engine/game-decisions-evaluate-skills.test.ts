@@ -406,7 +406,7 @@ describe("evaluateSkillsForCharacter", () => {
         skills: [
           createSkill({
             id: "skill1",
-            mode: "hold" as "towards" | "away",
+            behavior: "hold" as "towards" | "away",
             triggers: [{ type: "always" }],
           }),
         ],
@@ -435,7 +435,7 @@ describe("evaluateSkillsForCharacter", () => {
         skills: [
           createSkill({
             id: "skill1",
-            mode: "hold" as "towards" | "away",
+            behavior: "hold" as "towards" | "away",
             triggers: [{ type: "always" }],
           }),
           createSkill({
@@ -472,13 +472,13 @@ describe("evaluateSkillsForCharacter", () => {
           createSkill({
             id: "move-towards",
             instanceId: "move-away-inst",
-            mode: "away",
+            behavior: "away",
             triggers: [{ type: "hp_below", value: 50 }],
           }),
           createSkill({
             id: "move-towards",
             instanceId: "move-towards-inst",
-            mode: "towards",
+            behavior: "towards",
             triggers: [{ type: "always" }],
           }),
         ],

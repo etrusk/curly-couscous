@@ -1,239 +1,258 @@
-# Exploration: Move Skill Duplication
+# Exploration: Skill Slot Data Model Refactor
 
-## 1. Skill Identity Architecture
+## 1. Current Skill Data Model
 
-### Current Skill ID Model
-
-Skills use a string `id` field that serves THREE roles simultaneously:
-
-1. **Registry lookup key**: `SKILL_REGISTRY.find(s => s.id === skillId)` -- used in `gameStore.ts` lines 292, 328 and `gameStore-selectors.ts` line 92.
-2. **Uniqueness constraint**: `character.skills.some(s => s.id === skillId)` -- in `assignSkillToCharacter` (gameStore.ts line 281) prevents same-id skills on one character.
-3. **React rendering key**: `<div key={skill.id}>` in `SkillsPanel.tsx` line 196.
-
-The Move skill has `id: "move-towards"` in the registry (`skill-registry.ts` line 48). There is exactly ONE Move definition. Its `mode: "towards"` is an intrinsic property that gets copied into the `Skill` instance.
-
-### Key Constraint: `id` Is Used for Deduplication
-
-In `gameStore.ts`, `assignSkillToCharacter`:
+### `Skill` interface (`src/engine/types.ts:54-66`)
 
 ```typescript
-const hasSkill = character.skills.some((s) => s.id === skillId);
-if (hasSkill) return; // Blocks duplicate assignment
-```
-
-And `removeSkillFromCharacter` finds by ID:
-
-```typescript
-const skillIndex = character.skills.findIndex((s) => s.id === skillId);
-```
-
-Two Move skills with `id: "move-towards"` on the same character would break:
-
-- Assignment blocked by `hasSkill` check
-- Removal always finds first instance
-- React keys collide
-
-### Faction Exclusivity
-
-`getFactionAssignedSkillIds` (`gameStore-selectors.ts` lines 83-98) builds a `Set<string>` of skill IDs assigned across all characters of a faction. Innate skills are explicitly excluded (line 93: `if (def?.innate) continue`). Move is already exempt from faction exclusivity.
-
-## 2. Skill Registry Structure
-
-**File**: `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts`
-
-- `SkillDefinition` -- immutable intrinsic properties (id, name, tickCost, range, damage/healing/mode, innate, defaultSelector)
-- `SKILL_REGISTRY` -- readonly array of 4 entries: light-punch, heavy-punch, move-towards, heal
-- `getDefaultSkills()` -- returns `Skill[]` from innate definitions only (currently just Move)
-- `createSkillFromDefinition(def)` -- creates a `Skill` instance with default behavioral config
-
-**Name handling issue**: Both `getDefaultSkills()` (line 78) and `createSkillFromDefinition()` (line 98) currently hardcode the name transformation:
-
-```typescript
-name: def.mode ? `${def.name} Towards` : def.name, // Move -> "Move Towards"
-```
-
-The registry has `name: "Move"` but instances get `"Move Towards"` regardless of actual mode. With duplication, all instances should simply be called "Move" -- the mode dropdown in the UI already shows towards/away. This hardcoded name transform should be removed.
-
-## 3. Skill Priority Evaluation
-
-**File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions.ts`
-
-The decision loop in `computeDecisions()` (lines 66-161) iterates `character.skills` top-to-bottom and selects the FIRST skill whose:
-
-1. `enabled === true`
-2. All triggers pass (AND logic)
-3. Selector finds a valid target
-4. Range check passes (for attack/heal)
-
-Once a skill is selected, remaining skills are skipped. **Multiple Move instances at different priorities already work correctly** -- the loop does not care about skill type or ID.
-
-`evaluateSkillsForCharacter()` (lines 173-309) mirrors this for UI display, marking skills as selected/rejected/skipped. Also already handles duplicates correctly.
-
-## 4. Trigger System
-
-**File**: `/home/bob/Projects/auto-battler/src/engine/triggers.ts`
-
-`hp_below` trigger (lines 52-59):
-
-```typescript
-const currentPercent = (evaluator.hp / evaluator.maxHp) * 100;
-return currentPercent < thresholdPercent;
-```
-
-Returns true when `currentPercent < thresholdPercent` (strict less-than).
-
-**Correct priority ordering for HP-based conditional movement:**
-
-1. Move (mode: away, trigger: hp_below 50%) -- activates when HP < 50%
-2. Move (mode: towards, trigger: always) -- fallback when HP >= 50%
-
-This works with the existing trigger system. No trigger changes needed.
-
-## 5. Skills Panel UI
-
-**File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx`
-
-- Renders skills using `selectedCharacter.skills.map()` with `key={skill.id}` (line 196)
-- Mode dropdown exists (lines 315-332) for any skill with `mode !== undefined`
-- Innate badge shown via `SKILL_REGISTRY.find(def => def.id === skill.id)?.innate`
-- Unassign button only for non-innate skills
-- Priority reorder via moveSkillUp/moveSkillDown by array index
-
-**Problems with current UI for duplicates:**
-
-- `key={skill.id}` -- duplicate keys cause React warnings
-- `updateSkill(charId, skillId, updates)` finds first match by ID
-- `handleUnassignSkill(skillId)` removes wrong instance
-- Innate check by ID lookup -- all instances appear innate
-
-## 6. Inventory Panel
-
-**File**: `/home/bob/Projects/auto-battler/src/components/InventoryPanel/InventoryPanel.tsx`
-
-Move is innate, so it never appears in inventory. **Duplication should NOT go through the inventory flow.** A "Duplicate" button in the SkillsPanel is the correct UX for creating Move copies.
-
-## 7. State Management (Zustand Store)
-
-**File**: `/home/bob/Projects/auto-battler/src/stores/gameStore.ts`
-
-Key actions affected:
-
-- `updateSkill(charId, skillId, updates)` -- finds by `s.id === skillId` (line 226). Ambiguous with duplicates.
-- `moveSkillUp/moveSkillDown` -- use array index, NOT skill ID. Already duplicate-safe.
-- `removeSkillFromCharacter` -- finds by ID (line 321). Ambiguous.
-- `MAX_SKILL_SLOTS = 3` (`gameStore-constants.ts` line 19). Duplicates count toward this limit.
-
-**File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-types.ts`
-
-The `updateSkill` signature is `(charId: string, skillId: string, updates: Partial<Skill>)`. Must change to use instance identifier.
-
-## 8. Movement Target Data Selector
-
-**File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors.ts` (lines 268-314)
-
-`selectMovementTargetData` finds the Move skill via:
-
-```typescript
-const moveSkill = character.skills.find((s) => s.mode !== undefined);
-```
-
-Finds only the FIRST Move skill. With duplicates, this should find the one that the decision engine would actually select. May need updating.
-
-## 9. Constraints and Requirements
-
-### Must Solve
-
-1. **Instance identity**: Each skill instance needs a unique identifier beyond the registry `id`. Required for React keys, targeted updates, and unambiguous removal.
-2. **Store actions**: `updateSkill` and `removeSkillFromCharacter` must operate on instance identity, not registry ID.
-3. **Duplication limit**: 3 instances max (including innate original).
-4. **Innate status**: Only the original Move instance is innate (non-removable). Duplicates are removable.
-5. **Naming**: All instances simply named "Move". The mode dropdown handles differentiation. Remove the hardcoded "Towards" suffix from `getDefaultSkills()` and `createSkillFromDefinition()`.
-
-### Already Works (No Changes Needed)
-
-- Priority evaluation in `computeDecisions()` -- handles any skill ordering
-- Trigger evaluation -- `hp_below` works as-is
-- Movement resolution -- `computeMoveDestination()` uses `skill.mode` from the action
-- Action creation -- `createSkillAction()` reads mode from the skill
-- Faction exclusivity -- Move is innate, excluded from exclusivity checks
-
-## 10. Recommended Approach: `instanceId` Field
-
-### Add `instanceId` to Skill type
-
-```typescript
-interface Skill {
-  id: string; // Registry ID (e.g., "move-towards") -- shared by duplicates
-  instanceId: string; // Unique per-instance (e.g., "move-towards-1")
+export interface Skill {
+  id: string; // Registry ID (shared by duplicates)
+  instanceId: string; // Unique per-instance (ADR-009)
   name: string;
-  // ... rest unchanged
+  tickCost: number;
+  range: number;
+  damage?: number; // Attack skills
+  healing?: number; // Heal skills
+  mode?: "towards" | "away"; // Move skill ONLY -- the "special-case" field
+  enabled: boolean;
+  triggers: Trigger[];
+  selectorOverride?: Selector;
 }
 ```
 
-### Why instanceId
+### `SkillDefinition` interface (`src/engine/skill-registry.ts:26-36`)
 
-| Approach                               | Pros                                                           | Cons                                                          |
-| -------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------- |
-| UUID as `id`                           | Truly unique                                                   | Loses registry connection, complicates innate detection       |
-| Suffixed `id` (e.g., "move-towards:1") | Human-readable                                                 | Fragile string parsing, changes `id` semantics                |
-| **Separate `instanceId`**              | `id` retains registry meaning; `instanceId` handles uniqueness | One extra field; code using `id` for instance ops must switch |
-
-The `instanceId` approach avoids breaking any code that legitimately uses `id` for registry lookup (innate detection, faction exclusivity). Only code that incorrectly conflates registry identity with instance identity needs to change.
-
-### Generation Strategy
-
-Use a simple counter: `${registryId}-${counter}`. The counter increments per character. For example:
-
-- First move: `instanceId: "move-towards-1"`
-- Duplicate: `instanceId: "move-towards-2"`
-
-### Impact Assessment
-
-Files requiring changes:
-
-| File                                         | Change                                                                                                      |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `src/engine/types.ts`                        | Add `instanceId` to `Skill`                                                                                 |
-| `src/engine/skill-registry.ts`               | Generate instanceId in `getDefaultSkills()` and `createSkillFromDefinition()`; remove "Towards" name suffix |
-| `src/stores/gameStore.ts`                    | New `duplicateSkill` action; update `updateSkill`, `removeSkillFromCharacter` to use instanceId             |
-| `src/stores/gameStore-types.ts`              | Update action signatures                                                                                    |
-| `src/stores/gameStore-constants.ts`          | DEFAULT_SKILLS generation gets instanceId                                                                   |
-| `src/components/SkillsPanel/SkillsPanel.tsx` | Use `instanceId` for keys/operations; add "Duplicate" button for Move skills                                |
-| `src/stores/gameStore-selectors.ts`          | `selectMovementTargetData` may need update                                                                  |
-
-### Duplication Limit: 3
-
-- 3 covers all practical use cases (towards + away + one conditional variant)
-- With MAX_SKILL_SLOTS=3, filling all slots with Move is a valid tactical choice
-- When slots expand to 6, the 3-move cap prevents degenerate all-movement builds
-- Simple to explain: "Up to 3 Move skills per character"
-
-### New Store Action
-
-```
-duplicateSkill(charId: string, instanceId: string): void
+```typescript
+export interface SkillDefinition {
+  id: string;
+  name: string;
+  tickCost: number;
+  range: number;
+  damage?: number;
+  healing?: number;
+  mode?: "towards" | "away";
+  innate: boolean;
+  defaultSelector?: Selector;
+}
 ```
 
-- Validates source skill exists and has `mode` (is a Move skill)
-- Checks move instance count < 3
-- Checks character.skills.length < MAX_SKILL_SLOTS
-- Creates new Skill instance with unique instanceId, default config (mode: "towards", trigger: always)
-- Inserts directly below the source skill in priority list
+### `Selector` interface (`src/engine/types.ts:86-93`)
 
-### Innate Tracking
+```typescript
+export interface Selector {
+  type:
+    | "nearest_enemy"
+    | "nearest_ally"
+    | "lowest_hp_enemy"
+    | "lowest_hp_ally"
+    | "self";
+}
+```
 
-The original innate Move is identified by checking: `SKILL_REGISTRY.find(d => d.id === skill.id)?.innate` AND the skill is the character's first instance of that registry ID (or we track which instanceId is the original). Simpler approach: add an `isOriginal: boolean` or `innateInstance: boolean` flag on the Skill, set to true only on the default instance from `getDefaultSkills()`. Duplicates get `innateInstance: false`.
+### Action type inference (`src/engine/game-actions.ts:16-39`)
 
-Alternative (simpler): Track by convention that the innate instance is the one created by `getDefaultSkills()` at character creation. Store its instanceId. For the "can this be removed?" check, compare against `SKILL_REGISTRY` innate flag AND check if there's at least one other Move instance remaining. Actually simplest: only allow removing a Move instance if the character has more than one Move skill. This ensures the innate "always have Move" invariant without extra fields.
+Action type is inferred from skill properties:
 
-## 11. Spec Alignment
+- `damage !== undefined` => "attack"
+- `healing !== undefined` => "heal"
+- `mode !== undefined` => "move"
 
-- [x] "Skill slots: 3 initial, up to 6 unlockable" -- duplication respects MAX_SKILL_SLOTS
-- [x] "A skill can only be assigned once per character (no duplicates)" -- this refers to assignable skills from inventory, not innate duplication
-- [x] "Centralized Skill Registry" (ADR-005) -- registry unchanged; duplication is runtime instance creation
-- [x] Innate skills "cannot be removed" -- original innate instance protected; duplicates removable
-- [x] No conflicts with existing ADRs
+Must have exactly one. This is the critical coupling point -- `mode` presence determines "this is a Move skill."
 
-### Spec Gap
+## 2. Selector System
 
-The spec's "no duplicates" rule refers to assignment. Move duplication is a distinct mechanism. This warrants a new ADR to document the decision.
+### Current selectors (5 total)
+
+| Selector          | Candidates                    | Sort                          | File Location          |
+| ----------------- | ----------------------------- | ----------------------------- | ---------------------- |
+| `nearest_enemy`   | Opposite faction, alive       | Distance from evaluator (asc) | `selectors.ts:85-91`   |
+| `nearest_ally`    | Same faction, not self, alive | Distance from evaluator (asc) | `selectors.ts:93-102`  |
+| `lowest_hp_enemy` | Opposite faction, alive       | HP (asc)                      | `selectors.ts:104-110` |
+| `lowest_hp_ally`  | Same faction, not self, alive | HP (asc)                      | `selectors.ts:112-121` |
+| `self`            | Self                          | N/A                           | `selectors.ts:82-83`   |
+
+### Tiebreaking
+
+All selectors use: lower R coordinate, then lower Q coordinate (`selectors.ts:12-17`).
+
+### Where selectors are evaluated
+
+1. **Decision phase**: `game-decisions.ts:107` -- `evaluateSelector(selector, character, state.characters)`
+2. **Skill evaluation UI**: `game-decisions.ts:244` -- same function for tooltip display
+3. **Movement target selector**: `gameStore-selectors.ts:287` -- finds Move skill target for targeting lines
+
+### Monolithic selector field
+
+Currently `selectorOverride` combines target + criterion into one string:
+
+- `nearest_enemy` = target:enemy + criterion:nearest
+- `lowest_hp_ally` = target:ally + criterion:lowest_hp
+
+The SkillsPanel UI already decomposes this into two dropdowns (`decomposeSelector`/`composeSelector` at `SkillsPanel.tsx:28-78`), but the data model is still monolithic.
+
+### Missing mirror selectors
+
+Per acceptance criteria, the refactor needs to add:
+
+- `furthest_enemy` / `furthest_ally` (reverse of nearest)
+- `highest_hp_enemy` / `highest_hp_ally` (reverse of lowest_hp)
+
+## 3. Move Specialness
+
+### What makes Move unique
+
+1. **`mode` field** (`types.ts:62`): Only Move has it. Used by:
+   - `getActionType()` (`game-actions.ts:19`) -- presence of `mode` => action type is "move"
+   - `computeMoveDestination()` (`game-movement.ts:33`) -- uses mode to select towards/away pathfinding
+   - `createSkillAction()` (`game-actions.ts:100`) -- passes `skill.mode!` to computeMoveDestination
+   - UI: `SkillsPanel.tsx:208` -- `skill.mode !== undefined` determines isMove
+   - UI: `InventoryPanel.tsx:59` -- displays mode in stats
+   - Store: `gameStore.ts:369` -- `sourceSkill.mode === undefined` gates duplication
+   - Store: `gameStore.ts:375` -- `s.mode !== undefined` counts Move instances
+   - Store selector: `gameStore-selectors.ts:287` -- finds Move skill by `s.mode !== undefined`
+   - Formatters: `rule-evaluations-formatters.ts:124-128` -- mode determines Move display text
+
+2. **Duplication** (`gameStore.ts:351-404`):
+   - Only skills with `mode !== undefined` can be duplicated
+   - Hard-coded `MAX_MOVE_INSTANCES = 3` in `gameStore-constants.ts:25`
+   - New duplicates always get `mode: "towards"` (hardcoded in `gameStore.ts:393`)
+   - Inserted directly after source skill in priority list
+   - Innate Move skills can only be removed if moveCount > 1
+
+3. **Legacy "hold" mode** (`game-decisions.ts:86,213`):
+   - Deprecated graceful degradation -- casts `skill.mode as string` to check for "hold"
+   - Treats "hold" as disabled with a console warning
+
+4. **Registry definition** (`skill-registry.ts:63-68`):
+   - Only `move-towards` has `mode: "towards"` and `innate: true`
+   - No `move-away` entry -- away is created via mode change or duplication
+
+## 4. UI Surface
+
+### Components that render skill configuration
+
+| Component                  | File                                                            | Reads `mode`                      | Reads `selectorOverride`                |
+| -------------------------- | --------------------------------------------------------------- | --------------------------------- | --------------------------------------- |
+| SkillsPanel                | `src/components/SkillsPanel/SkillsPanel.tsx`                    | Yes (isMove check, mode dropdown) | Yes (decomposed into category+strategy) |
+| InventoryPanel             | `src/components/InventoryPanel/InventoryPanel.tsx`              | Yes (displays mode in stats)      | No                                      |
+| RuleEvaluations formatters | `src/components/RuleEvaluations/rule-evaluations-formatters.ts` | Yes (Move action display text)    | No                                      |
+| CharacterTooltip           | `src/components/BattleViewer/CharacterTooltip.test.tsx`         | Indirectly (via formatters)       | Indirectly                              |
+
+### SkillsPanel already has decomposed selector UI
+
+The UI already presents separate "Target" (category: enemy/ally/self) and "Selection" (strategy: nearest/lowest_hp) dropdowns. This maps well to the proposed `target` + `criterion` split. The `decomposeSelector` and `composeSelector` functions would be replaced by direct data model access.
+
+## 5. Test Coverage
+
+### Key test files (grouped by concern)
+
+**Skill type / action inference:**
+
+- `src/engine/game-decisions-action-type-inference.test.ts` -- Tests getActionType() logic (damage=>attack, healing=>heal, mode=>move)
+
+**Skill evaluation / priority:**
+
+- `src/engine/game-decisions-evaluate-skills.test.ts` -- Tests evaluateSkillsForCharacter(), includes "hold" mode tests
+- `src/engine/game-decisions-skill-priority.test.ts` -- Tests priority ordering with Move skills, references `skill.mode`
+
+**Move destination:**
+
+- `src/engine/game-decisions-move-destination-basic.test.ts` -- Basic towards/away movement
+- `src/engine/game-decisions-move-destination-wall-boundary.test.ts` -- Wall/boundary away-mode edge cases
+
+**Selectors:**
+
+- `src/engine/selectors-nearest-enemy.test.ts`, `selectors-nearest-ally.test.ts`
+- `src/engine/selectors-lowest-hp-enemy.test.ts`, `selectors-lowest-hp-ally.test.ts`
+- `src/engine/selectors-self.test.ts`, `selectors-tie-breaking.test.ts`, `selectors-edge-cases.test.ts`
+- `src/engine/selectors-metric-independence.test.ts`
+
+**Duplication:**
+
+- `src/stores/gameStore-skills-duplication.test.ts` -- 26 tests: duplicate, limit, mode independence
+
+**Skill assignment/removal:**
+
+- `src/stores/gameStore-skills.test.ts` -- updateSkill, moveSkillUp/Down
+- `src/stores/gameStore-skills-faction-exclusivity.test.ts` -- Faction-scoped assignment
+
+**Skill registry:**
+
+- `src/engine/skill-registry.test.ts` -- Registry entries, default skills, instanceId generation
+
+**SkillsPanel UI:**
+
+- `src/components/SkillsPanel/SkillsPanel.test.tsx` -- Mode dropdown, duplicate button, remove button
+
+**Integration:**
+
+- `src/engine/game-integration.test.ts`, `game-healing-integration.test.ts`
+- `src/engine/game-core-process-tick-resolution-order.test.ts`
+
+**Store selectors (mode-dependent):**
+
+- `src/stores/gameStore-selectors-movement-target.test.ts` -- selectMovementTargetData, finds skill by mode
+- `src/stores/gameStore-selectors-movement-intent.test.ts` -- Movement intent lines
+- `src/stores/gameStore-selectors-intent-preview.test.ts` -- Intent preview with Move skills
+
+### Total test count: ~1086 passing (per current-task.md)
+
+### Test helpers (2 files, both need updates)
+
+- `src/engine/game-test-helpers.ts:47-61` -- `createSkill()` with `mode` field
+- `src/stores/gameStore-test-helpers.ts:28-41` -- `createSkill()` with `mode` field
+
+## 6. Critical Files (ranked by change impact)
+
+| Rank | File                                                            | Changes Needed                                                                                  |
+| ---- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1    | `src/engine/types.ts`                                           | Replace `mode?` with `behavior?`, add new Selector types. Core type change cascades everywhere. |
+| 2    | `src/engine/skill-registry.ts`                                  | Replace `mode` with `behavior` in SkillDefinition, add `maxInstances` to each definition        |
+| 3    | `src/engine/game-actions.ts`                                    | Replace `mode` checks with `behavior` checks in getActionType() and createSkillAction()         |
+| 4    | `src/engine/selectors.ts`                                       | Add mirror selectors: furthest_enemy, furthest_ally, highest_hp_enemy, highest_hp_ally          |
+| 5    | `src/engine/game-decisions.ts`                                  | Update "hold" legacy check from `mode` to `behavior`                                            |
+| 6    | `src/stores/gameStore.ts`                                       | Replace mode-based duplication with behavior-based + maxInstances from registry                 |
+| 7    | `src/stores/gameStore-constants.ts`                             | Remove MAX_MOVE_INSTANCES (replaced by per-skill maxInstances in registry)                      |
+| 8    | `src/components/SkillsPanel/SkillsPanel.tsx`                    | Replace mode checks with behavior checks, update duplication UI for all skills                  |
+| 9    | `src/components/InventoryPanel/InventoryPanel.tsx`              | Replace mode display with behavior display                                                      |
+| 10   | `src/components/RuleEvaluations/rule-evaluations-formatters.ts` | Replace mode-based text with behavior-based                                                     |
+| 11   | `src/stores/gameStore-selectors.ts`                             | Replace `s.mode !== undefined` with `s.behavior !== undefined`                                  |
+| 12   | `src/engine/game-test-helpers.ts`                               | Replace `mode` with `behavior` in createSkill/createMoveAction                                  |
+| 13   | `src/stores/gameStore-test-helpers.ts`                          | Replace `mode` with `behavior` in createSkill                                                   |
+| 14   | `src/stores/gameStore-types.ts`                                 | No changes needed (uses Skill type from engine)                                                 |
+| 15   | `src/engine/game-movement.ts`                                   | Parameter rename only (mode -> behavior)                                                        |
+| 16+  | ~30+ test files                                                 | Update `mode:` references to `behavior:`                                                        |
+
+## 7. Migration Risks
+
+### High Risk
+
+1. **Action type inference coupling**: `getActionType()` uses `mode !== undefined` to identify Move skills. Renaming to `behavior` changes the semantics -- now all skills have behavior, but only Move skills should produce "move" actions. Need a different inference strategy (e.g., explicit `actionType` in registry, or behavior-value-based inference).
+
+2. **Test volume**: ~120 references to `selectorOverride` across 24 files, ~130+ references to `mode` in tests. The mechanical find-replace is large but must be done carefully to avoid subtle breaks.
+
+3. **Duplication gating logic**: Currently uses `mode !== undefined` to determine "is this a Move skill that can be duplicated." With universal `behavior`, the check changes to "does the registry define `maxInstances > 1` for this skill."
+
+### Medium Risk
+
+4. **SkillsPanel decompose/compose**: Already decomposes selectors in UI, but if data model splits to `target` + `criterion`, these functions become unnecessary -- the data model directly represents what the UI dropdowns show. Risk is in ensuring the UI correctly maps to the new model during transition.
+
+5. **Store selector for movement targets**: `gameStore-selectors.ts:287` finds Move skill by `s.mode !== undefined`. With universal `behavior`, this needs a different test (e.g., `getActionType(s) === 'move'` or checking behavior value `towards`/`away`).
+
+6. **Legacy "hold" mode**: The graceful degradation code casts `skill.mode as string` to check for "hold". With the rename to `behavior`, this needs updating but is already marked as deprecated.
+
+### Low Risk
+
+7. **Selector tiebreaking**: Adding mirror selectors (furthest, highest_hp) uses existing comparison infrastructure -- just reverse the sort order. Low risk because the compare functions already exist.
+
+8. **Registry shape change**: Adding `maxInstances` to SkillDefinition is additive -- skills without it default to 1.
+
+### Key Decision Point
+
+**How to distinguish action types after the rename**: When `mode` becomes `behavior`, and ALL skills get a behavior property, `getActionType()` can no longer use `behavior !== undefined` to detect Move skills. Options:
+
+- A: Add explicit `actionType: "attack" | "move" | "heal"` to SkillDefinition and Skill
+- B: Keep inferring from `damage`/`healing`/behavior value (if behavior value is `towards`|`away` => move)
+- C: Use a `category` field on the registry that maps to action type
+
+Option A is most explicit and aligns with the spec's skill categories. Option B preserves backward compatibility but is fragile. This is a **decision the PLAN phase must resolve**.

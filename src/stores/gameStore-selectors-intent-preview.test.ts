@@ -43,7 +43,7 @@ describe("selectIntentData - preview intent lines", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const friendly = createCharacter({
       id: "friendly",
@@ -95,7 +95,7 @@ describe("selectIntentData - preview intent lines", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const friendly = createCharacter({
       id: "friendly",
@@ -135,7 +135,7 @@ describe("selectIntentData - preview intent lines", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
 
     // Friendly has committed action
@@ -323,7 +323,7 @@ describe("selectIntentData - preview intent lines", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const friendly = createCharacter({
       id: "friendly",
@@ -367,7 +367,7 @@ describe("selectIntentData - preview intent lines", () => {
     const enabledMove = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
       enabled: true,
     });
     const friendly = createCharacter({
@@ -402,7 +402,7 @@ describe("selectIntentData - preview intent lines", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
       triggers: [{ type: "always" }],
     });
     const friendly = createCharacter({
@@ -430,7 +430,7 @@ describe("selectIntentData - preview intent lines", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const friendly = createCharacter({
       id: "friendly",

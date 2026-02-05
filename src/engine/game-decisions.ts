@@ -9,23 +9,17 @@ import {
   Character,
   Action,
   Skill,
-  Selector,
   SkillEvaluationResult,
   CharacterEvaluationResult,
   hexDistance,
 } from "./types";
 import { evaluateTrigger } from "./triggers";
-import { evaluateSelector } from "./selectors";
+import { evaluateTargetCriterion } from "./selectors";
 import {
   getActionType,
   createSkillAction,
   createIdleAction,
 } from "./game-actions";
-
-/**
- * Default selector when skill doesn't specify selectorOverride.
- */
-export const DEFAULT_SELECTOR: Selector = { type: "nearest_enemy" };
 
 /**
  * Synthetic idle skill for when no valid skill is selected.
@@ -34,10 +28,14 @@ export const IDLE_SKILL: Skill = {
   id: "__idle__",
   instanceId: "__idle__",
   name: "Idle",
+  actionType: "attack", // Idle doesn't use actionType, but field is required
   tickCost: 1,
   range: 0,
+  behavior: "",
   enabled: true,
   triggers: [],
+  target: "enemy",
+  criterion: "nearest",
 };
 
 /**
@@ -57,7 +55,7 @@ export interface Decision {
  * 3. Skip if skill.enabled === false
  * 4. Check all triggers pass (AND logic: triggers.every(...))
  * 5. Select first skill where all triggers pass
- * 6. Use selector (skill.selectorOverride ?? DEFAULT_SELECTOR) to find target
+ * 6. Use target + criterion (skill.target, skill.criterion) to find target
  * 7. Create Action with locked targetCell
  * 8. If no skills match → create idle action
  *
@@ -82,10 +80,10 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
         continue;
       }
 
-      // Graceful degradation for legacy "hold" mode
-      if ((skill.mode as string) === "hold") {
+      // Graceful degradation for legacy "hold" behavior
+      if (skill.behavior === "hold") {
         console.warn(
-          `[game-decisions] Deprecated "hold" mode found on skill "${skill.name}". ` +
+          `[game-decisions] Deprecated "hold" behavior found on skill "${skill.name}". ` +
             `Treating as disabled.`,
         );
         continue;
@@ -102,9 +100,13 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
 
       // 5. Skill triggers passed - now validate target and range
 
-      // 6. Use selector to find target
-      const selector = skill.selectorOverride ?? DEFAULT_SELECTOR;
-      const target = evaluateSelector(selector, character, state.characters);
+      // 6. Use target/criterion to find target
+      const target = evaluateTargetCriterion(
+        skill.target,
+        skill.criterion,
+        character,
+        state.characters,
+      );
 
       // Check if we have a valid target
       if (!target) {
@@ -209,10 +211,10 @@ export function evaluateSkillsForCharacter(
       continue;
     }
 
-    // Graceful degradation for legacy "hold" mode
-    if ((skill.mode as string) === "hold") {
+    // Graceful degradation for legacy "hold" behavior
+    if (skill.behavior === "hold") {
       console.warn(
-        `[game-decisions] Deprecated "hold" mode found on skill "${skill.name}". ` +
+        `[game-decisions] Deprecated "hold" behavior found on skill "${skill.name}". ` +
           `Treating as disabled.`,
       );
       evaluations.push({
@@ -239,9 +241,13 @@ export function evaluateSkillsForCharacter(
       continue;
     }
 
-    // Evaluate selector
-    const selector = skill.selectorOverride ?? DEFAULT_SELECTOR;
-    const target = evaluateSelector(selector, character, allCharacters);
+    // Evaluate target selection
+    const target = evaluateTargetCriterion(
+      skill.target,
+      skill.criterion,
+      character,
+      allCharacters,
+    );
 
     if (!target) {
       evaluations.push({

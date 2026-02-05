@@ -31,11 +31,21 @@ export const createSkill = (
   id: overrides.id,
   instanceId: overrides.instanceId ?? overrides.id, // Default instanceId to id for backward compatibility
   name: overrides.name ?? `Skill-${overrides.id}`,
+  actionType:
+    overrides.actionType ??
+    (overrides.damage !== undefined
+      ? "attack"
+      : overrides.healing !== undefined
+        ? "heal"
+        : overrides.behavior
+          ? "move"
+          : "attack"),
   tickCost: overrides.tickCost ?? 1,
   range: overrides.range ?? 1,
   damage: overrides.damage ?? undefined,
-  mode: overrides.mode ?? undefined,
+  behavior: overrides.behavior ?? "",
   enabled: overrides.enabled ?? true,
   triggers: overrides.triggers ?? [{ type: "always" }],
-  selectorOverride: overrides.selectorOverride ?? undefined,
+  target: overrides.target ?? "enemy",
+  criterion: overrides.criterion ?? "nearest",
 });

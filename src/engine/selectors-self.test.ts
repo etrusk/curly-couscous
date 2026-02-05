@@ -5,7 +5,6 @@
 
 import { describe, it, expect } from "vitest";
 import { evaluateSelector } from "./selectors";
-import { Selector } from "./types";
 import { createCharacter } from "./selectors-test-helpers";
 
 describe("evaluateSelector", () => {
@@ -18,7 +17,7 @@ describe("evaluateSelector", () => {
         id: "eval",
         position: { q: 0, r: 0 },
       });
-      const selector: Selector = { type: "self" };
+      const selector = { type: "self" } as const;
 
       const result = evaluateSelector(selector, evaluator, [evaluator]);
 
@@ -41,7 +40,7 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: 4, r: 0 },
       });
-      const selector: Selector = { type: "self" };
+      const selector = { type: "self" } as const;
 
       const result = evaluateSelector(selector, evaluator, [
         evaluator,

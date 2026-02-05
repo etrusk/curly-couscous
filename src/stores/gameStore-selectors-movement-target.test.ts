@@ -22,7 +22,7 @@ describe("selectMovementTargetData", () => {
   it("should filter out dead characters (hp <= 0)", () => {
     const moveSkill = createSkill({
       id: "move-skill",
-      mode: "towards",
+      behavior: "towards",
       tickCost: 1,
     });
     const deadChar1 = createCharacter({
@@ -47,7 +47,7 @@ describe("selectMovementTargetData", () => {
   it("should return targeting data using default nearest_enemy selector when no selectorOverride", () => {
     const moveSkill = createSkill({
       id: "move-skill",
-      mode: "towards",
+      behavior: "towards",
       tickCost: 1,
     });
     const friendly = createCharacter({
@@ -75,9 +75,10 @@ describe("selectMovementTargetData", () => {
   it("should respect selectorOverride nearest_ally", () => {
     const moveSkillWithOverride = createSkill({
       id: "move-skill",
-      mode: "towards",
+      behavior: "towards",
       tickCost: 1,
-      selectorOverride: { type: "nearest_ally" },
+      target: "ally",
+      criterion: "nearest",
     });
     const friendly1 = createCharacter({
       id: "friendly1",
@@ -106,9 +107,10 @@ describe("selectMovementTargetData", () => {
   it("should respect selectorOverride lowest_hp_enemy", () => {
     const moveSkillWithOverride = createSkill({
       id: "move-skill",
-      mode: "towards",
+      behavior: "towards",
       tickCost: 1,
-      selectorOverride: { type: "lowest_hp_enemy" },
+      target: "enemy",
+      criterion: "lowest_hp",
     });
     const friendly = createCharacter({
       id: "friendly1",
@@ -158,9 +160,9 @@ describe("selectMovementTargetData", () => {
   it("should handle self selector returning null (filtered out)", () => {
     const moveSkillWithSelf = createSkill({
       id: "move-skill",
-      mode: "towards",
+      behavior: "towards",
       tickCost: 1,
-      selectorOverride: { type: "self" },
+      target: "self",
     });
     const char = createCharacter({
       id: "char1",
@@ -177,7 +179,7 @@ describe("selectMovementTargetData", () => {
   it("should return multiple targets for multiple characters with move skills", () => {
     const moveSkill = createSkill({
       id: "move-skill",
-      mode: "towards",
+      behavior: "towards",
       tickCost: 1,
     });
     const friendly1 = createCharacter({
@@ -230,7 +232,7 @@ describe("selectMovementTargetData", () => {
   it("should return empty array when no valid targets exist for selector", () => {
     const moveSkill = createSkill({
       id: "move-skill",
-      mode: "towards",
+      behavior: "towards",
       tickCost: 1,
       // Default selector is nearest_enemy
     });
@@ -251,7 +253,7 @@ describe("selectMovementTargetData", () => {
   it("should use current positions not action targets", () => {
     const moveSkill = createSkill({
       id: "move-skill",
-      mode: "towards",
+      behavior: "towards",
       tickCost: 1,
     });
     const friendly = createCharacter({

@@ -1,70 +1,90 @@
-# Review Findings (Cycle 2 -- Post-Fix Verification)
+# Review Findings
 
 ## Summary
 
-- Files reviewed: 5 (SkillsPanel.tsx, RuleEvaluations.tsx, CharacterTooltip.tsx, gameStore.ts, game-decisions-skill-priority.test.ts)
+- Files reviewed: 14 (types, registry, game-decisions, selectors, game-actions, gameStore, duplication tests, selector tests, session state)
 - Critical issues: 0
-- Important issues: 0
-- Minor issues: 2 (deferred from cycle 1, acceptable)
-- Spec compliance: PASS
+- Important issues: 1
+- Minor issues: 2
+- Spec compliance: PASS (implementation criteria met; documentation update deferred to SYNC_DOCS)
 - Pattern compliance: PASS
 
-## Quality Gates
+## Acceptance Criteria Status
 
-| Gate       | Result | Detail                                    |
-| ---------- | ------ | ----------------------------------------- |
-| Type-check | PASS   | 0 errors                                  |
-| Tests      | PASS   | 1086 passing, 0 failures                  |
-| Lint       | PASS   | 0 errors, 1 warning (deferred complexity) |
-| Build      | PASS   | Clean production build                    |
+### 1. Every skill slot has shape: trigger + target + criterion + behavior
 
-## Previous Critical Issues -- Status
+- **Status**: MET
+- **Evidence**: `src/engine/types.ts:54-68` -- `Skill` interface has `triggers: Trigger[]`, `target: Target`, `criterion: Criterion`, `behavior: string`. All fields required (non-optional).
 
-### 1. handleTriggerValueChange passes skill.id instead of skill.instanceId
+### 2. No skill has special-case fields (mode is gone)
 
-- **Status**: FIXED
-- **Verified**: Line 317 of SkillsPanel.tsx now uses `skill.instanceId`
-- **Regression check**: All tests pass; no other `skill.id` usages remain in handler call sites (only correct registry lookup at line 215 remains)
+- **Status**: MET
+- **Evidence**: `src/engine/types.ts` -- No `mode` field. No `selectorOverride` field. Confirmed via grep: zero `.mode` property accesses in production or test `.ts`/`.tsx` files.
 
-### 2. React keys in RuleEvaluations and CharacterTooltip use skill.id
+### 3. All skills are duplicatable up to registry-defined maxInstances
 
-- **Status**: FIXED
-- **Verified**: All 7 locations migrated to `evaluation.skill.instanceId`:
-  - RuleEvaluations.tsx: lines 81, 125, 143, 206
-  - CharacterTooltip.tsx: lines 142, 160, 190
-- **Regression check**: Zero occurrences of `evaluation.skill.id` remain in either file
+- **Status**: MET
+- **Evidence**: `src/stores/gameStore.ts:367-377` -- `duplicateSkill()` looks up `def.maxInstances` from `SKILL_REGISTRY`. Registry entries: Move has `maxInstances: 3`, all others `maxInstances: 1`. Tests verify both limits (`gameStore-skills-duplication.test.ts:200-217`).
 
-## Previous Important Issues -- Status
+### 4. All existing game logic works unchanged
 
-### 3. TypeScript errors (44 missing instanceId in test files)
+- **Status**: MET
+- **Evidence**: 1102/1103 tests passing. TypeScript compiles with 0 errors. Production build succeeds.
 
-- **Status**: FIXED
-- **Verified**: `npm run type-check` passes with 0 errors
+### 5. All existing tests updated and passing
 
-### 4. ESLint max-lines violations
+- **Status**: MET
+- **Evidence**: 1102 passing, 0 failing, 1 skipped (intentional browser verification test).
 
-- **Status**: FIXED
-- **Verified**: `npm run lint` reports 0 errors
-- **Approach**: eslint-disable on gameStore.ts and game-decisions-skill-priority.test.ts; duplication tests split to gameStore-skills-duplication.test.ts
+### 6. New tests cover mirror selectors, target+criterion combinations, non-Move duplication, maxInstances enforcement
 
-## Remaining Minor Issues (Deferred -- Acceptable)
+- **Status**: MET
+- **Evidence**:
+  - `selectors-furthest.test.ts` -- 7 tests covering furthest enemy/ally with tiebreaking
+  - `selectors-highest-hp.test.ts` -- 5 tests covering highest_hp enemy/ally with tiebreaking
+  - `selectors-target-criterion.test.ts` -- All 12 target+criterion combinations plus self-ignores-criterion and null-return cases
+  - `gameStore-skills-duplication.test.ts:200-217` -- maxInstances: 1 blocks duplication
 
-### 5. SkillsPanel complexity (24 vs max 15)
+### 7. .docs/spec.md updated for new data model
 
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx:207`
-- **Status**: Deferred. ESLint reports as warning, not error. Requires extracting SkillRow sub-component -- separate refactoring task.
+- **Status**: DEFERRED TO SYNC_DOCS
+- Spec still references old "Target Selectors" (5 selector types), does not document `Target`/`Criterion` split, `furthest`, or `highest_hp`. This is Step 8 per the plan and is expected to be handled in the SYNC_DOCS phase.
 
-### 6. SkillsPanel file length (414 vs 400)
+## Issues
 
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx`
-- **Status**: Deferred. Would be resolved by same SkillRow extraction.
+### IMPORTANT
+
+#### Stale comment in game-decisions.ts references removed selectorOverride pattern
+
+- **File**: `src/engine/game-decisions.ts:58`
+- **Description**: JSDoc comment says "Use selector (skill.selectorOverride ?? DEFAULT_SELECTOR) to find target" but the code now uses `evaluateTargetCriterion(skill.target, skill.criterion, ...)`. Similarly, `src/engine/skill-registry.ts:106` says "enabled, triggers, selectorOverride" in a comment.
+- **Risk**: Misleading for future developers reading the code.
+- **Suggested fix**: Update comments to reference `target`/`criterion` instead of `selectorOverride`.
+
+### MINOR
+
+#### Legacy evaluateSelector function retained in selectors.ts
+
+- **File**: `src/engine/selectors.ts:84-174`
+- **Description**: `evaluateSelector()` with its local `Selector` type is retained for backward compatibility with 8 existing test files. Production code exclusively uses `evaluateTargetCriterion()`.
+- **Risk**: Low. The old function is not imported by any production code. The local `Selector` type is correctly scoped to `selectors.ts` only (removed from `types.ts`).
+- **Suggested fix**: Consider migrating old test files to `evaluateTargetCriterion` in a follow-up task and removing `evaluateSelector` entirely.
+
+#### Duplication test still says "rejects non-move skills" using old terminology
+
+- **File**: `src/stores/gameStore-skills-duplication.test.ts:153`
+- **Description**: Test description says "rejects non-move skills" but the actual behavior is now "rejects skills with maxInstances: 1". The test is functionally correct but the description is misleading given the universal duplication model.
+- **Risk**: Low. Test logic is correct; only the description is outdated.
+- **Suggested fix**: Rename to "rejects duplication when maxInstances is 1" or similar.
 
 ## Documentation Recommendations
 
-- [ ] New decision to add to `.docs/decisions/index.md`: ADR-009 for instanceId pattern
+- [ ] SYNC_DOCS phase: Update `.docs/spec.md` Targeting System section for Target+Criterion model
+- [ ] SYNC_DOCS phase: Document `furthest` and `highest_hp` criteria in spec
+- [ ] SYNC_DOCS phase: Update Starting Skills section for `behavior` field
+- [ ] SYNC_DOCS phase: Create ADR-011 for explicit actionType decision
+- [ ] Follow-up: Migrate old selector tests from `evaluateSelector` to `evaluateTargetCriterion`
 
 ## Verdict
 
-[X] APPROVED - No critical or important issues. All fixes verified. All quality gates pass.
-
-Next phase: HUMAN_APPROVAL (this is a UI feature requiring manual browser verification).
+[x] APPROVED - All implementation criteria met. One important comment-cleanup issue (non-blocking). Documentation update deferred to SYNC_DOCS phase per plan Step 8.

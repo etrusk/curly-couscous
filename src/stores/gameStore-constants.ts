@@ -19,12 +19,6 @@ export const HEX_RADIUS = 5;
 export const MAX_SKILL_SLOTS = 3;
 
 /**
- * Maximum number of Move skill instances per character.
- * Prevents unbounded duplication while allowing HP-conditional movement strategies.
- */
-export const MAX_MOVE_INSTANCES = 3;
-
-/**
  * Helper function to create consistent position keys for game state.
  * Uses hyphen format: "q-r"
  * NOTE: This differs from pathfinding.positionKey which uses "q,r" format.

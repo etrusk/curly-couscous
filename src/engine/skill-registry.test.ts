@@ -49,16 +49,16 @@ describe("Skill Registry", () => {
       const heavyPunch = SKILL_REGISTRY.find((s) => s.id === "heavy-punch");
 
       expect(lightPunch?.damage).toBe(10);
-      expect(lightPunch?.mode).toBeUndefined();
+      expect(lightPunch?.behaviors).toEqual([]);
 
       expect(heavyPunch?.damage).toBe(25);
-      expect(heavyPunch?.mode).toBeUndefined();
+      expect(heavyPunch?.behaviors).toEqual([]);
     });
 
-    it("move skill has mode", () => {
+    it("move skill has behaviors", () => {
       const moveSkill = SKILL_REGISTRY.find((s) => s.id === "move-towards");
 
-      expect(moveSkill?.mode).toBe("towards");
+      expect(moveSkill?.behaviors).toEqual(["towards", "away"]);
       expect(moveSkill?.damage).toBeUndefined();
     });
 
@@ -80,23 +80,27 @@ describe("Skill Registry", () => {
       expect(heal?.tickCost).toBe(2);
       expect(heal?.range).toBe(5);
       expect(heal?.innate).toBe(false);
-      expect(heal?.mode).toBeUndefined();
+      expect(heal?.behaviors).toEqual([]);
     });
 
-    it("heal skill has defaultSelector lowest_hp_ally", () => {
+    it("heal skill has default target/criterion", () => {
       const heal = SKILL_REGISTRY.find((s) => s.id === "heal");
 
-      expect(heal?.defaultSelector).toEqual({ type: "lowest_hp_ally" });
+      expect(heal?.defaultTarget).toBe("ally");
+      expect(heal?.defaultCriterion).toBe("lowest_hp");
     });
 
-    it("existing skills have defaultSelector nearest_enemy", () => {
+    it("existing skills have default target/criterion", () => {
       const lightPunch = SKILL_REGISTRY.find((s) => s.id === "light-punch");
       const heavyPunch = SKILL_REGISTRY.find((s) => s.id === "heavy-punch");
       const move = SKILL_REGISTRY.find((s) => s.id === "move-towards");
 
-      expect(lightPunch?.defaultSelector).toEqual({ type: "nearest_enemy" });
-      expect(heavyPunch?.defaultSelector).toEqual({ type: "nearest_enemy" });
-      expect(move?.defaultSelector).toEqual({ type: "nearest_enemy" });
+      expect(lightPunch?.defaultTarget).toBe("enemy");
+      expect(lightPunch?.defaultCriterion).toBe("nearest");
+      expect(heavyPunch?.defaultTarget).toBe("enemy");
+      expect(heavyPunch?.defaultCriterion).toBe("nearest");
+      expect(move?.defaultTarget).toBe("enemy");
+      expect(move?.defaultCriterion).toBe("nearest");
     });
   });
 
@@ -119,8 +123,8 @@ describe("Skill Registry", () => {
       expect(skill.enabled).toBe(true);
       expect(skill.triggers).toHaveLength(1);
       expect(skill.triggers[0]?.type).toBe("always");
-      expect(skill.selectorOverride).toBeDefined();
-      expect(skill.selectorOverride?.type).toBe("nearest_enemy");
+      expect(skill.target).toBe("enemy");
+      expect(skill.criterion).toBe("nearest");
     });
 
     it("preserves intrinsic properties for innate skills", () => {
@@ -133,7 +137,7 @@ describe("Skill Registry", () => {
       expect(move.id).toBe("move-towards");
       expect(move.tickCost).toBe(1);
       expect(move.range).toBe(1);
-      expect(move.mode).toBe("towards");
+      expect(move.behavior).toBe("towards");
       expect(move.damage).toBeUndefined();
     });
 
@@ -172,7 +176,8 @@ describe("Skill Registry", () => {
       expect(skill.enabled).toBe(true);
       expect(skill.triggers).toHaveLength(1);
       expect(skill.triggers[0]?.type).toBe("always");
-      expect(skill.selectorOverride?.type).toBe("nearest_enemy");
+      expect(skill.target).toBe("enemy");
+      expect(skill.criterion).toBe("nearest");
     });
 
     it("creates move skill with direction in name", () => {
@@ -180,15 +185,16 @@ describe("Skill Registry", () => {
       const skill = createSkillFromDefinition(moveDef);
 
       expect(skill.name).toBe("Move");
-      expect(skill.mode).toBe("towards");
+      expect(skill.behavior).toBe("towards");
       expect(skill.damage).toBeUndefined();
     });
 
-    it("createSkillFromDefinition uses defaultSelector for heal", () => {
+    it("createSkillFromDefinition uses default target/criterion for heal", () => {
       const healDef = SKILL_REGISTRY.find((s) => s.id === "heal")!;
       const skill = createSkillFromDefinition(healDef);
 
-      expect(skill.selectorOverride?.type).toBe("lowest_hp_ally");
+      expect(skill.target).toBe("ally");
+      expect(skill.criterion).toBe("lowest_hp");
       expect(skill.healing).toBe(25);
       expect(skill.damage).toBeUndefined();
       expect(skill.tickCost).toBe(2);
@@ -273,6 +279,105 @@ describe("Skill Registry", () => {
       expect(skill.instanceId).toBeDefined();
       expect(skill.instanceId).toBeTruthy();
       expect(skill.instanceId).toMatch(/^light-punch-/);
+    });
+  });
+
+  // NEW TESTS FOR ACTION TYPE FIELD
+  describe("Action Type Field", () => {
+    it("should have actionType field on all registry entries", () => {
+      SKILL_REGISTRY.forEach((skill) => {
+        expect(skill.actionType).toBeDefined();
+        expect(["attack", "move", "heal"]).toContain(skill.actionType);
+      });
+
+      const lightPunch = SKILL_REGISTRY.find((s) => s.id === "light-punch");
+      const heavyPunch = SKILL_REGISTRY.find((s) => s.id === "heavy-punch");
+      const move = SKILL_REGISTRY.find((s) => s.id === "move-towards");
+      const heal = SKILL_REGISTRY.find((s) => s.id === "heal");
+
+      expect(lightPunch?.actionType).toBe("attack");
+      expect(heavyPunch?.actionType).toBe("attack");
+      expect(move?.actionType).toBe("move");
+      expect(heal?.actionType).toBe("heal");
+    });
+
+    it("should propagate actionType from registry to Skill instances", () => {
+      const lightPunchDef = SKILL_REGISTRY.find((s) => s.id === "light-punch")!;
+      const heavyPunchDef = SKILL_REGISTRY.find((s) => s.id === "heavy-punch")!;
+      const moveDef = SKILL_REGISTRY.find((s) => s.id === "move-towards")!;
+      const healDef = SKILL_REGISTRY.find((s) => s.id === "heal")!;
+
+      const lightPunchSkill = createSkillFromDefinition(lightPunchDef);
+      const heavyPunchSkill = createSkillFromDefinition(heavyPunchDef);
+      const moveSkill = createSkillFromDefinition(moveDef);
+      const healSkill = createSkillFromDefinition(healDef);
+
+      expect(lightPunchSkill.actionType).toBe("attack");
+      expect(heavyPunchSkill.actionType).toBe("attack");
+      expect(moveSkill.actionType).toBe("move");
+      expect(healSkill.actionType).toBe("heal");
+    });
+  });
+
+  // NEW TESTS FOR BEHAVIORS ARRAY
+  describe("Behaviors Array", () => {
+    it("should have behaviors array on all registry entries", () => {
+      SKILL_REGISTRY.forEach((skill) => {
+        expect(Array.isArray(skill.behaviors)).toBe(true);
+      });
+
+      const lightPunch = SKILL_REGISTRY.find((s) => s.id === "light-punch");
+      const heavyPunch = SKILL_REGISTRY.find((s) => s.id === "heavy-punch");
+      const move = SKILL_REGISTRY.find((s) => s.id === "move-towards");
+      const heal = SKILL_REGISTRY.find((s) => s.id === "heal");
+
+      expect(lightPunch?.behaviors).toEqual([]);
+      expect(lightPunch?.defaultBehavior).toBe("");
+      expect(heavyPunch?.behaviors).toEqual([]);
+      expect(heavyPunch?.defaultBehavior).toBe("");
+      expect(move?.behaviors).toEqual(["towards", "away"]);
+      expect(move?.defaultBehavior).toBe("towards");
+      expect(heal?.behaviors).toEqual([]);
+      expect(heal?.defaultBehavior).toBe("");
+    });
+  });
+
+  // NEW TESTS FOR MAX INSTANCES
+  describe("Max Instances", () => {
+    it("should have maxInstances field on all registry entries", () => {
+      SKILL_REGISTRY.forEach((skill) => {
+        expect(skill.maxInstances).toBeDefined();
+        expect(skill.maxInstances).toBeGreaterThanOrEqual(1);
+      });
+
+      const lightPunch = SKILL_REGISTRY.find((s) => s.id === "light-punch");
+      const heavyPunch = SKILL_REGISTRY.find((s) => s.id === "heavy-punch");
+      const move = SKILL_REGISTRY.find((s) => s.id === "move-towards");
+      const heal = SKILL_REGISTRY.find((s) => s.id === "heal");
+
+      expect(lightPunch?.maxInstances).toBe(1);
+      expect(heavyPunch?.maxInstances).toBe(1);
+      expect(move?.maxInstances).toBe(3);
+      expect(heal?.maxInstances).toBe(1);
+    });
+  });
+
+  // NEW TESTS FOR DEFAULT TARGET AND CRITERION
+  describe("Default Target and Criterion", () => {
+    it("should have defaultTarget and defaultCriterion on all registry entries", () => {
+      const lightPunch = SKILL_REGISTRY.find((s) => s.id === "light-punch");
+      const heavyPunch = SKILL_REGISTRY.find((s) => s.id === "heavy-punch");
+      const move = SKILL_REGISTRY.find((s) => s.id === "move-towards");
+      const heal = SKILL_REGISTRY.find((s) => s.id === "heal");
+
+      expect(lightPunch?.defaultTarget).toBe("enemy");
+      expect(lightPunch?.defaultCriterion).toBe("nearest");
+      expect(heavyPunch?.defaultTarget).toBe("enemy");
+      expect(heavyPunch?.defaultCriterion).toBe("nearest");
+      expect(move?.defaultTarget).toBe("enemy");
+      expect(move?.defaultCriterion).toBe("nearest");
+      expect(heal?.defaultTarget).toBe("ally");
+      expect(heal?.defaultCriterion).toBe("lowest_hp");
     });
   });
 });

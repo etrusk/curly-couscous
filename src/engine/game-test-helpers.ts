@@ -49,14 +49,24 @@ export function createSkill(overrides: Partial<Skill> & { id: string }): Skill {
     id: overrides.id,
     instanceId: overrides.instanceId ?? overrides.id, // Default instanceId to id for backward compatibility
     name: overrides.name ?? `Skill-${overrides.id}`,
+    actionType:
+      overrides.actionType ??
+      (overrides.damage !== undefined
+        ? "attack"
+        : overrides.healing !== undefined
+          ? "heal"
+          : overrides.behavior
+            ? "move"
+            : "attack"),
     tickCost: overrides.tickCost ?? 1,
     range: overrides.range ?? 1,
     damage: overrides.damage,
     healing: overrides.healing,
-    mode: overrides.mode,
+    behavior: overrides.behavior ?? "",
     enabled: overrides.enabled ?? true,
     triggers: overrides.triggers ?? [],
-    selectorOverride: overrides.selectorOverride,
+    target: overrides.target ?? "enemy",
+    criterion: overrides.criterion ?? "nearest",
   };
 }
 
@@ -97,7 +107,7 @@ export function createMoveAction(
     skill: createSkill({
       id: "test-move",
       instanceId: "test-move",
-      mode: "towards",
+      behavior: "towards",
       tickCost,
     }),
     targetCell,

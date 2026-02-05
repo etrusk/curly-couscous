@@ -84,17 +84,17 @@ describe("game-healing-integration", () => {
       healing: 25,
       enabled: true,
       triggers: [{ type: "always" }],
-      selectorOverride: { type: "lowest_hp_ally" },
+      target: "ally",
+      criterion: "lowest_hp",
     });
     const moveSkill = createSkill({
       id: "move",
       name: "Move",
       tickCost: 1,
       range: 1,
-      mode: "towards",
+      behavior: "towards",
       enabled: true,
       triggers: [{ type: "always" }],
-      selectorOverride: { type: "nearest_enemy" },
     });
 
     const healer = createCharacter({
@@ -149,16 +149,16 @@ describe("game-healing-integration", () => {
       tickCost: 0,
       enabled: true,
       triggers: [{ type: "always" }],
-      selectorOverride: { type: "lowest_hp_ally" },
+      target: "ally",
+      criterion: "lowest_hp",
     });
     const moveSkill = createSkill({
       id: "move",
       tickCost: 1,
       range: 1,
-      mode: "towards",
+      behavior: "towards",
       enabled: true,
       triggers: [{ type: "always" }],
-      selectorOverride: { type: "nearest_enemy" },
     });
 
     const healer = createCharacter({
@@ -209,16 +209,16 @@ describe("game-healing-integration", () => {
       tickCost: 0,
       enabled: true,
       triggers: [{ type: "always" }],
-      selectorOverride: { type: "lowest_hp_ally" },
+      target: "ally",
+      criterion: "lowest_hp",
     });
     const moveSkill = createSkill({
       id: "move",
       tickCost: 1,
       range: 1,
-      mode: "towards",
+      behavior: "towards",
       enabled: true,
       triggers: [{ type: "always" }],
-      selectorOverride: { type: "nearest_enemy" },
     });
 
     const healer = createCharacter({
@@ -268,16 +268,16 @@ describe("game-healing-integration", () => {
       tickCost: 0,
       enabled: true,
       triggers: [{ type: "always" }],
-      selectorOverride: { type: "lowest_hp_ally" },
+      target: "ally",
+      criterion: "lowest_hp",
     });
     const moveSkill = createSkill({
       id: "move",
       tickCost: 1,
       range: 1,
-      mode: "towards",
+      behavior: "towards",
       enabled: true,
       triggers: [{ type: "always" }],
-      selectorOverride: { type: "nearest_enemy" },
     });
 
     const healer = createCharacter({
@@ -318,7 +318,8 @@ describe("game-healing-integration", () => {
       tickCost: 0,
       enabled: true,
       triggers: [{ type: "always" }],
-      selectorOverride: { type: "lowest_hp_ally" },
+      target: "ally",
+      criterion: "lowest_hp",
     });
 
     const healer = createCharacter({

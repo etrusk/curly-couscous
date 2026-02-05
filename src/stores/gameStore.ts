@@ -24,7 +24,6 @@ import {
   getNextCharacterIdCounter,
   initialGameState,
   MAX_SKILL_SLOTS,
-  MAX_MOVE_INSTANCES,
 } from "./gameStore-constants";
 import {
   findNextAvailablePosition,
@@ -365,16 +364,17 @@ export const useGameStore = create<GameStore>()(
             return;
           }
 
-          // Only Move skills can be duplicated (skills with mode property)
-          if (sourceSkill.mode === undefined) {
+          // Get registry definition to check maxInstances
+          const def = SKILL_REGISTRY.find((d) => d.id === sourceSkill.id);
+          if (!def) {
             return;
           }
 
-          // Check move instance count limit
-          const moveCount = character.skills.filter(
-            (s) => s.mode !== undefined,
+          // Check instance count limit from registry
+          const instanceCount = character.skills.filter(
+            (s) => s.id === sourceSkill.id,
           ).length;
-          if (moveCount >= MAX_MOVE_INSTANCES) {
+          if (instanceCount >= def.maxInstances) {
             return;
           }
 
@@ -383,17 +383,21 @@ export const useGameStore = create<GameStore>()(
             return;
           }
 
-          // Create new instance with default config
+          // Create new instance with default config from registry
           const newSkill: Skill = {
             id: sourceSkill.id,
             instanceId: generateInstanceId(sourceSkill.id),
-            name: sourceSkill.name, // "Move"
+            name: sourceSkill.name,
+            actionType: def.actionType,
             tickCost: sourceSkill.tickCost,
             range: sourceSkill.range,
-            mode: "towards", // Default mode for new duplicate
+            ...(def.damage !== undefined ? { damage: def.damage } : {}),
+            ...(def.healing !== undefined ? { healing: def.healing } : {}),
+            behavior: def.defaultBehavior,
             enabled: true,
             triggers: [{ type: "always" }],
-            selectorOverride: { type: "nearest_enemy" },
+            target: def.defaultTarget,
+            criterion: def.defaultCriterion,
           };
 
           // Insert directly after source skill in priority list

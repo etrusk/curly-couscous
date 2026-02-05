@@ -3,7 +3,7 @@
  * This is the ONLY file that needs to be edited to add/remove/modify skills.
  */
 
-import type { Skill, Selector } from "./types";
+import type { Skill, Target, Criterion } from "./types";
 
 /**
  * Module-level counter for generating unique instance IDs.
@@ -26,13 +26,17 @@ export function generateInstanceId(registryId: string): string {
 export interface SkillDefinition {
   id: string;
   name: string;
+  actionType: "attack" | "move" | "heal";
   tickCost: number;
   range: number;
   damage?: number;
   healing?: number;
-  mode?: "towards" | "away";
+  behaviors: string[]; // Available behaviors for this skill
+  defaultBehavior: string; // Default behavior value
   innate: boolean;
-  defaultSelector?: Selector;
+  maxInstances: number; // Max duplicates per character
+  defaultTarget: Target;
+  defaultCriterion: Criterion;
 }
 
 /**
@@ -43,44 +47,63 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
   {
     id: "light-punch",
     name: "Light Punch",
+    actionType: "attack",
     tickCost: 0,
     range: 1,
     damage: 10,
+    behaviors: [],
+    defaultBehavior: "",
     innate: false,
-    defaultSelector: { type: "nearest_enemy" },
+    maxInstances: 1,
+    defaultTarget: "enemy",
+    defaultCriterion: "nearest",
   },
   {
     id: "heavy-punch",
     name: "Heavy Punch",
+    actionType: "attack",
     tickCost: 2,
     range: 2,
     damage: 25,
+    behaviors: [],
+    defaultBehavior: "",
     innate: false,
-    defaultSelector: { type: "nearest_enemy" },
+    maxInstances: 1,
+    defaultTarget: "enemy",
+    defaultCriterion: "nearest",
   },
   {
     id: "move-towards",
     name: "Move",
+    actionType: "move",
     tickCost: 1,
     range: 1,
-    mode: "towards",
+    behaviors: ["towards", "away"],
+    defaultBehavior: "towards",
     innate: true,
-    defaultSelector: { type: "nearest_enemy" },
+    maxInstances: 3,
+    defaultTarget: "enemy",
+    defaultCriterion: "nearest",
   },
   {
     id: "heal",
     name: "Heal",
+    actionType: "heal",
     tickCost: 2,
     range: 5,
     healing: 25,
+    behaviors: [],
+    defaultBehavior: "",
     innate: false,
-    defaultSelector: { type: "lowest_hp_ally" },
+    maxInstances: 1,
+    defaultTarget: "ally",
+    defaultCriterion: "lowest_hp",
   },
 ];
 
 /**
  * Default configuration applied when creating a Skill from a SkillDefinition.
- * This adds the "behavioral" fields (enabled, triggers, selectorOverride)
+ * This adds the "behavioral" fields (enabled, triggers, target, criterion)
  * that are not intrinsic to the skill itself.
  *
  * IMPORTANT: Only returns innate skills. Non-innate skills must be assigned
@@ -91,14 +114,16 @@ export function getDefaultSkills(): Skill[] {
     id: def.id,
     instanceId: generateInstanceId(def.id),
     name: def.name, // Use registry name directly ("Move", not "Move Towards")
+    actionType: def.actionType,
     tickCost: def.tickCost,
     range: def.range,
     ...(def.damage !== undefined ? { damage: def.damage } : {}),
     ...(def.healing !== undefined ? { healing: def.healing } : {}),
-    ...(def.mode !== undefined ? { mode: def.mode } : {}),
+    behavior: def.defaultBehavior,
     enabled: true,
     triggers: [{ type: "always" as const }],
-    selectorOverride: def.defaultSelector ?? { type: "nearest_enemy" as const },
+    target: def.defaultTarget,
+    criterion: def.defaultCriterion,
   }));
 }
 
@@ -111,13 +136,23 @@ export function createSkillFromDefinition(def: SkillDefinition): Skill {
     id: def.id,
     instanceId: generateInstanceId(def.id),
     name: def.name, // Use registry name directly
+    actionType: def.actionType,
     tickCost: def.tickCost,
     range: def.range,
     ...(def.damage !== undefined ? { damage: def.damage } : {}),
     ...(def.healing !== undefined ? { healing: def.healing } : {}),
-    ...(def.mode !== undefined ? { mode: def.mode } : {}),
+    behavior: def.defaultBehavior,
     enabled: true,
     triggers: [{ type: "always" as const }],
-    selectorOverride: def.defaultSelector ?? { type: "nearest_enemy" as const },
+    target: def.defaultTarget,
+    criterion: def.defaultCriterion,
   };
+}
+
+/**
+ * Get a skill definition from the registry by its ID.
+ * Used for looking up skill properties like maxInstances, behaviors, etc.
+ */
+export function getSkillDefinition(id: string): SkillDefinition | undefined {
+  return SKILL_REGISTRY.find((def) => def.id === id);
 }

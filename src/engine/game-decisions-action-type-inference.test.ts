@@ -50,7 +50,7 @@ describe("computeDecisions - action type inference", () => {
       skills: [
         createSkill({
           id: "skill1",
-          mode: "towards",
+          behavior: "towards",
           triggers: [{ type: "always" }],
         }),
       ],
@@ -63,55 +63,6 @@ describe("computeDecisions - action type inference", () => {
     const decisions = computeDecisions(state);
 
     expect(decisions[0]!.action.type).toBe("move");
-  });
-
-  it("should throw for skill with both damage and mode", () => {
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { q: 0, r: 1 },
-    });
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
-      skills: [
-        createSkill({
-          id: "skill1",
-          damage: 10,
-          mode: "towards",
-          triggers: [{ type: "always" }],
-        }),
-      ],
-    });
-    const state = createGameState({
-      tick: 1,
-      characters: [character, enemy],
-    });
-
-    expect(() => computeDecisions(state)).toThrow(
-      /can only have one of damage, healing, or mode/,
-    );
-  });
-
-  it("should throw for skill with neither damage nor mode", () => {
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { q: 0, r: 1 },
-    });
-    const character = createCharacter({
-      id: "char1",
-      faction: "friendly",
-      skills: [createSkill({ id: "skill1", triggers: [{ type: "always" }] })],
-    });
-    const state = createGameState({
-      tick: 1,
-      characters: [character, enemy],
-    });
-
-    expect(() => computeDecisions(state)).toThrow(
-      /must have damage, healing, or mode/,
-    );
   });
 });
 
@@ -176,5 +127,90 @@ describe("computeDecisions - tick resolution for intent visibility", () => {
     const char1Decision = decisions.find((d) => d.characterId === "char1");
     expect(char1Decision!.action.type).toBe("attack");
     expect(char1Decision!.action.resolvesAtTick).toBe(2); // 0 + 2 = 2
+  });
+});
+
+describe("getActionType - explicit actionType field", () => {
+  it("should read actionType field directly without inference", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 0, r: 1 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      skills: [
+        createSkill({
+          id: "skill1",
+          actionType: "attack",
+          triggers: [{ type: "always" }],
+        }),
+      ],
+    });
+    const state = createGameState({
+      tick: 1,
+      characters: [character, enemy],
+    });
+
+    const decisions = computeDecisions(state);
+
+    expect(decisions[0]!.action.type).toBe("attack");
+  });
+
+  it("should respect explicit actionType for all action types", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 0, r: 3 },
+    });
+
+    // Test actionType: "move"
+    const moveChar = createCharacter({
+      id: "moveChar",
+      faction: "friendly",
+      skills: [
+        createSkill({
+          id: "skill-move",
+          actionType: "move",
+          behavior: "towards",
+          triggers: [{ type: "always" }],
+        }),
+      ],
+    });
+    const moveState = createGameState({
+      tick: 1,
+      characters: [moveChar, enemy],
+    });
+    const moveDecisions = computeDecisions(moveState);
+    expect(moveDecisions[0]!.action.type).toBe("move");
+
+    // Test actionType: "heal"
+    const healChar = createCharacter({
+      id: "healChar",
+      faction: "friendly",
+      position: { q: 0, r: 0 },
+      skills: [
+        createSkill({
+          id: "skill-heal",
+          actionType: "heal",
+          behavior: "",
+          healing: 25,
+          target: "ally",
+        }),
+      ],
+    });
+    const ally = createCharacter({
+      id: "ally",
+      faction: "friendly",
+      position: { q: 0, r: 1 },
+      hp: 50,
+    });
+    const healState = createGameState({
+      tick: 1,
+      characters: [healChar, ally, enemy],
+    });
+    const healDecisions = computeDecisions(healState);
+    expect(healDecisions[0]!.action.type).toBe("heal");
   });
 });

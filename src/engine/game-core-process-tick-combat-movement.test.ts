@@ -155,7 +155,6 @@ describe("processTick - combat and movement integration", () => {
         range: 1,
         damage: 10,
         triggers: [{ type: "always" }],
-        selectorOverride: { type: "nearest_enemy" },
       });
       const friendly = createCharacter({
         id: "friendly",
@@ -190,7 +189,6 @@ describe("processTick - combat and movement integration", () => {
         range: 1,
         damage: 10,
         triggers: [{ type: "always" }],
-        selectorOverride: { type: "nearest_enemy" },
       });
       const friendly = createCharacter({
         id: "friendly",

@@ -121,10 +121,10 @@ export function formatActionDisplay(action: Action | null): string {
   }
 
   // Move action
-  const mode = action.skill.mode;
-  if (mode === "towards") {
+  const behavior = action.skill.behavior;
+  if (behavior === "towards") {
     return "🚶 Move towards";
-  } else if (mode === "away") {
+  } else if (behavior === "away") {
     return "🚶 Move away";
   }
 

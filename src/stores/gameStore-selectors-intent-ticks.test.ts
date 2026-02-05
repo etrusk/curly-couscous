@@ -228,7 +228,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const action: Action = {
       type: "move",
@@ -256,7 +256,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const action: Action = {
       type: "move",
@@ -287,7 +287,7 @@ describe("selectIntentData - Tick-based Visibility", () => {
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
-      mode: "towards",
+      behavior: "towards",
     });
     const action: Action = {
       type: "move",

@@ -37,12 +37,12 @@ describe("getFactionAssignedSkillIds", () => {
     const friendlyA = createCharacter({
       id: "f1",
       faction: "friendly",
-      skills: [createSkill({ id: "move-towards", mode: "towards" })],
+      skills: [createSkill({ id: "move-towards", behavior: "towards" })],
     });
     const friendlyB = createCharacter({
       id: "f2",
       faction: "friendly",
-      skills: [createSkill({ id: "move-towards", mode: "towards" })],
+      skills: [createSkill({ id: "move-towards", behavior: "towards" })],
     });
 
     const result = getFactionAssignedSkillIds(

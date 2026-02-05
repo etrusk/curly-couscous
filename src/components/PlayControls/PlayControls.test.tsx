@@ -396,10 +396,13 @@ describe("PlayControls", () => {
         name: "Kill Skill",
         tickCost: 1,
         range: 12, // Can reach across entire board
+        criterion: "nearest",
+        target: "enemy",
+        behavior: "",
+        actionType: "attack",
         damage: 100,
         enabled: true,
         triggers: [{ type: "always" }],
-        selectorOverride: { type: "nearest_enemy" },
       };
 
       const testCharacters: Character[] = [

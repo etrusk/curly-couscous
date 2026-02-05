@@ -121,7 +121,7 @@ describe("Reset Functionality", () => {
       faction: "friendly",
       position: { q: 5, r: 5 },
       slotPosition: 1,
-      skills: [createSkill({ id: "move", mode: "towards", range: 0 })],
+      skills: [createSkill({ id: "move", behavior: "towards", range: 0 })],
     });
     const char2 = createCharacter({
       id: "char2",

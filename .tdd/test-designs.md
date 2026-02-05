@@ -1,637 +1,736 @@
-# Test Designs: Move Skill Duplication
+# Test Designs: Skill System Refactor
 
-## Overview
+## Test Updates (Existing Tests to Modify)
 
-Tests for the `instanceId`-based Move skill duplication feature. Organized into three categories: unit tests (pure engine logic), component tests (SkillsPanel UI), and integration tests (end-to-end scenarios with the decision engine).
-
-All tests reference the implementation plan at `.tdd/plan.md` and follow existing patterns from the codebase (Vitest, Testing Library, user-centric queries, co-located test files).
+This section maps each plan step to the existing test files that need changes and specifies exactly what changes are needed.
 
 ---
 
-## 1. Unit Tests -- Engine Logic
+### Step 1: Add `actionType` to SkillDefinition and Skill
 
-### Test: generateInstanceId-returns-string-with-registry-prefix
+**No existing tests break.** The `actionType` field is additive. Test helpers gain backward-compatible defaults.
 
-- **File**: `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts`
+#### File: `src/engine/game-test-helpers.ts`
+
+- **Update**: `createSkill()` adds `actionType` field with inference default
+- **Change**: Add line after healing: `actionType: overrides.actionType ?? (overrides.damage !== undefined ? "attack" : overrides.healing !== undefined ? "heal" : overrides.mode !== undefined ? "move" : "attack")`
+- **Reason**: Backward compat -- all existing callers that do not pass `actionType` get a sensible default inferred from existing fields
+
+#### File: `src/stores/gameStore-test-helpers.ts`
+
+- **Update**: Same as above
+- **Reason**: Same backward-compat logic
+
+#### File: `src/engine/game-test-helpers.ts` (`createMoveAction`, `createAttackAction`, `createHealAction`)
+
+- **Update**: Inner `createSkill()` calls inherit `actionType` via the default inference
+- **Reason**: No explicit change needed since the inference handles it
+
+---
+
+### Step 2: Switch `getActionType()` to use `actionType` field
+
+#### File: `src/engine/game-decisions-action-type-inference.test.ts`
+
+- **Update 1**: Test "should create attack action for skill with damage" (line 14-39)
+  - Add `actionType: "attack"` to the createSkill call (currently relies on inference from `damage`)
+  - Assertion unchanged: `expect(decisions[0]!.action.type).toBe("attack")`
+  - **Reason**: Test now verifies that `actionType` field is respected, not that damage triggers inference
+
+- **Update 2**: Test "should create move action for skill with mode" (line 41-66)
+  - Add `actionType: "move"` to the createSkill call
+  - Assertion unchanged: `expect(decisions[0]!.action.type).toBe("move")`
+  - **Reason**: Same -- field-based, not inference-based
+
+- **Update 3**: Test "should throw for skill with both damage and mode" (line 68-94)
+  - **DELETE** this test entirely
+  - **Reason**: With explicit `actionType`, the mutual-exclusion runtime validation is removed. TypeScript compile-time safety replaces it.
+
+- **Update 4**: Test "should throw for skill with neither damage nor mode" (line 96-115)
+  - **DELETE** this test entirely
+  - **Reason**: Same as above -- `actionType` is always present, so "neither" is impossible
+
+- **Keep**: Both tick-resolution tests (lines 118-180) are unaffected
+
+---
+
+### Step 3: Add `target` + `criterion` alongside `selectorOverride`
+
+**No existing tests break.** Fields are additive. Test helpers gain backward-compatible defaults.
+
+#### File: `src/engine/game-test-helpers.ts`
+
+- **Update**: `createSkill()` adds `target` and `criterion` with defaults derived from `selectorOverride`
+- **Change**: Add `target: overrides.target ?? "enemy"` and `criterion: overrides.criterion ?? "nearest"`
+- **Reason**: Defaults match the old `DEFAULT_SELECTOR` of `nearest_enemy`
+
+#### File: `src/stores/gameStore-test-helpers.ts`
+
+- **Update**: Same as above
+- **Reason**: Same defaults
+
+---
+
+### Step 4: Rename `mode` to `behavior` (universal)
+
+This is the highest-volume mechanical change. All test files that reference `mode` need updating.
+
+#### File: `src/engine/game-test-helpers.ts`
+
+- **Update**: `createSkill()` replaces `mode: overrides.mode` with `behavior: overrides.behavior ?? ""`
+- **Update**: `createMoveAction()` replaces `mode: "towards"` with `behavior: "towards"`
+- **Reason**: Field rename
+
+#### File: `src/stores/gameStore-test-helpers.ts`
+
+- **Update**: `createSkill()` replaces `mode: overrides.mode ?? undefined` with `behavior: overrides.behavior ?? ""`
+- **Reason**: Field rename. Default changes from `undefined` to `""` (empty string sentinel for non-move skills)
+
+#### Files with mechanical `mode:` to `behavior:` replacements (18 files, ~96 occurrences):
+
+| Test File                                                          | Occurrences | Change                                                |
+| ------------------------------------------------------------------ | ----------- | ----------------------------------------------------- |
+| `src/engine/game-decisions-action-type-inference.test.ts`          | 2           | `mode: "towards"` -> `behavior: "towards"`            |
+| `src/engine/game-decisions-move-destination-basic.test.ts`         | 5           | Same                                                  |
+| `src/engine/game-decisions-move-destination-wall-boundary.test.ts` | 15          | Same                                                  |
+| `src/engine/game-decisions-evaluate-skills.test.ts`                | 4           | Same (including `mode: "hold"` -> `behavior: "hold"`) |
+| `src/engine/game-decisions-skill-priority.test.ts`                 | 18          | Same                                                  |
+| `src/engine/game-healing-integration.test.ts`                      | 4           | Same                                                  |
+| `src/engine/game-integration.test.ts`                              | 1           | Same                                                  |
+| `src/engine/game-core-process-tick-resolution-order.test.ts`       | 1           | Same                                                  |
+| `src/stores/gameStore-reset.test.ts`                               | 1           | Same                                                  |
+| `src/stores/gameStore-selectors-faction-skills.test.ts`            | 2           | Same                                                  |
+| `src/stores/gameStore-selectors-intent-filter.test.ts`             | 1           | Same                                                  |
+| `src/stores/gameStore-selectors-intent-ticks.test.ts`              | 3           | Same                                                  |
+| `src/stores/gameStore-selectors-movement-intent.test.ts`           | 5           | Same                                                  |
+| `src/stores/gameStore-selectors-movement-target.test.ts`           | 8           | Same                                                  |
+| `src/stores/gameStore-selectors-intent-preview.test.ts`            | 7           | Same                                                  |
+| `src/stores/gameStore-skills-faction-exclusivity.test.ts`          | 1           | Same                                                  |
+| `src/stores/gameStore-skills-duplication.test.ts`                  | 16          | Same                                                  |
+| `src/stores/gameStore-skills.test.ts`                              | 2           | Same                                                  |
+
+#### File: `src/engine/skill-registry.test.ts`
+
+- **Update 1**: Test "attack skills have damage" (line 47-56)
+  - Replace `expect(lightPunch?.mode).toBeUndefined()` -> `expect(lightPunch?.behaviors).toEqual([])`
+  - Replace `expect(heavyPunch?.mode).toBeUndefined()` -> `expect(heavyPunch?.behaviors).toEqual([])`
+- **Update 2**: Test "move skill has mode" (line 58-63)
+  - Rename test to "move skill has behaviors"
+  - Replace `expect(moveSkill?.mode).toBe("towards")` -> `expect(moveSkill?.behaviors).toEqual(["towards", "away"])`
+  - Replace `expect(moveSkill?.damage).toBeUndefined()` -> keep as-is
+- **Update 3**: Test "heal skill has healing and no damage" (line 75-84)
+  - Replace `expect(heal?.mode).toBeUndefined()` -> `expect(heal?.behaviors).toEqual([])`
+- **Update 4**: Test "preserves intrinsic properties for innate skills" (line 126-138)
+  - Replace `expect(move.mode).toBe("towards")` -> `expect(move.behavior).toBe("towards")`
+- **Update 5**: Test "creates move skill with direction in name" (line 178-185)
+  - Replace `expect(skill.mode).toBe("towards")` -> `expect(skill.behavior).toBe("towards")`
+- **Update 6**: Test "adds behavioral fields to innate skills" (line 112-124)
+  - Replace `expect(skill.selectorOverride?.type).toBe("nearest_enemy")` with `expect(skill.target).toBe("enemy")` and `expect(skill.criterion).toBe("nearest")` (this actually bridges Steps 4 and 5, done at Step 5)
+
+#### File: `src/components/SkillsPanel/SkillsPanel.test.tsx`
+
+- **Update**: All `mode: "towards"` / `mode: "away"` -> `behavior: "towards"` / `behavior: "away"` (~15 occurrences in Move Skill Duplication UI and Mode Dropdown sections)
+- **Update**: `screen.getByRole("combobox", { name: /mode/i })` -> `screen.getByRole("combobox", { name: /behavior/i })` (if the UI label changes from "Mode" to "Behavior")
+  - **Note**: The plan says the UI dropdown is shown dynamically from registry `behaviors` array. If the label changes from "Mode" to "Behavior", all `name: /mode/i` queries must change. If the label stays "Mode" for user-facing text, no query change needed. **Decision**: The plan renames the field but the UI label should remain as-is for user familiarity; the coder should verify the actual label used.
+- **Update**: `expect(updatedSkill?.mode).toBe("away")` -> `expect(updatedSkill?.behavior).toBe("away")` (lines 987, 1506, 1508)
+
+---
+
+### Step 5: Switch engine from `evaluateSelector` to `evaluateTargetCriterion`; remove `selectorOverride`
+
+#### Files with mechanical `selectorOverride` to `target`+`criterion` replacements:
+
+| Test File                                                                 | Occurrences | Change Pattern                                                                                                                                   |
+| ------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/engine/game-healing-integration.test.ts`                             | 9           | `selectorOverride: { type: "lowest_hp_ally" }` -> `target: "ally", criterion: "lowest_hp"`                                                       |
+| `src/engine/skill-registry.test.ts`                                       | 4           | `expect(skill.selectorOverride?.type).toBe("nearest_enemy")` -> `expect(skill.target).toBe("enemy")` + `expect(skill.criterion).toBe("nearest")` |
+| `src/engine/game-decisions-skill-priority.test.ts`                        | 4           | Same pattern                                                                                                                                     |
+| `src/engine/game-core-process-tick-combat-movement.test.ts`               | 2           | Same pattern                                                                                                                                     |
+| `src/engine/game-core-process-tick-resolution-order.test.ts`              | 2           | Same pattern                                                                                                                                     |
+| `src/stores/gameStore-selectors-movement-target.test.ts`                  | 6           | Same pattern                                                                                                                                     |
+| `src/stores/gameStore-skills-duplication.test.ts`                         | 2           | Same pattern                                                                                                                                     |
+| `src/stores/gameStore-skills.test.ts`                                     | 3           | Same pattern                                                                                                                                     |
+| `src/components/SkillsPanel/SkillsPanel.test.tsx`                         | 31          | Same pattern                                                                                                                                     |
+| `src/components/BattleViewer/TargetingLineOverlay.test.tsx`               | 1           | Same pattern                                                                                                                                     |
+| `src/components/BattleViewer/battle-viewer-tooltip.test.tsx`              | 1           | Same pattern                                                                                                                                     |
+| `src/components/BattleViewer/CharacterTooltip.test.tsx`                   | 3           | Same pattern                                                                                                                                     |
+| `src/components/PlayControls/PlayControls.test.tsx`                       | 1           | Same pattern                                                                                                                                     |
+| `src/components/RuleEvaluations/rule-evaluations-skill-priority.test.tsx` | 18          | Same pattern                                                                                                                                     |
+| `src/components/RuleEvaluations/rule-evaluations-action-summary.test.tsx` | 13          | Same pattern                                                                                                                                     |
+
+**Detailed SkillsPanel changes** (most impacted file):
+
+- **Helper function tests** (lines 304-390): `decomposeSelector`/`composeSelector` tests are **DELETED entirely** -- these functions no longer exist
+- **UI Rendering tests** (lines 392-491): Target/criterion dropdowns remain, but data source changes:
+  - `selectorOverride: { type: "lowest_hp_ally" }` -> `target: "ally", criterion: "lowest_hp"`
+  - `selectorOverride: { type: "nearest_enemy" }` -> `target: "enemy", criterion: "nearest"`
+  - Strategy dropdown label may change from "Selection Strategy" to "Criterion" (coder to verify)
+- **Disabled State tests** (lines 494-545):
+  - `selectorOverride: { type: "self" }` -> `target: "self", criterion: "nearest"` (criterion ignored for self)
+  - `selectorOverride: { type: "nearest_enemy" }` -> `target: "enemy", criterion: "nearest"`
+- **User Interaction tests** (lines 547-801):
+  - All `expect(updatedSkill?.selectorOverride?.type).toBe(...)` -> split into `expect(updatedSkill?.target).toBe(...)` and `expect(updatedSkill?.criterion).toBe(...)`
+  - `expect(updatedSkill?.selectorOverride).toEqual({ type: "nearest_ally" })` -> `expect(updatedSkill?.target).toBe("ally")` + `expect(updatedSkill?.criterion).toBe("nearest")`
+- **Backward Compatibility tests** (lines 804-933):
+  - Same mechanical replacement pattern
+  - "default selector displays correctly when undefined" test: change to verify defaults `target: "enemy"` and `criterion: "nearest"` (these are now always present, never undefined)
+
+#### File: `src/engine/selectors-*.test.ts` (7 files)
+
+- **Update**: `evaluateSelector(selector, evaluator, allCharacters)` -> `evaluateTargetCriterion(target, criterion, evaluator, allCharacters)`
+- **Update**: `const selector: Selector = { type: "nearest_enemy" }` -> `const target: Target = "enemy"` + `const criterion: Criterion = "nearest"`
+- **Update**: Import changes: `import { evaluateSelector } from "./selectors"` -> `import { evaluateTargetCriterion } from "./selectors"`
+- **Update**: Import changes: `import { Selector } from "./types"` -> `import { Target, Criterion } from "./types"`
+- **Reason**: Function signature change, but behavior unchanged. These are mechanical updates.
+
+---
+
+### Step 6: Universal skill duplication
+
+#### File: `src/stores/gameStore-skills-duplication.test.ts`
+
+- **Update 1**: Test "rejects non-move skills" (line 152-167)
+  - **RENAME** to "respects maxInstances: 1 for non-duplicatable skills"
+  - Keep the same test body but update the justification comment
+  - **Note**: After Step 6, skills with `maxInstances: 1` (like light-punch) still cannot be duplicated. The test remains valid but the reason changes from "rejects non-move" to "maxInstances is 1".
+
+- **Update 2**: Test "new instance has default config" (line 69-90)
+  - Replace `expect(newSkill?.mode).toBe("towards")` -> `expect(newSkill?.behavior).toBe("towards")`
+  - Replace `expect(newSkill?.selectorOverride).toEqual({ type: "nearest_enemy" })` -> `expect(newSkill?.target).toBe("enemy")` + `expect(newSkill?.criterion).toBe("nearest")`
+  - **Reason**: Field renames from Steps 4-5
+
+- **Update 3**: Test "enforces max 3 move instances" (line 92-120)
+  - Test remains valid -- Move's `maxInstances` is 3 in the registry
+  - **Reason**: Same limit, now driven by registry instead of hardcoded constant
+
+---
+
+### Step 7: Update SkillsPanel UI
+
+#### File: `src/components/SkillsPanel/SkillsPanel.test.tsx`
+
+- **Update 1**: "strategy dropdown shows all options" (line 471-491)
+  - Add assertions for the two new criterion options: `furthest` and `highest_hp`
+  - `expect(screen.getByRole("option", { name: /^furthest$/i })).toBeInTheDocument()`
+  - `expect(screen.getByRole("option", { name: /^highest hp$/i })).toBeInTheDocument()`
+
+- **Update 2**: "duplicate button not visible for non-move skills" (line 1297-1312)
+  - This test may need updating depending on whether `maxInstances > 1` now applies to other skills. Per the plan, Light Punch has `maxInstances: 1`, so this test remains valid for light-punch. But the assertion text might change.
+
+- **Update 3**: Move-specific detection changes:
+  - `skill.mode !== undefined` checks in tests change to `skill.actionType === "move"` or registry lookup
+  - Already handled by Steps 4-5 mechanical replacements
+
+---
+
+### Step 8: Cleanup and documentation
+
+**No test changes needed.**
+
+---
+
+## New Tests
+
+### 1. Action Type Field Tests
+
+#### Test: getActionType reads actionType field directly
+
+- **File**: `src/engine/game-decisions-action-type-inference.test.ts`
 - **Type**: unit
-- **Verifies**: `generateInstanceId()` returns a string formatted as `"${registryId}-${counter}"`
-- **Setup**: Import `generateInstanceId` from `skill-registry.ts`. Call with `"move-towards"`.
+- **Verifies**: `getActionType()` returns the `actionType` field value without inference
+- **Setup**: Create skill with `actionType: "attack"`, no `damage` field
 - **Assertions**:
-  1. Return value matches pattern `/^move-towards-\d+$/`
-  2. Return value is a non-empty string
-- **Justification**: The instanceId format is foundational to all instance-level operations. An incorrect format would break React keys, store lookups, and debugging.
+  1. `getActionType(skill)` returns `"attack"` when `actionType` is `"attack"`
+  2. `getActionType(skill)` returns `"move"` when `actionType` is `"move"`
+  3. `getActionType(skill)` returns `"heal"` when `actionType` is `"heal"`
+- **Justification**: Replaces the deleted inference tests. Verifies that the new field-based approach works correctly and that payload fields (damage/healing) no longer affect action type determination.
 
----
+#### Test: actionType propagated from registry to Skill instances
 
-### Test: generateInstanceId-produces-unique-ids-across-calls
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: Sequential calls to `generateInstanceId()` with the same registryId return different values
-- **Setup**: Import `generateInstanceId`. Call it 3 times with `"move-towards"`.
+- **Verifies**: `createSkillFromDefinition()` propagates `actionType` from SkillDefinition to Skill
+- **Setup**: Get each SkillDefinition from registry, call `createSkillFromDefinition()`
 - **Assertions**:
-  1. All 3 returned values are distinct (use `new Set(ids).size === 3`)
-  2. Each value contains the `"move-towards-"` prefix
-- **Justification**: Uniqueness is critical for React key correctness and unambiguous store operations. A counter bug that reuses IDs would cause silent state corruption.
+  1. Light Punch skill instance has `actionType: "attack"`
+  2. Heavy Punch skill instance has `actionType: "attack"`
+  3. Move skill instance has `actionType: "move"`
+  4. Heal skill instance has `actionType: "heal"`
+- **Justification**: Ensures the registry-to-instance pipeline preserves the new field. Prevents regression where `actionType` could be lost during skill creation.
 
----
+#### Test: registry entries all have actionType
 
-### Test: generateInstanceId-unique-across-different-registry-ids
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: Calls with different registryIds produce different instanceIds (no counter collision across skill types)
-- **Setup**: Call `generateInstanceId("move-towards")`, then `generateInstanceId("light-punch")`.
+- **Verifies**: Every entry in `SKILL_REGISTRY` has a valid `actionType` field
+- **Setup**: Iterate `SKILL_REGISTRY`
 - **Assertions**:
-  1. The two returned values are not equal
-  2. First starts with `"move-towards-"`, second starts with `"light-punch-"`
-- **Justification**: If the counter were per-registryId rather than global, two different skill types could theoretically collide (e.g., `"move-towards-1"` and `"light-punch-1"` are fine, but the test ensures they actually differ). More importantly, validates the counter is global.
+  1. Every skill has `actionType` field
+  2. `actionType` is one of `"attack" | "move" | "heal"`
+  3. Light Punch and Heavy Punch have `actionType: "attack"`
+  4. Move has `actionType: "move"`
+  5. Heal has `actionType: "heal"`
+- **Justification**: Registry is the single source of truth (ADR-005). Verifying its shape prevents silent data corruption.
 
 ---
 
-### Test: getDefaultSkills-generates-unique-instanceIds
+### 2. Mirror Selector Tests
 
-- **File**: `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts`
+#### Test: furthest enemy basic selection
+
+- **File**: `src/engine/selectors-furthest.test.ts` (NEW FILE)
 - **Type**: unit
-- **Verifies**: Each skill returned by `getDefaultSkills()` has a valid, unique `instanceId`
-- **Setup**: Call `getDefaultSkills()`.
-- **Assertions**:
-  1. Every returned skill has a defined, non-empty `instanceId` property
-  2. All `instanceId` values are unique within the returned array
-  3. Each `instanceId` starts with the skill's `id` prefix (e.g., `"move-towards-"`)
-- **Justification**: Default skills are the starting point for all characters. Missing or duplicate instanceIds would break character creation.
-
----
-
-### Test: getDefaultSkills-returns-fresh-instanceIds-each-call
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts`
-- **Type**: unit
-- **Verifies**: Two calls to `getDefaultSkills()` produce skills with different instanceIds (not cached)
-- **Setup**: Call `getDefaultSkills()` twice. Compare `instanceId` of the Move skill from each call.
-- **Assertions**:
-  1. `result1[0].instanceId !== result2[0].instanceId`
-- **Justification**: Characters must have unique instanceIds. If `getDefaultSkills()` returned the same instanceId, characters created from it would share IDs, breaking instance-level targeting in the store.
-
----
-
-### Test: getDefaultSkills-uses-registry-name-without-suffix
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts`
-- **Type**: unit
-- **Verifies**: Move skill name is `"Move"` not `"Move Towards"` (name suffix removed per plan Step 4)
-- **Setup**: Call `getDefaultSkills()`. Check the Move skill's `name`.
-- **Assertions**:
-  1. `skill.name === "Move"`
-- **Justification**: Plan removes the hardcoded "Towards" suffix. Existing test `move name includes direction` must be updated to match this new expectation.
-
----
-
-### Test: createSkillFromDefinition-includes-instanceId
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts`
-- **Type**: unit
-- **Verifies**: `createSkillFromDefinition()` generates an `instanceId` on the returned skill
-- **Setup**: Call `createSkillFromDefinition()` with the `"light-punch"` definition from `SKILL_REGISTRY`.
-- **Assertions**:
-  1. Returned skill has `instanceId` property defined and non-empty
-  2. `instanceId` starts with `"light-punch-"`
-- **Justification**: Skills assigned from inventory also need instanceIds. Without this, assigned skills would have undefined instanceId, breaking store operations that look up by instanceId.
-
----
-
-### Test: duplicateSkill-creates-new-instance-with-unique-instanceId
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
-- **Type**: unit
-- **Verifies**: `duplicateSkill` action creates a new Move instance with a unique `instanceId` distinct from the source
+- **Verifies**: `evaluateTargetCriterion("enemy", "furthest", evaluator, allCharacters)` returns the enemy at maximum hex distance
 - **Setup**:
-  - Create character with one Move skill (`id: "move-towards"`, `instanceId: "move-towards-inst1"`, `mode: "towards"`)
-  - Init battle, call `duplicateSkill("char1", "move-towards-inst1")`
+  - Evaluator at `{q: 0, r: 0}`, faction friendly
+  - Enemy A at `{q: 0, r: 2}` (distance 2)
+  - Enemy B at `{q: 3, r: 0}` (distance 3)
 - **Assertions**:
-  1. Character now has 2 skills
-  2. Both skills have `id === "move-towards"` (same registry ID)
-  3. The two skills have different `instanceId` values
-  4. The new skill's `instanceId` is not empty and starts with `"move-towards-"`
-- **Justification**: Core duplication behavior. If the new instance shares an instanceId with the source, all instance-level operations would be ambiguous.
+  1. Returns Enemy B (distance 3 > distance 2)
+- **Justification**: Core new selector that mirrors `nearest`. Must verify basic distance maximization works.
 
----
+#### Test: furthest enemy ignores allies
 
-### Test: duplicateSkill-inserts-after-source-in-priority-list
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
+- **File**: `src/engine/selectors-furthest.test.ts`
 - **Type**: unit
-- **Verifies**: The duplicated skill is inserted directly after the source skill in priority order
+- **Verifies**: Ally characters are filtered out when using `target: "enemy"` with `criterion: "furthest"`
 - **Setup**:
-  - Create character with skills: `[Move (inst1), Light Punch (inst2)]`
-  - Call `duplicateSkill("char1", "inst1")`
+  - Evaluator at `{q: 0, r: 0}`, faction friendly
+  - Ally at `{q: 0, r: 5}` (distance 5, same faction)
+  - Enemy at `{q: 0, r: 2}` (distance 2, opposite faction)
 - **Assertions**:
-  1. Character has 3 skills
-  2. Skills order is: `[Move (inst1), Move (new), Light Punch (inst2)]`
-  3. `character.skills[1].id === "move-towards"` (new Move is at index 1)
-- **Justification**: Priority order determines decision-making. Inserting at the wrong position would change combat behavior unexpectedly.
+  1. Returns the enemy, not the further ally
+- **Justification**: Ensures faction filtering applies correctly to the new criterion.
 
----
+#### Test: furthest enemy tiebreaking by lower R then lower Q
 
-### Test: duplicateSkill-new-instance-has-default-config
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
+- **File**: `src/engine/selectors-furthest.test.ts`
 - **Type**: unit
-- **Verifies**: Duplicated skill gets default configuration (mode: "towards", trigger: always, selector: nearest_enemy), NOT a copy of source config
+- **Verifies**: When multiple enemies share the maximum distance, tiebreaker uses lower R, then lower Q
 - **Setup**:
-  - Create character with Move skill configured as: `mode: "away"`, `triggers: [{ type: "hp_below", value: 50 }]`, `selectorOverride: { type: "lowest_hp_enemy" }`
-  - Call `duplicateSkill("char1", sourceInstanceId)`
+  - Evaluator at `{q: 0, r: 0}`, faction friendly
+  - Enemy A at `{q: 1, r: -1}` (distance 1, R=-1)
+  - Enemy B at `{q: -1, r: 1}` (distance 1, R=1)
 - **Assertions**:
-  1. New skill has `mode === "towards"` (default, not source's "away")
-  2. New skill has `triggers` of `[{ type: "always" }]` (default, not source's hp_below)
-  3. New skill has `selectorOverride` of `{ type: "nearest_enemy" }` (default)
-  4. New skill has `enabled === true`
-- **Justification**: Plan specifies "New duplicate gets default config, not a copy of source." Copying source config would defeat the purpose of duplication (creating differently-configured instances).
+  1. Returns Enemy A (R=-1 < R=1)
+- **Justification**: Tiebreaking consistency with existing selectors (spec Section 6.2). Without this test, ties could produce nondeterministic behavior.
 
----
+#### Test: furthest enemy three-way tie
 
-### Test: duplicateSkill-enforces-max-3-move-instances
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
+- **File**: `src/engine/selectors-furthest.test.ts`
 - **Type**: unit
-- **Verifies**: Duplication is silently rejected when character already has MAX_MOVE_INSTANCES (3) Move skills
+- **Verifies**: Three enemies at equal max distance resolve via R then Q tiebreak
 - **Setup**:
-  - Create character with 3 Move skill instances (all with `id: "move-towards"`, different instanceIds)
-  - Call `duplicateSkill("char1", firstInstanceId)`
+  - Evaluator at `{q: 0, r: 0}`
+  - Enemy A at `{q: 0, r: -1}` (dist 1, R=-1)
+  - Enemy B at `{q: 1, r: 0}` (dist 1, R=0)
+  - Enemy C at `{q: -1, r: 0}` (dist 1, R=0, Q=-1)
 - **Assertions**:
-  1. Character still has exactly 3 skills
-  2. No new skill was added
-- **Justification**: Without this guard, unbounded duplication could fill all skill slots with Move skills and break the intended gameplay balance.
+  1. Returns Enemy A (lowest R=-1)
+- **Justification**: Multi-way ties must be deterministic for replay consistency.
 
----
+#### Test: furthest enemy returns null when no enemies
 
-### Test: duplicateSkill-enforces-max-skill-slots
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
+- **File**: `src/engine/selectors-furthest.test.ts`
 - **Type**: unit
-- **Verifies**: Duplication is silently rejected when character already has MAX_SKILL_SLOTS (3) total skills
+- **Verifies**: Returns null when no enemies exist
+- **Setup**: Evaluator + ally only, no enemies
+- **Assertions**:
+  1. Returns null
+- **Justification**: Edge case -- prevents runtime errors on empty candidate sets.
+
+#### Test: furthest ally basic selection
+
+- **File**: `src/engine/selectors-furthest.test.ts`
+- **Type**: unit
+- **Verifies**: `evaluateTargetCriterion("ally", "furthest", evaluator, allCharacters)` returns the furthest ally (excluding self)
 - **Setup**:
-  - Create character with 3 skills: `[Move, Light Punch, Heavy Punch]`
-  - Call `duplicateSkill("char1", moveInstanceId)`
+  - Evaluator at `{q: 0, r: 0}`, faction friendly
+  - Ally A at `{q: 0, r: 1}` (distance 1)
+  - Ally B at `{q: 0, r: 3}` (distance 3)
+  - Enemy at `{q: 0, r: 5}` (distance 5, opposite faction)
 - **Assertions**:
-  1. Character still has exactly 3 skills
-  2. No duplicate Move was added
-- **Justification**: The skill slot limit is a core game constraint. Duplication must respect it even though the Move skill is innate.
+  1. Returns Ally B (distance 3, excludes self and enemies)
+- **Justification**: Ally targeting with furthest criterion is a new combination. Must verify self-exclusion and faction filtering.
 
----
+#### Test: furthest ally excludes self
 
-### Test: duplicateSkill-rejects-non-move-skills
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
+- **File**: `src/engine/selectors-furthest.test.ts`
 - **Type**: unit
-- **Verifies**: Attempting to duplicate a non-Move skill (one without `mode` property) does nothing
+- **Verifies**: Evaluator is not returned as a candidate for `ally` + `furthest`
+- **Setup**: Evaluator alone, no other allies
+- **Assertions**:
+  1. Returns null
+- **Justification**: Self-exclusion is critical for ally selectors. Without this, a character could target itself when it should find no valid target.
+
+#### Test: highest_hp enemy basic selection
+
+- **File**: `src/engine/selectors-highest-hp.test.ts` (NEW FILE)
+- **Type**: unit
+- **Verifies**: `evaluateTargetCriterion("enemy", "highest_hp", evaluator, allCharacters)` returns the enemy with maximum HP
 - **Setup**:
-  - Create character with Light Punch skill (`mode: undefined`)
-  - Call `duplicateSkill("char1", lightPunchInstanceId)`
+  - Evaluator at `{q: 0, r: 0}`, faction friendly
+  - Enemy A with hp 50, position `{q: 0, r: 1}`
+  - Enemy B with hp 80, position `{q: 0, r: 2}`
 - **Assertions**:
-  1. Character skill count unchanged
-  2. No error thrown
-- **Justification**: Only Move skills support duplication. Silently rejecting prevents the UI from needing additional error handling.
+  1. Returns Enemy B (hp 80 > hp 50)
+- **Justification**: Core new selector. Must verify HP maximization selects the healthiest target.
 
----
+#### Test: highest_hp enemy tiebreaking by lower R then lower Q
 
-### Test: duplicateSkill-handles-nonexistent-character-gracefully
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
+- **File**: `src/engine/selectors-highest-hp.test.ts`
 - **Type**: unit
-- **Verifies**: Calling `duplicateSkill` with an invalid character ID does not throw
-- **Setup**: Init empty battle. Call `duplicateSkill("nonexistent", "some-id")`.
-- **Assertions**:
-  1. No error thrown
-  2. State unchanged
-- **Justification**: Defensive programming. UI events could race with character removal.
-
----
-
-### Test: duplicateSkill-handles-nonexistent-instanceId-gracefully
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
-- **Type**: unit
-- **Verifies**: Calling `duplicateSkill` with an invalid instanceId does not throw
-- **Setup**: Create character with one Move skill. Call `duplicateSkill("char1", "nonexistent-instance")`.
-- **Assertions**:
-  1. No error thrown
-  2. Character skill count unchanged
-- **Justification**: Defensive programming. Stale UI state could reference removed instances.
-
----
-
-### Test: removeSkillFromCharacter-allows-removing-duplicate-move
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
-- **Type**: unit
-- **Verifies**: A duplicate Move instance can be removed when the character has 2+ Move instances
+- **Verifies**: When enemies share maximum HP, tiebreak uses lower R then lower Q
 - **Setup**:
-  - Create character with 2 Move skills (different instanceIds)
-  - Call `removeSkillFromCharacter("char1", secondMoveInstanceId)`
+  - Evaluator at `{q: 0, r: 0}`
+  - Enemy A with hp 80, position `{q: -2, r: -1}` (R=-1)
+  - Enemy B with hp 80, position `{q: 2, r: 1}` (R=1)
 - **Assertions**:
-  1. Character has 1 skill remaining
-  2. Remaining skill has the first instanceId
-  3. Removed instanceId is no longer in skills array
-- **Justification**: Validates the key behavioral change: innate duplicates CAN be removed, unlike the original which previously could never be removed.
+  1. Returns Enemy A (R=-1 < R=1)
+- **Justification**: Tiebreaking consistency with spec Section 6.2.
+
+#### Test: highest_hp enemy ignores dead characters
+
+- **File**: `src/engine/selectors-highest-hp.test.ts`
+- **Type**: unit
+- **Verifies**: Characters with hp <= 0 are excluded from selection
+- **Setup**:
+  - Enemy A with hp 0
+  - Enemy B with hp 30
+- **Assertions**:
+  1. Returns Enemy B (Enemy A is dead)
+- **Justification**: Dead character filtering must apply to all selectors. Prevents targeting corpses.
+
+#### Test: highest_hp ally basic selection
+
+- **File**: `src/engine/selectors-highest-hp.test.ts`
+- **Type**: unit
+- **Verifies**: Returns the ally with maximum HP (excluding self)
+- **Setup**:
+  - Evaluator at `{q: 0, r: 0}`, hp 100
+  - Ally A at `{q: 0, r: 1}`, hp 60
+  - Ally B at `{q: 0, r: 2}`, hp 90
+- **Assertions**:
+  1. Returns Ally B (hp 90 > hp 60, excludes evaluator)
+- **Justification**: Ally+highest_hp is useful for skills that buff the healthiest ally. Must verify self-exclusion.
+
+#### Test: highest_hp ally returns null when no allies
+
+- **File**: `src/engine/selectors-highest-hp.test.ts`
+- **Type**: unit
+- **Verifies**: Returns null when only evaluator exists (no other allies)
+- **Setup**: Evaluator alone
+- **Assertions**:
+  1. Returns null
+- **Justification**: Edge case consistency with existing ally selectors.
 
 ---
 
-### Test: removeSkillFromCharacter-prevents-removing-last-move-instance
+### 3. Target + Criterion Combination Tests
 
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
+#### Test: evaluateTargetCriterion handles all 12 combinations
+
+- **File**: `src/engine/selectors-target-criterion.test.ts` (NEW FILE)
 - **Type**: unit
-- **Verifies**: The last Move instance cannot be removed (innate protection)
+- **Verifies**: All target+criterion combinations produce correct results
 - **Setup**:
-  - Create character with 1 Move skill
-  - Call `removeSkillFromCharacter("char1", moveInstanceId)`
+  - Evaluator (friendly) at `{q: 0, r: 0}`, hp 100
+  - Ally at `{q: 0, r: 1}`, hp 60
+  - Enemy near at `{q: 1, r: 0}`, hp 80
+  - Enemy far at `{q: 3, r: 0}`, hp 40
+- **Assertions** (one per combination):
+  1. `("enemy", "nearest")` -> Enemy near
+  2. `("enemy", "furthest")` -> Enemy far
+  3. `("enemy", "lowest_hp")` -> Enemy far (hp 40)
+  4. `("enemy", "highest_hp")` -> Enemy near (hp 80)
+  5. `("ally", "nearest")` -> Ally
+  6. `("ally", "furthest")` -> Ally (only one ally)
+  7. `("ally", "lowest_hp")` -> Ally (only one ally)
+  8. `("ally", "highest_hp")` -> Ally (only one ally)
+  9. `("self", "nearest")` -> Evaluator
+  10. `("self", "furthest")` -> Evaluator
+  11. `("self", "lowest_hp")` -> Evaluator
+  12. `("self", "highest_hp")` -> Evaluator
+- **Justification**: Exhaustive coverage of the 3x4 matrix. Acceptance criterion requires all target+criterion combinations to work. This single test validates the complete combinatorial space.
+
+#### Test: self target ignores criterion
+
+- **File**: `src/engine/selectors-target-criterion.test.ts`
+- **Type**: unit
+- **Verifies**: When target is `"self"`, the criterion parameter is completely ignored and the evaluator is always returned
+- **Setup**:
+  - Evaluator at `{q: 0, r: 0}`, hp 50
+  - Enemy at `{q: 0, r: 1}`, hp 10 (lower hp, nearer)
+- **Assertions**:
+  1. `("self", "nearest")` returns evaluator
+  2. `("self", "furthest")` returns evaluator
+  3. `("self", "lowest_hp")` returns evaluator
+  4. `("self", "highest_hp")` returns evaluator
+- **Justification**: Self-targeting is a special case documented in the plan. Must verify criterion is truly ignored, not accidentally filtering.
+
+#### Test: evaluateTargetCriterion returns null for empty candidate set
+
+- **File**: `src/engine/selectors-target-criterion.test.ts`
+- **Type**: unit
+- **Verifies**: Returns null when no valid candidates exist for the given target+criterion
+- **Setup**:
+  - Evaluator (friendly) alone, no enemies
+- **Assertions**:
+  1. `("enemy", "nearest")` returns null
+  2. `("enemy", "furthest")` returns null
+  3. `("enemy", "lowest_hp")` returns null
+  4. `("enemy", "highest_hp")` returns null
+- **Justification**: Prevents null-pointer exceptions when no targets exist. Critical for graceful idle fallback.
+
+---
+
+### 4. Non-Move Skill Duplication Tests
+
+#### Test: Light Punch duplication blocked by maxInstances: 1
+
+- **File**: `src/stores/gameStore-skills-duplication.test.ts`
+- **Type**: integration
+- **Verifies**: Skills with `maxInstances: 1` in the registry cannot be duplicated
+- **Setup**:
+  - Character with one Light Punch skill (`id: "light-punch"`)
+  - Call `duplicateSkill(charId, lightPunchInstanceId)`
 - **Assertions**:
   1. Character still has 1 skill
-  2. The Move skill is still present
-- **Justification**: Core invariant: every character must always have at least one Move skill. This is the "innate cannot be removed" rule adapted for duplication.
+  2. No new instance was created
+- **Justification**: `maxInstances: 1` must prevent duplication. This was previously blocked by `mode === undefined` guard; now it is blocked by registry lookup. Verifies the new guard mechanism works.
 
----
+#### Test: Skill duplication with maxInstances: 2
 
-### Test: removeSkillFromCharacter-allows-removing-original-if-duplicate-exists
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
-- **Type**: unit
-- **Verifies**: The original (first-created) Move instance can be removed as long as another Move instance remains
-- **Setup**:
-  - Create character with 2 Move skills (originalInstanceId and duplicateInstanceId)
-  - Call `removeSkillFromCharacter("char1", originalInstanceId)`
-- **Assertions**:
-  1. Character has 1 skill remaining
-  2. Remaining skill has the duplicateInstanceId
-- **Justification**: There is no special protection for the "original" -- any Move can be removed as long as one remains. This prevents a confusing UX where only the original is protected.
-
----
-
-### Test: updateSkill-targets-correct-instance-by-instanceId
-
-- **File**: `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
-- **Type**: unit
-- **Verifies**: `updateSkill` finds and updates the skill matching the given `instanceId`, not all skills with the same registry `id`
-- **Setup**:
-  - Create character with 2 Move skills: `instanceId: "inst1"` (mode: towards), `instanceId: "inst2"` (mode: towards)
-  - Call `updateSkill("char1", "inst2", { mode: "away" })`
-- **Assertions**:
-  1. Skill with `instanceId === "inst1"` still has `mode === "towards"`
-  2. Skill with `instanceId === "inst2"` now has `mode === "away"`
-- **Justification**: Before this feature, `updateSkill` found by `skill.id`. With duplicates sharing the same `id`, it must use `instanceId` to avoid updating the wrong instance.
-
----
-
-### Test: priority-evaluation-selects-higher-priority-move-when-trigger-passes
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-skill-priority.test.ts`
-- **Type**: unit
-- **Verifies**: When a character has two Move instances, the decision engine selects the first one (highest priority) whose triggers pass
-- **Setup**:
-  - Create character at `{q: 0, r: 0}` with skills:
-    1. Move (mode: "away", trigger: `hp_below 50%`) -- priority 1
-    2. Move (mode: "towards", trigger: `always`) -- priority 2
-  - Create enemy at `{q: 2, r: 0}`
-  - Set character HP to 30 (below 50%)
-  - Create game state and call `computeDecisions()`
-- **Assertions**:
-  1. Decision action type is `"move"`
-  2. Decision action skill has `mode === "away"` (the higher-priority Move was selected)
-- **Justification**: This is the primary use case for Move duplication: HP-conditional movement. The test validates that the decision engine correctly evaluates multiple Move instances.
-
----
-
-### Test: priority-evaluation-skips-to-lower-priority-move-when-trigger-fails
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-skill-priority.test.ts`
-- **Type**: unit
-- **Verifies**: When the higher-priority Move's trigger fails, the engine falls through to the lower-priority Move
-- **Setup**:
-  - Create character at `{q: 0, r: 0}` with skills:
-    1. Move (mode: "away", trigger: `hp_below 50%`) -- priority 1
-    2. Move (mode: "towards", trigger: `always`) -- priority 2
-  - Create enemy at `{q: 2, r: 0}`
-  - Set character HP to 100 (above 50%)
-  - Create game state and call `computeDecisions()`
-- **Assertions**:
-  1. Decision action type is `"move"`
-  2. Decision action skill has `mode === "towards"` (fell through to second Move)
-- **Justification**: Complementary to the previous test. Together they prove the HP-conditional movement scenario works end-to-end in the decision engine.
-
----
-
-### Test: evaluateSkillsForCharacter-reports-correct-status-for-multiple-moves
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-evaluate-skills.test.ts`
-- **Type**: unit
-- **Verifies**: `evaluateSkillsForCharacter()` correctly marks the first passing Move as "selected" and the second as "skipped" (or vice versa if the first fails)
-- **Setup**:
-  - Create character with 2 Move skills:
-    1. Move (mode: "away", trigger: `hp_below 50%`) -- HP is 100, trigger fails
-    2. Move (mode: "towards", trigger: `always`) -- trigger passes
-  - Create enemy in range
-  - Call `evaluateSkillsForCharacter(character, allCharacters)`
-- **Assertions**:
-  1. First skill evaluation has `status === "rejected"` and `rejectionReason === "trigger_failed"`
-  2. Second skill evaluation has `status === "selected"`
-  3. `selectedSkillIndex === 1`
-- **Justification**: The UI uses `evaluateSkillsForCharacter()` to show rule evaluation tooltips. It must correctly display which Move instance was chosen and which was rejected, especially when multiple instances of the same skill are present.
-
----
-
-## 2. Component Tests -- SkillsPanel UI
-
-### Test: duplicate-button-visible-for-move-skills
-
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx`
-- **Type**: unit (component)
-- **Verifies**: A "Duplicate" button appears for skills with `mode !== undefined` (Move skills)
-- **Setup**:
-  - Create character with one Move skill (`id: "move-towards"`, `instanceId: "move-inst-1"`, `mode: "towards"`)
-  - Init battle, select character, render `<SkillsPanel />`
-- **Assertions**:
-  1. `screen.getByRole("button", { name: /duplicate move/i })` is in the document
-- **Justification**: The Duplicate button is the user entry point for the feature. Without it, users cannot create duplicate Move instances.
-
----
-
-### Test: duplicate-button-not-visible-for-non-move-skills
-
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx`
-- **Type**: unit (component)
-- **Verifies**: No "Duplicate" button appears for skills without `mode` (attack/heal skills)
-- **Setup**:
-  - Create character with one Light Punch skill (`id: "light-punch"`, `instanceId: "lp-inst-1"`, `damage: 10`)
-  - Init battle, select character, render `<SkillsPanel />`
-- **Assertions**:
-  1. `screen.queryByRole("button", { name: /duplicate/i })` is null
-- **Justification**: Only Move skills support duplication. Showing a Duplicate button for other skills would confuse users and potentially trigger silent errors.
-
----
-
-### Test: duplicate-button-disabled-at-max-move-instances
-
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx`
-- **Type**: unit (component)
-- **Verifies**: The Duplicate button is not rendered (hidden) when the character already has MAX_MOVE_INSTANCES (3) Move skills
-- **Setup**:
-  - Create character with 3 Move skill instances (all `id: "move-towards"`, different instanceIds)
-  - Init battle, select character, render `<SkillsPanel />`
-- **Assertions**:
-  1. `screen.queryByRole("button", { name: /duplicate/i })` is null
-- **Justification**: The plan specifies the button is hidden (not just disabled) when at the limit. Prevents users from attempting an action that would be silently rejected.
-
----
-
-### Test: duplicate-button-hidden-at-max-skill-slots
-
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx`
-- **Type**: unit (component)
-- **Verifies**: The Duplicate button is hidden when the character has MAX_SKILL_SLOTS (3) total skills, even if fewer than 3 are Move
-- **Setup**:
-  - Create character with 3 skills: `[Move (inst1), Light Punch (inst2), Heavy Punch (inst3)]`
-  - Init battle, select character, render `<SkillsPanel />`
-- **Assertions**:
-  1. `screen.queryByRole("button", { name: /duplicate/i })` is null
-- **Justification**: The total skill slot limit must be respected even for Move duplication. This prevents exceeding the MAX_SKILL_SLOTS constraint.
-
----
-
-### Test: clicking-duplicate-creates-new-move-instance
-
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx`
-- **Type**: unit (component)
-- **Verifies**: Clicking the Duplicate button creates a new Move instance in the store and it renders in the UI
-- **Setup**:
-  - Create character with 1 Move skill (`instanceId: "move-inst-1"`)
-  - Init battle, select character, render `<SkillsPanel />`
-  - Click the "Duplicate Move" button using `userEvent`
-- **Assertions**:
-  1. Store: Character now has 2 skills
-  2. Store: Both skills have `id === "move-towards"`
-  3. Store: The two skills have different `instanceId` values
-  4. UI: Two mode dropdowns are visible (`screen.getAllByRole("combobox", { name: /mode/i }).length === 2`)
-- **Justification**: End-to-end validation that the UI button triggers the store action and the new instance renders correctly.
-
----
-
-### Test: remove-button-appears-for-duplicate-move-instances
-
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx`
-- **Type**: unit (component)
-- **Verifies**: When multiple Move instances exist, a "Remove" button appears for each Move instance
-- **Setup**:
-  - Create character with 2 Move skills (different instanceIds)
-  - Init battle, select character, render `<SkillsPanel />`
-- **Assertions**:
-  1. `screen.getAllByRole("button", { name: /remove/i })` has length 2 (one for each Move)
-  2. Innate badge still appears for all Move instances
-- **Justification**: Users need a way to remove duplicate Move instances. The Remove button must appear for each instance when there are 2+ Move skills.
-
----
-
-### Test: remove-button-hidden-for-single-move-instance
-
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx`
-- **Type**: unit (component)
-- **Verifies**: When only one Move instance exists, no Remove button appears for it
-- **Setup**:
-  - Create character with 1 Move skill
-  - Init battle, select character, render `<SkillsPanel />`
-- **Assertions**:
-  1. No button matching `/remove move/i` is in the document
-  2. Innate badge is still present
-- **Justification**: The last Move instance must be protected. Hiding the Remove button prevents the user from attempting to remove the only Move.
-
----
-
-### Test: clicking-remove-deletes-duplicate-move-instance
-
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx`
-- **Type**: unit (component)
-- **Verifies**: Clicking Remove on a duplicate Move removes it from the store and UI
-- **Setup**:
-  - Create character with 2 Move skills (`instanceId: "inst1"`, `instanceId: "inst2"`)
-  - Init battle, select character, render `<SkillsPanel />`
-  - Click the Remove button for the second instance
-- **Assertions**:
-  1. Store: Character now has 1 skill
-  2. Store: Remaining skill has `instanceId === "inst1"`
-  3. UI: Only one mode dropdown remains
-- **Justification**: Validates the Remove flow from click to store update to UI re-render.
-
----
-
-### Test: each-move-instance-has-independent-mode-configuration
-
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx`
-- **Type**: unit (component)
-- **Verifies**: Changing the mode dropdown on one Move instance does not affect another
-- **Setup**:
-  - Create character with 2 Move skills (both initially mode: "towards", different instanceIds)
-  - Init battle, select character, render `<SkillsPanel />`
-  - Get both mode dropdowns, change the second one to "away"
-- **Assertions**:
-  1. First mode dropdown still shows "towards"
-  2. Second mode dropdown shows "away"
-  3. Store: First skill has `mode === "towards"`, second has `mode === "away"`
-- **Justification**: Independent configuration is the core value proposition of duplication. If changing one instance's mode affected the other, the feature would be broken.
-
----
-
-### Test: each-move-instance-has-independent-trigger-configuration
-
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx`
-- **Type**: unit (component)
-- **Verifies**: Changing the trigger on one Move instance does not affect another
-- **Setup**:
-  - Create character with 2 Move skills (both initially trigger: "always", different instanceIds)
-  - Init battle, select character, render `<SkillsPanel />`
-  - Change the first skill's trigger dropdown to "hp_below"
-- **Assertions**:
-  1. Store: First skill has `triggers[0].type === "hp_below"`
-  2. Store: Second skill still has `triggers[0].type === "always"`
-- **Justification**: Each Move instance represents a different tactical rule. Independent triggers are essential for HP-conditional movement strategies.
-
----
-
-### Test: react-keys-use-instanceId-no-duplicate-key-warnings
-
-- **File**: `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx`
-- **Type**: unit (component)
-- **Verifies**: Rendering multiple Move instances with the same `id` but different `instanceId` values does not produce React key collision warnings
-- **Setup**:
-  - Create character with 3 Move skills (same `id: "move-towards"`, different instanceIds)
-  - Spy on `console.error` before render
-  - Init battle, select character, render `<SkillsPanel />`
-- **Assertions**:
-  1. `console.error` was not called with a message containing "key" or "unique" (React duplicate key warning)
-  2. All 3 skill sections are rendered (3 mode dropdowns visible)
-- **Justification**: React key collisions cause unpredictable rendering behavior and are a telltale sign that `skill.id` is being used instead of `skill.instanceId`. This test catches the most common implementation mistake.
-
----
-
-## 3. Integration Tests
-
-### Test: hp-conditional-movement-full-scenario-low-hp-triggers-away
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-skill-priority.test.ts`
+- **File**: `src/stores/gameStore-skills-duplication.test.ts`
 - **Type**: integration
-- **Verifies**: Complete HP-conditional movement scenario: a character with HP below 50% selects "Move away" over "Move towards"
+- **Verifies**: Skills with `maxInstances > 1` can be duplicated up to the limit
 - **Setup**:
-  - Create friendly character at `{q: 0, r: 0}`, HP: 30, maxHp: 100
-  - Skills in priority order:
-    1. Move (instanceId: "move-away-inst", mode: "away", trigger: `{ type: "hp_below", value: 50 }`, selector: `{ type: "nearest_enemy" }`)
-    2. Move (instanceId: "move-towards-inst", mode: "towards", trigger: `{ type: "always" }`, selector: `{ type: "nearest_enemy" }`)
-  - Create enemy at `{q: 2, r: 0}`
-  - Build game state, call `computeDecisions(state)`
+  - Modify test to use a skill with `maxInstances: 2` (since current registry only has Move at 3 and others at 1, this test would need a registry override or mock. **Alternative**: Test Move at its `maxInstances: 3` limit which already works, and verify the general mechanism by testing that `maxInstances` is read from registry)
+  - **Practical approach**: Test that duplicating a Move skill works up to 3 instances, then stops. Also verify via registry lookup that `maxInstances` is the controlling value.
 - **Assertions**:
-  1. Exactly 1 decision for the friendly character
-  2. Decision action type is `"move"`
-  3. Decision action skill mode is `"away"`
-  4. Decision action targetCell is farther from enemy than character's current position (hex distance increased)
-- **Justification**: This is THE canonical use case from the task description. It validates the entire stack: trigger evaluation, priority ordering, skill selection, and action creation work together for conditional movement.
+  1. First duplication succeeds (2 instances)
+  2. Second duplication succeeds (3 instances)
+  3. Third duplication blocked (still 3 instances)
+- **Justification**: Verifies the registry-driven limit replaces the hardcoded `MAX_MOVE_INSTANCES` constant.
 
----
+#### Test: Duplicated non-Move skill gets default config from registry
 
-### Test: hp-conditional-movement-full-scenario-high-hp-triggers-towards
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-skill-priority.test.ts`
+- **File**: `src/stores/gameStore-skills-duplication.test.ts`
 - **Type**: integration
-- **Verifies**: Same setup but with HP above 50% -- character selects "Move towards" because "Move away" trigger fails
+- **Verifies**: When a skill is duplicated, the new instance gets defaults from the registry (defaultBehavior, defaultTarget, defaultCriterion), not a copy of the source skill's config
 - **Setup**:
-  - Create friendly character at `{q: 0, r: 0}`, HP: 100, maxHp: 100
-  - Same skill order as above (Move away hp_below 50% at priority 1, Move towards always at priority 2)
-  - Create enemy at `{q: 2, r: 0}`
-  - Build game state, call `computeDecisions(state)`
+  - Character with a Move skill configured with `behavior: "away"`, `target: "ally"`, `criterion: "lowest_hp"`, trigger `hp_below 50`
+  - Duplicate the skill
 - **Assertions**:
-  1. Decision action type is `"move"`
-  2. Decision action skill mode is `"towards"`
-  3. Decision action targetCell is closer to enemy than character's current position (hex distance decreased)
-- **Justification**: The complementary case to the previous test. Together they prove the HP-conditional strategy works in both branches.
+  1. New instance has `behavior: "towards"` (registry defaultBehavior)
+  2. New instance has `target: "enemy"` (registry defaultTarget)
+  3. New instance has `criterion: "nearest"` (registry defaultCriterion)
+  4. New instance has `triggers: [{ type: "always" }]`
+  5. New instance has `enabled: true`
+- **Justification**: Ensures new duplicates start with registry defaults, not inheriting customized config. This is the documented behavior from the existing "new instance has default config" test, updated for new field names.
 
 ---
 
-### Test: multiple-characters-with-different-move-configs
+### 5. Registry Field Tests
 
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-skill-priority.test.ts`
+#### Test: all registry entries have behaviors array
+
+- **File**: `src/engine/skill-registry.test.ts`
+- **Type**: unit
+- **Verifies**: Every `SkillDefinition` in `SKILL_REGISTRY` has a `behaviors` array and `defaultBehavior` string
+- **Setup**: Iterate SKILL_REGISTRY
+- **Assertions**:
+  1. Every skill has `behaviors` as an array
+  2. Light Punch: `behaviors: []`, `defaultBehavior: ""`
+  3. Heavy Punch: `behaviors: []`, `defaultBehavior: ""`
+  4. Move: `behaviors: ["towards", "away"]`, `defaultBehavior: "towards"`
+  5. Heal: `behaviors: []`, `defaultBehavior: ""`
+- **Justification**: Registry is the source of truth. These fields drive UI dropdown visibility and duplication default values.
+
+#### Test: all registry entries have maxInstances
+
+- **File**: `src/engine/skill-registry.test.ts`
+- **Type**: unit
+- **Verifies**: Every `SkillDefinition` has a `maxInstances` field >= 1
+- **Setup**: Iterate SKILL_REGISTRY
+- **Assertions**:
+  1. Light Punch: `maxInstances: 1`
+  2. Heavy Punch: `maxInstances: 1`
+  3. Move: `maxInstances: 3`
+  4. Heal: `maxInstances: 1`
+- **Justification**: `maxInstances` replaces `MAX_MOVE_INSTANCES` constant. Must verify all skills have sensible values.
+
+#### Test: all registry entries have defaultTarget and defaultCriterion
+
+- **File**: `src/engine/skill-registry.test.ts`
+- **Type**: unit
+- **Verifies**: Every `SkillDefinition` has `defaultTarget` and `defaultCriterion`
+- **Setup**: Iterate SKILL_REGISTRY
+- **Assertions**:
+  1. Light Punch: `defaultTarget: "enemy"`, `defaultCriterion: "nearest"`
+  2. Heavy Punch: `defaultTarget: "enemy"`, `defaultCriterion: "nearest"`
+  3. Move: `defaultTarget: "enemy"`, `defaultCriterion: "nearest"`
+  4. Heal: `defaultTarget: "ally"`, `defaultCriterion: "lowest_hp"`
+- **Justification**: These fields replace `defaultSelector`. Must verify the decomposition matches the original monolithic selector values.
+
+---
+
+### 6. Behavior Dropdown Visibility Tests
+
+#### Test: behavior dropdown visible when registry has multiple behaviors
+
+- **File**: `src/components/SkillsPanel/SkillsPanel.test.tsx`
+- **Type**: component (integration)
+- **Verifies**: Behavior dropdown renders only when the skill's registry definition has `behaviors.length > 1`
+- **Setup**:
+  - Character with a Move skill (`behaviors: ["towards", "away"]` in registry)
+- **Assertions**:
+  1. A combobox labeled "behavior" (or "mode") is rendered
+  2. Options include "towards" and "away"
+- **Justification**: UI must dynamically show/hide the behavior dropdown based on registry data. This is the new mechanism replacing the hardcoded `mode !== undefined` check.
+
+#### Test: behavior dropdown hidden when registry has zero behaviors
+
+- **File**: `src/components/SkillsPanel/SkillsPanel.test.tsx`
+- **Type**: component (integration)
+- **Verifies**: Behavior dropdown is not rendered for skills with `behaviors: []` in the registry
+- **Setup**:
+  - Character with a Light Punch skill (`behaviors: []` in registry)
+- **Assertions**:
+  1. No combobox labeled "behavior" (or "mode") is rendered
+- **Justification**: Non-move skills should not show behavior configuration. Mirrors existing test "should not display mode dropdown for non-Move skills" but validates via registry lookup instead of `mode !== undefined`.
+
+---
+
+### 7. Criterion Dropdown Expansion Tests
+
+#### Test: criterion dropdown includes furthest option
+
+- **File**: `src/components/SkillsPanel/SkillsPanel.test.tsx`
+- **Type**: component (integration)
+- **Verifies**: The criterion (strategy) dropdown includes the new "furthest" option
+- **Setup**: Character with a skill, render SkillsPanel
+- **Assertions**:
+  1. `screen.getByRole("option", { name: /^furthest$/i })` is in the document
+- **Justification**: Acceptance criterion requires mirror selectors to be available in the UI.
+
+#### Test: criterion dropdown includes highest_hp option
+
+- **File**: `src/components/SkillsPanel/SkillsPanel.test.tsx`
+- **Type**: component (integration)
+- **Verifies**: The criterion (strategy) dropdown includes the new "highest HP" option
+- **Setup**: Character with a skill, render SkillsPanel
+- **Assertions**:
+  1. `screen.getByRole("option", { name: /^highest hp$/i })` is in the document
+- **Justification**: Same as above.
+
+#### Test: selecting furthest criterion updates skill
+
+- **File**: `src/components/SkillsPanel/SkillsPanel.test.tsx`
+- **Type**: component (integration)
+- **Verifies**: Selecting "furthest" from the criterion dropdown updates the skill's `criterion` field in the store
+- **Setup**:
+  - Character with skill `target: "enemy"`, `criterion: "nearest"`
+  - User selects "furthest" from criterion dropdown
+- **Assertions**:
+  1. `updatedSkill?.criterion` equals `"furthest"`
+  2. `updatedSkill?.target` remains `"enemy"` (unchanged)
+- **Justification**: End-to-end validation that new criterion values propagate through the store correctly.
+
+#### Test: selecting highest_hp criterion updates skill
+
+- **File**: `src/components/SkillsPanel/SkillsPanel.test.tsx`
+- **Type**: component (integration)
+- **Verifies**: Selecting "highest HP" from the criterion dropdown updates the skill's `criterion` field
+- **Setup**:
+  - Character with skill `target: "ally"`, `criterion: "lowest_hp"`
+  - User selects "highest_hp" from criterion dropdown
+- **Assertions**:
+  1. `updatedSkill?.criterion` equals `"highest_hp"`
+  2. `updatedSkill?.target` remains `"ally"`
+- **Justification**: Same as above, for the other new criterion.
+
+---
+
+### 8. Integration Regression Tests
+
+#### Test: Move skill still resolves correctly with behavior field
+
+- **File**: `src/engine/game-decisions-move-destination-basic.test.ts` (EXISTING, verified no new tests needed)
 - **Type**: integration
-- **Verifies**: Two friendly characters with different Move duplication configs each make independent correct decisions
-- **Setup**:
-  - Character A at `{q: -2, r: 0}`, HP: 30 (low):
-    - Skills: Move away (hp_below 50%), Move towards (always)
-  - Character B at `{q: -2, r: 2}`, HP: 100 (full):
-    - Skills: Move away (hp_below 50%), Move towards (always)
-  - Enemy at `{q: 2, r: 0}`
-  - Build game state, call `computeDecisions(state)`
-- **Assertions**:
-  1. Character A's decision: action type "move", skill mode "away" (hp_below triggered)
-  2. Character B's decision: action type "move", skill mode "towards" (hp_below NOT triggered, falls through to always)
-- **Justification**: Validates that each character's Move duplication configuration is evaluated independently. State from one character's evaluation must not leak into another's.
+- **Verifies**: Existing move destination tests pass after `mode` -> `behavior` rename
+- **Reason**: These tests verify `computeMoveDestination()` which still accepts `mode: "towards" | "away"` as its parameter. The cast from `behavior` to `mode` happens in `createSkillAction()`. As long as the mechanical rename is correct, no new tests are needed.
 
----
+#### Test: computeDecisions uses actionType for move action creation
 
-### Test: three-move-instances-priority-cascade
-
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-skill-priority.test.ts`
+- **File**: `src/engine/game-decisions-action-type-inference.test.ts`
 - **Type**: integration
-- **Verifies**: With 3 Move instances, the engine correctly cascades through priority when earlier triggers fail
+- **Verifies**: The full decision pipeline creates correct action types using the `actionType` field
 - **Setup**:
-  - Character at `{q: 0, r: 0}`, HP: 80, maxHp: 100:
-    - Skills:
-      1. Move away (trigger: `hp_below 25%`) -- HP is 80%, fails
-      2. Move away (trigger: `hp_below 50%`) -- HP is 80%, fails
-      3. Move towards (trigger: `always`) -- passes
-  - Enemy at `{q: 3, r: 0}`
-  - Call `computeDecisions(state)`
+  - Character with `actionType: "move"`, `behavior: "towards"`, enemy in range
 - **Assertions**:
-  1. Decision action skill mode is `"towards"` (fell through both hp_below triggers)
-  2. Decision action type is `"move"`
-- **Justification**: Tests the maximum allowed Move instances (3) in a cascade. Validates that the decision engine handles the full priority chain without issues.
+  1. Decision action has `type: "move"`
+  2. Decision action has correct `targetCell` (computed by pathfinding)
+- **Justification**: End-to-end verification that `actionType` + `behavior` work together in the decision pipeline.
 
 ---
 
-### Test: three-move-instances-middle-trigger-passes
+## Test File Organization
 
-- **File**: `/home/bob/Projects/auto-battler/src/engine/game-decisions-skill-priority.test.ts`
-- **Type**: integration
-- **Verifies**: With 3 Move instances, the engine selects the middle one when only its trigger passes (first fails, second passes, third skipped)
-- **Setup**:
-  - Character at `{q: 0, r: 0}`, HP: 40, maxHp: 100:
-    - Skills:
-      1. Move away (trigger: `hp_below 25%`) -- HP is 40%, fails (40 >= 25)
-      2. Move away (trigger: `hp_below 50%`) -- HP is 40%, passes (40 < 50)
-      3. Move towards (trigger: `always`) -- skipped
-  - Enemy at `{q: 3, r: 0}`
-  - Call `computeDecisions(state)`
-- **Assertions**:
-  1. Decision action skill mode is `"away"` (second Move selected)
-  2. Decision action type is `"move"`
-- **Justification**: Validates the mid-cascade selection path, ensuring the engine does not short-circuit incorrectly when the first skill fails but the second passes.
+### New test files
+
+| File                                            | Purpose                                                                   | Co-located with           |
+| ----------------------------------------------- | ------------------------------------------------------------------------- | ------------------------- |
+| `src/engine/selectors-furthest.test.ts`         | Tests for `furthest` criterion (enemy + ally)                             | `src/engine/selectors.ts` |
+| `src/engine/selectors-highest-hp.test.ts`       | Tests for `highest_hp` criterion (enemy + ally)                           | `src/engine/selectors.ts` |
+| `src/engine/selectors-target-criterion.test.ts` | Tests for all 12 target+criterion combinations and self-ignores-criterion | `src/engine/selectors.ts` |
+
+### Modified test files (organized by step)
+
+| Step | Files Modified                                    | Change Type                                                                                            |
+| ---- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 1    | 2 helper files                                    | Add `actionType` default                                                                               |
+| 2    | `game-decisions-action-type-inference.test.ts`    | Delete 2 tests, add 1                                                                                  |
+| 3    | 2 helper files                                    | Add `target`/`criterion` defaults                                                                      |
+| 4    | 18 test files + 2 helpers                         | Mechanical `mode` -> `behavior`                                                                        |
+| 5    | 15 test files + 2 helpers + 7 selector test files | Mechanical `selectorOverride` -> `target`+`criterion`; `evaluateSelector` -> `evaluateTargetCriterion` |
+| 6    | `gameStore-skills-duplication.test.ts`            | Update guard tests, add registry-based tests                                                           |
+| 7    | `SkillsPanel.test.tsx`                            | Add criterion options, update duplication tests                                                        |
+| 8    | None                                              |                                                                                                        |
+
+### Test count impact
+
+| Category                | Current | Added | Removed | Updated | Final  |
+| ----------------------- | ------- | ----- | ------- | ------- | ------ |
+| Action type inference   | 6       | 2     | 2       | 2       | 8      |
+| Selector: furthest      | 0       | 7     | 0       | 0       | 7      |
+| Selector: highest_hp    | 0       | 5     | 0       | 0       | 5      |
+| Target+criterion combos | 0       | 3     | 0       | 0       | 3      |
+| Registry                | 14      | 4     | 0       | 5       | 18     |
+| Duplication (store)     | 13      | 2     | 0       | 3       | 15     |
+| SkillsPanel (UI)        | ~45     | 4     | 11      | 20+     | ~38    |
+| Mechanical updates      | ~1000+  | 0     | 0       | ~100+   | ~1000+ |
+| **Total**               | ~1086   | ~27   | ~13     | ~130+   | ~1100  |
+
+The 11 removed from SkillsPanel are the `decomposeSelector`/`composeSelector` helper tests and the roundtrip test (11 tests in the Helper Functions describe block). These functions are deleted in Step 7.
 
 ---
 
-## Test Summary
+## Spec Alignment Verification
 
-| Category                        | Count  | Test File(s)                                                                                            |
-| ------------------------------- | ------ | ------------------------------------------------------------------------------------------------------- |
-| Unit - Engine (skill-registry)  | 7      | `src/engine/skill-registry.test.ts`                                                                     |
-| Unit - Store (gameStore-skills) | 10     | `src/stores/gameStore-skills.test.ts`                                                                   |
-| Unit - Engine (game-decisions)  | 3      | `src/engine/game-decisions-skill-priority.test.ts`, `src/engine/game-decisions-evaluate-skills.test.ts` |
-| Component - SkillsPanel         | 10     | `src/components/SkillsPanel/SkillsPanel.test.tsx`                                                       |
-| Integration - Decision Engine   | 4      | `src/engine/game-decisions-skill-priority.test.ts`                                                      |
-| **Total**                       | **34** |                                                                                                         |
+- [x] Every skill slot has shape: trigger + target + criterion + behavior -- verified by registry tests and target+criterion combination tests
+- [x] No special-case fields -- verified by deletion of `mode`-based inference tests and addition of `actionType` field tests
+- [x] All skills duplicatable up to maxInstances -- verified by duplication tests with registry lookup
+- [x] Existing game logic unchanged -- verified by mechanical test updates (same assertions, different field names)
+- [x] Mirror selectors covered -- 12 new tests across 2 new test files
+- [x] Target+criterion combinations covered -- 3 new tests in dedicated file
+- [x] Non-Move duplication covered -- 2 new tests in duplication file
+- [x] maxInstances enforcement covered -- registry tests + duplication limit tests
 
-## Notes for Coder
+## New Architectural Decision
 
-1. **Test helpers need `instanceId`**: Before writing these tests, update `createSkill()` in both `game-test-helpers.ts` and `gameStore-test-helpers.ts` to default `instanceId` to `overrides.instanceId ?? overrides.id` (plan Step 6). This allows existing tests to pass without modification.
+**Decision**: ADR-011 -- Explicit Action Type on Skill Definitions
 
-2. **Existing test updates**: Several existing tests assert `skill.name === "Move Towards"` and will need updating to `"Move"` per plan Step 13. The test `move name includes direction` in `skill-registry.test.ts` should be replaced by the new `getDefaultSkills-uses-registry-name-without-suffix` test.
-
-3. **SkillsPanel test skill fixtures**: The existing SkillsPanel tests create skills via `createSkill()` from the engine test helpers. After adding `instanceId` to the `Skill` type, these will get `instanceId` defaulting to `id` from the updated helper, so they should continue to work.
-
-4. **Console spy for React key test**: Use `vi.spyOn(console, "error")` before render, and `vi.restoreAllMocks()` in afterEach. Check that no call args include "key" substring.
-
-5. **Store action parameter name change**: Existing tests that call `updateSkill("char1", "skill1", ...)` will still work because the test helper defaults `instanceId` to `id`. The parameter is renamed from `skillId` to `instanceId` but the value passed in tests is the same string.
-
-6. **Move skill in store tests**: When testing `duplicateSkill`, you can either create characters with pre-built skill arrays (using `createSkill` with explicit `instanceId`) or use the store's `addCharacter` action which generates instanceIds via `getDefaultSkills()`. The former gives more control; prefer it.
+- **Document**: Recommend adding to `.docs/decisions/adr-011-explicit-action-type.md` in Step 8
+- **Context**: `getActionType()` inference via `mode !== undefined` breaks when `mode` becomes universal `behavior`
+- **Consequences**: Runtime validation for mutual-exclusion removed; compile-time safety via TypeScript types preferred

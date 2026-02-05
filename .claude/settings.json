@@ -6,16 +6,9 @@
       "Edit",
       "Glob",
       "Grep",
-      "Bash(git log:*)",
-      "Bash(git diff:*)",
-      "Bash(git status)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(npm run test:*)",
-      "Bash(npm run lint:*)",
-      "Bash(npm run type-check:*)",
-      "Bash(npm run build:*)",
+      "Bash(git:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
       "Bash(wc:*)",
       "Bash(mkdir:*)",
       "Bash(touch:*)"
@@ -28,43 +21,9 @@
       "Read(./**/*.key)",
       "Bash(rm -rf:*)",
       "Bash(sudo:*)",
-      "Bash(chmod:*)",
+      "Bash(chmod 777:*)",
       "Bash(curl:*)",
       "Bash(wget:*)"
-    ]
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "TOOL_CMD=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r '.command // empty'); if [ -z \"$TOOL_CMD\" ]; then exit 0; fi; if echo \"$TOOL_CMD\" | grep -qE '<<-?\\s*[\\x27\"]?\\w+|>+\\s*[./~a-zA-Z_0-9]|\\bcat\\b|\\bhead\\b|\\btail\\b|\\bsed\\b|\\bawk\\b|\\bgrep\\b|\\brg\\b|\\bfind\\b|\\bls\\b|\\becho\\b'; then echo 'BLOCKED: Use Write tool for file creation, Read for reading, Grep for searching, Glob for finding, Edit for modifications. Bash heredoc/redirect is not permitted.' >&2; exit 2; fi"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '[POST-EDIT] File modified. Quality gates run at phase completion.'"
-          }
-        ]
-      }
-    ],
-    "SubagentStop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '\\n[SUBAGENT COMPLETE] Check .tdd/session.md for workflow state.\\n'"
-          }
-        ]
-      }
     ]
   }
 }

@@ -142,7 +142,7 @@ Call mcp__claude-in-chrome__tabs_context_mcp with createIfEmpty: true
 - Test relevant interactions (buttons, inputs, etc.)
 - Document results in session.md "Browser Verification (Automated)" section
 
-**DO NOT use curl/wget/bash commands** to check localhost - use browser automation tools only.
+Use browser automation tools to verify UI changes.
 
 Document results as:
 
@@ -158,6 +158,35 @@ Visual rendering: [description]
 ```
 
 If browser tools fail, document ACTUAL error and set status to BLOCKED.
+
+## Smoke Test Execution (MANDATORY)
+
+When running smoke tests from `.docs/smoke-tests.yaml`:
+
+1. **Log EACH check explicitly:**
+
+   ```
+   SMOKE 01-app-loads: EXECUTING - navigate to base_url
+   SMOKE 01-app-loads: PASS - grid visible, 0 console errors
+   ```
+
+2. **After EACH action:**
+   - Take screenshot
+   - Read console errors (clear between checks)
+   - Any console error = INVESTIGATE before continuing
+
+3. **INVALID approaches (will be rejected by reviewer):**
+   - "Visual inspection confirms functionality"
+   - "Elements are visible" (without clicking/interacting)
+   - "Historical errors" (all errors are current until proven otherwise)
+   - Marking PASS without executing the documented steps
+
+4. **If ANY check fails:** STOP, report failure with evidence, do not continue
+
+5. **Minimum checks for UI tasks:**
+   - 01-app-loads (always)
+   - Any checks touching modified functionality
+   - 16-no-console-errors (always)
 
 ## Security Checklist
 

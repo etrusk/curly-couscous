@@ -58,10 +58,8 @@ Before ANY planning or design work, you MUST read:
 - You may NOT write implementation code
 - You may NOT write test code
 - You may NOT edit source files
-- You may only write to `.tdd/*.md` output files — use Write for new files, Edit for updating `.tdd/session.md`, NEVER Bash heredoc or redirects
+- You may only write to `.tdd/*.md` output files
 - You may NOT skip exploration—understand before designing
-- Use Read/Grep/Glob/Write/Edit tools for file operations (see CLAUDE.md "CLI Tool Usage")
-- Bash ONLY for: git log, git diff, git status, wc — NEVER for file creation or modification
 
 ## Output Locations
 

@@ -709,53 +709,52 @@ checks:
 
 ---
 
-## REFLECT → Session Reflection
+## REFLECT → Immediate Workflow Improvement
 
 After COMMIT, spawn reflection subagent (Task tool with opus model):
 
-```
-You are a workflow reflection agent. Read `.tdd/session.md` and `.docs/lessons-learned/index.md`.
+````
+You are a workflow improvement agent. Read `.tdd/session.md`.
 
-Your job: identify 0-2 observations about how the *workflow process* performed. You are NOT reviewing code or tests — those were already reviewed.
+Your job: identify 0-2 process issues from THIS session and propose IMMEDIATE fixes to workflow files. No documentation - only actionable changes.
 
-Two categories:
+**Categories:**
 
-**ISSUE**: Something went wrong in the process (blocker hit, phase repeated, instruction was unclear, context degraded). These are reactive — a problem happened.
+**FIX**: Something went wrong. Propose a specific edit to prevent recurrence.
+**IMPROVE**: Process worked but could be better. Propose a micro-optimization.
 
-**OBSERVATION**: A kaizen-style improvement opportunity even when nothing went wrong. The session completed successfully, but a small workflow adjustment could make future sessions smoother or more efficient. These are proactive — the process worked but could work better.
+**Requirements for each item:**
+1. Evidence: Quote the specific session event that triggered this
+2. File: Name the exact file to change (e.g., `.claude/agents/coder.md`)
+3. Section: Name the section or line range
+4. Change: Provide the actual text to add/modify (not a description of it)
 
-Examples of valid observations:
-- 'Explore phase read 8 files but only 2 were touched in implementation. The explore prompt could suggest reading files named in the plan first, deferring others.'
-- 'Test design produced 14 tests for a 2-function change. A guideline of 3-5 tests per function for standard features would improve scope calibration.'
-- 'The review caught only a naming issue. The test design review phase could include a fault-detection check (would these tests catch a wrong implementation?).'
+**Rejection criteria (do NOT report):**
+- Vague improvements ("better communication", "more thorough")
+- Code suggestions (this is workflow reflection, not code review)
+- Items without specific file/section targets
+- Issues already fixed during the session
 
-Examples of fabricated observations (DO NOT produce these):
-- 'Consider adding more logging.' (Not a workflow observation — this is a code suggestion.)
-- 'The session went well but communication could be improved.' (Vague, not actionable.)
-- 'Future sessions might benefit from more thorough planning.' (Generic, no evidence.)
-
-**Actionability test**: An observation is worth reporting ONLY if you can name the specific file and section of the workflow that would change. If you cannot complete the sentence 'Update [file]:[section] to [specific change]' — drop it.
-
-**Baseline assumption**: The workflow worked correctly. Most sessions should produce 0 items. Producing an item requires specific evidence from THIS session.
-
-**Anti-recurrence check**: If a blocker in this session matches an existing lesson in lessons-learned/, flag it: 'RECURRING: matches lesson-NNN — workflow encoding insufficient.'
-
-Output format (inline text, NOT a file):
-REFLECTION: [0-2 items]
-- [ISSUE|OBSERVATION]: [1-2 sentences]. → Update [file]:[section] to [change].
-- [RECURRING]: Matches lesson-NNN. [What recurred and why the prior fix didn't prevent it].
+**Output format:**
+REFLECT: [0-2 items]
+- [FIX|IMPROVE]: [1 sentence summary]
+  Evidence: "[quote from session]"
+  Target: [file]:[section]
+  Change: ```[actual text to insert/replace]```
 OR
-REFLECTION: Clean session. No process observations.
-```
+REFLECT: Clean session.
+````
 
 **Orchestrator handles the output:**
 
-| Subagent Returns | Orchestrator Action                                                      |
-| ---------------- | ------------------------------------------------------------------------ |
-| "Clean session"  | Log `Process: ✓ Clean` in final summary. Proceed to cleanup.             |
-| Items found      | Present inline (non-blocking): `[type]: [summary]. Log as lesson? (y/n)` |
+| Subagent Returns | Orchestrator Action                                          |
+| ---------------- | ------------------------------------------------------------ |
+| "Clean session"  | Log `Process: ✓ Clean` in final summary. Proceed to cleanup. |
+| Items found      | Present to user: `[type]: [summary]. Apply now? (y/n)`       |
+| User says yes    | Apply the change immediately, include in completion summary  |
+| User says no     | Note as declined, proceed to cleanup                         |
 
-**Non-blocking**: If human says yes → create lesson-learned entry. If human says no or moves on → proceed to cleanup. Do NOT wait indefinitely for response.
+**Immediate application**: Changes are applied to workflow files in the same session, not logged for later. Continuous improvement happens NOW.
 
 ---
 

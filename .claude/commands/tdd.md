@@ -111,6 +111,22 @@ abstention_triggers:
   - missing_architecture
   - domain_knowledge_gaps
   - conflicting_information
+
+# Model selection per agent (configured in .claude/agents/*.md frontmatter)
+# Rationale: Put reasoning power where mistakes are most expensive to fix
+models:
+  opus: # High reasoning - architectural decisions, problem diagnosis
+    - architect # plan, design_tests, test_review, analyze_fix
+    - troubleshooter # Must find what others missed
+
+  sonnet: # Balanced - standard coding and review tasks
+    - architect-explore # Comprehension, not deep reasoning
+    - coder # write_tests, implement, fix
+    - reviewer # Checking against known criteria
+
+  haiku: # Fast/cheap - straightforward tasks
+    - architect-sync-docs # Summarization, doc updates
+    - coder-commit # Git operations, message writing
 ```
 
 ---
@@ -227,7 +243,7 @@ phases:
     next: EXPLORE
 
   EXPLORE:
-    agent: architect
+    agent: architect-explore
     budget: architect_explore
     inputs:
       [".docs/spec.md", ".docs/architecture.md", ".docs/patterns/index.md"]
@@ -306,12 +322,12 @@ phases:
     next_if_rejected: FIX
 
   SYNC_DOCS:
-    agent: architect
+    agent: architect-sync-docs
     budget: architect_sync_docs
     next: COMMIT
 
   COMMIT:
-    agent: coder
+    agent: coder-commit
     budget: coder_commit
     actions:
       - Commit changes to current branch

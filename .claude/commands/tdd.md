@@ -401,6 +401,7 @@ phases:
     agent: coder-commit
     budget: coder_commit
     actions:
+      - Bump package.json version per SemVer (see App Versioning section)
       - Commit changes to current branch
       - Push to remote automatically
       - DO NOT create pull requests
@@ -648,6 +649,34 @@ checks:
 
 ---
 
+## App Versioning (SemVer)
+
+**Scope**: `package.json` version only. Does NOT apply to:
+
+- Workflow files (`.claude/commands/*.md`)
+- Documentation (`.docs/**`)
+- Configuration files
+- Test files
+
+**When to bump** (determined in COMMIT phase):
+
+| Change Type                                   | Bump  | Example                                  |
+| --------------------------------------------- | ----- | ---------------------------------------- |
+| Breaking changes to game mechanics or API     | MAJOR | Rule system overhaul, save format change |
+| New features (characters, abilities, systems) | MINOR | Add new trigger type, new character      |
+| Bug fixes, performance, internal refactors    | PATCH | Fix HP calculation, optimize rendering   |
+
+**Rules**:
+
+1. One version bump per TDD session (even if multiple files changed)
+2. Use highest applicable bump (breaking > feature > fix)
+3. Commit message determines bump: `feat:` → MINOR, `fix:` → PATCH, `feat!:` or `BREAKING CHANGE:` → MAJOR
+4. If task is purely test/doc changes with no app behavior change → no bump
+
+**COMMIT phase action**: Coder reads commit type, bumps `package.json` version accordingly, includes in same commit.
+
+---
+
 ## Routing Summary
 
 | After              | Next               | Condition                                              |
@@ -769,3 +798,4 @@ Then delete ephemeral files: `.tdd/session.md`, `.tdd/exploration.md`, `.tdd/pla
 15. **UNRELATED ISSUES → current-task.md** - Issues found unrelated to session MUST be added to `.docs/current-task.md` as priority next task before completion
 16. **SMOKE TESTS REQUIRED** - Smoke tests run after quality gates pass; failures route to ANALYZE_FIX; blocked routes to HUMAN_VERIFY
 17. **SMOKE MANIFEST UPDATES** - Architect proposes new checks in DESIGN_TESTS; SYNC_DOCS appends to manifest automatically
+18. **APP VERSIONING** - Bump `package.json` per SemVer in COMMIT phase; does NOT apply to workflow/docs/config files

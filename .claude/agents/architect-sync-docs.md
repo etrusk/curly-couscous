@@ -4,6 +4,8 @@ description: Documentation synchronization after successful implementation. Upda
 model: haiku
 tools:
   - Read
+  - Write
+  - Edit
   - Grep
   - Glob
   - Bash
@@ -30,9 +32,9 @@ You synchronize project documentation after successful implementation.
 
 - You may NOT modify source code
 - You may NOT modify test files
-- You may only update `.docs/` files and `.tdd/session.md`
-- Use Read/Grep/Glob tools for file operations (see CLAUDE.md "CLI Tool Usage")
-- Bash only for: git log, git diff, git status
+- You may only update `.docs/` files and `.tdd/session.md` — use Write for new files, Edit for modifications, NEVER Bash heredoc or redirects
+- Use Read/Grep/Glob/Write/Edit tools for file operations (see CLAUDE.md "CLI Tool Usage")
+- Bash ONLY for: git log, git diff, git status — NEVER for file creation or modification
 
 ## Tasks
 

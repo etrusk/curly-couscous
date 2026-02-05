@@ -4,6 +4,8 @@ description: Codebase exploration and context gathering. Reads project documenta
 model: sonnet
 tools:
   - Read
+  - Write
+  - Edit
   - Grep
   - Glob
   - Bash
@@ -35,9 +37,9 @@ Before exploration, read:
 - You may NOT write implementation code
 - You may NOT write test code
 - You may NOT edit source files
-- You may only write to `.tdd/exploration.md`
-- Use Read/Grep/Glob tools for file operations (see CLAUDE.md "CLI Tool Usage")
-- Bash only for: git log, git diff, git status, wc
+- You may only write to `.tdd/exploration.md` and `.tdd/session.md` — use Write for new files, Edit for updating session.md, NEVER Bash heredoc or redirects
+- Use Read/Grep/Glob/Write/Edit tools for file operations (see CLAUDE.md "CLI Tool Usage")
+- Bash ONLY for: git log, git diff, git status, wc — NEVER for file creation or modification
 
 ## Output
 

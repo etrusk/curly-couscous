@@ -30,17 +30,7 @@
       "Bash(sudo:*)",
       "Bash(chmod:*)",
       "Bash(curl:*)",
-      "Bash(wget:*)",
-      "Bash(cat:*)",
-      "Bash(head:*)",
-      "Bash(tail:*)",
-      "Bash(find:*)",
-      "Bash(ls:*)",
-      "Bash(grep:*)",
-      "Bash(rg:*)",
-      "Bash(sed:*)",
-      "Bash(awk:*)",
-      "Bash(echo:*)"
+      "Bash(wget:*)"
     ]
   },
   "hooks": {
@@ -50,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if echo \"$CLAUDE_TOOL_INPUT\" | grep -qE '(^|[|;&\"'\\''\\(])\\s*(cat|head|tail|sed|awk|grep|rg|find|ls|echo)\\s'; then echo 'BLOCKED: Use Claude CLI tools instead of bash equivalents. Read→cat/head/tail, Grep→grep/rg, Glob→find/ls, Edit→sed/awk, Write→echo' >&2; exit 1; fi"
+            "command": "TOOL_CMD=$(echo \"$CLAUDE_TOOL_INPUT\" | jq -r '.command // empty'); if [ -z \"$TOOL_CMD\" ]; then exit 0; fi; if echo \"$TOOL_CMD\" | grep -qE '<<-?\\s*[\\x27\"]?\\w+|>+\\s*[./~a-zA-Z_0-9]|\\bcat\\b|\\bhead\\b|\\btail\\b|\\bsed\\b|\\bawk\\b|\\bgrep\\b|\\brg\\b|\\bfind\\b|\\bls\\b|\\becho\\b'; then echo 'BLOCKED: Use Write tool for file creation, Read for reading, Grep for searching, Glob for finding, Edit for modifications. Bash heredoc/redirect is not permitted.' >&2; exit 2; fi"
           }
         ]
       }

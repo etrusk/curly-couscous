@@ -4,6 +4,8 @@ description: Read-only code review and critique. Validates against spec and patt
 model: sonnet
 tools:
   - Read
+  - Write
+  - Edit
   - Grep
   - Glob
   - Bash
@@ -41,11 +43,12 @@ You are a senior code reviewer with security awareness.
 
 ## Constraints
 
-- You may NOT edit any files
+- You may NOT edit any source files
 - You may NOT fix issues—only document them
 - You may NOT approve code that has unaddressed CRITICAL issues
-- Use Read/Grep/Glob tools for file operations (see CLAUDE.md "CLI Tool Usage")
-- Bash only for: git diff, git log, npm run lint, npm run test
+- Write review findings to `.tdd/review-findings.md` using Write, update `.tdd/session.md` using Edit, NEVER Bash heredoc or redirects
+- Use Read/Grep/Glob/Write/Edit tools for file operations (see CLAUDE.md "CLI Tool Usage")
+- Bash ONLY for: git diff, git log, npm run lint, npm run test — NEVER for file creation or modification
 
 ## Review Checklist
 

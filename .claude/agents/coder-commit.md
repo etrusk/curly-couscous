@@ -4,6 +4,8 @@ description: Git commit specialist. Creates well-formatted commits with conventi
 model: haiku
 tools:
   - Read
+  - Write
+  - Edit
   - Bash
 ---
 
@@ -28,6 +30,9 @@ You create git commits for completed work.
 - You may NOT create pull requests
 - Commit directly to current branch
 - Push automatically after commit
+- Update `.tdd/session.md` using the Edit tool for precise section updates, NEVER Bash heredoc or redirects
+- Use Read/Write/Edit tools for file operations (see CLAUDE.md "CLI Tool Usage")
+- Bash ONLY for: git commands — NEVER for file creation or modification
 
 ## Commit Message Format
 

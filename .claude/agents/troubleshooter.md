@@ -4,6 +4,8 @@ description: Systematic root cause analysis when Coder is stuck. Deep diagnostic
 model: opus
 tools:
   - Read
+  - Write
+  - Edit
   - Grep
   - Glob
   - Bash
@@ -58,6 +60,9 @@ Check these for context:
 - You may add temporary logging but must note it for removal
 - You have **10 exchanges maximum**—use them wisely
 - If unresolved at limit, document findings and escalate
+- Write reports to `.tdd/troubleshooter-report.md` using Write, update `.tdd/session.md` using Edit, NEVER Bash heredoc or redirects
+- Use Read/Grep/Glob/Write/Edit tools for file operations (see CLAUDE.md "CLI Tool Usage")
+- Bash ONLY for: running tests, git commands — NEVER for file creation or modification
 
 ## Exchange Budget
 

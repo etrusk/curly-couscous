@@ -1,0 +1,79 @@
+# .docs/smoke-tests.yaml
+# Sequential smoke test script. Each check builds on previous state.
+# Architect proposes new checks in DESIGN_TESTS; SYNC_DOCS appends automatically.
+
+version: 1
+base_url: "http://localhost:5173"
+
+# === SCRIPT: Victory Path ===
+# Tests app load → setup → battle → victory → reset
+
+checks:
+  - id: 01-app-loads
+    action: "navigate to base_url"
+    expect: "hexagonal grid visible within 3 seconds, console has no errors"
+
+  - id: 02-add-friendly
+    action: "click 'Add Friendly' button, click hex at grid center"
+    expect: "friendly token 'A' appears at center hex"
+
+  - id: 03-add-enemy
+    action: "click 'Add Enemy' button, click hex one step above center"
+    expect: "enemy token 'A' appears adjacent to friendly (distance 1)"
+
+  - id: 04-select-friendly
+    action: "click friendly token 'A'"
+    expect: "token shows selection border, SkillsPanel header shows 'Friendly A'"
+
+  - id: 05-assign-attack
+    action: "in InventoryPanel, click 'Assign' next to 'Light Punch'"
+    expect: "Light Punch appears in SkillsPanel skill list below Move"
+
+  - id: 06-skill-toggle
+    action: "click toggle switch on Move skill to disable it"
+    expect: "Move skill shows disabled state (grayed or unchecked)"
+
+  - id: 07-skill-reorder
+    action: "click move-up button on Light Punch"
+    expect: "Light Punch moves to position 0 (top of list)"
+
+  - id: 08-step-battle
+    action: "click 'Step' button"
+    expect: "tick counter changes from 0 to 1"
+
+  - id: 09-damage-applied
+    action: "observe enemy token health display"
+    expect: "enemy HP decreased by 10 (Light Punch damage)"
+
+  - id: 10-continue-to-elimination
+    action: "click 'Step' repeatedly until enemy HP reaches 0"
+    expect: "enemy token removed from grid"
+
+  - id: 11-victory-state
+    action: "observe BattleStatusBadge"
+    expect: "badge shows 'Victory', Step/Play buttons disabled"
+
+  - id: 12-reset
+    action: "click 'Reset' button"
+    expect: "grid empty, tick shows 0, badge shows 'Active'"
+
+  # === SCRIPT: Defeat Path ===
+  # Tests that defeat detection works
+
+  - id: 13-setup-defeat
+    action: "add enemy at center with Light Punch; add friendly adjacent with no attack skill"
+    expect: "two tokens on grid, only enemy has Light Punch assigned"
+
+  - id: 14-run-to-defeat
+    action: "click 'Play', wait for battle to complete"
+    expect: "badge shows 'Defeat', friendly token eliminated"
+
+  - id: 15-final-reset
+    action: "click 'Reset' button"
+    expect: "grid empty, tick 0, badge 'Active', app ready for new battle"
+
+  # === VERIFICATION ===
+
+  - id: 16-no-console-errors
+    action: "review browser console for entire script execution"
+    expect: "zero console.error calls, zero uncaught exceptions"

@@ -96,6 +96,24 @@ Non-trivial tasks use `/tdd [task description]`:
 
 Read `.docs/current-task.md` and `.tdd/session.md` at workflow start for continuity.
 
+## CLI Tool Usage
+
+Agents MUST use built-in Claude CLI tools instead of terminal commands:
+
+| Need                  | Use Tool | NOT Bash              |
+| --------------------- | -------- | --------------------- |
+| Read file contents    | `Read`   | `cat`, `head`, `tail` |
+| Search file contents  | `Grep`   | `grep`, `rg`          |
+| Find files by pattern | `Glob`   | `find`, `ls`          |
+| Edit files            | `Edit`   | `sed`, `awk`          |
+| Create files          | `Write`  | `echo >`, `cat <<EOF` |
+
+**Bash is ONLY for:**
+
+- Git operations: `git log`, `git diff`, `git status`, `git add`, `git commit`, `git push`
+- npm/Node commands: `npm run test`, `npm run lint`, `npm run build`
+- Commands with no built-in equivalent: `wc` (line counts)
+
 ## Project-Specific Patterns
 
 - Components use CSS modules (`.module.css`)

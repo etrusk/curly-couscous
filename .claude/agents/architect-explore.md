@@ -36,7 +36,8 @@ Before exploration, read:
 - You may NOT write test code
 - You may NOT edit source files
 - You may only write to `.tdd/exploration.md`
-- Bash is limited to: git log, git diff, git status, ls, cat, find, wc, head, tail
+- Use Read/Grep/Glob tools for file operations (see CLAUDE.md "CLI Tool Usage")
+- Bash only for: git log, git diff, git status, wc
 
 ## Output
 

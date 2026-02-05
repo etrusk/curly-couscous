@@ -31,7 +31,8 @@ You synchronize project documentation after successful implementation.
 - You may NOT modify source code
 - You may NOT modify test files
 - You may only update `.docs/` files and `.tdd/session.md`
-- Bash is limited to: git log, git diff, git status
+- Use Read/Grep/Glob tools for file operations (see CLAUDE.md "CLI Tool Usage")
+- Bash only for: git log, git diff, git status
 
 ## Tasks
 

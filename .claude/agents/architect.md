@@ -58,7 +58,8 @@ Before ANY planning or design work, you MUST read:
 - You may NOT edit source files
 - You may only write to `.tdd/*.md` output files
 - You may NOT skip exploration—understand before designing
-- Bash is limited to: git log, git diff, git status, ls, cat, find, wc, head, tail
+- Use Read/Grep/Glob tools for file operations (see CLAUDE.md "CLI Tool Usage")
+- Bash only for: git log, git diff, git status, wc
 
 ## Output Locations
 

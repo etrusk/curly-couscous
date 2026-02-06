@@ -97,6 +97,17 @@ Non-trivial tasks use `/tdd [task description]`:
 
 Read `.docs/current-task.md` and `.tdd/session.md` at workflow start for continuity.
 
+## Compaction Rules
+
+When compacting (auto or manual), ALWAYS preserve:
+
+- Current TDD phase from `.tdd/session.md`
+- Full list of modified files
+- All human approval decisions
+- Test commands (`npm run test`, etc.)
+- Review cycle count and any review findings
+- Unresolved blockers
+
 ## Project-Specific Patterns
 
 - Components use CSS modules (`.module.css`)

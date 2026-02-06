@@ -1,7 +1,7 @@
 ---
 name: tdd
 description: Execute full TDD workflow for a feature or bugfix. Orchestrates all phases automatically.
-version: 3.1.0
+version: 4.0.0
 ---
 
 # TDD Workflow Orchestrator
@@ -21,66 +21,68 @@ version: 3.1.0
 ## Configuration
 
 ```yaml
-# Token budgets
+# Token budgets (revised for 1M context window beta)
+# If 1M beta unavailable, fall back to previous: warning=40K, compact=80K, max=100K
 budgets:
-  orchestrator_max: 100000 # Offload and restart
-  orchestrator_warning: 40000 # Alert user
-  orchestrator_compact: 80000 # MANDATORY compact
-  session_md_max: 500
+  orchestrator_max: 300000 # Hard restart threshold
+  orchestrator_warning: 100000 # Earlier awareness
+  orchestrator_compact: 200000 # MANDATORY compact (PreCompact hook preserves state)
+  session_md_max: 500 # Keep tight — read every phase
 
 # Agent budgets (HARD LIMITS - exceed = escalate)
+# Agent names match .claude/agents/tdd-*.md definitions
 agent_budgets:
-  architect_explore:
+  tdd-explorer:
     exchanges: 10
     tokens_est: 30000
     escalation: human
-  architect_plan:
+  tdd-planner:
     exchanges: 15
     tokens_est: 40000
     escalation: human
-  architect_design_tests:
+  tdd-test-designer:
     exchanges: 15
     tokens_est: 40000
     escalation: human
-  architect_test_review:
+  tdd-test-reviewer:
     exchanges: 8
     tokens_est: 20000
     escalation: human
-  architect_analyze_fix:
+  tdd-analyzer:
     exchanges: 10
     tokens_est: 30000
     escalation: human
-  architect_sync_docs:
+  tdd-doc-syncer:
     exchanges: 8
     tokens_est: 20000
     escalation: human
-  coder_write_tests:
+  tdd-coder_write_tests:
     exchanges: 20
     tokens_est: 50000
-    escalation: troubleshooter
-  coder_implement:
+    escalation: tdd-troubleshooter
+  tdd-coder_implement:
     exchanges: 25
     tokens_est: 100000
-    escalation: troubleshooter
-  coder_fix:
+    escalation: tdd-troubleshooter
+  tdd-coder_fix:
     exchanges: 15
     tokens_est: 40000
-    escalation: troubleshooter
-  coder_commit:
+    escalation: tdd-troubleshooter
+  tdd-committer:
     exchanges: 5
     tokens_est: 10000
     escalation: human
     note: "Commit to current branch only - NEVER create PRs"
-  reflection:
-    exchanges: 3
-    tokens_est: 5000
+  tdd-reflector:
+    exchanges: 5
+    tokens_est: 10000
     escalation: human
-    note: "Process analysis requires analytical distance - most sessions return 0 items"
-  reviewer:
+    note: "Process analysis with efficiency metrics - most sessions return 0 items"
+  tdd-reviewer:
     exchanges: 10
     tokens_est: 30000
     escalation: human
-  troubleshooter:
+  tdd-troubleshooter:
     exchanges: 10
     tokens_est: 30000
     escalation: human # MANDATORY - no further escalation
@@ -136,22 +138,33 @@ abstention_triggers:
   - domain_knowledge_gaps
   - conflicting_information
 
-# Model selection per agent (configured in .claude/agents/*.md frontmatter)
-# Rationale: Put reasoning power where mistakes are most expensive to fix
+# Adaptive thinking effort by phase (experimental - verify CLI support)
+# High reasoning phases: tdd-planner, tdd-test-designer, tdd-reviewer, tdd-reflector, tdd-analyzer
+# Medium reasoning phases: tdd-explorer, tdd-coder, tdd-committer, tdd-doc-syncer
+# If --reasoning-effort flag or effort levels are available per-agent:
+#   max: tdd-test-designer, tdd-reviewer, tdd-reflector
+#   high: tdd-planner, tdd-test-reviewer, tdd-analyzer
+#   medium: tdd-explorer, tdd-coder, tdd-committer, tdd-doc-syncer
+
+# Model selection: ALL agents use model: inherit (Opus 4.6 via Claude Max)
+# With flat-rate pricing, no per-token cost optimization needed.
+# All tdd-*.md agents set model: inherit in frontmatter.
+# If rate limits become an issue on 5x tier, fallback:
+#   Keep inherit (Opus): tdd-test-designer, tdd-reviewer, tdd-reflector, tdd-analyzer
+#   Switch to sonnet: tdd-explorer, tdd-coder, tdd-committer, tdd-doc-syncer
 models:
-  opus: # High reasoning - architectural decisions, problem diagnosis
-    - architect # plan, design_tests, test_review, analyze_fix
-    - troubleshooter # Must find what others missed
-    - reflection # Process analysis requires analytical distance
-
-  sonnet: # Balanced - standard coding and review tasks
-    - architect-explore # Comprehension, not deep reasoning
-    - coder # write_tests, implement, fix
-    - reviewer # Checking against known criteria
-
-  haiku: # Fast/cheap - straightforward tasks
-    - architect-sync-docs # Summarization, doc updates
-    - coder-commit # Git operations, message writing
+  inherit: # All agents inherit parent model (Opus 4.6)
+    - tdd-explorer
+    - tdd-planner
+    - tdd-test-designer
+    - tdd-test-reviewer
+    - tdd-coder
+    - tdd-reviewer
+    - tdd-analyzer
+    - tdd-doc-syncer
+    - tdd-committer
+    - tdd-reflector
+    - tdd-troubleshooter
 ```
 
 ---
@@ -166,6 +179,7 @@ phase: [PHASE_NAME]
 status: COMPLETE | PARTIAL | STUCK | BLOCKED
 exchanges: [integer]
 estimated_tokens: [integer]
+tool_calls: [integer]
 files_read: [integer]
 files_modified: [integer]
 tests_passing: [integer or null]
@@ -177,6 +191,8 @@ quality_gates:
   tests: PASS | FAIL | SKIP
   smoke: PASS | FAIL | SKIP | BLOCKED # BLOCKED routes to HUMAN_VERIFY
   all_gates_pass: true | false # MUST be true for successful completion
+notable_events: [list or empty] # Significant events: retries, partial failures, large operations
+retry_count: [integer] # Number of retry cycles within this agent
 blockers: [list or empty]
 unrelated_issues: [list or empty] # Issues found but not related to current task
 next_recommended: [PHASE_NAME]
@@ -199,7 +215,7 @@ If parse fails → STOP → Escalate to human with raw output.
 
 ### Step 2: Update Session Metrics
 
-Update `.tdd/session.md` Context Metrics section:
+Update `.tdd/session.md` Context Metrics section. Parse the AGENT_COMPLETION block and append a row to the Agent History table including token metrics, tool call count, and notable events.
 
 ```markdown
 ## Context Metrics
@@ -210,10 +226,12 @@ Agent invocations: [count]
 
 ### Agent History
 
-| #   | Agent     | Phase   | Exchanges | Tokens | Status   |
-| --- | --------- | ------- | --------- | ------ | -------- |
-| 1   | architect | EXPLORE | 8         | ~25K   | COMPLETE |
+| #   | Agent        | Phase   | Exchanges | Tokens | Tools | Duration | Status   | Notes |
+| --- | ------------ | ------- | --------- | ------ | ----- | -------- | -------- | ----- |
+| 1   | tdd-explorer | EXPLORE | 8         | ~25K   | 34    | 45s      | COMPLETE | —     |
 ```
+
+The "Notes" column captures notable events from the AGENT_COMPLETION block: retry counts, partial failures, escalations, large operations.
 
 ### Step 3: Evaluate Thresholds
 
@@ -222,8 +240,8 @@ Agent invocations: [count]
 | Agent status        | BLOCKED   | STOP. Escalate to human.                              |
 | Agent status        | STUCK     | Route to troubleshooter (or human if troubleshooter). |
 | Agent exchanges     | > budget  | STOP. Escalate per agent_budgets.escalation.          |
-| Orchestrator tokens | > 80K     | STOP. Escalate to human to run `/compact`.            |
-| Orchestrator tokens | > 100K    | STOP. Escalate to human for task split/restart.       |
+| Orchestrator tokens | > 200K    | STOP. Escalate to human to run `/compact`.            |
+| Orchestrator tokens | > 300K    | STOP. Escalate to human for task split/restart.       |
 | Review cycles       | >= 2      | STOP. Escalate to human.                              |
 
 ### Step 4: Output Checkpoint Summary
@@ -238,7 +256,7 @@ Completed: [1-2 sentence summary of what prior phase achieved]
 Tests: [passing] passing, [failing] failing, [skipped] skipped
 Gates: TS [✓|✗]  ESLint [✓|✗]  Tests [✓|✗]  Smoke [✓|✗|⊘]
 Files: [count] modified ([truncated list...])
-Agent: [exchanges]/[limit] exchanges | Orchestrator: [current]K ([percent]%)
+Agent: [exchanges]/[limit] exchanges ([tool_calls] tools) | Orchestrator: [current]K ([percent]%)
 Status: [PROCEEDING | COMPACTING | ESCALATING] → [brief next step]
 ══════════════════
 ```
@@ -293,23 +311,23 @@ phases:
     next: EXPLORE
 
   EXPLORE:
-    agent: architect-explore
-    budget: architect_explore
+    agent: tdd-explorer
+    budget: tdd-explorer
     inputs:
       [".docs/spec.md", ".docs/architecture.md", ".docs/patterns/index.md"]
     outputs: [".tdd/exploration.md"]
     next: PLAN
 
   PLAN:
-    agent: architect
-    budget: architect_plan
+    agent: tdd-planner
+    budget: tdd-planner
     inputs: [".tdd/exploration.md"]
     outputs: [".tdd/plan.md"]
     next: DESIGN_TESTS
 
   DESIGN_TESTS:
-    agent: architect
-    budget: architect_design_tests
+    agent: tdd-test-designer
+    budget: tdd-test-designer
     inputs: [".tdd/plan.md", ".docs/smoke-tests.yaml"]
     outputs: [".tdd/test-designs.md"]
     smoke_evaluation: |
@@ -320,23 +338,23 @@ phases:
     next: TEST_DESIGN_REVIEW
 
   TEST_DESIGN_REVIEW:
-    agent: architect
-    budget: architect_test_review
+    agent: tdd-test-reviewer
+    budget: tdd-test-reviewer
     inputs: [".tdd/test-designs.md"]
     outputs: [".tdd/test-designs.md"]
     next: WRITE_TESTS
 
   WRITE_TESTS:
-    agent: coder
-    budget: coder_write_tests
+    agent: tdd-coder
+    budget: tdd-coder_write_tests
     inputs: [".tdd/test-designs.md"]
     outputs: ["test files"]
     verifies: "Tests FAIL (red phase)"
     next: IMPLEMENT
 
   IMPLEMENT:
-    agent: coder
-    budget: coder_implement
+    agent: tdd-coder
+    budget: tdd-coder_implement
     inputs: [".tdd/test-designs.md", ".tdd/plan.md", ".docs/smoke-tests.yaml"]
     actions:
       - Write code to pass tests
@@ -355,22 +373,22 @@ phases:
     next: REVIEW
 
   REVIEW:
-    agent: reviewer
-    budget: reviewer
+    agent: tdd-reviewer
+    budget: tdd-reviewer
     inputs: [".tdd/session.md", ".tdd/plan.md", ".docs/spec.md"]
     outputs: [".tdd/review-findings.md"]
     next: "See routing_rules"
 
   ANALYZE_FIX:
-    agent: architect
-    budget: architect_analyze_fix
+    agent: tdd-analyzer
+    budget: tdd-analyzer
     inputs: [".tdd/review-findings.md"]
     outputs: [".tdd/fix-plan.md"]
     next: FIX
 
   FIX:
-    agent: coder
-    budget: coder_fix
+    agent: tdd-coder
+    budget: tdd-coder_fix
     inputs: [".tdd/fix-plan.md"]
     next: REVIEW
 
@@ -387,8 +405,8 @@ phases:
     next_if_rejected: FIX
 
   SYNC_DOCS:
-    agent: architect-sync-docs
-    budget: architect_sync_docs
+    agent: tdd-doc-syncer
+    budget: tdd-doc-syncer
     inputs: [".docs/smoke-tests.yaml", ".tdd/test-designs.md"]
     smoke_manifest_update: |
       If Architect proposed new smoke check(s) in DESIGN_TESTS:
@@ -398,8 +416,8 @@ phases:
     next: COMMIT
 
   COMMIT:
-    agent: coder-commit
-    budget: coder_commit
+    agent: tdd-committer
+    budget: tdd-committer
     actions:
       - Bump package.json version per SemVer (see App Versioning section)
       - Commit changes to current branch
@@ -408,8 +426,8 @@ phases:
     next: REFLECT
 
   REFLECT:
-    agent: reflection-subagent
-    budget: { exchanges: 3, tokens_est: 5000 }
+    agent: tdd-reflector
+    budget: tdd-reflector
     inputs: [".tdd/session.md", ".docs/lessons-learned/index.md"]
     outputs: ["inline text only - no files"]
     next: "Cleanup and completion"
@@ -459,8 +477,8 @@ Escalate immediately (do NOT attempt to continue) when:
 | Agent status BLOCKED                                | Blocker description from completion block   |
 | Agent exceeded exchange budget after troubleshooter | Exchange count, what was attempted          |
 | Same error after 2 troubleshooter cycles            | Root cause hypotheses, ruled-out causes     |
-| Orchestrator hits >80K tokens                       | Current token count, request `/compact`     |
-| Orchestrator hits 100K despite compaction           | Phase history, recommendation to split task |
+| Orchestrator hits >200K tokens                      | Current token count, request `/compact`     |
+| Orchestrator hits 300K despite compaction           | Phase history, recommendation to split task |
 | Review cycle 3 attempted                            | Review findings from all cycles             |
 | Scope creep: task touches >10 files unexpectedly    | File list, original scope                   |
 
@@ -486,19 +504,20 @@ Awaiting human decision.
 
 | Threshold | Action                                         | Mandatory?    |
 | --------- | ---------------------------------------------- | ------------- |
-| >40K      | Output `⚠️ 40K threshold (40%)` to user        | Yes           |
-| >80K      | STOP. Escalate to human to run `/compact`      | **MANDATORY** |
-| >100K     | STOP. Escalate to human for task split/restart | **MANDATORY** |
+| >100K     | Output `⚠️ 100K threshold (33%)` to user       | Yes           |
+| >200K     | STOP. Escalate to human to run `/compact`      | **MANDATORY** |
+| >300K     | STOP. Escalate to human for task split/restart | **MANDATORY** |
 
 **Compaction protocol (human-executed):**
 
-When orchestrator hits >80K tokens:
+When orchestrator hits >200K tokens:
 
 1. STOP immediately - do NOT spawn next agent
 2. Update session.md with current state
-3. Escalate to human with message: "⚠️ COMPACTION REQUIRED: Orchestrator at [X]K/100K. Please run `/compact` before continuing."
+3. Escalate to human with message: "⚠️ COMPACTION REQUIRED: Orchestrator at [X]K/300K. Please run `/compact` before continuing."
 4. Wait for human to execute `/compact preserve: phase=[X], next=[Y], agent_count=[N], blockers=[list]`
 5. After human completes compact: re-read session.md, verify phase routing, then continue
+6. PreCompact hook will automatically preserve critical state (phase, files, decisions)
 
 **Orchestrator CANNOT execute `/compact`** - this is a user command only.
 
@@ -559,17 +578,17 @@ Only expand output for:
 
 ## Context Metrics
 
-Orchestrator: [X]K/80K ([Y]%)
+Orchestrator: [X]K/300K ([Y]%)
 Cumulative agent tokens: [Z]K
 Agent invocations: [N]
 Compactions: [N]
 
 ### Agent History
 
-| #   | Agent     | Phase   | Exchanges | Tokens | Status   |
-| --- | --------- | ------- | --------- | ------ | -------- |
-| 1   | architect | EXPLORE | 8         | ~25K   | COMPLETE |
-| 2   | architect | PLAN    | 12        | ~35K   | COMPLETE |
+| #   | Agent        | Phase   | Exchanges | Tokens | Tools | Duration | Status   | Notes |
+| --- | ------------ | ------- | --------- | ------ | ----- | -------- | -------- | ----- |
+| 1   | tdd-explorer | EXPLORE | 8         | ~25K   | 34    | 45s      | COMPLETE | —     |
+| 2   | tdd-planner  | PLAN    | 12        | ~35K   | 18    | 62s      | COMPLETE | —     |
 
 ## Files Touched
 
@@ -711,39 +730,13 @@ checks:
 
 ## REFLECT → Immediate Workflow Improvement
 
-After COMMIT, spawn reflection subagent (Task tool with opus model):
+After COMMIT, spawn `tdd-reflector` agent. Full instructions are in `.claude/agents/tdd-reflector.md`.
 
-````
-You are a workflow improvement agent. Read `.tdd/session.md`.
+The reflector reads session.md Agent History table and identifies 0-3 items across three categories:
 
-Your job: identify 0-2 process issues from THIS session and propose IMMEDIATE fixes to workflow files. No documentation - only actionable changes.
-
-**Categories:**
-
-**FIX**: Something went wrong. Propose a specific edit to prevent recurrence.
-**IMPROVE**: Process worked but could be better. Propose a micro-optimization.
-
-**Requirements for each item:**
-1. Evidence: Quote the specific session event that triggered this
-2. File: Name the exact file to change (e.g., `.claude/agents/coder.md`)
-3. Section: Name the section or line range
-4. Change: Provide the actual text to add/modify (not a description of it)
-
-**Rejection criteria (do NOT report):**
-- Vague improvements ("better communication", "more thorough")
-- Code suggestions (this is workflow reflection, not code review)
-- Items without specific file/section targets
-- Issues already fixed during the session
-
-**Output format:**
-REFLECT: [0-2 items]
-- [FIX|IMPROVE]: [1 sentence summary]
-  Evidence: "[quote from session]"
-  Target: [file]:[section]
-  Change: ```[actual text to insert/replace]```
-OR
-REFLECT: Clean session.
-````
+- **FIX**: Something went wrong
+- **IMPROVE**: Process could be better
+- **EFFICIENCY**: Disproportionate resource consumption
 
 **Orchestrator handles the output:**
 
@@ -755,6 +748,25 @@ REFLECT: Clean session.
 | User says no     | Note as declined, proceed to cleanup                         |
 
 **Immediate application**: Changes are applied to workflow files in the same session, not logged for later. Continuous improvement happens NOW.
+
+### Validation Cleanup
+
+If the REFLECT output contains a `VALIDATION:` block (from `.tdd/validation-manifest.md`):
+
+| VALIDATION Result   | Orchestrator Action                                                                                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| All checks PASS     | Ask user: "All workflow validation checks passed. Remove validation scaffolding? (.tdd/validation-manifest.md, .tdd/validate-session.sh, reflector manifest reference) (y/n)" |
+| Any check FAIL      | Show failures. Do NOT offer cleanup. Note in final summary: `Validation: X/Y passed — keep scaffolding.`                                                                      |
+| No VALIDATION block | `.tdd/validation-manifest.md` doesn't exist — skip this step.                                                                                                                 |
+
+**If user says yes to cleanup:**
+
+1. Delete `.tdd/validation-manifest.md`
+2. Delete `.tdd/validate-session.sh`
+3. Remove the validation manifest line from `.claude/agents/tdd-reflector.md` Required Reading section
+4. Include in final summary: `Validation: scaffolding removed.`
+
+**If user says no:** Note as kept, proceed to final summary.
 
 ---
 
@@ -783,7 +795,7 @@ Then delete ephemeral files: `.tdd/session.md`, `.tdd/exploration.md`, `.tdd/pla
 1. **Checkpoint is BLOCKING** - Cannot proceed without completing post-agent checkpoint
 2. **Agent completion block REQUIRED** - Unparseable = escalate
 3. **Exchange budgets are HARD limits** - Exceed = escalate per agent_budgets
-4. **Escalation at 80K is MANDATORY** - Human must run `/compact`
+4. **Escalation at 200K is MANDATORY** - Human must run `/compact` (PreCompact hook preserves state)
 5. **Human approval MANDATORY for UI changes only** - Non-UI changes proceed directly to SYNC_DOCS
 6. **Max 2 review cycles** - Escalate on 3rd
 7. **Troubleshooter: 10 exchanges** - Then mandatory human escalation
@@ -798,3 +810,5 @@ Then delete ephemeral files: `.tdd/session.md`, `.tdd/exploration.md`, `.tdd/pla
 16. **SMOKE TESTS REQUIRED** - Smoke tests run after quality gates pass; failures route to ANALYZE_FIX; blocked routes to HUMAN_VERIFY
 17. **SMOKE MANIFEST UPDATES** - Architect proposes new checks in DESIGN_TESTS; SYNC_DOCS appends to manifest automatically
 18. **APP VERSIONING** - Bump `package.json` per SemVer in COMMIT phase; does NOT apply to workflow/docs/config files
+19. **NO ASSISTANT PREFILLING** - Opus 4.6 returns 400 for assistant message prefilling. Use structured instructions ("Output the following YAML block...") instead.
+20. **RESUMABLE FIX CYCLES** - For ANALYZE_FIX → FIX cycles, consider resuming the previous agent (Task tool `resume` parameter) to preserve root cause context, rather than spawning fresh.

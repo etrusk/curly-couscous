@@ -25,5 +25,29 @@
       "Bash(curl:*)",
       "Bash(wget:*)"
     ]
+  },
+  "hooks": {
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Evaluate if this subagent completed properly. Input: $ARGUMENTS\n\nCheck:\n1. Did the subagent output a valid AGENT_COMPLETION YAML block?\n2. If status is COMPLETE: Are all required fields present and non-null?\n3. If status is STUCK or BLOCKED: Is there a clear description of what went wrong?\n4. Are tests_skipped == 0 and all_gates_pass == true (for phases that run gates)?\n5. Phase-specific checks:\n   - WRITE_TESTS: tests_failing > 0 (red phase expects failures)\n   - IMPLEMENT: tests_failing == 0 AND all_gates_pass == true\n   - REVIEW: review contains categorized findings\n\nReturn JSON: {\"decision\": \"approve\"} if completion is valid, or {\"decision\": \"block\", \"reason\": \"explanation\"} if the agent should continue working.",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Before compacting this conversation, extract and preserve the following critical state. This MUST appear in the compacted summary:\n\n1. Current TDD phase and task description\n2. All files modified in this session (full paths)\n3. All human approval decisions and their rationale\n4. Current test commands and quality gate commands\n5. Any unresolved blockers or open questions\n6. Review cycle count\n7. Key architectural decisions made during this session\n\nFormat as a structured summary that can serve as complete context for resuming work.",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
   }
 }

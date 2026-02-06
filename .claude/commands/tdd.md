@@ -803,9 +803,12 @@ Commit: [hash] [message]
 Tests: [X] passing
 Gates: TS ✓  ESLint ✓  Tests ✓  Smoke ✓
 Files: [N] modified
+Tokens: ~[Z]K total ([N] agents + ~[O]K orchestrator)
 Process: [Clean session | type: summary (logged/noted)]
 ════════════════════
 ```
+
+Token values come from session.md Context Metrics: cumulative agent tokens + orchestrator estimate.
 
 Then delete ephemeral files: `.tdd/session.md`, `.tdd/requirements.md`, `.tdd/exploration.md`, `.tdd/plan.md`, `.tdd/test-designs.md`, `.tdd/review-findings.md`, `.tdd/fix-plan.md`
 

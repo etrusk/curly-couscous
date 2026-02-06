@@ -67,6 +67,13 @@ export function formatRejectionReasonCompact(
       return "no_target";
     case "out_of_range":
       return `out_of_range (distance=${result.distance}, range=${result.skill.range})`;
+    case "filter_failed":
+      if (result.failedFilter) {
+        return `filter_failed: ${result.failedFilter.type}(${result.failedFilter.value})`;
+      }
+      return "filter_failed";
+    case "on_cooldown":
+      return "on_cooldown";
     default:
       return "";
   }
@@ -98,6 +105,10 @@ export function formatRejectionReason(result: SkillEvaluationResult): string {
       return "no target";
     case "out_of_range":
       return `target out of range (${result.distance} > ${result.skill.range})`;
+    case "filter_failed":
+      return "target HP filter failed";
+    case "on_cooldown":
+      return "on cooldown";
     default:
       return "";
   }

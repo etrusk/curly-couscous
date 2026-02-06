@@ -212,6 +212,19 @@ When a skill has multiple triggers, they are evaluated with AND logic—all trig
 
 **Note:** `my_cell_targeted_by_enemy` detects any pending action targeting the cell. Wind-up actions (tickCost >= 1) have at least 1 tick of visibility before resolution. Instant actions (tickCost: 0) resolve the same tick they are chosen, so they cannot be dodged via this trigger.
 
+### Selector Filters
+
+Skills can optionally have a selector filter that validates the selected target after the selector picks it, but before the range check. If the filter fails, the skill is rejected and evaluation falls through to the next priority slot.
+
+**Filter types:**
+
+- `hp_below X%`: Passes when target's current HP is below X% of their maxHp (strict less-than)
+- `hp_above X%`: Passes when target's current HP is above X% of their maxHp (strict greater-than)
+
+**Evaluation order:** disabled -> cooldown -> hold -> triggers -> selector -> **filter** -> range check -> heal-full-HP check
+
+Filters are per-instance configuration. Skills without a filter behave exactly as before.
+
 ## Core Game Mechanics
 
 ### Tick System

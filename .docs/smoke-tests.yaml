@@ -157,6 +157,24 @@ checks:
     action: "Add friendly at center, select it, assign Light Punch, observe Loadout tab equipped section"
     expect: "Duplicate button visible next to Light Punch. Clicking it creates a second Light Punch instance in equipped skills."
 
+  # === SCRIPT: Selector Filter UI ===
+  # Tests filter add/configure/remove in Priority tab
+
+  - id: 26-add-selector-filter
+    tier: T2
+    action: "Add friendly at center, select it, assign Light Punch, click Priority tab, click '+ Filter' button on Light Punch skill row"
+    expect: "Filter type dropdown ('HP below'/'HP above') and value input (default 50) appear. '+ Filter' button is replaced by filter controls."
+
+  - id: 27-remove-selector-filter
+    tier: T2
+    action: "Add friendly at center, select it, assign Light Punch, click Priority tab, add filter on Light Punch, then click remove filter button (x)"
+    expect: "Filter controls disappear. '+ Filter' button reappears. Skill no longer has a filter configured."
+
+  - id: 28-filter-rejection-display
+    tier: T3
+    action: "Add friendly with Light Punch (hp_below 50% filter) at center, add enemy adjacent at full HP, click 'Step'"
+    expect: "Light Punch shows rejected status with filter-related rejection reason text in evaluation display."
+
   # === VERIFICATION ===
 
   - id: 16-no-console-errors

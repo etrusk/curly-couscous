@@ -66,6 +66,21 @@ export interface Skill {
   target: Target;
   criterion: Criterion;
   cooldownRemaining?: number; // Ticks remaining until skill is ready
+  selectorFilter?: SelectorFilter; // Optional post-selector target filter
+}
+
+/**
+ * Filter type for selector filters.
+ */
+export type SelectorFilterType = "hp_below" | "hp_above";
+
+/**
+ * Selector filter validates the selected target after selector picks it,
+ * but before the range check.
+ */
+export interface SelectorFilter {
+  type: SelectorFilterType;
+  value: number; // Percentage threshold (0-100)
 }
 
 /**
@@ -281,7 +296,8 @@ export type SkillRejectionReason =
   | "trigger_failed" // One or more triggers didn't pass
   | "no_target" // Selector returned null (no valid target exists)
   | "out_of_range" // Target exists but beyond skill.range
-  | "on_cooldown"; // Skill is on cooldown
+  | "on_cooldown" // Skill is on cooldown
+  | "filter_failed"; // Selector filter rejected the target
 
 /**
  * Result of evaluating a single skill for a character.
@@ -295,6 +311,7 @@ export interface SkillEvaluationResult {
   target?: Character; // The selected/attempted target
   distance?: number; // Distance to target (for out_of_range context)
   failedTriggers?: Trigger[]; // Which triggers failed (for trigger_failed)
+  failedFilter?: SelectorFilter; // Which filter failed (for filter_failed)
 }
 
 /**

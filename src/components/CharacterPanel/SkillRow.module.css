@@ -159,3 +159,40 @@
   font-size: 0.85rem;
   font-style: italic;
 }
+
+.filterGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.addFilterBtn {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  border: 1px dashed var(--border-primary);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.addFilterBtn:hover {
+  background: var(--surface-tertiary);
+  color: var(--text-primary);
+}
+
+.removeFilterBtn {
+  padding: 0.15rem 0.35rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--border-primary);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.removeFilterBtn:hover {
+  background: var(--health-low);
+  color: white;
+}

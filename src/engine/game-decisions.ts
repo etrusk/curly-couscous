@@ -15,6 +15,7 @@ import {
 } from "./types";
 import { evaluateTrigger } from "./triggers";
 import { evaluateTargetCriterion } from "./selectors";
+import { evaluateSelectorFilter } from "./selector-filters";
 import {
   getActionType,
   createSkillAction,
@@ -103,6 +104,13 @@ function tryExecuteSkill(
   );
   if (!target) {
     return null;
+  }
+
+  // Check selector filter (post-selector, pre-range)
+  if (skill.selectorFilter) {
+    if (!evaluateSelectorFilter(skill.selectorFilter, target)) {
+      return null;
+    }
   }
 
   // Validate action-specific conditions
@@ -221,6 +229,19 @@ function evaluateSingleSkill(
   );
   if (!target) {
     return { skill, status: "rejected", rejectionReason: "no_target" };
+  }
+
+  // Check selector filter (post-selector, pre-range)
+  if (skill.selectorFilter) {
+    if (!evaluateSelectorFilter(skill.selectorFilter, target)) {
+      return {
+        skill,
+        status: "rejected",
+        rejectionReason: "filter_failed",
+        target,
+        failedFilter: skill.selectorFilter,
+      };
+    }
   }
 
   const actionType = getActionType(skill);

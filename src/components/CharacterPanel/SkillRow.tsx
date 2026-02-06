@@ -2,7 +2,12 @@
  * SkillRow - Displays a single skill in priority list (config or battle mode)
  */
 
-import type { Character, Skill, Trigger } from "../../engine/types";
+import type {
+  Character,
+  Skill,
+  Trigger,
+  SelectorFilterType,
+} from "../../engine/types";
 import { useGameStore, selectActions } from "../../stores/gameStore";
 import { getSkillDefinition } from "../../engine/skill-registry";
 import { TriggerDropdown } from "./TriggerDropdown";
@@ -95,6 +100,36 @@ export function SkillRow({
 
   const handleDuplicate = () => {
     duplicateSkill(character.id, skill.instanceId);
+  };
+
+  const handleAddFilter = () => {
+    updateSkill(character.id, skill.instanceId, {
+      selectorFilter: { type: "hp_below", value: 50 },
+    });
+  };
+
+  const handleFilterTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const filterType = e.target.value as SelectorFilterType;
+    updateSkill(character.id, skill.instanceId, {
+      selectorFilter: {
+        type: filterType,
+        value: skill.selectorFilter?.value ?? 50,
+      },
+    });
+  };
+
+  const handleFilterValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const parsed = parseInt(e.target.value, 10);
+    if (isNaN(parsed)) return;
+    updateSkill(character.id, skill.instanceId, {
+      selectorFilter: { type: skill.selectorFilter!.type, value: parsed },
+    });
+  };
+
+  const handleRemoveFilter = () => {
+    updateSkill(character.id, skill.instanceId, {
+      selectorFilter: undefined,
+    });
   };
 
   const instanceCount = character.skills.filter(
@@ -243,6 +278,42 @@ export function SkillRow({
         <option value="highest_hp">Highest HP</option>
       </select>
 
+      {skill.selectorFilter ? (
+        <span className={styles.filterGroup}>
+          <select
+            value={skill.selectorFilter.type}
+            onChange={handleFilterTypeChange}
+            className={styles.select}
+            aria-label={`Filter type for ${skill.name}`}
+          >
+            <option value="hp_below">HP below</option>
+            <option value="hp_above">HP above</option>
+          </select>
+          <input
+            type="number"
+            defaultValue={skill.selectorFilter.value}
+            onChange={handleFilterValueChange}
+            className={styles.input}
+            aria-label={`Filter value for ${skill.name}`}
+          />
+          <button
+            onClick={handleRemoveFilter}
+            className={styles.removeFilterBtn}
+            aria-label={`Remove filter for ${skill.name}`}
+          >
+            x
+          </button>
+        </span>
+      ) : (
+        <button
+          onClick={handleAddFilter}
+          className={styles.addFilterBtn}
+          aria-label={`Add filter for ${skill.name}`}
+        >
+          + Filter
+        </button>
+      )}
+
       {skillDef && skillDef.behaviors.length > 1 && (
         <select
           value={skill.behavior}
@@ -278,6 +349,7 @@ function formatRejectionReason(reason: string): string {
     no_target: "No valid target",
     out_of_range: "Target out of range",
     on_cooldown: "On cooldown",
+    filter_failed: "Filter: target HP mismatch",
   };
   return map[reason] || reason;
 }

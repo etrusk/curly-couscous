@@ -4,7 +4,7 @@
 
 Tick-based auto battler with priority-based skill system (gambit system like FFXII).
 Hexagonal grid (radius 5, 91 hexes) with character tokens, intent lines, damage overlays.
-Client-side only for v0.3 (foundation for future roguelike meta-progression).
+Client-side only.
 
 ## Design Vision
 
@@ -47,16 +47,16 @@ Inspired by Baldur's Gate 3's nested tooltip system, the UI should layer informa
 2. Readable battlefield state at a glance via intent visualization
 3. Transparent AI decision-making for player understanding and debugging
 4. Accessible to general gamers, not just tactics veterans
-5. Foundation for future complexity (equipment, more skills, speed stats, roguelike meta-progression)
+5. Foundation for future complexity (equipment, more skills, speed stats)
 
 ## Character Properties
 
 - **HP:** 100 (maxHp: 100)
-- **Skill slots:** 3 initial, up to 6 unlockable
+- **Skill slots:** 10
 - **Factions:** Friendly or Enemy (affects targeting only)
 - **Slot position:** Order added to battle (used for collision tiebreaking)
 
-Characters are homogeneous in v0.3. Differentiation comes from skill loadout and priority configuration.
+Characters are homogeneous. Differentiation comes from skill loadout and priority configuration.
 
 ## Starting Skills
 
@@ -361,12 +361,11 @@ Character tokens display alphabetical letters for visual distinction, making it 
 
 ## UI Layout
 
-Four-panel structure (v0.3 implementation):
+Four-panel structure:
 
-1. **Battle Viewer (50% width):** Hexagonal grid (radius 5, 91 hexes) with tokens, intent lines, damage numbers. Hovering over character tokens displays rule evaluation tooltips. Currently uses CSS Grid rendering (SVG hex rendering planned in Phase 3).
+1. **Battle Viewer (50% width):** Hexagonal grid (radius 5, 91 hexes) with tokens, intent lines, damage numbers. Hovering over character tokens displays rule evaluation tooltips. Uses CSS Grid rendering.
 2. **Skills Panel (25% width):** Sentence-builder UI for skill configuration (triggers, selectors, priority). Innate skills display an "Innate" badge next to the skill name. Non-innate skills display an "Unassign" button to return them to the inventory.
 3. **Inventory Panel (25% width):** Displays all available skills from the centralized skill registry. Visible content when any character is selected; otherwise shows placeholder message. Skills can be assigned to or removed from the selected character.
-4. **Event Log (bottom):** Planned for future release
 
 ### Auto-Focus Toggle
 

@@ -4,6 +4,7 @@
 
 import { useGameStore, selectActions } from "../../stores/gameStore";
 import { SKILL_REGISTRY } from "../../engine/skill-registry";
+import { MAX_SKILL_SLOTS } from "../../stores/gameStore-constants";
 import styles from "./LoadoutTab.module.css";
 
 export function LoadoutTab() {
@@ -54,7 +55,7 @@ export function LoadoutTab() {
     return !assignedToOtherCharInFaction;
   });
 
-  const canAssign = character.skills.length < 3; // MAX_SKILL_SLOTS
+  const canAssign = character.skills.length < MAX_SKILL_SLOTS;
 
   const isSkillAssignedToThisChar = (skillId: string) => {
     return character.skills.some((s) => s.id === skillId);

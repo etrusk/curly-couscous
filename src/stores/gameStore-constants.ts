@@ -12,11 +12,9 @@ import { getDefaultSkills } from "../engine/skill-registry";
 export const HEX_RADIUS = 5;
 
 /**
- * Maximum number of skill slots per character.
- * Currently fixed at 3 (includes innate skills).
- * Future: Will be upgraded to per-character property when unlock mechanics are added.
+ * Maximum number of skill slots per character (includes innate skills).
  */
-export const MAX_SKILL_SLOTS = 3;
+export const MAX_SKILL_SLOTS = 10;
 
 /**
  * Helper function to create consistent position keys for game state.

@@ -1304,19 +1304,12 @@ describe("SkillsPanel", () => {
         instanceId: "inst1",
         behavior: "towards",
       });
-      const punch1 = createSkill({
-        id: "light-punch",
-        instanceId: "inst2",
-        damage: 10,
-      });
-      const punch2 = createSkill({
-        id: "heavy-punch",
-        instanceId: "inst3",
-        damage: 25,
-      });
+      const fillerSkills = Array.from({ length: 9 }, (_, i) =>
+        createSkill({ id: `filler${i}`, instanceId: `inst${i + 2}` }),
+      );
       const char1 = createCharacter({
         id: "char1",
-        skills: [move, punch1, punch2],
+        skills: [move, ...fillerSkills],
       });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");

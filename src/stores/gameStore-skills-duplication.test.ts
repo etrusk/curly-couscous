@@ -127,19 +127,12 @@ describe("duplicateSkill", () => {
       instanceId: "move1",
       behavior: "towards",
     });
-    const punch1 = createSkill({
-      id: "light-punch",
-      instanceId: "punch1",
-      damage: 10,
-    });
-    const punch2 = createSkill({
-      id: "heavy-punch",
-      instanceId: "punch2",
-      damage: 25,
-    });
+    const fillerSkills = Array.from({ length: 9 }, (_, i) =>
+      createSkill({ id: `filler${i}`, instanceId: `filler${i}` }),
+    );
     const char1 = createCharacter({
       id: "char1",
-      skills: [move, punch1, punch2],
+      skills: [move, ...fillerSkills],
     });
     useGameStore.getState().actions.initBattle([char1]);
 
@@ -148,7 +141,7 @@ describe("duplicateSkill", () => {
     const updatedChar = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === "char1");
-    expect(updatedChar?.skills).toHaveLength(3);
+    expect(updatedChar?.skills).toHaveLength(10);
   });
 
   it("allows duplicating non-move skills within maxInstances", () => {

@@ -268,10 +268,10 @@ describe("InventoryPanel", () => {
 
   describe("Slot Capacity", () => {
     it("disables assign button when all slots are full", () => {
-      const s1 = createSkill({ id: "s1" });
-      const s2 = createSkill({ id: "s2" });
-      const s3 = createSkill({ id: "s3" });
-      const char1 = createCharacter({ id: "char1", skills: [s1, s2, s3] });
+      const skills = Array.from({ length: 10 }, (_, i) =>
+        createSkill({ id: `s${i + 1}` }),
+      );
+      const char1 = createCharacter({ id: "char1", skills });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
@@ -290,10 +290,10 @@ describe("InventoryPanel", () => {
     });
 
     it("does not change skills when assign action called at capacity", () => {
-      const s1 = createSkill({ id: "s1" });
-      const s2 = createSkill({ id: "s2" });
-      const s3 = createSkill({ id: "s3" });
-      const char1 = createCharacter({ id: "char1", skills: [s1, s2, s3] });
+      const skills = Array.from({ length: 10 }, (_, i) =>
+        createSkill({ id: `s${i + 1}` }),
+      );
+      const char1 = createCharacter({ id: "char1", skills });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
@@ -308,7 +308,7 @@ describe("InventoryPanel", () => {
       const updatedChar = useGameStore
         .getState()
         .gameState.characters.find((c) => c.id === "char1");
-      expect(updatedChar?.skills.length).toBe(3);
+      expect(updatedChar?.skills.length).toBe(10);
       expect(updatedChar?.skills.some((s) => s.id === "light-punch")).toBe(
         false,
       );

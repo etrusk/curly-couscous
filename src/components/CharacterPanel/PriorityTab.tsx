@@ -3,6 +3,7 @@
  */
 
 import { useGameStore } from "../../stores/gameStore";
+import { evaluateSkillsForCharacter } from "../../engine/game";
 import { SkillRow } from "./SkillRow";
 import styles from "./PriorityTab.module.css";
 
@@ -23,35 +24,25 @@ export function PriorityTab({ mode }: PriorityTabProps) {
 
   const isBattleMode = mode === "battle";
 
-  // In battle mode, get evaluation data from character's current action and skill evaluation
-  const evaluations = character.skills.map((skill) => {
+  // In battle mode, get evaluation data from real engine evaluation
+  const evaluations = (() => {
     if (!isBattleMode) {
-      return undefined;
+      return character.skills.map(() => undefined);
     }
 
-    // Check if this skill was selected (currentAction matches)
-    if (
-      character.currentAction &&
-      character.currentAction.skill.id === skill.id
-    ) {
-      // Find target character
-      const targetChar = allCharacters.find(
-        (c) =>
-          c.position.q === character.currentAction!.targetCell.q &&
-          c.position.r === character.currentAction!.targetCell.r,
-      );
+    const result = evaluateSkillsForCharacter(character, allCharacters);
 
-      return {
-        status: "selected" as const,
-        resolvedTarget: targetChar,
-      };
+    if (result.isMidAction) {
+      // Mid-action: no per-skill evaluations available
+      return character.skills.map(() => undefined);
     }
 
-    // For now, mark other skills as skipped (could be enhanced with rejection tracking)
-    return {
-      status: "skipped" as const,
-    };
-  });
+    return result.skillEvaluations.map((evalResult) => ({
+      status: evalResult.status,
+      rejectionReason: evalResult.rejectionReason,
+      resolvedTarget: evalResult.target,
+    }));
+  })();
 
   return (
     <div className={styles.priorityTab}>

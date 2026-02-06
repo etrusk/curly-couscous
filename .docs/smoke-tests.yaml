@@ -145,6 +145,18 @@ checks:
     action: "Add friendly at center, select it, assign Light Punch, click Priority tab, click '+ AND' on Light Punch, then click remove button on second trigger"
     expect: "Returns to single trigger dropdown. 'AND' label and second dropdown no longer visible. '+ AND' button reappears."
 
+  # === SCRIPT: UI Gap Fixes (NOT toggle, Non-Move duplication) ===
+
+  - id: 24-not-toggle-trigger
+    tier: T3
+    action: "Add friendly at center, select it, assign Light Punch, click Priority tab, change Light Punch trigger from 'Always' to 'HP below', observe NOT toggle button"
+    expect: "NOT toggle button appears before the trigger dropdown. Clicking it highlights the button and shows 'NOT' in active state."
+
+  - id: 25-duplicate-non-move-skill
+    tier: T3
+    action: "Add friendly at center, select it, assign Light Punch, observe Loadout tab equipped section"
+    expect: "Duplicate button visible next to Light Punch. Clicking it creates a second Light Punch instance in equipped skills."
+
   # === VERIFICATION ===
 
   - id: 16-no-console-errors

@@ -38,3 +38,25 @@
   background: var(--health-low);
   color: white;
 }
+
+.notToggle {
+  padding: 0.15rem 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid var(--border-primary);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.notToggle:hover {
+  background: var(--surface-tertiary);
+}
+
+.notToggleActive {
+  background: var(--health-low);
+  color: white;
+  border-color: var(--health-low);
+}

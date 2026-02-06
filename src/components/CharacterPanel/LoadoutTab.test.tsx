@@ -196,19 +196,19 @@ describe("LoadoutTab", () => {
 
     it("duplicate button hidden at max instances", () => {
       const move1 = createSkill({
-        id: "move",
+        id: "move-towards",
         instanceId: "move-1",
         name: "Move",
         behavior: "towards",
       });
       const move2 = createSkill({
-        id: "move",
+        id: "move-towards",
         instanceId: "move-2",
         name: "Move",
         behavior: "towards",
       });
       const move3 = createSkill({
-        id: "move",
+        id: "move-towards",
         instanceId: "move-3",
         name: "Move",
         behavior: "towards",
@@ -226,6 +226,25 @@ describe("LoadoutTab", () => {
       expect(
         screen.queryByRole("button", { name: /duplicate/i }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Non-Move Skill Duplication", () => {
+    it("duplicate button shown for non-Move skills below maxInstances", () => {
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [lightPunch] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<LoadoutTab />);
+
+      // Duplicate button should be visible for Light Punch (1 < maxInstances of 2)
+      expect(
+        screen.getByRole("button", { name: /duplicate.*light punch/i }),
+      ).toBeInTheDocument();
     });
   });
 

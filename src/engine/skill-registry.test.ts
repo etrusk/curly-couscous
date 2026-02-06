@@ -355,10 +355,22 @@ describe("Skill Registry", () => {
       const move = SKILL_REGISTRY.find((s) => s.id === "move-towards");
       const heal = SKILL_REGISTRY.find((s) => s.id === "heal");
 
-      expect(lightPunch?.maxInstances).toBe(1);
-      expect(heavyPunch?.maxInstances).toBe(1);
+      expect(lightPunch?.maxInstances).toBe(2);
+      expect(heavyPunch?.maxInstances).toBe(2);
       expect(move?.maxInstances).toBe(3);
-      expect(heal?.maxInstances).toBe(1);
+      expect(heal?.maxInstances).toBe(2);
+    });
+
+    it("non-move skills allow duplication up to 2 instances", () => {
+      const lightPunch = SKILL_REGISTRY.find((s) => s.id === "light-punch");
+      const heavyPunch = SKILL_REGISTRY.find((s) => s.id === "heavy-punch");
+      const heal = SKILL_REGISTRY.find((s) => s.id === "heal");
+      const move = SKILL_REGISTRY.find((s) => s.id === "move-towards");
+
+      expect(lightPunch?.maxInstances).toBe(2);
+      expect(heavyPunch?.maxInstances).toBe(2);
+      expect(heal?.maxInstances).toBe(2);
+      expect(move?.maxInstances).toBe(3); // unchanged
     });
   });
 

@@ -4,6 +4,7 @@
 
 import type { Character, Skill, Trigger } from "../../engine/types";
 import { useGameStore, selectActions } from "../../stores/gameStore";
+import { getSkillDefinition } from "../../engine/skill-registry";
 import { TriggerDropdown } from "./TriggerDropdown";
 import styles from "./SkillRow.module.css";
 
@@ -33,11 +34,12 @@ export function SkillRow({
 }: SkillRowProps) {
   const { updateSkill, moveSkillUp, moveSkillDown, duplicateSkill } =
     useGameStore(selectActions);
+  const allCharacters = useGameStore((state) => state.gameState.characters);
 
   const triggers = skill.triggers ?? [];
   const trigger0: Trigger = triggers[0] || { type: "always" };
   const trigger1: Trigger | undefined = triggers[1];
-  const isMove = skill.id === "move-towards";
+  const skillDef = getSkillDefinition(skill.id);
 
   const handleTriggerUpdate = (idx: number, newTrigger: Trigger) => {
     const newTriggers = [...triggers];
@@ -87,7 +89,7 @@ export function SkillRow({
 
   const handleBehaviorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     updateSkill(character.id, skill.instanceId, {
-      behavior: e.target.value as "towards" | "away",
+      behavior: e.target.value,
     });
   };
 
@@ -95,10 +97,10 @@ export function SkillRow({
     duplicateSkill(character.id, skill.instanceId);
   };
 
-  const moveInstanceCount = character.skills.filter(
-    (s) => s.id === "move-towards",
+  const instanceCount = character.skills.filter(
+    (s) => s.id === skill.id,
   ).length;
-  const canDuplicate = isMove && moveInstanceCount < 3;
+  const canDuplicate = skillDef ? instanceCount < skillDef.maxInstances : false;
 
   if (mode === "battle" && evaluation) {
     // Battle mode: show evaluation status
@@ -136,9 +138,20 @@ export function SkillRow({
             {evaluation.resolvedTarget.faction === "friendly"
               ? "Friendly"
               : "Enemy"}{" "}
-            {String.fromCharCode(
-              65 + evaluation.resolvedTarget.slotPosition - 1,
-            )}
+            {(() => {
+              const factionChars = allCharacters
+                .filter((c) => c.faction === evaluation.resolvedTarget!.faction)
+                .sort((a, b) => a.slotPosition - b.slotPosition);
+              const factionIndex = factionChars.findIndex(
+                (c) => c.id === evaluation.resolvedTarget!.id,
+              );
+              // Use per-faction index if found, otherwise fall back to raw slotPosition
+              const letterIndex =
+                factionIndex >= 0
+                  ? factionIndex
+                  : evaluation.resolvedTarget.slotPosition - 1;
+              return String.fromCharCode(65 + letterIndex);
+            })()}
           </span>
         )}
         {evaluation.status === "rejected" && evaluation.rejectionReason && (
@@ -230,15 +243,18 @@ export function SkillRow({
         <option value="highest_hp">Highest HP</option>
       </select>
 
-      {isMove && (
+      {skillDef && skillDef.behaviors.length > 1 && (
         <select
           value={skill.behavior}
           onChange={handleBehaviorChange}
           className={styles.select}
           aria-label={`Behavior for ${skill.name}`}
         >
-          <option value="towards">Towards</option>
-          <option value="away">Away</option>
+          {skillDef.behaviors.map((b) => (
+            <option key={b} value={b}>
+              {b.charAt(0).toUpperCase() + b.slice(1)}
+            </option>
+          ))}
         </select>
       )}
 
@@ -261,6 +277,7 @@ function formatRejectionReason(reason: string): string {
     trigger_failed: "Trigger failed",
     no_target: "No valid target",
     out_of_range: "Target out of range",
+    on_cooldown: "On cooldown",
   };
   return map[reason] || reason;
 }

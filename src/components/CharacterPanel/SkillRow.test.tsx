@@ -183,6 +183,7 @@ describe("SkillRow", () => {
         { reason: "trigger_failed", expected: "Trigger failed" },
         { reason: "no_target", expected: "No valid target" },
         { reason: "out_of_range", expected: "Target out of range" },
+        { reason: "on_cooldown", expected: "On cooldown" },
       ];
 
       for (const { reason, expected } of testCases) {
@@ -207,6 +208,148 @@ describe("SkillRow", () => {
         expect(screen.getByText(new RegExp(expected, "i"))).toBeInTheDocument();
         unmount();
       }
+    });
+  });
+
+  describe("Gap 1: Universal Behavior Dropdown", () => {
+    it("behavior dropdown renders options from registry for multi-behavior skill", () => {
+      const skill = createSkill({
+        id: "move-towards",
+        name: "Move",
+        behavior: "towards",
+      });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          mode="config"
+          index={0}
+          isFirst={false}
+          isLast={false}
+        />,
+      );
+
+      // Behavior dropdown should be present
+      const select = screen.getByLabelText(/behavior.*move/i);
+      expect(select).toBeInTheDocument();
+
+      // Options should be dynamically rendered from registry behaviors
+      expect(
+        screen.getByRole("option", { name: "Towards" }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: "Away" })).toBeInTheDocument();
+
+      // Current value should match skill's behavior
+      expect(select).toHaveValue("towards");
+    });
+
+    it("behavior dropdown hidden for skills with no behaviors in registry", () => {
+      const skill = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+      });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          mode="config"
+          index={0}
+          isFirst={false}
+          isLast={false}
+        />,
+      );
+
+      // No behavior dropdown for light-punch (empty behaviors array)
+      expect(
+        screen.queryByLabelText(/behavior.*light punch/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it("behavior dropdown hidden for single-behavior skills", () => {
+      // Use an ID that does not match any registry entry to simulate
+      // a skill with no behaviors (getSkillDefinition returns undefined)
+      const skill = createSkill({
+        id: "custom-skill",
+        name: "Custom Skill",
+      });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          mode="config"
+          index={0}
+          isFirst={false}
+          isLast={false}
+        />,
+      );
+
+      // No behavior dropdown should appear
+      expect(screen.queryByLabelText(/behavior/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Gap 2b: Universal Skill Duplication", () => {
+    it("duplicate button visible when under maxInstances for non-Move skill", () => {
+      const skill = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+      });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          mode="config"
+          index={0}
+          isFirst={false}
+          isLast={false}
+        />,
+      );
+
+      // Duplicate button should appear (1 instance < maxInstances of 2)
+      expect(
+        screen.getByRole("button", { name: /duplicate.*light punch/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("duplicate button hidden when at maxInstances for non-Move skill", () => {
+      const lp1 = createSkill({
+        id: "light-punch",
+        instanceId: "lp-1",
+        name: "Light Punch",
+      });
+      const lp2 = createSkill({
+        id: "light-punch",
+        instanceId: "lp-2",
+        name: "Light Punch",
+      });
+      const character = createCharacter({
+        id: "char1",
+        skills: [lp1, lp2],
+      });
+
+      render(
+        <SkillRow
+          skill={lp1}
+          character={character}
+          mode="config"
+          index={0}
+          isFirst={true}
+          isLast={false}
+        />,
+      );
+
+      // No duplicate button (2 instances = maxInstances of 2)
+      expect(
+        screen.queryByRole("button", { name: /duplicate.*light punch/i }),
+      ).not.toBeInTheDocument();
     });
   });
 });

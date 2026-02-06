@@ -151,7 +151,7 @@ describe("duplicateSkill", () => {
     expect(updatedChar?.skills).toHaveLength(3);
   });
 
-  it("rejects non-move skills", () => {
+  it("allows duplicating non-move skills within maxInstances", () => {
     const punchSkill = createSkill({
       id: "light-punch",
       instanceId: "punch1",
@@ -165,7 +165,7 @@ describe("duplicateSkill", () => {
     const updatedChar = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === "char1");
-    expect(updatedChar?.skills).toHaveLength(1);
+    expect(updatedChar?.skills).toHaveLength(2);
   });
 
   it("handles nonexistent character gracefully", () => {
@@ -198,13 +198,18 @@ describe("duplicateSkill", () => {
   });
 
   // NEW TESTS FOR NON-MOVE DUPLICATION
-  it("blocks duplication when skill has maxInstances: 1", () => {
-    const lightPunchSkill = createSkill({
+  it("blocks duplication when skill has reached maxInstances", () => {
+    const lp1 = createSkill({
       id: "light-punch",
       instanceId: "light-punch-inst1",
       damage: 10,
     });
-    const char1 = createCharacter({ id: "char1", skills: [lightPunchSkill] });
+    const lp2 = createSkill({
+      id: "light-punch",
+      instanceId: "light-punch-inst2",
+      damage: 10,
+    });
+    const char1 = createCharacter({ id: "char1", skills: [lp1, lp2] });
     useGameStore.getState().actions.initBattle([char1]);
 
     useGameStore
@@ -214,7 +219,7 @@ describe("duplicateSkill", () => {
     const updatedChar = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === "char1");
-    expect(updatedChar?.skills).toHaveLength(1);
+    expect(updatedChar?.skills).toHaveLength(2);
   });
 
   it("duplicated skill gets default config from registry", () => {

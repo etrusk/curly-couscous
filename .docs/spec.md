@@ -95,14 +95,14 @@ Each skill in the registry declares:
 - Tick cost: 0, Range: 1 (melee), Damage: 10
 - Default target: enemy, Default criterion: nearest
 - Fast and instant. Resolves immediately with no wind-up.
-- **Assignable** (not innate), maxInstances: 1
+- **Assignable** (not innate), maxInstances: 2
 
 ### Heavy Punch
 
 - Tick cost: 2, Range: 2, Damage: 25
 - Default target: enemy, Default criterion: nearest
 - Slow but powerful. 2-tick wind-up creates dodge window.
-- **Assignable** (not innate), maxInstances: 1
+- **Assignable** (not innate), maxInstances: 2
 
 ### Heal
 
@@ -112,7 +112,7 @@ Each skill in the registry declares:
 - Heals target for 25 HP, capped at maxHp.
 - Cannot target characters at full HP (rejected as no_target if no wounded allies in range).
 - Healing resolves before combat in the Resolution Phase (ADR-006), making last-moment saves possible.
-- **Assignable** (not innate), maxInstances: 1
+- **Assignable** (not innate), maxInstances: 2
 
 ### Skill Categories
 
@@ -141,7 +141,7 @@ Skills fall into two timing categories:
 
 ### Skill Duplication
 
-Any skill can be duplicated up to its registry-defined `maxInstances` limit. When duplicated, each instance gets a unique `instanceId` (ADR-009) and can be configured independently (different triggers, targets, criteria, behaviors). Move allows up to 3 instances; all other current skills allow 1 (no duplication).
+Any skill can be duplicated up to its registry-defined `maxInstances` limit. When duplicated, each instance gets a unique `instanceId` (ADR-009) and can be configured independently (different triggers, targets, criteria, behaviors). Move allows up to 3 instances; Light Punch, Heavy Punch, and Heal allow up to 2 instances each.
 
 ## Skill Assignment
 

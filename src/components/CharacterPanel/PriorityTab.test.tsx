@@ -2,6 +2,7 @@
  * Tests for PriorityTab component - Priority configuration and battle evaluation (D1 + D2)
  * Following TDD workflow - tests written before implementation.
  */
+/* eslint-disable max-lines */
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -344,7 +345,7 @@ describe("PriorityTab", () => {
       const attackSkill = createSkill({
         id: "attack",
         name: "Long Range Attack",
-        range: 5,
+        range: 1,
       });
       const friendly = createCharacter({
         id: "friendly",
@@ -355,7 +356,7 @@ describe("PriorityTab", () => {
       const enemy = createCharacter({
         id: "enemy",
         faction: "enemy",
-        position: { q: 10, r: 0 }, // Out of range
+        position: { q: 5, r: 0 }, // Valid hex, distance 5, outside range 1
       });
 
       useGameStore.getState().actions.initBattle([friendly, enemy]);
@@ -366,9 +367,11 @@ describe("PriorityTab", () => {
 
       render(<PriorityTab mode="battle" />);
 
-      // Should show rejection reason (e.g., "No valid target" or "Out of range")
-      // Note: Exact text depends on evaluation system
       expect(screen.getByText(/long range attack/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/out of range|no valid target/i),
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText(/rejected/i)).toBeInTheDocument();
     });
 
     it("selected skill shows resolved target", () => {
@@ -399,9 +402,10 @@ describe("PriorityTab", () => {
 
       render(<PriorityTab mode="battle" />);
 
-      // Should show target character letter (e.g., "-> B")
-      // Note: Exact format depends on SkillRow implementation
       expect(screen.getByText(/punch/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/selected/i)).toBeInTheDocument();
+      // Enemy at slotPosition 1 displays as "A"
+      expect(screen.getByText(/→.*A|Enemy A/i)).toBeInTheDocument();
     });
 
     it("battle mode uses compact styling", () => {
@@ -459,6 +463,205 @@ describe("PriorityTab", () => {
 
       // Evaluation should reflect post-step state
       expect(screen.getByText(/punch/i)).toBeInTheDocument();
+    });
+  });
+
+  describe("Gap 4: Real Battle Evaluation", () => {
+    it("selected skill shows target name via real evaluation", () => {
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+        damage: 10,
+        range: 1,
+        actionType: "attack",
+        triggers: [{ type: "always" }],
+      });
+      const friendly = createCharacter({
+        id: "friendly",
+        faction: "friendly",
+        position: { q: 0, r: 0 },
+        slotPosition: 1,
+        skills: [lightPunch],
+      });
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { q: 1, r: 0 },
+        slotPosition: 1,
+      });
+
+      useGameStore.getState().actions.initBattle([friendly, enemy]);
+      useGameStore.getState().actions.selectCharacter("friendly");
+      useGameStore.setState((state) => {
+        state.gameState.battleStatus = "active";
+      });
+
+      render(<PriorityTab mode="battle" />);
+
+      // Should show selected status icon
+      expect(screen.getByLabelText("Selected")).toBeInTheDocument();
+      // Enemy at slotPosition 1 renders as "A"
+      expect(screen.getByText(/A/)).toBeInTheDocument();
+    });
+
+    it("rejected skill shows rejection reason via real evaluation", () => {
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+        damage: 10,
+        range: 1,
+        actionType: "attack",
+        triggers: [{ type: "always" }],
+      });
+      const friendly = createCharacter({
+        id: "friendly",
+        faction: "friendly",
+        position: { q: 0, r: 0 },
+        slotPosition: 1,
+        skills: [lightPunch],
+      });
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { q: 5, r: 0 },
+        slotPosition: 1,
+      });
+
+      useGameStore.getState().actions.initBattle([friendly, enemy]);
+      useGameStore.getState().actions.selectCharacter("friendly");
+      useGameStore.setState((state) => {
+        state.gameState.battleStatus = "active";
+      });
+
+      render(<PriorityTab mode="battle" />);
+
+      // Should show rejected status icon
+      expect(screen.getByLabelText("Rejected")).toBeInTheDocument();
+      // Should show a human-readable rejection reason
+      expect(
+        screen.getByText(/out of range|no valid target/i),
+      ).toBeInTheDocument();
+    });
+
+    it("skipped skill rendered below selected skill", () => {
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+        damage: 10,
+        range: 1,
+        actionType: "attack",
+        triggers: [{ type: "always" }],
+      });
+      const heavyPunch = createSkill({
+        id: "heavy-punch",
+        name: "Heavy Punch",
+        damage: 25,
+        range: 2,
+        actionType: "attack",
+        triggers: [{ type: "always" }],
+      });
+      const friendly = createCharacter({
+        id: "friendly",
+        faction: "friendly",
+        position: { q: 0, r: 0 },
+        slotPosition: 1,
+        skills: [lightPunch, heavyPunch],
+      });
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { q: 1, r: 0 },
+        slotPosition: 1,
+      });
+
+      useGameStore.getState().actions.initBattle([friendly, enemy]);
+      useGameStore.getState().actions.selectCharacter("friendly");
+      useGameStore.setState((state) => {
+        state.gameState.battleStatus = "active";
+      });
+
+      render(<PriorityTab mode="battle" />);
+
+      // First skill selected, second skipped
+      expect(screen.getByLabelText("Skipped")).toBeInTheDocument();
+      expect(screen.getByText(/heavy punch/i)).toBeInTheDocument();
+    });
+
+    it("all skills rejected when no valid targets in range", () => {
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+        damage: 10,
+        range: 1,
+        actionType: "attack",
+        triggers: [{ type: "always" }],
+      });
+      const heavyPunch = createSkill({
+        id: "heavy-punch",
+        name: "Heavy Punch",
+        damage: 25,
+        range: 2,
+        actionType: "attack",
+        triggers: [{ type: "always" }],
+      });
+      const friendly = createCharacter({
+        id: "friendly",
+        faction: "friendly",
+        position: { q: 0, r: 0 },
+        slotPosition: 1,
+        skills: [lightPunch, heavyPunch],
+      });
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { q: 5, r: 0 },
+        slotPosition: 1,
+      });
+
+      useGameStore.getState().actions.initBattle([friendly, enemy]);
+      useGameStore.getState().actions.selectCharacter("friendly");
+      useGameStore.setState((state) => {
+        state.gameState.battleStatus = "active";
+      });
+
+      render(<PriorityTab mode="battle" />);
+
+      // Both skills should be rejected (enemy out of range for both)
+      const rejectedIcons = screen.getAllByLabelText("Rejected");
+      expect(rejectedIcons).toHaveLength(2);
+      // No selected or skipped icons
+      expect(screen.queryByLabelText("Selected")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Skipped")).not.toBeInTheDocument();
+    });
+
+    it("config mode shows no evaluation status icons", () => {
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+      });
+      const char1 = createCharacter({
+        id: "char1",
+        skills: [lightPunch],
+      });
+
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<PriorityTab mode="config" />);
+
+      // No evaluation icons in config mode
+      expect(screen.queryByLabelText("Selected")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Rejected")).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Skipped")).not.toBeInTheDocument();
+
+      // Config controls should be present
+      expect(
+        screen.getByRole("combobox", { name: /trigger for light punch/i }),
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText(/target.*light punch/i)).toBeInTheDocument();
+      expect(
+        screen.getByLabelText(/criterion.*light punch/i),
+      ).toBeInTheDocument();
     });
   });
 });

@@ -73,11 +73,10 @@ export function LoadoutTab() {
               );
               if (!skillDef) return null;
 
-              const isMove = skillDef.id === "move-towards";
-              const moveInstanceCount = character.skills.filter(
-                (s) => s.id === "move-towards",
+              const instanceCount = character.skills.filter(
+                (s) => s.id === skillDef.id,
               ).length;
-              const canDuplicate = isMove && moveInstanceCount < 3;
+              const canDuplicate = instanceCount < skillDef.maxInstances;
 
               return (
                 <div key={skill.instanceId} className={styles.skillRow}>

@@ -45,12 +45,16 @@ export function TriggerDropdown({
       ? { type: newType, value: getDefaultValue(newType) }
       : { type: newType };
 
-    // Preserve negated field if present
-    if (trigger.negated) {
+    // Preserve negated field if present, but clear it when switching to "always"
+    if (trigger.negated && newType !== "always") {
       newTrigger.negated = true;
     }
 
     onTriggerChange(newTrigger);
+  };
+
+  const handleNotToggle = () => {
+    onTriggerChange({ ...trigger, negated: !trigger.negated });
   };
 
   const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,6 +65,17 @@ export function TriggerDropdown({
 
   return (
     <span className={styles.triggerControl}>
+      {trigger.type !== "always" && (
+        <button
+          type="button"
+          onClick={handleNotToggle}
+          className={`${styles.notToggle} ${trigger.negated ? styles.notToggleActive : ""}`}
+          aria-label={`Toggle NOT modifier for ${skillName}`}
+          aria-pressed={!!trigger.negated}
+        >
+          NOT
+        </button>
+      )}
       <select
         value={trigger.type}
         onChange={handleTypeChange}

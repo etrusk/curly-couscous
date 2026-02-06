@@ -215,7 +215,7 @@ If parse fails → STOP → Escalate to human with raw output.
 
 ### Step 2: Update Session Metrics
 
-Update `.tdd/session.md` Context Metrics section. Parse the AGENT_COMPLETION block and append a row to the Agent History table including token metrics, tool call count, and notable events.
+Update `.tdd/session.md` Context Metrics section. Parse the AGENT_COMPLETION block and append a row to the Agent History table including token metrics, tool call count, and notable events. IMPORTANT: Use the full agent file name (e.g., `tdd-explorer`, `tdd-planner`, `tdd-coder`) in the Agent column, NOT shortened names like "Explorer" or "Coder".
 
 ```markdown
 ## Context Metrics

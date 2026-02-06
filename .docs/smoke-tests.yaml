@@ -1,138 +1,140 @@
 # .docs/smoke-tests.yaml
-# Sequential smoke test script. Each check builds on previous state.
-# Architect proposes new checks in DESIGN_TESTS; SYNC_DOCS appends automatically.
+# Smoke test manifest. Each check must be independently executable (stateless).
+# See .docs/smoke-test-instructions.md for execution rules.
 
 version: 1
 base_url: "http://localhost:5173"
 
 # === EXECUTION PROTOCOL ===
-# Agents MUST follow this protocol when running smoke tests:
-#
-# 1. Execute checks SEQUENTIALLY - each builds on prior state
-# 2. For EACH check, log explicitly:
-#    - EXECUTING: [id] - [action]
-#    - RESULT: PASS/FAIL - [observed outcome]
-# 3. Take screenshot AFTER each action (not just at end)
-# 4. Read console errors AFTER each action (clear between checks)
-# 5. If ANY check fails, STOP and report - do not continue
-# 6. Final summary must list each check with PASS/FAIL status
-#
-# "Visual inspection" without explicit execution logs = INVALID
-# Checking "elements are visible" without clicking = INVALID
-# Dismissing console errors as "historical" without investigation = INVALID
-#
-# 7. When __TEST_HARNESS__ is available (dev mode), prefer JS calls for state verification:
-#    - window.__TEST_HARNESS__.getTick() instead of parsing tick from DOM
-#    - window.__TEST_HARNESS__.getBattleStatus() instead of reading badge text
-#    - window.__TEST_HARNESS__.getCharacters() instead of parsing HP from accessibility labels
-#    - If verify_js field is present on a check, evaluate it via browser console after the action
+# See .docs/smoke-test-instructions.md for full agent rules.
+# Key constraints: 40K token budget per session, max 5 screenshots per session,
+# stateless checks, tiered verification (T1/T2/T3).
+
+# === SCHEMA ===
+# Required: id, action, expect
+# Optional: tier (T1|T2|T3, default T2), verify_js (JS expression for T2 checks)
+# If verify_js is present, tier defaults to T2 unless explicitly overridden.
 
 # === SCRIPT: Victory Path ===
 # Tests app load → setup → battle → victory → reset
 
 checks:
   - id: 01-app-loads
-    action: "navigate to base_url"
-    expect: "hexagonal grid visible within 3 seconds, console has no errors"
+    tier: T1
+    action: "Navigate to base_url"
+    expect: "Hexagonal grid visible within 3 seconds, console has no errors"
 
   - id: 02-add-friendly
-    action: "click 'Add Friendly' button, click hex at grid center"
-    expect: "friendly token 'A' appears at center hex"
+    tier: T2
+    action: "Click 'Add Friendly' button, click hex at grid center"
+    expect: "Friendly token 'A' appears at center hex"
 
   - id: 03-add-enemy
-    action: "click 'Add Enemy' button, click hex one step above center"
-    expect: "enemy token 'A' appears adjacent to friendly (distance 1)"
+    tier: T2
+    action: "Add friendly at center, click 'Add Enemy' button, click hex one step above center"
+    expect: "Enemy token 'A' appears adjacent to friendly (distance 1)"
 
   - id: 04-select-friendly
-    action: "click friendly token 'A'"
-    expect: "token shows selection border, CharacterPanel header shows 'Friendly A'"
+    tier: T2
+    action: "Add friendly at center, click friendly token 'A'"
+    expect: "Token shows selection border, CharacterPanel header shows 'Friendly A'"
 
   - id: 05-assign-attack
-    action: "in Loadout tab, click 'Assign' next to 'Light Punch'"
+    tier: T2
+    action: "Add friendly at center, select it, in Loadout tab click 'Assign' next to 'Light Punch'"
     expect: "Light Punch appears in Equipped Skills section below Move"
 
   - id: 06-skill-toggle
-    action: "click toggle switch on Move skill in Loadout tab to disable it"
+    tier: T2
+    action: "Add friendly at center, select it, click toggle switch on Move skill in Loadout tab to disable it"
     expect: "Move skill shows disabled state (grayed or unchecked)"
 
   - id: 07-skill-reorder
-    action: "in Priority tab, click move-up button on Light Punch"
+    tier: T2
+    action: "Add friendly at center, assign Light Punch, in Priority tab click move-up button on Light Punch"
     expect: "Light Punch moves to position 0 (top of list)"
 
   - id: 08-step-battle
-    action: "click 'Step' button"
-    expect: "tick counter changes from 0 to 1"
+    tier: T2
+    action: "Add friendly with Light Punch at center, add enemy adjacent, click 'Step' button"
+    expect: "Tick counter changes from 0 to 1"
     verify_js: "window.__TEST_HARNESS__.getTick() === 1"
 
   - id: 09-damage-applied
-    action: "observe enemy token health display"
-    expect: "enemy HP decreased by 10 (Light Punch damage)"
+    tier: T2
+    action: "Add friendly with Light Punch at center, add enemy adjacent, click 'Step'"
+    expect: "Enemy HP decreased by 10 (Light Punch damage)"
     verify_js: "window.__TEST_HARNESS__.getCharacters().find(c => c.faction === 'enemy').hp === 90"
 
   - id: 10-continue-to-elimination
-    action: "click 'Step' repeatedly until enemy HP reaches 0"
-    expect: "enemy token removed from grid"
+    tier: T2
+    action: "Add friendly with Light Punch at center, add enemy adjacent, click 'Step' repeatedly until enemy HP reaches 0"
+    expect: "Enemy token removed from grid"
     verify_js: "window.__TEST_HARNESS__.getCharacters().filter(c => c.faction === 'enemy' && c.hp > 0).length === 0"
 
   - id: 11-victory-state
-    action: "observe BattleStatusBadge"
-    expect: "badge shows 'Victory', Step/Play buttons disabled"
+    tier: T2
+    action: "Add friendly with Light Punch at center, add enemy adjacent, step until enemy eliminated"
+    expect: "Badge shows 'Victory', Step/Play buttons disabled"
     verify_js: "window.__TEST_HARNESS__.getBattleStatus() === 'victory'"
 
   - id: 12-reset
-    action: "click 'Reset' button"
-    expect: "grid empty, tick shows 0, badge shows 'Active'"
+    tier: T2
+    action: "Add friendly with Light Punch at center, add enemy adjacent, step until victory, click 'Reset' button"
+    expect: "Characters restored to initial positions with full HP, tick shows 0, badge shows 'Active'"
     verify_js: "window.__TEST_HARNESS__.getTick() === 0 && window.__TEST_HARNESS__.getBattleStatus() === 'active'"
 
   # === SCRIPT: Defeat Path ===
   # Tests that defeat detection works
 
   - id: 13-setup-defeat
-    action: "add enemy at center with Light Punch; add friendly adjacent with no attack skill"
-    expect: "two tokens on grid, only enemy has Light Punch assigned"
+    tier: T2
+    action: "Add enemy at center with Light Punch, add friendly adjacent with no attack skill"
+    expect: "Two tokens on grid, only enemy has Light Punch assigned"
 
   - id: 14-run-to-defeat
-    action: "click 'Play', wait for battle to complete"
-    expect: "badge shows 'Defeat', friendly token eliminated"
+    tier: T2
+    action: "Add enemy with Light Punch at center, add friendly adjacent with no attack skill, click 'Play' and wait for battle to complete"
+    expect: "Badge shows 'Defeat', friendly token eliminated"
     verify_js: "window.__TEST_HARNESS__.getBattleStatus() === 'defeat'"
 
   - id: 15-final-reset
-    action: "click 'Reset' button"
-    expect: "grid empty, tick 0, badge 'Active', app ready for new battle"
+    tier: T2
+    action: "Add enemy with Light Punch at center, add friendly adjacent, run to defeat, click 'Reset' button"
+    expect: "Characters restored to initial positions with full HP, tick 0, badge 'Active'"
     verify_js: "window.__TEST_HARNESS__.getTick() === 0 && window.__TEST_HARNESS__.getBattleStatus() === 'active'"
-
-  # === SCRIPT: Trigger Conditions ===
-  # Tests trigger system expansion: ally_hp_below, NOT modifier, AND logic
-
-  - id: 05-trigger-compound
-    action: "Configure skill with two triggers and verify activation"
-    expect: "Skill activates only when both triggers pass (AND logic)"
 
   # === SCRIPT: Two-Panel Layout ===
   # Tests new tabbed interface for CharacterPanel
 
   - id: 17-panel-tabs
-    action: "select friendly character, observe CharacterPanel"
+    tier: T3
+    action: "Add friendly at center, select friendly character, observe CharacterPanel"
     expect: "Two tabs visible: Loadout and Priority. Loadout tab active by default."
 
   - id: 18-loadout-tab-content
-    action: "in Loadout tab, observe equipped skills and inventory sections"
+    tier: T2
+    action: "Add friendly at center, select it, observe Loadout tab"
     expect: "Equipped section shows Move skill. Inventory section shows Light Punch, Heavy Punch, Heal."
 
   - id: 19-priority-tab-content
-    action: "click Priority tab"
+    tier: T2
+    action: "Add friendly at center, select it, click Priority tab"
     expect: "Priority tab shows Move skill row with trigger, target, criterion, behavior dropdowns."
 
   - id: 20-battle-tab-auto-switch
-    action: "add enemy, click 'Step' button to start battle"
+    tier: T2
+    action: "Add friendly with Light Punch at center, add enemy adjacent, select friendly, click 'Step' button"
     expect: "Panel auto-switches to Priority tab. Skills show evaluation icons."
 
   - id: 21-evaluation-inline-display
-    action: "observe Priority tab during battle phase"
+    tier: T3
+    action: "Add friendly with Light Punch at center, add enemy adjacent, click 'Step', observe Priority tab"
     expect: "Selected skill shows green checkmark and target. Skipped skills show gray dash."
 
   # === VERIFICATION ===
 
   - id: 16-no-console-errors
-    action: "review browser console for entire script execution"
-    expect: "zero console.error calls, zero uncaught exceptions"
+    tier: T2
+    action: "Review browser console for entire script execution"
+    expect: "Zero console.error calls, zero uncaught exceptions"

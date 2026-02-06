@@ -362,13 +362,10 @@ phases:
       - Run smoke tests (after quality gates pass)
       - UI changes: browser verification (MCP tools only)
     smoke_gate: |
-      After quality gates pass:
-      1. Read .docs/smoke-tests.yaml
-      2. For each check: navigate, perform action, verify via accessibility tree or screenshot
-      3. Record: "PASS: [what was observed]" or "FAIL: [what was wrong]"
-      4. Report summary: "Smoke tests: N/N passed"
-      5. If ANY fail → treat as quality gate failure → ANALYZE_FIX
-      6. If MCP tools return error or timeout after 3 retries → smoke: BLOCKED → HUMAN_VERIFY
+      After quality gates pass, execute smoke tests per .docs/smoke-test-instructions.md.
+      Read the instructions file and the manifest before starting.
+      Report results using the summary format defined in Rule 10.
+      Route per: all pass → REVIEW, any fail → ANALYZE_FIX, blocked → HUMAN_VERIFY.
     gate_order: "tests pass (green) → lint → type-check → smoke test → REVIEW"
     next: REVIEW
 
@@ -628,43 +625,18 @@ Count: [0-2]
 
 ## Smoke Testing
 
-**Purpose**: Catch "app is fundamentally broken" regressions after every successful implementation, before commit.
+**Purpose**: Catch "app is fundamentally broken" regressions after every implementation.
 
 **Manifest**: `.docs/smoke-tests.yaml`
+**Instructions**: `.docs/smoke-test-instructions.md`
 
-**Schema**:
+Read both files before executing. The instructions file contains 10 operational rules governing session budgets, tiered verification, screenshot caps, and stateless execution. Follow them exactly.
 
-```yaml
-checks:
-  - id: NN-kebab-case # NN = sequence number, ≤30 chars total
-    action: "verb phrase" # One sentence, concrete action
-    expect: "observable" # One sentence, verifiable outcome
-```
-
-**Execution** (IMPLEMENT phase, after quality gates):
-
-1. Read `.docs/smoke-tests.yaml`
-2. For each check: navigate → action → verify via accessibility tree or screenshot
-3. Record: "PASS: [observed]" or "FAIL: [issue]"
-4. Report: `Smoke tests: N/N passed`
-
-**Routing**:
+**Routing** (unchanged):
 
 - All pass → REVIEW
-- Any fail → ANALYZE_FIX (treated as quality gate failure)
-- MCP tools error/timeout after 3 retries → HUMAN_VERIFY
-
-**Growth**:
-
-- Architect adds new checks in DESIGN_TESTS when task modifies a critical path
-- New checks go in test-designs.md, SYNC_DOCS appends to manifest
-- When adding checks, Architect consolidates duplicates and removes checks for deleted features
-
-**What smoke tests do NOT cover**:
-
-- Task-specific browser verification (separate step in IMPLEMENT for UI changes)
-- Performance testing
-- Non-browser functionality
+- Any fail → ANALYZE_FIX
+- Blocked (MCP timeout after 3 retries) → HUMAN_VERIFY
 
 ---
 

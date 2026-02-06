@@ -1,7 +1,7 @@
 ---
 name: coder-commit
 description: Git commit specialist. Creates well-formatted commits with conventional commit messages.
-model: haiku
+model: opus
 tools:
   - Read
   - Write

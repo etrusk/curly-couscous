@@ -1,7 +1,7 @@
 ---
 name: architect-explore
 description: Codebase exploration and context gathering. Reads project documentation and understands existing patterns before planning.
-model: sonnet
+model: opus
 tools:
   - Read
   - Write

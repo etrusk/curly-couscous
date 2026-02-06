@@ -1,7 +1,7 @@
 ---
 name: architect-sync-docs
 description: Documentation synchronization after successful implementation. Updates project docs to reflect completed changes.
-model: haiku
+model: opus
 tools:
   - Read
   - Write

@@ -1,7 +1,7 @@
 ---
 name: coder
 description: Implementation agent. Writes tests from approved designs and code to pass those tests. Follows patterns from project documentation.
-model: sonnet
+model: opus
 tools:
   - Read
   - Write

@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Read-only code review and critique. Validates against spec and patterns. Identifies issues without fixing them.
-model: sonnet
+model: opus
 tools:
   - Read
   - Write

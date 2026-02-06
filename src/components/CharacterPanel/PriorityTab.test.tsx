@@ -48,7 +48,9 @@ describe("PriorityTab", () => {
       render(<PriorityTab mode="config" />);
 
       // Trigger dropdown
-      expect(screen.getByLabelText(/trigger.*move/i)).toBeInTheDocument();
+      expect(
+        screen.getByRole("combobox", { name: /trigger for move/i }),
+      ).toBeInTheDocument();
 
       // Target dropdown
       expect(screen.getByLabelText(/target.*move/i)).toBeInTheDocument();
@@ -167,7 +169,9 @@ describe("PriorityTab", () => {
 
       render(<PriorityTab mode="config" />);
 
-      const triggerDropdown = screen.getByLabelText(/trigger.*punch/i);
+      const triggerDropdown = screen.getByRole("combobox", {
+        name: /trigger for punch/i,
+      });
       await user.selectOptions(triggerDropdown, "hp_below");
 
       // Store should be updated

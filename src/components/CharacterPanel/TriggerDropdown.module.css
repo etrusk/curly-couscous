@@ -1,0 +1,40 @@
+.triggerControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.select {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 3px;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.input {
+  width: 60px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 3px;
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.removeBtn {
+  padding: 0.15rem 0.35rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--border-primary);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 3px;
+  line-height: 1;
+}
+
+.removeBtn:hover {
+  background: var(--health-low);
+  color: white;
+}

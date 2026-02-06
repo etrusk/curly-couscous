@@ -132,6 +132,19 @@ checks:
     action: "Add friendly with Light Punch at center, add enemy adjacent, click 'Step', observe Priority tab"
     expect: "Selected skill shows green checkmark and target. Skipped skills show gray dash."
 
+  # === SCRIPT: AND Combinator UI ===
+  # Tests AND trigger add/remove in Priority tab
+
+  - id: 22-and-trigger-add
+    tier: T2
+    action: "Add friendly at center, select it, assign Light Punch, click Priority tab, click '+ AND' button on Light Punch skill row"
+    expect: "Two trigger dropdowns visible with 'AND' label between them. Second dropdown shows default trigger type."
+
+  - id: 23-and-trigger-remove
+    tier: T2
+    action: "Add friendly at center, select it, assign Light Punch, click Priority tab, click '+ AND' on Light Punch, then click remove button on second trigger"
+    expect: "Returns to single trigger dropdown. 'AND' label and second dropdown no longer visible. '+ AND' button reappears."
+
   # === VERIFICATION ===
 
   - id: 16-no-console-errors

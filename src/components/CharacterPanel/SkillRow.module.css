@@ -88,6 +88,36 @@
   font-size: 0.85rem;
 }
 
+.triggerGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.andLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0 0.25rem;
+  text-transform: uppercase;
+}
+
+.addTriggerBtn {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  border: 1px dashed var(--border-primary);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.addTriggerBtn:hover {
+  background: var(--surface-tertiary);
+  color: var(--text-primary);
+}
+
 .duplicateBtn {
   padding: 0.25rem 0.75rem;
   font-size: 0.85rem;

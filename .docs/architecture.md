@@ -93,8 +93,9 @@ CharacterPanel (container, tab state, character selector)
 ├── LoadoutTab (equipped skills + inventory sections)
 │   └── SkillRow (config mode: enable/disable, unassign, duplicate)
 └── PriorityTab (priority configuration)
-    └── SkillRow (config mode: reorder, dropdowns, duplicate)
-                 (battle mode: evaluation status, resolved target, rejection reason)
+    └── SkillRow (config mode: reorder, dropdowns, AND combinator, duplicate)
+        │        (battle mode: evaluation status, resolved target, rejection reason)
+        └── TriggerDropdown (trigger type select, value input, remove button)
 ```
 
 ### Tab Behavior

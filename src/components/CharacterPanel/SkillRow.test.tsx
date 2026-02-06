@@ -34,7 +34,9 @@ describe("SkillRow", () => {
       ).toBeInTheDocument();
 
       // Trigger dropdown visible
-      expect(screen.getByLabelText(/trigger/i)).toBeInTheDocument();
+      expect(
+        screen.getByRole("combobox", { name: /trigger for light punch/i }),
+      ).toBeInTheDocument();
 
       // Target dropdown visible
       expect(screen.getByLabelText(/target/i)).toBeInTheDocument();

@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useGameStore } from "../../stores/gameStore";
+import { useAccessibilityStore } from "../../stores/accessibilityStore";
 import { LoadoutTab } from "./LoadoutTab";
 import { PriorityTab } from "./PriorityTab";
 import { slotPositionToLetter } from "../../utils/letterMapping";
@@ -22,12 +23,15 @@ export function CharacterPanel() {
   // Local tab state (ADR-004: component-level UI state)
   const [activeTab, setActiveTab] = useState<"loadout" | "priority">("loadout");
 
+  // Read autoFocus preference from accessibility store
+  const autoFocus = useAccessibilityStore((s) => s.autoFocus);
+
   // Auto-switch to Priority tab when battle starts (ADR per spec)
   useEffect(() => {
-    if (battleStatus === "active") {
+    if (autoFocus && battleStatus === "active") {
       setActiveTab("priority");
     }
-  }, [battleStatus]);
+  }, [battleStatus, autoFocus]);
 
   // Show placeholder if no character selected
   if (!character) {

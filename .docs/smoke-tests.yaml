@@ -175,6 +175,24 @@ checks:
     action: "Add friendly with Light Punch (hp_below 50% filter) at center, add enemy adjacent at full HP, click 'Step'"
     expect: "Light Punch shows rejected status with filter-related rejection reason text in evaluation display."
 
+  # === SCRIPT: Remove Duplicate & Auto-Focus Toggle ===
+  # Tests duplicate skill removal and auto-focus toggle
+
+  - id: 29-remove-duplicate-skill
+    tier: T2
+    action: "Add friendly at center, select it, assign Light Punch, observe Loadout tab, click 'Duplicate' on Light Punch, then click 'Remove' on one of the Light Punch instances"
+    expect: "Only one Light Punch remains in Equipped Skills. Remove button no longer visible on remaining instance."
+
+  - id: 30-remove-duplicate-innate
+    tier: T2
+    action: "Add friendly at center, select it, observe Loadout tab, click 'Duplicate' on Move, then click 'Remove' on one of the Move instances"
+    expect: "Only one Move remains in Equipped Skills with Innate badge. Remove button no longer visible on remaining Move."
+
+  - id: 31-auto-focus-toggle-disables-battle-switch
+    tier: T2
+    action: "Uncheck 'Auto-focus battle' checkbox in header. Add friendly with Light Punch at center, add enemy adjacent, click 'Step'"
+    expect: "Panel does NOT auto-switch to Priority tab. Grid proportions remain at config layout (wider skills panel). Checkbox state persists after page reload."
+
   # === VERIFICATION ===
 
   - id: 16-no-console-errors

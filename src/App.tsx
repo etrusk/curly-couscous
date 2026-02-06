@@ -13,11 +13,14 @@ function App() {
   const actions = useGameStore(selectActions);
   const showTargetLines = useAccessibilityStore((s) => s.showTargetLines);
   const setShowTargetLines = useAccessibilityStore((s) => s.setShowTargetLines);
+  const autoFocus = useAccessibilityStore((s) => s.autoFocus);
+  const setAutoFocus = useAccessibilityStore((s) => s.setAutoFocus);
   const battleStatus = useGameStore((state) => state.gameState.battleStatus);
   const characters = useGameStore((state) => state.gameState.characters);
 
   // Determine UI phase for grid proportions
-  const isBattlePhase = battleStatus === "active" && characters.length > 0;
+  const isBattlePhase =
+    autoFocus && battleStatus === "active" && characters.length > 0;
 
   useEffect(() => {
     // Initialize with empty arena for pre-battle character setup
@@ -41,6 +44,20 @@ function App() {
           </label>
           <span id="targeting-lines-description" className="visuallyHidden">
             Toggle visibility of movement target lines on the battle grid
+          </span>
+          <label htmlFor="auto-focus" className="toggleLabel">
+            <input
+              id="auto-focus"
+              type="checkbox"
+              checked={autoFocus}
+              onChange={(e) => setAutoFocus(e.target.checked)}
+              aria-describedby="auto-focus-description"
+            />
+            Auto-focus battle
+          </label>
+          <span id="auto-focus-description" className="visuallyHidden">
+            Automatically expand battle view and switch to Priority tab when
+            battle starts
           </span>
           <ThemeToggle />
         </div>

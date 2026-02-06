@@ -37,8 +37,13 @@ export function SkillRow({
   mode,
   evaluation,
 }: SkillRowProps) {
-  const { updateSkill, moveSkillUp, moveSkillDown, duplicateSkill } =
-    useGameStore(selectActions);
+  const {
+    updateSkill,
+    moveSkillUp,
+    moveSkillDown,
+    duplicateSkill,
+    removeSkillFromCharacter,
+  } = useGameStore(selectActions);
   const allCharacters = useGameStore((state) => state.gameState.characters);
 
   const triggers = skill.triggers ?? [];
@@ -136,6 +141,11 @@ export function SkillRow({
     (s) => s.id === skill.id,
   ).length;
   const canDuplicate = skillDef ? instanceCount < skillDef.maxInstances : false;
+  const isDuplicate = instanceCount > 1;
+
+  const handleRemove = () => {
+    removeSkillFromCharacter(character.id, skill.instanceId);
+  };
 
   if (mode === "battle" && evaluation) {
     // Battle mode: show evaluation status
@@ -336,6 +346,16 @@ export function SkillRow({
           aria-label={`Duplicate ${skill.name}`}
         >
           Duplicate
+        </button>
+      )}
+
+      {isDuplicate && (
+        <button
+          onClick={handleRemove}
+          className={styles.removeBtn}
+          aria-label={`Remove ${skill.name}`}
+        >
+          Remove
         </button>
       )}
     </div>

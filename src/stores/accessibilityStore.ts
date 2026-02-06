@@ -11,9 +11,11 @@ interface AccessibilityState {
   theme: Theme;
   highContrast: boolean;
   showTargetLines: boolean;
+  autoFocus: boolean;
   setTheme: (theme: Theme) => void;
   setHighContrast: (enabled: boolean) => void;
   setShowTargetLines: (enabled: boolean) => void;
+  setAutoFocus: (enabled: boolean) => void;
 }
 
 /**
@@ -138,12 +140,37 @@ function persistShowTargetLines(enabled: boolean): void {
 }
 
 /**
+ * Get initial auto-focus preference from localStorage (default: false)
+ */
+function getInitialAutoFocus(): boolean {
+  if (isLocalStorageAvailable()) {
+    const stored = localStorage.getItem("auto-focus");
+    if (stored === "true") return true;
+  }
+  return false;
+}
+
+/**
+ * Persist auto-focus preference to localStorage if available
+ */
+function persistAutoFocus(enabled: boolean): void {
+  if (isLocalStorageAvailable()) {
+    try {
+      localStorage.setItem("auto-focus", String(enabled));
+    } catch {
+      // Silently fail if localStorage is unavailable
+    }
+  }
+}
+
+/**
  * Create accessibility store with theme and high-contrast management
  */
 export const useAccessibilityStore = create<AccessibilityState>((set) => {
   const initialTheme = getInitialTheme();
   const initialHighContrast = getInitialHighContrast();
   const initialShowTargetLines = getInitialShowTargetLines();
+  const initialAutoFocus = getInitialAutoFocus();
 
   // Apply initial theme and high-contrast on store creation
   applyTheme(initialTheme);
@@ -167,6 +194,7 @@ export const useAccessibilityStore = create<AccessibilityState>((set) => {
     theme: initialTheme,
     highContrast: initialHighContrast,
     showTargetLines: initialShowTargetLines,
+    autoFocus: initialAutoFocus,
 
     setTheme: (theme: Theme) => {
       set({ theme });
@@ -183,6 +211,11 @@ export const useAccessibilityStore = create<AccessibilityState>((set) => {
     setShowTargetLines: (enabled: boolean) => {
       set({ showTargetLines: enabled });
       persistShowTargetLines(enabled);
+    },
+
+    setAutoFocus: (enabled: boolean) => {
+      set({ autoFocus: enabled });
+      persistAutoFocus(enabled);
     },
   };
 });

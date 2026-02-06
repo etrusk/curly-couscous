@@ -64,7 +64,8 @@
 
 .assignBtn,
 .unassignBtn,
-.duplicateBtn {
+.duplicateBtn,
+.removeBtn {
   padding: 0.25rem 0.75rem;
   font-size: 0.85rem;
   border: 1px solid var(--border-primary);
@@ -91,6 +92,16 @@
 .duplicateBtn {
   background: var(--surface-tertiary);
   color: var(--text-primary);
+}
+
+.removeBtn {
+  background: var(--surface-tertiary);
+  color: var(--text-primary);
+}
+
+.removeBtn:hover {
+  background: var(--health-low);
+  color: white;
 }
 
 .assignBtn:hover:not(:disabled),

@@ -77,6 +77,7 @@ export function LoadoutTab() {
                 (s) => s.id === skillDef.id,
               ).length;
               const canDuplicate = instanceCount < skillDef.maxInstances;
+              const isDuplicate = instanceCount > 1;
 
               return (
                 <div key={skill.instanceId} className={styles.skillRow}>
@@ -114,6 +115,15 @@ export function LoadoutTab() {
                         aria-label={`Remove ${skillDef.name}`}
                       >
                         Unassign
+                      </button>
+                    )}
+                    {skillDef.innate && isDuplicate && (
+                      <button
+                        onClick={() => handleUnassign(skill.instanceId)}
+                        className={styles.removeBtn}
+                        aria-label={`Remove ${skillDef.name}`}
+                      >
+                        Remove
                       </button>
                     )}
                   </div>

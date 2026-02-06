@@ -3,9 +3,11 @@
  * Following TDD workflow - tests written before implementation.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { SkillRow } from "./SkillRow";
+import { useGameStore } from "../../stores/gameStore";
 import { createSkill, createCharacter } from "../../engine/game-test-helpers";
 
 describe("SkillRow", () => {
@@ -350,6 +352,105 @@ describe("SkillRow", () => {
       expect(
         screen.queryByRole("button", { name: /duplicate.*light punch/i }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Remove Duplicate Button", () => {
+    beforeEach(() => {
+      useGameStore.getState().actions.reset();
+    });
+
+    const renderSkillRow = (
+      skill: ReturnType<typeof createSkill>,
+      character: ReturnType<typeof createCharacter>,
+    ) =>
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          mode="config"
+          index={0}
+          isFirst={true}
+          isLast={false}
+        />,
+      );
+
+    it("shows Remove button when skill has duplicate instances", () => {
+      const lp1 = createSkill({
+        id: "light-punch",
+        instanceId: "lp-1",
+        name: "Light Punch",
+      });
+      const lp2 = createSkill({
+        id: "light-punch",
+        instanceId: "lp-2",
+        name: "Light Punch",
+      });
+      const character = createCharacter({ id: "char1", skills: [lp1, lp2] });
+      renderSkillRow(lp1, character);
+      expect(
+        screen.getByRole("button", { name: /remove.*light punch/i }),
+      ).toBeInTheDocument();
+    });
+
+    it("hides Remove button when skill has single instance", () => {
+      const skill = createSkill({ id: "light-punch", name: "Light Punch" });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+      renderSkillRow(skill, character);
+      expect(
+        screen.queryByRole("button", { name: /remove.*light punch/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("calls removeSkillFromCharacter when Remove clicked", async () => {
+      const user = userEvent.setup();
+      const lp1 = createSkill({
+        id: "light-punch",
+        instanceId: "lp-1",
+        name: "Light Punch",
+      });
+      const lp2 = createSkill({
+        id: "light-punch",
+        instanceId: "lp-2",
+        name: "Light Punch",
+      });
+      const character = createCharacter({ id: "char1", skills: [lp1, lp2] });
+      useGameStore.getState().actions.initBattle([character]);
+      renderSkillRow(lp1, character);
+      await user.click(
+        screen.getByRole("button", { name: /remove.*light punch/i }),
+      );
+      const updatedChar = useGameStore
+        .getState()
+        .gameState.characters.find((c) => c.id === "char1");
+      expect(updatedChar?.skills).toHaveLength(1);
+      expect(updatedChar?.skills[0]?.instanceId).toBe("lp-2");
+    });
+
+    it("shows both Duplicate and Remove buttons when both conditions met", () => {
+      const move1 = createSkill({
+        id: "move-towards",
+        instanceId: "move-1",
+        name: "Move",
+        behavior: "towards",
+      });
+      const move2 = createSkill({
+        id: "move-towards",
+        instanceId: "move-2",
+        name: "Move",
+        behavior: "towards",
+      });
+      const character = createCharacter({
+        id: "char1",
+        skills: [move1, move2],
+      });
+      renderSkillRow(move1, character);
+      expect(
+        screen.getByRole("button", { name: /duplicate.*move/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /remove.*move/i }),
+      ).toBeInTheDocument();
     });
   });
 });

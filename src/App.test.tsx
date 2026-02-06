@@ -132,6 +132,9 @@ describe("App - D1: Two-Panel Layout", () => {
   });
 
   it("battle phase uses 70%/30% grid proportions", async () => {
+    // Enable auto-focus so grid proportions switch on battle
+    useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
+
     // Create characters and start battle
     const friendly = createCharacter({
       id: "friendly",
@@ -151,6 +154,80 @@ describe("App - D1: Two-Panel Layout", () => {
     // battleStatus should already be "active" from initBattle
 
     // Wait for React to re-render with new state
+    await waitFor(() => {
+      const gridContainer = document.querySelector("[data-phase='battle']");
+      expect(gridContainer).toBeInTheDocument();
+    });
+  });
+
+  it("renders auto-focus checkbox, unchecked by default", () => {
+    // Ensure autoFocus is at default (false)
+    useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
+
+    render(<App />);
+
+    const checkbox = screen.getByRole("checkbox", {
+      name: /auto-focus battle/i,
+    });
+    expect(checkbox).toBeInTheDocument();
+    expect(checkbox).not.toBeChecked();
+
+    // Accessible description element should exist
+    const description = document.getElementById("auto-focus-description");
+    expect(description).toBeInTheDocument();
+  });
+
+  it("data-phase stays config during battle when autoFocus is false", async () => {
+    // Disable autoFocus
+    useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
+
+    // Create characters for battle
+    const friendly = createCharacter({
+      id: "friendly",
+      faction: "friendly",
+      position: { q: 0, r: 0 },
+    });
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 5, r: 0 },
+    });
+
+    render(<App />);
+
+    // Start battle
+    useGameStore.getState().actions.initBattle([friendly, enemy]);
+
+    // data-phase should remain "config" since autoFocus is false
+    await waitFor(() => {
+      expect(
+        document.querySelector("[data-phase='config']"),
+      ).toBeInTheDocument();
+      expect(
+        document.querySelector("[data-phase='battle']"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("data-phase switches to battle when autoFocus is enabled", async () => {
+    // Ensure autoFocus is true (default)
+    useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
+
+    const friendly = createCharacter({
+      id: "friendly",
+      faction: "friendly",
+      position: { q: 0, r: 0 },
+    });
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 5, r: 0 },
+    });
+
+    render(<App />);
+
+    useGameStore.getState().actions.initBattle([friendly, enemy]);
+
     await waitFor(() => {
       const gridContainer = document.querySelector("[data-phase='battle']");
       expect(gridContainer).toBeInTheDocument();

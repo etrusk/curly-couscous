@@ -8,6 +8,7 @@ import { render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { CharacterPanel } from "./CharacterPanel";
 import { useGameStore } from "../../stores/gameStore";
+import { useAccessibilityStore } from "../../stores/accessibilityStore";
 import { createCharacter, createSkill } from "../../engine/game-test-helpers";
 
 describe("CharacterPanel", () => {
@@ -106,6 +107,9 @@ describe("CharacterPanel", () => {
       const char1 = createCharacter({ id: "char1" });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
+
+      // Enable auto-focus so tab auto-switches
+      useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
 
       // Start in config phase with Loadout tab
       useGameStore.setState((state) => {
@@ -207,6 +211,120 @@ describe("CharacterPanel", () => {
       // Should have aria-labelledby linking to tab
       const labelledBy = activePanel.getAttribute("aria-labelledby");
       expect(labelledBy).toBeTruthy();
+    });
+  });
+
+  describe("Auto-Focus Tab Switching", () => {
+    beforeEach(() => {
+      useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
+    });
+
+    it("does not auto-switch to Priority tab when autoFocus is false", () => {
+      useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
+
+      const char1 = createCharacter({ id: "char1" });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      // Start in config phase with Loadout tab
+      useGameStore.setState((state) => {
+        state.gameState.battleStatus = "draw";
+      });
+
+      const { rerender } = render(<CharacterPanel />);
+
+      // Loadout tab should be selected initially
+      expect(screen.getByRole("tab", { name: /loadout/i })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+
+      // Change to battle phase
+      useGameStore.setState((state) => {
+        state.gameState.battleStatus = "active";
+      });
+
+      rerender(<CharacterPanel />);
+
+      // Loadout tab should STILL be selected (autoFocus is false)
+      expect(screen.getByRole("tab", { name: /loadout/i })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      expect(screen.getByRole("tab", { name: /priority/i })).toHaveAttribute(
+        "aria-selected",
+        "false",
+      );
+    });
+
+    it("auto-switches to Priority tab when autoFocus is true", () => {
+      useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
+
+      const char1 = createCharacter({ id: "char1" });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      // Start in config phase
+      useGameStore.setState((state) => {
+        state.gameState.battleStatus = "draw";
+      });
+
+      const { rerender } = render(<CharacterPanel />);
+
+      // Verify Loadout selected
+      expect(screen.getByRole("tab", { name: /loadout/i })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+
+      // Start battle
+      useGameStore.setState((state) => {
+        state.gameState.battleStatus = "active";
+      });
+
+      rerender(<CharacterPanel />);
+
+      // Priority tab should now be selected
+      expect(screen.getByRole("tab", { name: /priority/i })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+      expect(screen.getByRole("tab", { name: /loadout/i })).toHaveAttribute(
+        "aria-selected",
+        "false",
+      );
+    });
+
+    it("toggling autoFocus on mid-battle triggers tab switch", () => {
+      useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
+
+      const char1 = createCharacter({ id: "char1" });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      // Start with active battle but autoFocus disabled
+      useGameStore.setState((state) => {
+        state.gameState.battleStatus = "active";
+      });
+
+      const { rerender } = render(<CharacterPanel />);
+
+      // Loadout tab should be selected (autoFocus was false, no switch)
+      expect(screen.getByRole("tab", { name: /loadout/i })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
+
+      // Toggle autoFocus on mid-battle
+      useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
+
+      rerender(<CharacterPanel />);
+
+      // Priority tab should now be selected (autoFocus toggled on during active battle)
+      expect(screen.getByRole("tab", { name: /priority/i })).toHaveAttribute(
+        "aria-selected",
+        "true",
+      );
     });
   });
 

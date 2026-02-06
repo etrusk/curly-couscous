@@ -315,6 +315,122 @@ describe("LoadoutTab", () => {
     });
   });
 
+  describe("Remove Duplicate Innate", () => {
+    it("shows Remove button for duplicate innate skill", () => {
+      const move1 = createSkill({
+        id: "move-towards",
+        instanceId: "move-1",
+        name: "Move",
+        behavior: "towards",
+      });
+      const move2 = createSkill({
+        id: "move-towards",
+        instanceId: "move-2",
+        name: "Move",
+        behavior: "towards",
+      });
+      const char1 = createCharacter({
+        id: "char1",
+        skills: [move1, move2],
+      });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<LoadoutTab />);
+
+      // At least one Remove button for Move should exist
+      const removeButtons = screen.getAllByRole("button", {
+        name: /remove.*move/i,
+      });
+      expect(removeButtons.length).toBeGreaterThanOrEqual(1);
+
+      // Both Move instances should show Innate badges
+      const innateBadges = screen.getAllByText(/innate/i);
+      expect(innateBadges.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("hides Remove button for single innate skill", () => {
+      const moveSkill = createSkill({
+        id: "move-towards",
+        name: "Move",
+        behavior: "towards",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [moveSkill] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<LoadoutTab />);
+
+      // No Remove button for single innate skill
+      expect(
+        screen.queryByRole("button", { name: /remove.*move/i }),
+      ).not.toBeInTheDocument();
+
+      // Innate badge IS present (skill renders, just without Remove)
+      expect(screen.getByText(/innate/i)).toBeInTheDocument();
+    });
+
+    it("calls removeSkillFromCharacter when Remove clicked on duplicate innate", async () => {
+      const user = userEvent.setup();
+      const move1 = createSkill({
+        id: "move-towards",
+        instanceId: "inst1",
+        name: "Move",
+        behavior: "towards",
+      });
+      const move2 = createSkill({
+        id: "move-towards",
+        instanceId: "inst2",
+        name: "Move",
+        behavior: "towards",
+      });
+      const char1 = createCharacter({
+        id: "char1",
+        skills: [move1, move2],
+      });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<LoadoutTab />);
+
+      // Click one of the Remove buttons
+      const removeButtons = screen.getAllByRole("button", {
+        name: /remove.*move/i,
+      });
+      await user.click(removeButtons[0]!);
+
+      // After click, character should have 1 skill
+      const updatedChar = useGameStore
+        .getState()
+        .gameState.characters.find((c) => c.id === "char1");
+      expect(updatedChar?.skills).toHaveLength(1);
+    });
+
+    it("still shows Unassign (not Remove) for non-innate skills", () => {
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+      });
+      const char1 = createCharacter({
+        id: "char1",
+        skills: [lightPunch],
+      });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
+      render(<LoadoutTab />);
+
+      // The existing Unassign button has aria-label="Remove Light Punch"
+      const button = screen.getByRole("button", {
+        name: /remove.*light punch/i,
+      });
+      expect(button).toBeInTheDocument();
+
+      // Button text content should be "Unassign" (not "Remove")
+      expect(button).toHaveTextContent("Unassign");
+    });
+  });
+
   describe("Enable/Disable Toggle", () => {
     it("enable checkbox toggles skill enabled state", async () => {
       const user = userEvent.setup();

@@ -158,6 +158,7 @@ Skills are a shared resource pool with faction exclusivity -- each assignable sk
 
 - Non-innate skills can be removed via an "Unassign" button in the Skills & Priority panel
 - Innate skills cannot be removed (no Unassign button shown)
+- Duplicate skill instances (any skill with instanceCount > 1) show a "Remove" button on all instances. For innate skills, the store guards against removing the last instance. For non-innate skills, the "Remove" button appears in the Priority tab (SkillRow) and the "Unassign" button remains in the Loadout tab.
 - Removing a skill returns it to the inventory immediately
 
 **Skill registry:** All skill definitions are centralized in `src/engine/skill-registry.ts` (ADR-005). Adding or removing a skill from the game requires editing only this one file.
@@ -366,6 +367,15 @@ Four-panel structure (v0.3 implementation):
 2. **Skills Panel (25% width):** Sentence-builder UI for skill configuration (triggers, selectors, priority). Innate skills display an "Innate" badge next to the skill name. Non-innate skills display an "Unassign" button to return them to the inventory.
 3. **Inventory Panel (25% width):** Displays all available skills from the centralized skill registry. Visible content when any character is selected; otherwise shows placeholder message. Skills can be assigned to or removed from the selected character.
 4. **Event Log (bottom):** Planned for future release
+
+### Auto-Focus Toggle
+
+The header includes an "Auto-focus battle" checkbox (default: unchecked/off) that controls automatic UI focus switching when battle starts:
+
+- **When enabled (checked):** Grid proportions shift to battle layout (30%/70%) and the character panel auto-switches to the Priority tab when `battleStatus` becomes `"active"`.
+- **When disabled (unchecked, default):** Grid proportions remain at config layout (60%/40%) and the character panel stays on the current tab regardless of battle status.
+- **Persistence:** Setting is stored in localStorage (key: `"auto-focus"`) and survives page reloads.
+- **Mid-battle toggle:** Enabling auto-focus during an active battle immediately triggers the tab switch and layout change.
 
 ### Character Tooltip
 

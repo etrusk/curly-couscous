@@ -216,7 +216,7 @@ If parse fails → STOP → Escalate to human with raw output.
 
 ### Step 2: Update Session Metrics
 
-Update `.tdd/session.md` Context Metrics section. Parse the AGENT_COMPLETION block and append a row to the Agent History table including token metrics, tool call count, and notable events. IMPORTANT: Use the full agent file name (e.g., `tdd-explorer`, `tdd-planner`, `tdd-coder`) in the Agent column, NOT shortened names like "Explorer" or "Coder".
+Update `.tdd/session.md` Context Metrics section. Parse the AGENT_COMPLETION block and append a row to the Agent History table including token metrics, tool call count, and notable events. NEVER skip rows — every agent invocation MUST produce a table entry with all fields populated. Incomplete tables block REFLECT efficiency analysis. IMPORTANT: Use the full agent file name (e.g., `tdd-explorer`, `tdd-planner`, `tdd-coder`) in the Agent column, NOT shortened names like "Explorer" or "Coder".
 
 ```markdown
 ## Context Metrics
@@ -742,12 +742,14 @@ The reflector reads session.md Agent History table and identifies 0-3 items acro
 
 **Orchestrator handles the output:**
 
-| Subagent Returns | Orchestrator Action                                          |
-| ---------------- | ------------------------------------------------------------ |
-| "Clean session"  | Log `Process: ✓ Clean` in final summary. Proceed to cleanup. |
-| Items found      | Present to user: `[type]: [summary]. Apply now? (y/n)`       |
-| User says yes    | Apply the change immediately, include in completion summary  |
-| User says no     | Note as declined, proceed to cleanup                         |
+| Subagent Returns | Orchestrator Action                                              |
+| ---------------- | ---------------------------------------------------------------- |
+| "Clean session"  | Log `Process: ✓ Clean` in final summary. Proceed to cleanup.     |
+| Items found      | Present EACH item to user: `[type]: [summary]. Apply now? (y/n)` |
+| User says yes    | Apply the change immediately, include in completion summary      |
+| User says no     | Note as declined, proceed to cleanup                             |
+
+**MANDATORY**: When the reflector returns items, the orchestrator MUST present them to the user and WAIT for approval/rejection. The orchestrator MUST NOT dismiss, defer, or self-resolve reflector items. Every item requires a human yes/no decision. This is a HUMAN phase — treat it like HUMAN_APPROVAL.
 
 **Immediate application**: Changes are applied to workflow files in the same session, not logged for later. Continuous improvement happens NOW.
 
@@ -814,3 +816,4 @@ Then delete ephemeral files: `.tdd/session.md`, `.tdd/exploration.md`, `.tdd/pla
 18. **APP VERSIONING** - Bump `package.json` per SemVer in COMMIT phase; does NOT apply to workflow/docs/config files
 19. **NO ASSISTANT PREFILLING** - Opus 4.6 returns 400 for assistant message prefilling. Use structured instructions ("Output the following YAML block...") instead.
 20. **RESUMABLE FIX CYCLES** - For ANALYZE_FIX → FIX cycles, consider resuming the previous agent (Task tool `resume` parameter) to preserve root cause context, rather than spawning fresh.
+21. **REFLECTOR ITEMS → HUMAN DECISION** - Orchestrator MUST present every reflector item to the user and wait for yes/no. NEVER dismiss, defer, or self-resolve reflector items.

@@ -177,7 +177,7 @@ describe("processTick decision integration", () => {
     expect(targetAfterTick4?.hp).toBe(80);
   });
 
-  it("character with no valid skill should idle and be cleared same tick", () => {
+  it("character with no valid skill should continuously idle", () => {
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
@@ -198,12 +198,13 @@ describe("processTick decision integration", () => {
       characters: [character],
     });
 
-    // With new formula, idle action (tickCost=1) created at tick 1 resolves at tick 2
-    let result = processTick(state);
-    result = processTick(result.state);
+    // Idle characters re-decide each tick (idle actions are transparent to decisions)
+    const result = processTick(state);
 
     const updatedChar = result.state.characters.find((c) => c.id === "char1");
-    expect(updatedChar?.currentAction).toBeNull();
+    // Character gets idle action since no valid skill triggers
+    expect(updatedChar?.currentAction).toBeDefined();
+    expect(updatedChar?.currentAction?.type).toBe("idle");
   });
 });
 

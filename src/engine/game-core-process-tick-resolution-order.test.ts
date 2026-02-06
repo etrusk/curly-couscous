@@ -14,7 +14,7 @@ import {
 } from "./game-test-helpers";
 
 describe("processTick - Resolution Order: Healing -> Movement -> Combat", () => {
-  it.skip("should allow dodge when move resolves same tick as attack", () => {
+  it("should allow dodge when move resolves same tick as attack", () => {
     // Enemy commits Heavy Punch (tickCost 2) at tick 0, targeting {q:2, r:0}
     // Friendly at {q:2, r:0} detects threat at tick 1 and moves away
     // At tick 2: movement resolves first (dodge), then attack misses

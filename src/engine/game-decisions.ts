@@ -22,6 +22,16 @@ import {
 } from "./game-actions";
 
 /**
+ * Check if a character is busy with a non-idle action.
+ * Idle characters can re-decide each tick (idle actions are transparent to decisions).
+ */
+function isBusyWithAction(character: Character): boolean {
+  return (
+    character.currentAction !== null && character.currentAction.type !== "idle"
+  );
+}
+
+/**
  * Synthetic idle skill for when no valid skill is selected.
  */
 export const IDLE_SKILL: Skill = {
@@ -134,8 +144,8 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
   const decisions: Decision[] = [];
 
   for (const character of state.characters) {
-    // 1. Skip if mid-action
-    if (character.currentAction !== null) {
+    // 1. Skip if mid-action (but idle characters can re-decide)
+    if (isBusyWithAction(character)) {
       continue;
     }
 
@@ -168,6 +178,72 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
 }
 
 /**
+ * Evaluate a single skill and return a detailed result for UI display.
+ */
+function evaluateSingleSkill(
+  skill: Skill,
+  character: Character,
+  allCharacters: Character[],
+): SkillEvaluationResult {
+  if (!skill.enabled) {
+    return { skill, status: "rejected", rejectionReason: "disabled" };
+  }
+
+  if (skill.cooldownRemaining && skill.cooldownRemaining > 0) {
+    return { skill, status: "rejected", rejectionReason: "on_cooldown" };
+  }
+
+  if (skill.behavior === "hold") {
+    console.warn(
+      `[game-decisions] Deprecated "hold" behavior found on skill "${skill.name}". ` +
+        `Treating as disabled.`,
+    );
+    return { skill, status: "rejected", rejectionReason: "disabled" };
+  }
+
+  const failedTriggers = skill.triggers.filter(
+    (t) => !evaluateTrigger(t, character, allCharacters),
+  );
+  if (failedTriggers.length > 0) {
+    return {
+      skill,
+      status: "rejected",
+      rejectionReason: "trigger_failed",
+      failedTriggers,
+    };
+  }
+
+  const target = evaluateTargetCriterion(
+    skill.target,
+    skill.criterion,
+    character,
+    allCharacters,
+  );
+  if (!target) {
+    return { skill, status: "rejected", rejectionReason: "no_target" };
+  }
+
+  const actionType = getActionType(skill);
+  if (actionType === "attack" || actionType === "heal") {
+    const distance = hexDistance(character.position, target.position);
+    if (distance > skill.range) {
+      return {
+        skill,
+        status: "rejected",
+        rejectionReason: "out_of_range",
+        target,
+        distance,
+      };
+    }
+  }
+  if (actionType === "heal" && target.hp >= target.maxHp) {
+    return { skill, status: "rejected", rejectionReason: "no_target" };
+  }
+
+  return { skill, status: "selected", target };
+}
+
+/**
  * Evaluate all skills for a character and return detailed results.
  *
  * This function mirrors the decision logic in computeDecisions() but
@@ -181,12 +257,12 @@ export function evaluateSkillsForCharacter(
   character: Character,
   allCharacters: Character[],
 ): CharacterEvaluationResult {
-  // 1. Check if mid-action
-  if (character.currentAction !== null) {
+  // 1. Check if mid-action (idle characters can re-decide)
+  if (isBusyWithAction(character)) {
     return {
       characterId: character.id,
       isMidAction: true,
-      currentAction: character.currentAction,
+      currentAction: character.currentAction ?? undefined,
       skillEvaluations: [],
       selectedSkillIndex: null,
     };
@@ -204,121 +280,11 @@ export function evaluateSkillsForCharacter(
       continue;
     }
 
-    // Check disabled
-    if (!skill.enabled) {
-      evaluations.push({
-        skill,
-        status: "rejected",
-        rejectionReason: "disabled",
-      });
-      currentIndex++;
-      continue;
+    const evaluation = evaluateSingleSkill(skill, character, allCharacters);
+    evaluations.push(evaluation);
+    if (evaluation.status === "selected") {
+      selectedIndex = currentIndex;
     }
-
-    // Check cooldown
-    if (skill.cooldownRemaining && skill.cooldownRemaining > 0) {
-      evaluations.push({
-        skill,
-        status: "rejected",
-        rejectionReason: "on_cooldown",
-      });
-      currentIndex++;
-      continue;
-    }
-
-    // Graceful degradation for legacy "hold" behavior
-    if (skill.behavior === "hold") {
-      console.warn(
-        `[game-decisions] Deprecated "hold" behavior found on skill "${skill.name}". ` +
-          `Treating as disabled.`,
-      );
-      evaluations.push({
-        skill,
-        status: "rejected",
-        rejectionReason: "disabled",
-      });
-      currentIndex++;
-      continue;
-    }
-
-    // Check triggers
-    const failedTriggers = skill.triggers.filter(
-      (t) => !evaluateTrigger(t, character, allCharacters),
-    );
-    if (failedTriggers.length > 0) {
-      evaluations.push({
-        skill,
-        status: "rejected",
-        rejectionReason: "trigger_failed",
-        failedTriggers,
-      });
-      currentIndex++;
-      continue;
-    }
-
-    // Evaluate target selection
-    const target = evaluateTargetCriterion(
-      skill.target,
-      skill.criterion,
-      character,
-      allCharacters,
-    );
-
-    if (!target) {
-      evaluations.push({
-        skill,
-        status: "rejected",
-        rejectionReason: "no_target",
-      });
-      currentIndex++;
-      continue;
-    }
-
-    // Check range for attacks
-    const actionType = getActionType(skill);
-    if (actionType === "attack") {
-      const distance = hexDistance(character.position, target.position);
-      if (distance > skill.range) {
-        evaluations.push({
-          skill,
-          status: "rejected",
-          rejectionReason: "out_of_range",
-          target,
-          distance,
-        });
-        currentIndex++;
-        continue;
-      }
-    }
-
-    // Check range and full HP for heals
-    if (actionType === "heal") {
-      const distance = hexDistance(character.position, target.position);
-      if (distance > skill.range) {
-        evaluations.push({
-          skill,
-          status: "rejected",
-          rejectionReason: "out_of_range",
-          target,
-          distance,
-        });
-        currentIndex++;
-        continue;
-      }
-      if (target.hp >= target.maxHp) {
-        evaluations.push({
-          skill,
-          status: "rejected",
-          rejectionReason: "no_target",
-        });
-        currentIndex++;
-        continue;
-      }
-    }
-
-    // Skill selected!
-    evaluations.push({ skill, status: "selected", target });
-    selectedIndex = currentIndex;
     currentIndex++;
   }
 

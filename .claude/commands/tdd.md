@@ -323,14 +323,14 @@ If approaching budget without completion, report PARTIAL status.
 
 ## Pre-flight Check
 
-If `.tdd/spec.md` exists:
+If `.tdd/requirements.md` exists:
 
 - Read it
 - Use its Goal, Acceptance Criteria, Approach, Scope Boundaries, and Constraints as authoritative requirements
 - Copy Acceptance Criteria verbatim into session.md
 - Proceed to INIT
 
-If `.tdd/spec.md` does NOT exist:
+If `.tdd/requirements.md` does NOT exist:
 
 - For trivial tasks (single-line fix, typo, missing import): proceed to INIT, infer scope from the request
 - For non-trivial tasks: tell the user to run `/tdd-spec` first, or ask if they want to proceed with implicit scope
@@ -807,7 +807,7 @@ Process: [Clean session | type: summary (logged/noted)]
 ════════════════════
 ```
 
-Then delete ephemeral files: `.tdd/session.md`, `.tdd/spec.md`, `.tdd/exploration.md`, `.tdd/plan.md`, `.tdd/test-designs.md`, `.tdd/review-findings.md`, `.tdd/fix-plan.md`
+Then delete ephemeral files: `.tdd/session.md`, `.tdd/requirements.md`, `.tdd/exploration.md`, `.tdd/plan.md`, `.tdd/test-designs.md`, `.tdd/review-findings.md`, `.tdd/fix-plan.md`
 
 ---
 

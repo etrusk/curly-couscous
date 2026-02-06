@@ -5,7 +5,7 @@ description: Clarify requirements and produce a spec for /tdd. Run before /tdd f
 
 # TDD Spec — Requirement Clarification
 
-Structured conversation to agree on scope before implementation. Output: `.tdd/spec.md` consumed by `/tdd`.
+Structured conversation to agree on scope before implementation. Output: `.tdd/requirements.md` consumed by `/tdd`.
 
 **Budget**: Maximum 8 exchanges. If requirements still unclear, document unknowns as assumptions and finalize.
 
@@ -59,7 +59,7 @@ Skip this step if there's one obvious approach.
 
 ### 4. Confirm and Write Spec
 
-After agreement, create `.tdd/spec.md`:
+After agreement, create `.tdd/requirements.md`:
 
 ```markdown
 # TDD Spec: [Task Title]
@@ -99,7 +99,7 @@ Created: [date]
 Print:
 
 ```
-✓ Spec written to .tdd/spec.md
+✓ Spec written to .tdd/requirements.md
   → [task title]
   → [N] acceptance criteria
   → Approach: [1-liner]
@@ -114,7 +114,7 @@ Ready for: /tdd [task description]
 - Do NOT write code, create tests, or modify source files
 - Do NOT spawn subagents
 - Do NOT create session.md — that's /tdd's job
-- If `.tdd/spec.md` already exists, show it and ask: update or start fresh?
+- If `.tdd/requirements.md` already exists, show it and ask: update or start fresh?
 - Acceptance criteria must be specific enough to write a failing test from
 - If human provides a fully detailed spec with clear criteria, write the file and skip Q&A
 - These acceptance criteria override `.docs/spec.md` if they conflict — document the conflict in Assumptions

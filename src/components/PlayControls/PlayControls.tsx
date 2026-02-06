@@ -59,6 +59,7 @@ export function PlayControls() {
         onClick={handleStep}
         disabled={!isBattleActive || isPlaying}
         aria-label="Step"
+        data-testid="btn-step"
       >
         Step
       </button>
@@ -66,10 +67,11 @@ export function PlayControls() {
         onClick={handlePlayPause}
         disabled={!isBattleActive}
         aria-label={isPlaying ? "Pause" : "Play"}
+        data-testid="btn-play-pause"
       >
         {isPlaying ? "Pause" : "Play"}
       </button>
-      <button onClick={handleReset} aria-label="Reset">
+      <button onClick={handleReset} aria-label="Reset" data-testid="btn-reset">
         Reset
       </button>
     </div>

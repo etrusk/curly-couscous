@@ -62,6 +62,7 @@ export function CharacterControls() {
         }
         aria-label="Add Friendly"
         aria-pressed={selectionMode === "placing-friendly"}
+        data-testid="btn-add-friendly"
       >
         Add Friendly
       </button>
@@ -71,6 +72,7 @@ export function CharacterControls() {
         className={selectionMode === "placing-enemy" ? styles.activeButton : ""}
         aria-label="Add Enemy"
         aria-pressed={selectionMode === "placing-enemy"}
+        data-testid="btn-add-enemy"
       >
         Add Enemy
       </button>

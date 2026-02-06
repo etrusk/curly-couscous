@@ -139,6 +139,12 @@ During battle phase, SkillRow shifts from config mode to battle mode:
 - Minimum 3:1 contrast ratio on interactive elements
 - TDD workflow required per project rules
 
+## Test Harness (Dev-Only)
+
+A dev-only `window.__TEST_HARNESS__` API (`src/test-harness.ts`) provides read-only access to game state for smoke test verification. Conditionally loaded in `src/main.tsx` behind `import.meta.env.DEV` -- tree-shaken from production builds. Exposes 5 methods: `getState()`, `getCharacters()`, `getTick()`, `getBattleStatus()`, `getSelectedCharacterId()`. No mutation methods. Type declarations in `src/types/test-harness.d.ts`. See ADR-014.
+
+Smoke-test-critical components also carry `data-testid` attributes (e.g., `battle-status`, `btn-step`, `character-panel`) for reliable element targeting.
+
 ## Testing Guidelines
 
 - Unit tests for engine logic: Pure functions, no React

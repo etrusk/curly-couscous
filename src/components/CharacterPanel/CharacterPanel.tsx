@@ -32,7 +32,7 @@ export function CharacterPanel() {
   // Show placeholder if no character selected
   if (!character) {
     return (
-      <div className={styles.panel}>
+      <div className={styles.panel} data-testid="character-panel">
         <div className={styles.placeholder}>
           click a character on the grid to configure
         </div>
@@ -45,10 +45,10 @@ export function CharacterPanel() {
     character.faction.charAt(0).toUpperCase() + character.faction.slice(1);
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} data-testid="character-panel">
       {/* Header with character identification */}
       <div className={styles.header}>
-        <h2 className={styles.title}>
+        <h2 className={styles.title} data-testid="character-panel-title">
           Character {factionLabel} {letter}
         </h2>
       </div>
@@ -62,6 +62,7 @@ export function CharacterPanel() {
           aria-controls="loadout-panel"
           className={`${styles.tab} ${activeTab === "loadout" ? styles.active : ""}`}
           onClick={() => setActiveTab("loadout")}
+          data-testid="tab-loadout"
         >
           Loadout
         </button>
@@ -72,6 +73,7 @@ export function CharacterPanel() {
           aria-controls="priority-panel"
           className={`${styles.tab} ${activeTab === "priority" ? styles.active : ""}`}
           onClick={() => setActiveTab("priority")}
+          data-testid="tab-priority"
         >
           Priority
         </button>

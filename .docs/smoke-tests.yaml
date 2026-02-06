@@ -20,6 +20,12 @@ base_url: "http://localhost:5173"
 # "Visual inspection" without explicit execution logs = INVALID
 # Checking "elements are visible" without clicking = INVALID
 # Dismissing console errors as "historical" without investigation = INVALID
+#
+# 7. When __TEST_HARNESS__ is available (dev mode), prefer JS calls for state verification:
+#    - window.__TEST_HARNESS__.getTick() instead of parsing tick from DOM
+#    - window.__TEST_HARNESS__.getBattleStatus() instead of reading badge text
+#    - window.__TEST_HARNESS__.getCharacters() instead of parsing HP from accessibility labels
+#    - If verify_js field is present on a check, evaluate it via browser console after the action
 
 # === SCRIPT: Victory Path ===
 # Tests app load → setup → battle → victory → reset
@@ -56,22 +62,27 @@ checks:
   - id: 08-step-battle
     action: "click 'Step' button"
     expect: "tick counter changes from 0 to 1"
+    verify_js: "window.__TEST_HARNESS__.getTick() === 1"
 
   - id: 09-damage-applied
     action: "observe enemy token health display"
     expect: "enemy HP decreased by 10 (Light Punch damage)"
+    verify_js: "window.__TEST_HARNESS__.getCharacters().find(c => c.faction === 'enemy').hp === 90"
 
   - id: 10-continue-to-elimination
     action: "click 'Step' repeatedly until enemy HP reaches 0"
     expect: "enemy token removed from grid"
+    verify_js: "window.__TEST_HARNESS__.getCharacters().filter(c => c.faction === 'enemy' && c.hp > 0).length === 0"
 
   - id: 11-victory-state
     action: "observe BattleStatusBadge"
     expect: "badge shows 'Victory', Step/Play buttons disabled"
+    verify_js: "window.__TEST_HARNESS__.getBattleStatus() === 'victory'"
 
   - id: 12-reset
     action: "click 'Reset' button"
     expect: "grid empty, tick shows 0, badge shows 'Active'"
+    verify_js: "window.__TEST_HARNESS__.getTick() === 0 && window.__TEST_HARNESS__.getBattleStatus() === 'active'"
 
   # === SCRIPT: Defeat Path ===
   # Tests that defeat detection works
@@ -83,10 +94,12 @@ checks:
   - id: 14-run-to-defeat
     action: "click 'Play', wait for battle to complete"
     expect: "badge shows 'Defeat', friendly token eliminated"
+    verify_js: "window.__TEST_HARNESS__.getBattleStatus() === 'defeat'"
 
   - id: 15-final-reset
     action: "click 'Reset' button"
     expect: "grid empty, tick 0, badge 'Active', app ready for new battle"
+    verify_js: "window.__TEST_HARNESS__.getTick() === 0 && window.__TEST_HARNESS__.getBattleStatus() === 'active'"
 
   # === SCRIPT: Trigger Conditions ===
   # Tests trigger system expansion: ally_hp_below, NOT modifier, AND logic

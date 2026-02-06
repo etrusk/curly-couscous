@@ -58,9 +58,13 @@ export function BattleStatusBadge() {
         <span aria-hidden="true" className={styles.emoji}>
           {config.emoji}
         </span>
-        <span className={styles.statusText}>{config.text}</span>
+        <span className={styles.statusText} data-testid="battle-status">
+          {config.text}
+        </span>
       </div>
-      <div className={styles.tickDisplay}>Tick: {tick}</div>
+      <div className={styles.tickDisplay} data-testid="tick-display">
+        Tick: {tick}
+      </div>
     </div>
   );
 }

@@ -77,7 +77,7 @@ export function LoadoutTab() {
               const instanceCount = character.skills.filter(
                 (s) => s.id === skillDef.id,
               ).length;
-              const canDuplicate = instanceCount < skillDef.maxInstances;
+              const canDuplicate = character.skills.length < MAX_SKILL_SLOTS;
               const isDuplicate = instanceCount > 1;
 
               return (

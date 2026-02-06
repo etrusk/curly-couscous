@@ -194,35 +194,26 @@ describe("LoadoutTab", () => {
       expect(moveHeadings.length).toBeGreaterThanOrEqual(2);
     });
 
-    it("duplicate button hidden at max instances", () => {
-      const move1 = createSkill({
-        id: "move-towards",
-        instanceId: "move-1",
-        name: "Move",
-        behavior: "towards",
-      });
-      const move2 = createSkill({
-        id: "move-towards",
-        instanceId: "move-2",
-        name: "Move",
-        behavior: "towards",
-      });
-      const move3 = createSkill({
-        id: "move-towards",
-        instanceId: "move-3",
-        name: "Move",
-        behavior: "towards",
-      });
+    it("duplicate button hidden at max slots", () => {
+      // Create 10 move-towards skills to fill all slots
+      const moveSkills = Array.from({ length: 10 }, (_, i) =>
+        createSkill({
+          id: "move-towards",
+          instanceId: `move-${i + 1}`,
+          name: "Move",
+          behavior: "towards",
+        }),
+      );
       const char1 = createCharacter({
         id: "char1",
-        skills: [move1, move2, move3],
+        skills: moveSkills,
       });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
       render(<LoadoutTab />);
 
-      // No duplicate button should be visible (max instances reached)
+      // No duplicate button should be visible (all 10 slots full)
       expect(
         screen.queryByRole("button", { name: /duplicate/i }),
       ).not.toBeInTheDocument();
@@ -230,7 +221,7 @@ describe("LoadoutTab", () => {
   });
 
   describe("Non-Move Skill Duplication", () => {
-    it("duplicate button shown for non-Move skills below maxInstances", () => {
+    it("duplicate button shown for non-Move skills when slots available", () => {
       const lightPunch = createSkill({
         id: "light-punch",
         name: "Light Punch",
@@ -241,7 +232,7 @@ describe("LoadoutTab", () => {
 
       render(<LoadoutTab />);
 
-      // Duplicate button should be visible for Light Punch (1 < maxInstances of 2)
+      // Duplicate button should be visible for Light Punch (1 skill < MAX_SKILL_SLOTS of 10)
       expect(
         screen.getByRole("button", { name: /duplicate.*light punch/i }),
       ).toBeInTheDocument();

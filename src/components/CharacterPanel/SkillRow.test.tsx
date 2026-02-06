@@ -297,7 +297,7 @@ describe("SkillRow", () => {
   });
 
   describe("Gap 2b: Universal Skill Duplication", () => {
-    it("duplicate button visible when under maxInstances for non-Move skill", () => {
+    it("duplicate button visible when skill slots available", () => {
       const skill = createSkill({
         id: "light-punch",
         name: "Light Punch",
@@ -315,26 +315,29 @@ describe("SkillRow", () => {
         />,
       );
 
-      // Duplicate button should appear (1 instance < maxInstances of 2)
+      // Duplicate button should appear (1 skill < MAX_SKILL_SLOTS of 10)
       expect(
         screen.getByRole("button", { name: /duplicate.*light punch/i }),
       ).toBeInTheDocument();
     });
 
-    it("duplicate button hidden when at maxInstances for non-Move skill", () => {
+    it("duplicate button hidden when all skill slots are full", () => {
       const lp1 = createSkill({
         id: "light-punch",
         instanceId: "lp-1",
         name: "Light Punch",
       });
-      const lp2 = createSkill({
-        id: "light-punch",
-        instanceId: "lp-2",
-        name: "Light Punch",
-      });
+      // Create 9 filler skills to fill all 10 slots
+      const fillerSkills = Array.from({ length: 9 }, (_, i) =>
+        createSkill({
+          id: `filler-${i}`,
+          instanceId: `filler-${i}`,
+          name: `Filler ${i}`,
+        }),
+      );
       const character = createCharacter({
         id: "char1",
-        skills: [lp1, lp2],
+        skills: [lp1, ...fillerSkills],
       });
 
       render(
@@ -348,7 +351,7 @@ describe("SkillRow", () => {
         />,
       );
 
-      // No duplicate button (2 instances = maxInstances of 2)
+      // No duplicate button (10 skills = MAX_SKILL_SLOTS)
       expect(
         screen.queryByRole("button", { name: /duplicate.*light punch/i }),
       ).not.toBeInTheDocument();

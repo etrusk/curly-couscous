@@ -342,35 +342,13 @@ describe("Skill Registry", () => {
     });
   });
 
-  // NEW TESTS FOR MAX INSTANCES
-  describe("Max Instances", () => {
-    it("should have maxInstances field on all registry entries", () => {
+  // GUARD: No per-skill instance limit
+  describe("No Per-Skill Instance Limit", () => {
+    it("registry entries do not have maxInstances property", () => {
       SKILL_REGISTRY.forEach((skill) => {
-        expect(skill.maxInstances).toBeDefined();
-        expect(skill.maxInstances).toBeGreaterThanOrEqual(1);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access -- runtime guard against re-adding removed field
+        expect((skill as any).maxInstances).toBeUndefined();
       });
-
-      const lightPunch = SKILL_REGISTRY.find((s) => s.id === "light-punch");
-      const heavyPunch = SKILL_REGISTRY.find((s) => s.id === "heavy-punch");
-      const move = SKILL_REGISTRY.find((s) => s.id === "move-towards");
-      const heal = SKILL_REGISTRY.find((s) => s.id === "heal");
-
-      expect(lightPunch?.maxInstances).toBe(2);
-      expect(heavyPunch?.maxInstances).toBe(2);
-      expect(move?.maxInstances).toBe(3);
-      expect(heal?.maxInstances).toBe(2);
-    });
-
-    it("non-move skills allow duplication up to 2 instances", () => {
-      const lightPunch = SKILL_REGISTRY.find((s) => s.id === "light-punch");
-      const heavyPunch = SKILL_REGISTRY.find((s) => s.id === "heavy-punch");
-      const heal = SKILL_REGISTRY.find((s) => s.id === "heal");
-      const move = SKILL_REGISTRY.find((s) => s.id === "move-towards");
-
-      expect(lightPunch?.maxInstances).toBe(2);
-      expect(heavyPunch?.maxInstances).toBe(2);
-      expect(heal?.maxInstances).toBe(2);
-      expect(move?.maxInstances).toBe(3); // unchanged
     });
   });
 

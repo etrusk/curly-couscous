@@ -152,7 +152,6 @@ export function SkillsPanel() {
           const isMove = skill.behavior !== undefined && skill.behavior !== "";
           const skillDef = SKILL_REGISTRY.find((def) => def.id === skill.id);
           const isInnate = !!skillDef?.innate;
-          const maxInstances = skillDef?.maxInstances ?? 1;
           const moveCount = isMove
             ? selectedCharacter.skills.filter(
                 (s) => s.behavior !== undefined && s.behavior !== "",
@@ -192,7 +191,6 @@ export function SkillsPanel() {
                   </span>
                 )}
                 {isMove &&
-                  moveCount < maxInstances &&
                   selectedCharacter.skills.length < MAX_SKILL_SLOTS && (
                     <button
                       onClick={() =>

@@ -91,7 +91,7 @@ describe("duplicateSkill", () => {
     expect(newSkill?.enabled).toBe(true);
   });
 
-  it("enforces max 3 move instances", () => {
+  it("allows duplicating move beyond old limit of 3", () => {
     const move1 = createSkill({
       id: "move-towards",
       instanceId: "move1",
@@ -118,7 +118,8 @@ describe("duplicateSkill", () => {
     const updatedChar = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === "char1");
-    expect(updatedChar?.skills).toHaveLength(3);
+    expect(updatedChar?.skills).toHaveLength(4);
+    expect(updatedChar?.skills[3]?.id).toBe("move-towards");
   });
 
   it("enforces max skill slots", () => {
@@ -144,7 +145,7 @@ describe("duplicateSkill", () => {
     expect(updatedChar?.skills).toHaveLength(10);
   });
 
-  it("allows duplicating non-move skills within maxInstances", () => {
+  it("allows duplicating non-move skills within slot limit", () => {
     const punchSkill = createSkill({
       id: "light-punch",
       instanceId: "punch1",
@@ -190,8 +191,8 @@ describe("duplicateSkill", () => {
     expect(updatedChar?.skills).toHaveLength(1);
   });
 
-  // NEW TESTS FOR NON-MOVE DUPLICATION
-  it("blocks duplication when skill has reached maxInstances", () => {
+  // Validates removal of per-skill maxInstances limit
+  it("allows duplication beyond old per-skill limit up to MAX_SKILL_SLOTS", () => {
     const lp1 = createSkill({
       id: "light-punch",
       instanceId: "light-punch-inst1",
@@ -205,6 +206,7 @@ describe("duplicateSkill", () => {
     const char1 = createCharacter({ id: "char1", skills: [lp1, lp2] });
     useGameStore.getState().actions.initBattle([char1]);
 
+    // Duplicate a 3rd instance (old maxInstances of 2 would have blocked this)
     useGameStore
       .getState()
       .actions.duplicateSkill("char1", "light-punch-inst1");
@@ -212,7 +214,45 @@ describe("duplicateSkill", () => {
     const updatedChar = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === "char1");
-    expect(updatedChar?.skills).toHaveLength(2);
+    expect(updatedChar?.skills).toHaveLength(3);
+    expect(updatedChar?.skills.every((s) => s.id === "light-punch")).toBe(true);
+  });
+
+  it("allows filling all 10 slots with same skill", () => {
+    const lp1 = createSkill({
+      id: "light-punch",
+      instanceId: "light-punch-inst1",
+      damage: 10,
+    });
+    const char1 = createCharacter({ id: "char1", skills: [lp1] });
+    useGameStore.getState().actions.initBattle([char1]);
+
+    // Duplicate 9 times to fill all 10 slots
+    for (let i = 0; i < 9; i++) {
+      useGameStore
+        .getState()
+        .actions.duplicateSkill("char1", "light-punch-inst1");
+    }
+
+    const updatedChar = useGameStore
+      .getState()
+      .gameState.characters.find((c) => c.id === "char1");
+    expect(updatedChar?.skills).toHaveLength(10);
+    expect(updatedChar?.skills.every((s) => s.id === "light-punch")).toBe(true);
+
+    // All 10 should have unique instanceIds
+    const instanceIds = updatedChar?.skills.map((s) => s.instanceId);
+    const uniqueIds = new Set(instanceIds);
+    expect(uniqueIds.size).toBe(10);
+
+    // 11th duplication should be blocked by MAX_SKILL_SLOTS
+    useGameStore
+      .getState()
+      .actions.duplicateSkill("char1", "light-punch-inst1");
+    const finalChar = useGameStore
+      .getState()
+      .gameState.characters.find((c) => c.id === "char1");
+    expect(finalChar?.skills).toHaveLength(10);
   });
 
   it("duplicated skill gets default config from registry", () => {

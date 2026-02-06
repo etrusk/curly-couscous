@@ -87,7 +87,6 @@ Each skill in the registry declares:
 - `actionType`: Category (`attack`, `move`, or `heal`)
 - `behaviors`: Available behavior values (e.g., `["towards", "away"]` for Move; `[]` for others)
 - `defaultBehavior`: Default behavior when first assigned
-- `maxInstances`: Maximum duplicates per character (Move: 3, all others: 1)
 - `defaultTarget` and `defaultCriterion`: Defaults when first assigned
 
 ### Light Punch
@@ -95,14 +94,14 @@ Each skill in the registry declares:
 - Tick cost: 0, Range: 1 (melee), Damage: 10
 - Default target: enemy, Default criterion: nearest
 - Fast and instant. Resolves immediately with no wind-up.
-- **Assignable** (not innate), maxInstances: 2
+- **Assignable** (not innate)
 
 ### Heavy Punch
 
 - Tick cost: 2, Range: 2, Damage: 25
 - Default target: enemy, Default criterion: nearest
 - Slow but powerful. 2-tick wind-up creates dodge window.
-- **Assignable** (not innate), maxInstances: 2
+- **Assignable** (not innate)
 
 ### Heal
 
@@ -112,7 +111,7 @@ Each skill in the registry declares:
 - Heals target for 25 HP, capped at maxHp.
 - Cannot target characters at full HP (rejected as no_target if no wounded allies in range).
 - Healing resolves before combat in the Resolution Phase (ADR-006), making last-moment saves possible.
-- **Assignable** (not innate), maxInstances: 2
+- **Assignable** (not innate)
 
 ### Skill Categories
 
@@ -137,11 +136,11 @@ Skills fall into two timing categories:
 - Tick cost: 1, Distance: 1 hex
 - Default target: enemy, Default criterion: nearest
 - Behaviors: **towards** (closer), **away** (farther)
-- **Innate** (automatically assigned, cannot be removed), maxInstances: 3
+- **Innate** (automatically assigned, cannot be removed)
 
 ### Skill Duplication
 
-Any skill can be duplicated up to its registry-defined `maxInstances` limit. When duplicated, each instance gets a unique `instanceId` (ADR-009) and can be configured independently (different triggers, targets, criteria, behaviors). Move allows up to 3 instances; Light Punch, Heavy Punch, and Heal allow up to 2 instances each.
+Any skill can be duplicated up to the character's total skill slot limit (MAX_SKILL_SLOTS = 10). When duplicated, each instance gets a unique `instanceId` (ADR-009) and can be configured independently (different triggers, targets, criteria, behaviors).
 
 ## Skill Assignment
 

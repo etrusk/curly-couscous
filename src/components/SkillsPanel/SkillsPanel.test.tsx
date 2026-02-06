@@ -1268,7 +1268,7 @@ describe("SkillsPanel", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("duplicate button hidden at max move instances", () => {
+    it("duplicate button visible when move instances below slot limit", () => {
       const move1 = createSkill({
         id: "move-towards",
         instanceId: "move1",
@@ -1293,9 +1293,10 @@ describe("SkillsPanel", () => {
 
       render(<SkillsPanel />);
 
+      // 3 skills < MAX_SKILL_SLOTS of 10, so duplicate button should be visible
       expect(
-        screen.queryByRole("button", { name: /duplicate/i }),
-      ).not.toBeInTheDocument();
+        screen.queryAllByRole("button", { name: /duplicate/i }).length,
+      ).toBeGreaterThan(0);
     });
 
     it("duplicate button hidden at max skill slots", () => {

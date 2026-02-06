@@ -34,7 +34,6 @@ export interface SkillDefinition {
   behaviors: string[]; // Available behaviors for this skill
   defaultBehavior: string; // Default behavior value
   innate: boolean;
-  maxInstances: number; // Max duplicates per character
   defaultTarget: Target;
   defaultCriterion: Criterion;
   targetingMode: "cell" | "character"; // How targets are tracked during resolution
@@ -56,7 +55,6 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     behaviors: [],
     defaultBehavior: "",
     innate: false,
-    maxInstances: 2,
     defaultTarget: "enemy",
     defaultCriterion: "nearest",
     targetingMode: "cell",
@@ -71,7 +69,6 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     behaviors: [],
     defaultBehavior: "",
     innate: false,
-    maxInstances: 2,
     defaultTarget: "enemy",
     defaultCriterion: "nearest",
     targetingMode: "cell",
@@ -86,7 +83,6 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     behaviors: ["towards", "away"],
     defaultBehavior: "towards",
     innate: true,
-    maxInstances: 3,
     defaultTarget: "enemy",
     defaultCriterion: "nearest",
     targetingMode: "cell",
@@ -102,7 +98,6 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     behaviors: [],
     defaultBehavior: "",
     innate: false,
-    maxInstances: 2,
     defaultTarget: "ally",
     defaultCriterion: "lowest_hp",
     targetingMode: "character",
@@ -159,7 +154,7 @@ export function createSkillFromDefinition(def: SkillDefinition): Skill {
 
 /**
  * Get a skill definition from the registry by its ID.
- * Used for looking up skill properties like maxInstances, behaviors, etc.
+ * Used for looking up skill properties like behaviors, range, etc.
  */
 export function getSkillDefinition(id: string): SkillDefinition | undefined {
   return SKILL_REGISTRY.find((def) => def.id === id);

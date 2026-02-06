@@ -13,14 +13,16 @@ None -- ready for next task.
 
 ## Recent Completions
 
-- 2026-02-06: Remove duplicate button + auto-focus toggle (COMPLETE, TDD/Claude Code) - (1) "Remove" button for duplicate skill instances in SkillRow and LoadoutTab (visible when instanceCount > 1). (2) "Auto-focus battle" checkbox in header (default: off) controlling grid layout shift and Priority tab auto-switch during battle. accessibilityStore autoFocus with localStorage persistence. 17 new tests. 1336/1336 tests passing. Smoke checks 29-31 added.
+- 2026-02-07: Remove per-skill maxInstances limit (COMPLETE, TDD/Claude Code) - Removed `maxInstances` from `SkillDefinition` interface and all SKILL_REGISTRY entries. Duplication now capped only by MAX_SKILL_SLOTS=10. Updated duplicateSkill store action, LoadoutTab/SkillRow/SkillsPanel canDuplicate logic. 11 test changes (2 delete, 4 rewrite, 3 rename, 2 add). 1336/1336 tests passing. spec.md updated.
 
-- 2026-02-06: Three-task cleanup session (COMPLETE, TDD/Claude Code) - (1) Fixed selectMovementTargetData to use trigger-aware Move selection mirroring decision engine. (2) Migrated 26 evaluateSelector call sites across 8 test files to evaluateTargetCriterion; deleted evaluateSelector function and Selector type (~107 lines removed). (3) Split PriorityTab.test.tsx (667 lines) into PriorityTab-config.test.tsx (311 lines, 12 tests) and PriorityTab-battle.test.tsx (370 lines, 10 tests). +6 new tests. 1319/1319 tests passing.
+- 2026-02-06: Remove duplicate button + auto-focus toggle (COMPLETE, TDD/Claude Code) - "Remove" button for duplicate skill instances (visible when instanceCount > 1). "Auto-focus battle" checkbox with localStorage persistence. 17 new tests. 1336/1336 tests passing. Smoke checks 29-31 added.
 
-- 2026-02-06: Selector filters for conditional targeting (COMPLETE, TDD/Claude Code) - Optional `selectorFilter` on skill instances with `hp_below`/`hp_above` filter types. Filter evaluates post-selector, pre-range-check. UI: "+ Filter" button in Priority tab, filter type dropdown + value input + remove button. 32 new tests (13 unit, 13 integration, 6 UI). 1313/1313 tests passing. Smoke tests 26-28 added. ADR-015 created.
+- 2026-02-06: Three-task cleanup session (COMPLETE, TDD/Claude Code) - Fixed selectMovementTargetData, migrated evaluateSelector to evaluateTargetCriterion, split PriorityTab.test.tsx. +6 new tests. 1319/1319 tests passing.
 
-- 2026-02-06: 5 UI gap fixes (COMPLETE, TDD/Claude Code) - Universal behavior dropdown (registry-driven), universal skill duplication (maxInstances 1->2 for light-punch/heavy-punch/heal), NOT trigger toggle UI, real battle evaluation in PriorityTab, compact battle view. 15 new tests + 4 existing updates. 1281/1281 tests passing. Smoke checks 24-25 added. spec.md maxInstances updated.
+- 2026-02-06: Selector filters for conditional targeting (COMPLETE, TDD/Claude Code) - Optional `selectorFilter` with `hp_below`/`hp_above` filter types. 32 new tests. 1313/1313 tests passing. Smoke tests 26-28 added. ADR-015 created.
+
+## Priority Next Tasks (from TDD session)
+
+- [ ] LoadoutTab.test.tsx L297 "Slot Capacity" test creates only 3 skills but asserts assign buttons disabled as if slots are full (MAX_SKILL_SLOTS=10) — pre-existing incorrect test (found during: remove maxInstances, date: 2026-02-06)
 
 ## Next Steps
-
-- Extract gameStore-selectors.ts (482 lines, exceeds 400-line limit -- pre-existing)

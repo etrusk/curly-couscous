@@ -9,6 +9,7 @@ import type {
   SelectorFilterType,
 } from "../../engine/types";
 import { useGameStore, selectActions } from "../../stores/gameStore";
+import { MAX_SKILL_SLOTS } from "../../stores/gameStore-constants";
 import { getSkillDefinition } from "../../engine/skill-registry";
 import { TriggerDropdown } from "./TriggerDropdown";
 import styles from "./SkillRow.module.css";
@@ -140,7 +141,7 @@ export function SkillRow({
   const instanceCount = character.skills.filter(
     (s) => s.id === skill.id,
   ).length;
-  const canDuplicate = skillDef ? instanceCount < skillDef.maxInstances : false;
+  const canDuplicate = character.skills.length < MAX_SKILL_SLOTS;
   const isDuplicate = instanceCount > 1;
 
   const handleRemove = () => {

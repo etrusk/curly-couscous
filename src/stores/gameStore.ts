@@ -365,17 +365,9 @@ export const useGameStore = create<GameStore>()(
             return;
           }
 
-          // Get registry definition to check maxInstances
+          // Get registry definition for creating new skill
           const def = SKILL_REGISTRY.find((d) => d.id === sourceSkill.id);
           if (!def) {
-            return;
-          }
-
-          // Check instance count limit from registry
-          const instanceCount = character.skills.filter(
-            (s) => s.id === sourceSkill.id,
-          ).length;
-          if (instanceCount >= def.maxInstances) {
             return;
           }
 

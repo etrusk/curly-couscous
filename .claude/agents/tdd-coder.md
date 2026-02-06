@@ -133,7 +133,8 @@ Before completion, verify:
 ## Handoff Protocol
 
 1. Ensure all quality gates pass
-2. Update `.tdd/session.md` with phase completion, files modified, test counts
+2. Verify no touched file exceeds 400 lines (`wc -l`). If any file exceeds the limit, extract or split before completing.
+3. Update `.tdd/session.md` with phase completion, files modified, test counts
 
 ## Completion Block
 

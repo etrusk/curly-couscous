@@ -1,17 +1,17 @@
 /**
- * Tests for `nearest_ally` selector.
+ * Tests for nearest ally target+criterion evaluation.
  * Follows test design document: docs/test-design-selector-evaluation-v2.md
  */
 
 import { describe, it, expect } from "vitest";
-import { evaluateSelector } from "./selectors";
+import { evaluateTargetCriterion } from "./selectors";
 import { createCharacter } from "./selectors-test-helpers";
 
-describe("evaluateSelector", () => {
+describe("evaluateTargetCriterion", () => {
   // =========================================================================
-  // Section 3: `nearest_ally` Selector
+  // Section 3: target="ally", criterion="nearest"
   // =========================================================================
-  describe("nearest_ally selector", () => {
+  describe("ally nearest", () => {
     it("should return closest ally by Chebyshev distance", () => {
       const evaluator = createCharacter({
         id: "eval",
@@ -28,9 +28,8 @@ describe("evaluateSelector", () => {
         faction: "friendly",
         position: { q: 3, r: 0 }, // dist=3
       });
-      const selector = { type: "nearest_ally" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("ally", "nearest", evaluator, [
         evaluator,
         allyA,
         allyB,
@@ -45,9 +44,10 @@ describe("evaluateSelector", () => {
         faction: "friendly",
         position: { q: 0, r: 0 },
       });
-      const selector = { type: "nearest_ally" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [evaluator]);
+      const result = evaluateTargetCriterion("ally", "nearest", evaluator, [
+        evaluator,
+      ]);
 
       expect(result).toBeNull();
     });
@@ -68,9 +68,8 @@ describe("evaluateSelector", () => {
         faction: "friendly",
         position: { q: 0, r: 3 }, // dist=3
       });
-      const selector = { type: "nearest_ally" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("ally", "nearest", evaluator, [
         evaluator,
         enemy,
         ally,
@@ -85,9 +84,10 @@ describe("evaluateSelector", () => {
         faction: "friendly",
         position: { q: 0, r: 0 },
       });
-      const selector = { type: "nearest_ally" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [evaluator]);
+      const result = evaluateTargetCriterion("ally", "nearest", evaluator, [
+        evaluator,
+      ]);
 
       expect(result).toBeNull();
     });

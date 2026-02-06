@@ -13,18 +13,14 @@ None -- ready for next task.
 
 ## Recent Completions
 
+- 2026-02-06: Three-task cleanup session (COMPLETE, TDD/Claude Code) - (1) Fixed selectMovementTargetData to use trigger-aware Move selection mirroring decision engine. (2) Migrated 26 evaluateSelector call sites across 8 test files to evaluateTargetCriterion; deleted evaluateSelector function and Selector type (~107 lines removed). (3) Split PriorityTab.test.tsx (667 lines) into PriorityTab-config.test.tsx (311 lines, 12 tests) and PriorityTab-battle.test.tsx (370 lines, 10 tests). +6 new tests. 1319/1319 tests passing.
+
 - 2026-02-06: Selector filters for conditional targeting (COMPLETE, TDD/Claude Code) - Optional `selectorFilter` on skill instances with `hp_below`/`hp_above` filter types. Filter evaluates post-selector, pre-range-check. UI: "+ Filter" button in Priority tab, filter type dropdown + value input + remove button. 32 new tests (13 unit, 13 integration, 6 UI). 1313/1313 tests passing. Smoke tests 26-28 added. ADR-015 created.
 
 - 2026-02-06: 5 UI gap fixes (COMPLETE, TDD/Claude Code) - Universal behavior dropdown (registry-driven), universal skill duplication (maxInstances 1->2 for light-punch/heavy-punch/heal), NOT trigger toggle UI, real battle evaluation in PriorityTab, compact battle view. 15 new tests + 4 existing updates. 1281/1281 tests passing. Smoke checks 24-25 added. spec.md maxInstances updated.
 
 - 2026-02-06: AND combinator UI (COMPLETE, TDD/Claude Code) - Second trigger dropdown with "+ AND" button, "AND" label, remove button. Extracted TriggerDropdown sub-component from SkillRow. 28 new tests (15 TriggerDropdown unit, 13 SkillRow integration). 1263/1263 tests passing. Smoke tests 22-23 added.
 
-- 2026-02-06: Test harness for smoke tests (COMPLETE, TDD/Claude Code) - Dev-only `window.__TEST_HARNESS__` API exposing read-only game state. Added data-testid attributes to 4 components (11 testids). Smoke tests updated with 7 verify_js fields. 1235/1235 tests passing. ADR-014 created.
-
-- 2026-02-06: Two-panel tabbed layout + inline evaluation + hex grid rotation (COMPLETE, TDD/Claude Code) - CharacterPanel with Loadout/Priority tabs. Inline evaluation display. Hex rotation to pointy-top. 1220/1220 tests passing.
-
 ## Next Steps
 
-- Address selectMovementTargetData known limitation (targeting line shows first Move instance, not trigger-evaluated one)
-- Consider migrating old selector tests from evaluateSelector to evaluateTargetCriterion (tech debt cleanup)
-- Extract PriorityTab.test.tsx into smaller files (669 lines, exceeds 400-line limit)
+- Extract gameStore-selectors.ts (482 lines, exceeds 400-line limit -- pre-existing)

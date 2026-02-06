@@ -1,17 +1,17 @@
 /**
- * Tests for `nearest_enemy` selector.
+ * Tests for nearest enemy target+criterion evaluation.
  * Follows test design document: docs/test-design-selector-evaluation-v2.md
  */
 
 import { describe, it, expect } from "vitest";
-import { evaluateSelector } from "./selectors";
+import { evaluateTargetCriterion } from "./selectors";
 import { createCharacter } from "./selectors-test-helpers";
 
-describe("evaluateSelector", () => {
+describe("evaluateTargetCriterion", () => {
   // =========================================================================
-  // Section 2: `nearest_enemy` Selector
+  // Section 2: target="enemy", criterion="nearest"
   // =========================================================================
-  describe("nearest_enemy selector", () => {
+  describe("enemy nearest", () => {
     it("should return closest enemy by hex distance", () => {
       const evaluator = createCharacter({
         id: "eval",
@@ -28,9 +28,8 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: 3, r: 0 }, // dist=3
       });
-      const selector = { type: "nearest_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "nearest", evaluator, [
         evaluator,
         enemyA,
         enemyB,
@@ -55,9 +54,8 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: 0, r: 3 }, // dist=3
       });
-      const selector = { type: "nearest_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "nearest", evaluator, [
         evaluator,
         ally,
         enemy,
@@ -82,9 +80,8 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: 0, r: 3 }, // dist=3
       });
-      const selector = { type: "nearest_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "nearest", evaluator, [
         evaluator,
         enemyA,
         enemyB,
@@ -104,9 +101,11 @@ describe("evaluateSelector", () => {
         faction: "friendly",
         position: { q: 1, r: 1 },
       });
-      const selector = { type: "nearest_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [evaluator, ally]);
+      const result = evaluateTargetCriterion("enemy", "nearest", evaluator, [
+        evaluator,
+        ally,
+      ]);
 
       expect(result).toBeNull();
     });

@@ -1,25 +1,26 @@
 /**
- * Tests for `self` selector.
+ * Tests for self target+criterion evaluation.
  * Follows test design document: docs/test-design-selector-evaluation-v2.md
  */
 
 import { describe, it, expect } from "vitest";
-import { evaluateSelector } from "./selectors";
+import { evaluateTargetCriterion } from "./selectors";
 import { createCharacter } from "./selectors-test-helpers";
 
-describe("evaluateSelector", () => {
+describe("evaluateTargetCriterion", () => {
   // =========================================================================
-  // Section 1: `self` Selector
+  // Section 1: target="self"
   // =========================================================================
-  describe("self selector", () => {
-    it("should return evaluator for self selector", () => {
+  describe("self target", () => {
+    it("should return evaluator for self target", () => {
       const evaluator = createCharacter({
         id: "eval",
         position: { q: 0, r: 0 },
       });
-      const selector = { type: "self" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [evaluator]);
+      const result = evaluateTargetCriterion("self", "nearest", evaluator, [
+        evaluator,
+      ]);
 
       expect(result).toBe(evaluator);
     });
@@ -40,9 +41,8 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: 4, r: 0 },
       });
-      const selector = { type: "self" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("self", "nearest", evaluator, [
         evaluator,
         enemy1,
         enemy2,

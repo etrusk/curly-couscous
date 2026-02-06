@@ -1,18 +1,18 @@
 /**
- * Tests for tie-breaking rules in selectors.
+ * Tests for tie-breaking rules in target+criterion evaluation.
  * Follows test design document: docs/test-design-selector-evaluation-v2.md
  */
 
 import { describe, it, expect } from "vitest";
-import { evaluateSelector } from "./selectors";
+import { evaluateTargetCriterion } from "./selectors";
 import { createCharacter } from "./selectors-test-helpers";
 
-describe("evaluateSelector", () => {
+describe("evaluateTargetCriterion", () => {
   // =========================================================================
   // Section 6: Tie-Breaking (Section 6.2)
   // =========================================================================
   describe("tie-breaking rules", () => {
-    it("nearest_enemy: should prefer lower R when distances equal", () => {
+    it("enemy nearest: should prefer lower R when distances equal", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
@@ -28,9 +28,8 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: -1, r: 1 }, // hex dist=1, R=1
       });
-      const selector = { type: "nearest_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "nearest", evaluator, [
         evaluator,
         enemyA,
         enemyB,
@@ -39,7 +38,7 @@ describe("evaluateSelector", () => {
       expect(result).toBe(enemyA); // R=-1 < R=1
     });
 
-    it("nearest_enemy: should prefer lower Q when R and distances equal", () => {
+    it("enemy nearest: should prefer lower Q when R and distances equal", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
@@ -55,9 +54,8 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: 1, r: 0 }, // hex dist=1, Q=1
       });
-      const selector = { type: "nearest_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "nearest", evaluator, [
         evaluator,
         enemyA,
         enemyB,
@@ -66,7 +64,7 @@ describe("evaluateSelector", () => {
       expect(result).toBe(enemyA); // Q=-1 < Q=1
     });
 
-    it("lowest_hp_enemy: should prefer lower R when HP equal", () => {
+    it("enemy lowest_hp: should prefer lower R when HP equal", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
@@ -84,9 +82,8 @@ describe("evaluateSelector", () => {
         hp: 50,
         position: { q: 2, r: 1 }, // R=1
       });
-      const selector = { type: "lowest_hp_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "lowest_hp", evaluator, [
         evaluator,
         enemyA,
         enemyB,
@@ -95,7 +92,7 @@ describe("evaluateSelector", () => {
       expect(result).toBe(enemyA); // R=-1 < R=1
     });
 
-    it("lowest_hp_enemy: should prefer lower Q when HP and R equal", () => {
+    it("enemy lowest_hp: should prefer lower Q when HP and R equal", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
@@ -113,9 +110,8 @@ describe("evaluateSelector", () => {
         hp: 50,
         position: { q: 2, r: 2 }, // Q=2
       });
-      const selector = { type: "lowest_hp_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "lowest_hp", evaluator, [
         evaluator,
         enemyA,
         enemyB,
@@ -124,7 +120,7 @@ describe("evaluateSelector", () => {
       expect(result).toBe(enemyA); // Q=-1 < Q=2
     });
 
-    it("nearest_enemy: three-way tie resolved correctly", () => {
+    it("enemy nearest: three-way tie resolved correctly", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
@@ -145,9 +141,8 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: -1, r: 0 }, // hex dist=1, R=0
       });
-      const selector = { type: "nearest_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "nearest", evaluator, [
         evaluator,
         enemyA,
         enemyB,

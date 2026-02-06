@@ -191,6 +191,7 @@ quality_gates:
   tests: PASS | FAIL | SKIP
   smoke: PASS | FAIL | SKIP | BLOCKED # BLOCKED routes to HUMAN_VERIFY
   all_gates_pass: true | false # MUST be true for successful completion
+actions_summary: [list, 2-5 items] # Concise log of key actions taken (e.g., "Read 3 pattern files", "Created CooldownManager class", "Fixed type error in triggers.ts:45")
 notable_events: [list or empty] # Significant events: retries, partial failures, large operations
 retry_count: [integer] # Number of retry cycles within this agent
 blockers: [list or empty]
@@ -232,6 +233,25 @@ Agent invocations: [count]
 ```
 
 The "Notes" column captures notable events from the AGENT_COMPLETION block: retry counts, partial failures, escalations, large operations.
+
+Also append the agent's `actions_summary` to the **Action Log** section of session.md:
+
+```markdown
+### Action Log
+
+#### #1 tdd-explorer (EXPLORE)
+
+- Read 4 pattern files and architecture.md
+- Identified SkillSystem as entry point
+- Found 2 existing test patterns to follow
+
+#### #2 tdd-planner (PLAN)
+
+- Created 6-step plan targeting 3 files
+- Decided against new abstraction (used existing SkillSystem)
+```
+
+Each entry uses the agent invocation number, agent name, and phase as header, then lists the `actions_summary` items verbatim from the AGENT_COMPLETION block.
 
 ### Step 3: Evaluate Thresholds
 
@@ -586,6 +606,16 @@ Compactions: [N]
 | --- | ------------ | ------- | --------- | ------ | ----- | -------- | -------- | ----- |
 | 1   | tdd-explorer | EXPLORE | 8         | ~25K   | 34    | 45s      | COMPLETE | —     |
 | 2   | tdd-planner  | PLAN    | 12        | ~35K   | 18    | 62s      | COMPLETE | —     |
+
+### Action Log
+
+#### #1 tdd-explorer (EXPLORE)
+
+- [actions_summary items from completion block]
+
+#### #2 tdd-planner (PLAN)
+
+- [actions_summary items from completion block]
 
 ## Files Touched
 

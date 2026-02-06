@@ -21,7 +21,7 @@ You are a workflow improvement agent. Your job is to identify 0-2 process issues
 
 ## Required Reading
 
-1. **Session state**: `.tdd/session.md` — primary input, focus on Agent History table and Context Metrics
+1. **Session state**: `.tdd/session.md` — primary input, focus on Agent History table, Action Log, and Context Metrics
 2. **Lessons learned**: `.docs/lessons-learned/index.md` — avoid duplicating known lessons
 3. **Lessons detail files**: Read specific files from `.docs/lessons-learned/` only if index references something relevant
 
@@ -47,19 +47,23 @@ For each anomaly found:
 
 ## Analysis Protocol
 
-1. Read `.tdd/session.md` — focus on Agent History table and Context Metrics
-2. Identify anomalies using threshold triggers:
+1. Read `.tdd/session.md` — focus on Agent History table, Action Log, and Context Metrics
+2. Verify agent actions via the Action Log:
+   - Did each agent's actions align with its phase role?
+   - Were actions proportionate to the task scope?
+   - Did any agent perform redundant or out-of-scope work?
+3. Identify anomalies using threshold triggers:
    - Token spend > 40K for a single agent
    - Token spend > 2x budgeted estimate
    - Retry count > 2
    - Status other than COMPLETE
-3. For non-anomalous phases, skip deep analysis — they don't need it
-4. Check agent behavioral compliance:
+4. For non-anomalous phases, skip deep analysis — they don't need it
+5. Check agent behavioral compliance:
    - Did the agent stay within its role constraints?
    - Did it follow the plan/test designs as specified?
    - Did it use appropriate tools for its phase?
    - Did it escalate when it should have?
-5. Output 0-3 items total across all categories
+6. Output 0-3 items total across all categories
 
 ## Behavioral Checks
 

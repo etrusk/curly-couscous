@@ -1,17 +1,17 @@
 /**
- * Tests for `lowest_hp_ally` selector.
+ * Tests for lowest HP ally target+criterion evaluation.
  * Follows test design document: docs/test-design-selector-evaluation-v2.md
  */
 
 import { describe, it, expect } from "vitest";
-import { evaluateSelector } from "./selectors";
+import { evaluateTargetCriterion } from "./selectors";
 import { createCharacter } from "./selectors-test-helpers";
 
-describe("evaluateSelector", () => {
+describe("evaluateTargetCriterion", () => {
   // =========================================================================
-  // Section 5: `lowest_hp_ally` Selector
+  // Section 5: target="ally", criterion="lowest_hp"
   // =========================================================================
-  describe("lowest_hp_ally selector", () => {
+  describe("ally lowest_hp", () => {
     it("should return ally with lowest current HP", () => {
       const evaluator = createCharacter({
         id: "eval",
@@ -36,9 +36,8 @@ describe("evaluateSelector", () => {
         hp: 90,
         position: { q: 3, r: 2 },
       });
-      const selector = { type: "lowest_hp_ally" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("ally", "lowest_hp", evaluator, [
         evaluator,
         allyA,
         allyB,
@@ -61,9 +60,11 @@ describe("evaluateSelector", () => {
         hp: 50,
         position: { q: 2, r: 2 },
       });
-      const selector = { type: "lowest_hp_ally" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [evaluator, ally]);
+      const result = evaluateTargetCriterion("ally", "lowest_hp", evaluator, [
+        evaluator,
+        ally,
+      ]);
 
       expect(result).toBe(ally);
     });
@@ -86,9 +87,8 @@ describe("evaluateSelector", () => {
         hp: 50,
         position: { q: 2, r: 2 },
       });
-      const selector = { type: "lowest_hp_ally" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("ally", "lowest_hp", evaluator, [
         evaluator,
         enemy,
         ally,

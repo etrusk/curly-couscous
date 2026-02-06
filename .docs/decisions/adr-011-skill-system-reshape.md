@@ -56,7 +56,7 @@ The `target` + `criterion` split is independently motivated (to add `furthest` a
 
 - (-) Large mechanical refactor: ~30 test files updated for `mode` -> `behavior` and `selectorOverride` -> `target`/`criterion`
 - (-) `behavior: string` is loosely typed (not a union) to support arbitrary future behaviors. Registry `behaviors` array constrains valid values at runtime.
-- (-) `evaluateSelector()` retained alongside `evaluateTargetCriterion()` for backward compatibility with 8 existing test files (can be cleaned up in follow-up)
+- (-) ~~`evaluateSelector()` retained alongside `evaluateTargetCriterion()` for backward compatibility with 8 existing test files~~ -- Cleaned up 2026-02-06: all 26 call sites migrated, `evaluateSelector` function and `Selector` type deleted
 
 ### Related Decisions
 

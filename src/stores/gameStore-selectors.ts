@@ -17,6 +17,7 @@ import {
   evaluateSkillsForCharacter as _evaluateSkillsForCharacter,
 } from "../engine/game";
 import { evaluateTargetCriterion } from "../engine/selectors";
+import { evaluateTrigger } from "../engine/triggers";
 import { SKILL_REGISTRY } from "../engine/skill-registry";
 import { generateAllHexes, positionKey } from "../engine/hex";
 
@@ -310,8 +311,20 @@ export const selectMovementTargetData = (() => {
     // Compute fresh result
     const result = living
       .map((character) => {
-        // Find Move skill (skill with actionType "move")
-        const moveSkill = character.skills.find((s) => s.actionType === "move");
+        // Find first Move skill that passes all checks (mirrors decision engine)
+        let moveSkill = null;
+        for (const s of character.skills) {
+          if (s.actionType !== "move") continue;
+          if (!s.enabled) continue;
+          if (s.cooldownRemaining && s.cooldownRemaining > 0) continue;
+          if (s.behavior === "hold") continue;
+          const allTriggersPass = s.triggers.every((trigger) =>
+            evaluateTrigger(trigger, character, characters),
+          );
+          if (!allTriggersPass) continue;
+          moveSkill = s;
+          break;
+        }
         if (!moveSkill) return null;
 
         // Evaluate target selection

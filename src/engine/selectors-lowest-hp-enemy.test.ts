@@ -1,17 +1,17 @@
 /**
- * Tests for `lowest_hp_enemy` selector.
+ * Tests for lowest HP enemy target+criterion evaluation.
  * Follows test design document: docs/test-design-selector-evaluation-v2.md
  */
 
 import { describe, it, expect } from "vitest";
-import { evaluateSelector } from "./selectors";
+import { evaluateTargetCriterion } from "./selectors";
 import { createCharacter } from "./selectors-test-helpers";
 
-describe("evaluateSelector", () => {
+describe("evaluateTargetCriterion", () => {
   // =========================================================================
-  // Section 4: `lowest_hp_enemy` Selector
+  // Section 4: target="enemy", criterion="lowest_hp"
   // =========================================================================
-  describe("lowest_hp_enemy selector", () => {
+  describe("enemy lowest_hp", () => {
     it("should return enemy with lowest current HP", () => {
       const evaluator = createCharacter({
         id: "eval",
@@ -36,9 +36,8 @@ describe("evaluateSelector", () => {
         hp: 90,
         position: { q: 3, r: 2 },
       });
-      const selector = { type: "lowest_hp_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "lowest_hp", evaluator, [
         evaluator,
         enemyA,
         enemyB,
@@ -66,9 +65,8 @@ describe("evaluateSelector", () => {
         hp: 50,
         position: { q: 3, r: 2 },
       });
-      const selector = { type: "lowest_hp_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "lowest_hp", evaluator, [
         evaluator,
         ally,
         enemy,
@@ -88,9 +86,11 @@ describe("evaluateSelector", () => {
         faction: "friendly",
         position: { q: 2, r: 2 },
       });
-      const selector = { type: "lowest_hp_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [evaluator, ally]);
+      const result = evaluateTargetCriterion("enemy", "lowest_hp", evaluator, [
+        evaluator,
+        ally,
+      ]);
 
       expect(result).toBeNull();
     });

@@ -6,23 +6,6 @@
 import { Character, hexDistance, Position, Target, Criterion } from "./types";
 
 /**
- * Legacy selector type for backward compatibility with old tests.
- * @deprecated Use Target and Criterion instead.
- */
-type Selector = {
-  type:
-    | "nearest_enemy"
-    | "nearest_ally"
-    | "lowest_hp_enemy"
-    | "lowest_hp_ally"
-    | "self"
-    | "furthest_enemy"
-    | "furthest_ally"
-    | "highest_hp_enemy"
-    | "highest_hp_ally";
-};
-
-/**
  * Tie-breaking comparison: compares by R coordinate, then Q coordinate.
  * Returns negative if a should come before b, positive if b should come before a.
  */
@@ -74,112 +57,6 @@ function findMinimum(
   return candidates.reduce((min, candidate) =>
     compareFn(candidate, min) < 0 ? candidate : min,
   );
-}
-
-/**
- * Evaluates a selector to find a target character.
- * Implements spec Section 6.2 (Target Selectors).
- *
- * @param selector - The selector to evaluate
- * @param evaluator - The character performing the evaluation
- * @param allCharacters - All characters in the battle
- * @returns The selected character, or null if no valid target exists
- *
- * @preconditions
- * - Evaluator must be alive (HP > 0)
- * - Evaluator must exist in allCharacters array
- * - All characters must have valid positions
- */
-export function evaluateSelector(
-  selector: Selector,
-  evaluator: Character,
-  allCharacters: Character[],
-): Character | null {
-  switch (selector.type) {
-    case "self":
-      return evaluator;
-
-    case "nearest_enemy":
-      return findMinimum(
-        allCharacters.filter(
-          (c) => c.faction !== evaluator.faction && c.hp > 0,
-        ),
-        (a, b) => compareByDistanceThenPosition(a, b, evaluator.position),
-      );
-
-    case "nearest_ally":
-      return findMinimum(
-        allCharacters.filter(
-          (c) =>
-            c.faction === evaluator.faction &&
-            c.id !== evaluator.id &&
-            c.hp > 0,
-        ),
-        (a, b) => compareByDistanceThenPosition(a, b, evaluator.position),
-      );
-
-    case "lowest_hp_enemy":
-      return findMinimum(
-        allCharacters.filter(
-          (c) => c.faction !== evaluator.faction && c.hp > 0,
-        ),
-        (a, b) => compareByHpThenPosition(a, b),
-      );
-
-    case "lowest_hp_ally":
-      return findMinimum(
-        allCharacters.filter(
-          (c) =>
-            c.faction === evaluator.faction &&
-            c.id !== evaluator.id &&
-            c.hp > 0,
-        ),
-        (a, b) => compareByHpThenPosition(a, b),
-      );
-
-    case "furthest_enemy":
-      return findMinimum(
-        allCharacters.filter(
-          (c) => c.faction !== evaluator.faction && c.hp > 0,
-        ),
-        (a, b) => -compareByDistanceThenPosition(a, b, evaluator.position),
-      );
-
-    case "furthest_ally":
-      return findMinimum(
-        allCharacters.filter(
-          (c) =>
-            c.faction === evaluator.faction &&
-            c.id !== evaluator.id &&
-            c.hp > 0,
-        ),
-        (a, b) => -compareByDistanceThenPosition(a, b, evaluator.position),
-      );
-
-    case "highest_hp_enemy":
-      return findMinimum(
-        allCharacters.filter(
-          (c) => c.faction !== evaluator.faction && c.hp > 0,
-        ),
-        (a, b) => -compareByHpThenPosition(a, b),
-      );
-
-    case "highest_hp_ally":
-      return findMinimum(
-        allCharacters.filter(
-          (c) =>
-            c.faction === evaluator.faction &&
-            c.id !== evaluator.id &&
-            c.hp > 0,
-        ),
-        (a, b) => -compareByHpThenPosition(a, b),
-      );
-
-    default: {
-      const _exhaustive: never = selector.type;
-      return _exhaustive; // Compile-time error if case missing
-    }
-  }
 }
 
 /**

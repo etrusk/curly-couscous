@@ -1,18 +1,18 @@
 /**
- * Tests for metric independence in selectors.
+ * Tests for metric independence in target+criterion evaluation.
  * Follows test design document: docs/test-design-selector-evaluation-v2.md
  */
 
 import { describe, it, expect } from "vitest";
-import { evaluateSelector } from "./selectors";
+import { evaluateTargetCriterion } from "./selectors";
 import { createCharacter } from "./selectors-test-helpers";
 
-describe("evaluateSelector", () => {
+describe("evaluateTargetCriterion", () => {
   // =========================================================================
   // Section 7: Metric Independence
   // =========================================================================
   describe("metric independence", () => {
-    it("nearest_enemy: should select by distance regardless of HP values", () => {
+    it("enemy nearest: should select by distance regardless of HP values", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
@@ -30,9 +30,8 @@ describe("evaluateSelector", () => {
         hp: 10,
         position: { q: 0, r: 4 }, // dist=4
       });
-      const selector = { type: "nearest_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "nearest", evaluator, [
         evaluator,
         enemyA,
         enemyB,
@@ -41,7 +40,7 @@ describe("evaluateSelector", () => {
       expect(result).toBe(enemyA); // Closer, despite higher HP
     });
 
-    it("lowest_hp_enemy: should select by HP regardless of distance", () => {
+    it("enemy lowest_hp: should select by HP regardless of distance", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
@@ -59,9 +58,8 @@ describe("evaluateSelector", () => {
         hp: 10,
         position: { q: 0, r: 4 }, // dist=4
       });
-      const selector = { type: "lowest_hp_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "lowest_hp", evaluator, [
         evaluator,
         enemyA,
         enemyB,

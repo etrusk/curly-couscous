@@ -1,26 +1,25 @@
 /**
- * Tests for edge cases in selector evaluation.
+ * Tests for edge cases in target+criterion evaluation.
  * Follows test design document: docs/test-design-selector-evaluation-v2.md
  */
 
 import { describe, it, expect } from "vitest";
-import { evaluateSelector } from "./selectors";
+import { evaluateTargetCriterion } from "./selectors";
 import { createCharacter } from "./selectors-test-helpers";
 
-describe("evaluateSelector", () => {
+describe("evaluateTargetCriterion", () => {
   // =========================================================================
   // Section 8: Edge Cases
   // =========================================================================
   describe("edge cases", () => {
-    it("should return null for any selector when allCharacters is empty", () => {
+    it("should return null for any target+criterion when allCharacters is empty", () => {
       const evaluator = createCharacter({
         id: "eval",
         faction: "friendly",
         position: { q: 0, r: 0 },
       });
-      const selector = { type: "nearest_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, []);
+      const result = evaluateTargetCriterion("enemy", "nearest", evaluator, []);
 
       expect(result).toBeNull();
     });
@@ -31,9 +30,10 @@ describe("evaluateSelector", () => {
         faction: "friendly",
         position: { q: 0, r: 0 },
       });
-      const selector = { type: "nearest_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [evaluator]);
+      const result = evaluateTargetCriterion("enemy", "nearest", evaluator, [
+        evaluator,
+      ]);
 
       expect(result).toBeNull(); // No enemies, not self
     });
@@ -54,9 +54,8 @@ describe("evaluateSelector", () => {
         faction: "enemy",
         position: { q: 0, r: 0 }, // Same position
       });
-      const selector = { type: "nearest_enemy" } as const;
 
-      const result = evaluateSelector(selector, evaluator, [
+      const result = evaluateTargetCriterion("enemy", "nearest", evaluator, [
         evaluator,
         enemy1,
         enemy2,

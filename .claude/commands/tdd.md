@@ -218,6 +218,8 @@ If parse fails → STOP → Escalate to human with raw output.
 
 Update `.tdd/session.md` Context Metrics section. Parse the AGENT_COMPLETION block and append a row to the Agent History table including token metrics, tool call count, and notable events. NEVER skip rows — every agent invocation MUST produce a table entry with all fields populated. Incomplete tables block REFLECT efficiency analysis. IMPORTANT: Use the full agent file name (e.g., `tdd-explorer`, `tdd-planner`, `tdd-coder`) in the Agent column, NOT shortened names like "Explorer" or "Coder".
 
+**Verification gate**: Before spawning the next agent, confirm the Agent History table row count equals the Agent invocations counter in Context Metrics. If they differ, add the missing row(s) BEFORE proceeding. This is a blocking check — do not spawn the next agent until the table is complete.
+
 ```markdown
 ## Context Metrics
 

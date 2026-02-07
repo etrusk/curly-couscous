@@ -4,12 +4,19 @@
  * Evaluation indicators display when battleStatus is "active" (read from store).
  */
 
+import { useRef } from "react";
 import { useGameStore, selectActions } from "../../stores/gameStore";
 import { MAX_SKILL_SLOTS } from "../../stores/gameStore-constants";
 import { evaluateSkillsForCharacter } from "../../engine/game";
 import { SKILL_REGISTRY } from "../../engine/skill-registry";
 import { SkillRow } from "./SkillRow";
 import styles from "./PriorityTab.module.css";
+
+type EvalEntry = {
+  status: "selected" | "rejected" | "skipped";
+  rejectionReason?: string;
+  resolvedTarget?: import("../../engine/types").Character;
+};
 
 export function PriorityTab() {
   const allCharacters = useGameStore((state) => state.gameState.characters);
@@ -18,6 +25,7 @@ export function PriorityTab() {
     (state) => state.selectedCharacterId,
   );
   const { assignSkillToCharacter } = useGameStore(selectActions);
+  const lastEvaluationsRef = useRef<(EvalEntry | undefined)[]>([]);
 
   const character = allCharacters.find((c) => c.id === selectedCharacterId);
   if (!character) {
@@ -26,24 +34,29 @@ export function PriorityTab() {
 
   const isBattleActive = battleStatus === "active";
 
-  // When battle is active, get evaluation data from real engine evaluation
+  // When battle is active, get evaluation data from real engine evaluation.
+  // Cache evaluations so mid-action ticks show the last known state instead of flickering.
   const evaluations = (() => {
     if (!isBattleActive) {
+      lastEvaluationsRef.current = [];
       return character.skills.map(() => undefined);
     }
 
     const result = evaluateSkillsForCharacter(character, allCharacters);
 
     if (result.isMidAction) {
-      // Mid-action: no per-skill evaluations available
-      return character.skills.map(() => undefined);
+      return lastEvaluationsRef.current.length > 0
+        ? lastEvaluationsRef.current
+        : character.skills.map(() => undefined);
     }
 
-    return result.skillEvaluations.map((evalResult) => ({
+    const fresh = result.skillEvaluations.map((evalResult) => ({
       status: evalResult.status,
       rejectionReason: evalResult.rejectionReason,
       resolvedTarget: evalResult.target,
     }));
+    lastEvaluationsRef.current = fresh;
+    return fresh;
   })();
 
   // Filter inventory: exclude innate skills and skills assigned to same-faction characters

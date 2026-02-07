@@ -114,7 +114,7 @@ Before completion, verify:
 
 1. Ensure all quality gates pass
 2. **Plan step audit**: Re-read `.tdd/plan.md` and verify EVERY step is complete, including documentation steps (spec.md, architecture.md, etc.). Check them off mentally one by one.
-3. Verify no touched file exceeds 400 lines (`wc -l`). If any file exceeds the limit, extract or split before completing.
+3. Verify no touched file exceeds 400 lines (use the Grep tool with `output_mode: "count"` and pattern `"."` on each file). If any file exceeds the limit, extract or split before completing.
 4. Update `.tdd/session.md` with phase completion, files modified, test counts
 
 ## Completion Block

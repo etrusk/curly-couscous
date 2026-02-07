@@ -1,6 +1,6 @@
 /**
  * PriorityTab - Displays skill priority list with configuration and battle evaluation.
- * Shows inventory section for assigning skills when only one faction is on the board.
+ * Shows inventory section for assigning skills to the selected character.
  * Evaluation indicators display when battleStatus is "active" (read from store).
  */
 
@@ -25,9 +25,6 @@ export function PriorityTab() {
   }
 
   const isBattleActive = battleStatus === "active";
-  const hasBothFactions =
-    allCharacters.some((c) => c.faction === "friendly") &&
-    allCharacters.some((c) => c.faction === "enemy");
 
   // When battle is active, get evaluation data from real engine evaluation
   const evaluations = (() => {
@@ -50,18 +47,16 @@ export function PriorityTab() {
   })();
 
   // Filter inventory: exclude innate skills and skills assigned to same-faction characters
-  const availableSkills = hasBothFactions
-    ? []
-    : SKILL_REGISTRY.filter((skillDef) => {
-        if (skillDef.innate) return false;
-        // Exclude skills assigned to any same-faction character (including this one)
-        const assignedToSameFaction = allCharacters.some(
-          (char) =>
-            char.faction === character.faction &&
-            char.skills.some((s) => s.id === skillDef.id),
-        );
-        return !assignedToSameFaction;
-      });
+  const availableSkills = SKILL_REGISTRY.filter((skillDef) => {
+    if (skillDef.innate) return false;
+    // Exclude skills assigned to any same-faction character (including this one)
+    const assignedToSameFaction = allCharacters.some(
+      (char) =>
+        char.faction === character.faction &&
+        char.skills.some((s) => s.id === skillDef.id),
+    );
+    return !assignedToSameFaction;
+  });
 
   const canAssign = character.skills.length < MAX_SKILL_SLOTS;
 
@@ -84,26 +79,24 @@ export function PriorityTab() {
           />
         ))}
       </div>
-      {!hasBothFactions && (
-        <section className={styles.inventorySection}>
-          <h3 className={styles.sectionTitle}>Inventory</h3>
-          <div className={styles.inventoryList}>
-            {availableSkills.map((skillDef) => (
-              <div key={skillDef.id} className={styles.inventoryRow}>
-                <span className={styles.skillName}>{skillDef.name}</span>
-                <button
-                  onClick={() => handleAssign(skillDef.id)}
-                  disabled={!canAssign}
-                  className={styles.assignBtn}
-                  aria-label={`Assign ${skillDef.name}`}
-                >
-                  Assign
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      <section className={styles.inventorySection}>
+        <h3 className={styles.sectionTitle}>Inventory</h3>
+        <div className={styles.inventoryList}>
+          {availableSkills.map((skillDef) => (
+            <div key={skillDef.id} className={styles.inventoryRow}>
+              <span className={styles.skillName}>{skillDef.name}</span>
+              <button
+                onClick={() => handleAssign(skillDef.id)}
+                disabled={!canAssign}
+                className={styles.assignBtn}
+                aria-label={`Assign ${skillDef.name}`}
+              >
+                Assign
+              </button>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

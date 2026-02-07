@@ -33,7 +33,6 @@ import type { GameStore, SelectionMode } from "./gameStore-types";
 import {
   selectCharacters,
   selectTick,
-  selectPhase,
   selectBattleStatus,
   selectHistory,
   selectActions,
@@ -69,7 +68,6 @@ export type {
 export {
   selectCharacters,
   selectTick,
-  selectPhase,
   selectBattleStatus,
   selectHistory,
   selectActions,

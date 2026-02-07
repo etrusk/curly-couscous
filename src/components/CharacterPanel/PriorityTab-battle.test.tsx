@@ -40,8 +40,8 @@ describe("PriorityTab", () => {
       // First skill should show selected status (check mark icon or similar)
       // Remaining skills should show skipped status
       // Note: Exact implementation details depend on SkillRow component
-      expect(screen.getByText(/punch/i)).toBeInTheDocument();
-      expect(screen.getByText(/kick/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/punch/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/kick/i).length).toBeGreaterThan(0);
     });
 
     it("rejected skills show rejection reasons", () => {
@@ -105,7 +105,7 @@ describe("PriorityTab", () => {
 
       render(<PriorityTab />);
 
-      expect(screen.getByText(/punch/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/punch/i).length).toBeGreaterThan(0);
       expect(screen.getByLabelText(/selected/i)).toBeInTheDocument();
       // Enemy at slotPosition 1 displays as "A"
       expect(screen.getByText(/→.*A|Enemy A/i)).toBeInTheDocument();
@@ -155,7 +155,7 @@ describe("PriorityTab", () => {
       const { rerender } = render(<PriorityTab />);
 
       // Initial render should show evaluation
-      expect(screen.getByText(/punch/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/punch/i).length).toBeGreaterThan(0);
 
       // Step battle
 
@@ -165,7 +165,7 @@ describe("PriorityTab", () => {
       rerender(<PriorityTab />);
 
       // Evaluation should reflect post-step state
-      expect(screen.getByText(/punch/i)).toBeInTheDocument();
+      expect(screen.getAllByText(/punch/i).length).toBeGreaterThan(0);
     });
   });
 

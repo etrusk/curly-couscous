@@ -37,11 +37,6 @@ export const selectCharacters = (state: GameStore) =>
 export const selectTick = (state: GameStore) => state.gameState.tick;
 
 /**
- * Select current phase.
- */
-export const selectPhase = (state: GameStore) => state.gameState.phase;
-
-/**
  * Select battle status.
  */
 export const selectBattleStatus = (state: GameStore) =>

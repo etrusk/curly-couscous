@@ -34,9 +34,8 @@ You are a senior architect reviewing test designs before implementation.
 2. **Edge cases**: Are boundary conditions tested (null, empty, zero, overflow)?
 3. **Spec alignment**: Do tests verify spec requirements, not just implementation details?
 4. **Regression prevention**: Would these tests catch regressions?
-5. **Smoke tests**: If new smoke checks proposed, are they concrete and verifiable?
-6. **Redundancy**: Any duplicate or overlapping tests?
-7. **Testability**: Are test setups realistic and maintainable?
+5. **Redundancy**: Any duplicate or overlapping tests?
+6. **Testability**: Are test setups realistic and maintainable?
 
 ## Actions
 
@@ -70,7 +69,6 @@ quality_gates:
   typescript: SKIP
   eslint: SKIP
   tests: SKIP
-  smoke: SKIP
   all_gates_pass: true
 notable_events:
   - "[any changes made to test designs]"

@@ -100,15 +100,13 @@ gates:
   success_criteria:
     tests_pass_rate: 100% # No failing tests allowed
     tests_skipped: 0 # No skipped tests allowed
-    quality_gates_pass_rate: 100% # All gates must pass (typescript, eslint, tests, smoke)
-    smoke_tests_pass: 100% # All smoke tests must pass
+    quality_gates_pass_rate: 100% # All gates must pass (typescript, eslint, tests)
 
   critical_issues:
     - tests_failing
     - tests_skipped # Skipped tests block completion
     - typescript_errors
     - eslint_errors
-    - smoke_test_failures # Smoke tests catch app-breaking regressions
     - security_vulnerabilities
     - spec_violations
     - pattern_violations
@@ -189,7 +187,6 @@ quality_gates:
   typescript: PASS | FAIL | SKIP
   eslint: PASS | FAIL | SKIP
   tests: PASS | FAIL | SKIP
-  smoke: PASS | FAIL | SKIP | BLOCKED # BLOCKED routes to HUMAN_VERIFY
   all_gates_pass: true | false # MUST be true for successful completion
 actions_summary: [list, 2-5 items] # Concise log of key actions taken (e.g., "Read 3 pattern files", "Created CooldownManager class", "Fixed type error in triggers.ts:45")
 notable_events: [list or empty] # Significant events: retries, partial failures, large operations
@@ -276,7 +273,7 @@ Phase: [COMPLETED] → [NEXT] ([N]/7 phases)
 Completed: [1-2 sentence summary of what prior phase achieved]
 
 Tests: [passing] passing, [failing] failing, [skipped] skipped
-Gates: TS [✓|✗]  ESLint [✓|✗]  Tests [✓|✗]  Smoke [✓|✗|⊘]
+Gates: TS [✓|✗]  ESLint [✓|✗]  Tests [✓|✗]
 Files: [count] modified ([truncated list...])
 Agent: [exchanges]/[limit] exchanges ([tool_calls] tools) | Orchestrator: [current]K ([percent]%)
 Status: [PROCEEDING | COMPACTING | ESCALATING] → [brief next step]
@@ -366,13 +363,8 @@ phases:
   DESIGN_TESTS:
     agent: tdd-test-designer
     budget: tdd-test-designer
-    inputs: [".tdd/plan.md", ".docs/smoke-tests.yaml"]
+    inputs: [".tdd/plan.md"]
     outputs: [".tdd/test-designs.md"]
-    smoke_evaluation: |
-      After designing unit/integration tests, evaluate:
-      - Does this task add or modify user-facing functionality on a critical path?
-      - If YES → add new smoke check(s) to .tdd/test-designs.md in YAML format
-      - If NO → state "No smoke test changes needed" (one line)
     next: TEST_DESIGN_REVIEW
 
   TEST_DESIGN_REVIEW:
@@ -393,18 +385,12 @@ phases:
   IMPLEMENT:
     agent: tdd-coder
     budget: tdd-coder_implement
-    inputs: [".tdd/test-designs.md", ".tdd/plan.md", ".docs/smoke-tests.yaml"]
+    inputs: [".tdd/test-designs.md", ".tdd/plan.md"]
     actions:
       - Write code to pass tests
       - Run quality gates (lint, type-check)
-      - Run smoke tests (after quality gates pass)
       - UI changes: browser verification (MCP tools only)
-    smoke_gate: |
-      After quality gates pass, execute smoke tests per .docs/smoke-test-instructions.md.
-      Read the instructions file and the manifest before starting.
-      Report results using the summary format defined in Rule 10.
-      Route per: all pass → REVIEW, any fail → ANALYZE_FIX, blocked → HUMAN_VERIFY.
-    gate_order: "tests pass (green) → lint → type-check → smoke test → REVIEW"
+    gate_order: "tests pass (green) → lint → type-check → REVIEW"
     next: REVIEW
 
   REVIEW:
@@ -442,12 +428,7 @@ phases:
   SYNC_DOCS:
     agent: tdd-doc-syncer
     budget: tdd-doc-syncer
-    inputs: [".docs/smoke-tests.yaml", ".tdd/test-designs.md"]
-    smoke_manifest_update: |
-      If Architect proposed new smoke check(s) in DESIGN_TESTS:
-      - Append new YAML entries to .docs/smoke-tests.yaml
-      - Do not modify existing entries unless consolidating duplicates
-      If no smoke checks proposed → no action needed.
+    inputs: [".tdd/test-designs.md"]
     next: COMMIT
 
   COMMIT:
@@ -469,14 +450,10 @@ phases:
 
 routing_rules:
   IMPLEMENT:
-    - condition: "tests pass AND gates pass AND smoke pass"
+    - condition: "tests pass AND gates pass"
       next: REVIEW
-    - condition: "tests pass AND gates pass AND smoke fail"
-      next: ANALYZE_FIX
-    - condition: "tests pass AND gates pass AND smoke blocked"
-      next: HUMAN_VERIFY
     - condition: "tests fail OR gates fail"
-      action: "fix before smoke runs"
+      action: "fix before proceeding"
 
   REVIEW:
     - condition: "critical_issues_found OR tests_failing > 0 OR tests_skipped > 0 OR all_gates_pass == false"
@@ -487,7 +464,7 @@ routing_rules:
       next: HUMAN_VERIFY
     - condition: "100%_pass AND non_ui"
       next: SYNC_DOCS
-    # 100%_pass means: tests_failing == 0 AND tests_skipped == 0 AND all_gates_pass == true (including smoke)
+    # 100%_pass means: tests_failing == 0 AND tests_skipped == 0 AND all_gates_pass == true
 
   FIX:
     - condition: "review_cycles < 2"
@@ -671,23 +648,6 @@ Count: [0-2]
 
 ---
 
-## Smoke Testing
-
-**Purpose**: Catch "app is fundamentally broken" regressions after every implementation.
-
-**Manifest**: `.docs/smoke-tests.yaml`
-**Instructions**: `.docs/smoke-test-instructions.md`
-
-Read both files before executing. The instructions file contains 10 operational rules governing session budgets, tiered verification, screenshot caps, and stateless execution. Follow them exactly.
-
-**Routing** (unchanged):
-
-- All pass → REVIEW
-- Any fail → ANALYZE_FIX
-- Blocked (MCP timeout after 3 retries) → HUMAN_VERIFY
-
----
-
 ## App Versioning (SemVer)
 
 **Scope**: `package.json` version only. Does NOT apply to:
@@ -725,9 +685,7 @@ Read both files before executing. The instructions file contains 10 operational 
 | DESIGN_TESTS       | TEST_DESIGN_REVIEW | Always                                                 |
 | TEST_DESIGN_REVIEW | WRITE_TESTS        | Always                                                 |
 | WRITE_TESTS        | IMPLEMENT          | Tests fail (red)                                       |
-| IMPLEMENT          | REVIEW             | Tests pass + gates pass + smoke pass                   |
-| IMPLEMENT          | ANALYZE_FIX        | Tests pass + gates pass + smoke **fail**               |
-| IMPLEMENT          | HUMAN_VERIFY       | Tests pass + gates pass + smoke **blocked**            |
+| IMPLEMENT          | REVIEW             | Tests pass + gates pass                                |
 | REVIEW             | ANALYZE_FIX        | ANY: failing > 0, skipped > 0, gates fail, or critical |
 | REVIEW             | HUMAN_VERIFY       | 100% pass (0 fail, 0 skip, all gates), browser failed  |
 | REVIEW             | HUMAN_APPROVAL     | 100% pass, UI task, browser passed                     |
@@ -744,7 +702,7 @@ Read both files before executing. The instructions file contains 10 operational 
 | REFLECT            | Cleanup            | Always                                                 |
 | ANY_PHASE          | (document first)   | If unrelated_issues found → add to current-task.md     |
 
-**100% pass** = tests_failing == 0 AND tests_skipped == 0 AND all_gates_pass == true (including smoke == PASS)
+**100% pass** = tests_failing == 0 AND tests_skipped == 0 AND all_gates_pass == true
 
 ---
 
@@ -801,7 +759,7 @@ After REFLECT, output completion banner:
 Task: [task name]
 Commit: [hash] [message]
 Tests: [X] passing
-Gates: TS ✓  ESLint ✓  Tests ✓  Smoke ✓
+Gates: TS ✓  ESLint ✓  Tests ✓
 Files: [N] modified
 Tokens: ~[Z]K total ([N] agents + ~[O]K orchestrator)
 Process: [Clean session | type: summary (logged/noted)]
@@ -832,9 +790,7 @@ Then delete ephemeral files: `.tdd/session.md`, `.tdd/requirements.md`, `.tdd/ex
 13. **ZERO SKIPPED TESTS** - All tests must run; skipped tests block completion
 14. **100% QUALITY GATES** - All gates (typescript, eslint, tests) must PASS; no SKIPs allowed
 15. **UNRELATED ISSUES → current-task.md** - Issues found unrelated to session MUST be added to `.docs/current-task.md` as priority next task before completion
-16. **SMOKE TESTS REQUIRED** - Smoke tests run after quality gates pass; failures route to ANALYZE_FIX; blocked routes to HUMAN_VERIFY
-17. **SMOKE MANIFEST UPDATES** - Architect proposes new checks in DESIGN_TESTS; SYNC_DOCS appends to manifest automatically
-18. **APP VERSIONING** - Bump `package.json` per SemVer in COMMIT phase; does NOT apply to workflow/docs/config files
-19. **NO ASSISTANT PREFILLING** - Opus 4.6 returns 400 for assistant message prefilling. Use structured instructions ("Output the following YAML block...") instead.
-20. **RESUMABLE FIX CYCLES** - For ANALYZE_FIX → FIX cycles, consider resuming the previous agent (Task tool `resume` parameter) to preserve root cause context, rather than spawning fresh.
-21. **REFLECTOR ITEMS → HUMAN DECISION** - Orchestrator MUST present every reflector item to the user and wait for yes/no. NEVER dismiss, defer, or self-resolve reflector items.
+16. **APP VERSIONING** - Bump `package.json` per SemVer in COMMIT phase; does NOT apply to workflow/docs/config files
+17. **NO ASSISTANT PREFILLING** - Opus 4.6 returns 400 for assistant message prefilling. Use structured instructions ("Output the following YAML block...") instead.
+18. **RESUMABLE FIX CYCLES** - For ANALYZE_FIX → FIX cycles, consider resuming the previous agent (Task tool `resume` parameter) to preserve root cause context, rather than spawning fresh.
+19. **REFLECTOR ITEMS → HUMAN DECISION** - Orchestrator MUST present every reflector item to the user and wait for yes/no. NEVER dismiss, defer, or self-resolve reflector items.

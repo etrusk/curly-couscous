@@ -29,8 +29,7 @@ Before ANY design work, you MUST read:
 1. **The plan**: `.tdd/plan.md` — your primary input
 2. **Project spec**: `.docs/spec.md`
 3. **Patterns**: `.docs/patterns/index.md`
-4. **Smoke test manifest**: `.docs/smoke-tests.yaml`
-5. **Existing test files** relevant to the plan
+4. **Existing test files** relevant to the plan
 
 ## Test Design Format
 
@@ -48,14 +47,6 @@ Use this exact format for each test:
   2. [Second assertion]
 - **Justification**: [Why this test is necessary—what bug or regression it prevents]
 ```
-
-## Smoke Test Evaluation
-
-After designing unit/integration tests, evaluate:
-
-- Does this task add or modify user-facing functionality on a critical path?
-- If YES: add new smoke check(s) to `.tdd/test-designs.md` in YAML format
-- If NO: state "No smoke test changes needed" (one line)
 
 ## Handoff Protocol
 
@@ -82,7 +73,6 @@ quality_gates:
   typescript: SKIP
   eslint: SKIP
   tests: SKIP
-  smoke: SKIP
   all_gates_pass: true
 notable_events:
   - "[any significant findings or issues]"

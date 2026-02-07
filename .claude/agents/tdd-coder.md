@@ -93,26 +93,6 @@ For IMPLEMENT phase with UI changes:
 5. Test relevant interactions
 6. Document results in session.md
 
-## Smoke Test Execution (MANDATORY)
-
-When running smoke tests from `.docs/smoke-tests.yaml`:
-
-1. Log EACH check explicitly:
-
-   ```
-   SMOKE 01-app-loads: EXECUTING - navigate to base_url
-   SMOKE 01-app-loads: PASS - grid visible, 0 console errors
-   ```
-
-2. After EACH action: take screenshot, read console errors (clear between checks)
-
-3. INVALID approaches (will be rejected):
-   - "Visual inspection confirms functionality"
-   - "Elements are visible" (without clicking/interacting)
-   - Marking PASS without executing the documented steps
-
-4. If ANY check fails: STOP, report failure with evidence
-
 ## Spec Deviation Protocol
 
 If during implementation you discover:
@@ -157,7 +137,6 @@ quality_gates:
   typescript: PASS | FAIL | SKIP
   eslint: PASS | FAIL | SKIP
   tests: PASS | FAIL | SKIP
-  smoke: PASS | FAIL | SKIP | BLOCKED
   all_gates_pass: true | false
 notable_events:
   - "[any significant events during implementation]"

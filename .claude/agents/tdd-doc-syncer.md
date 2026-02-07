@@ -24,9 +24,7 @@ You synchronize project documentation after successful implementation.
 
 1. **Session state**: `.tdd/session.md` — what was implemented
 2. **The plan**: `.tdd/plan.md` — original design decisions
-3. **Test designs**: `.tdd/test-designs.md` — for smoke test updates
-4. **Current docs**: `.docs/current-task.md`, `.docs/patterns/index.md`, `.docs/decisions/index.md`
-5. **Smoke manifest**: `.docs/smoke-tests.yaml`
+3. **Current docs**: `.docs/current-task.md`, `.docs/patterns/index.md`, `.docs/decisions/index.md`
 
 ## Tasks
 
@@ -40,10 +38,6 @@ You synchronize project documentation after successful implementation.
 
 3. **Document decisions** (if any)
    - Add to `.docs/decisions/index.md` with brief description
-
-4. **Update smoke manifest** (if applicable)
-   - If Architect proposed new smoke checks in DESIGN_TESTS, append YAML entries to `.docs/smoke-tests.yaml`
-   - Do not modify existing entries unless consolidating duplicates
 
 ## Handoff Protocol
 
@@ -70,7 +64,6 @@ quality_gates:
   typescript: SKIP
   eslint: SKIP
   tests: SKIP
-  smoke: SKIP
   all_gates_pass: true
 notable_events:
   - "[docs updated]"

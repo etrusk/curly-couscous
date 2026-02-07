@@ -80,7 +80,6 @@ quality_gates:
   typescript: SKIP
   eslint: SKIP
   tests: SKIP
-  smoke: SKIP
   all_gates_pass: true
 notable_events:
   - "root cause: [summary]"

@@ -188,8 +188,8 @@ quality_gates:
   eslint: PASS | FAIL | SKIP
   tests: PASS | FAIL | SKIP
   all_gates_pass: true | false # MUST be true for successful completion
-actions_summary: [list, 2-5 items] # Concise log of key actions taken (e.g., "Read 3 pattern files", "Created CooldownManager class", "Fixed type error in triggers.ts:45")
-notable_events: [list or empty] # Significant events: retries, partial failures, large operations
+actions_summary: [list, 0-5 items] # Friction, surprises, and workarounds ONLY. Omit routine successes. Empty list = clean run. (e.g., "Tried 3 approaches to find Add Friendly button selector before click worked", "Unexpected circular dependency between SkillSystem and TriggerManager", "Test pattern from exploration.md didn't match actual test utils API")
+notable_events: [list or empty] # Retries, partial failures, wrong assumptions, wasted exchanges
 retry_count: [integer] # Number of retry cycles within this agent
 blockers: [list or empty]
 unrelated_issues: [list or empty] # Issues found but not related to current task
@@ -233,24 +233,22 @@ Agent invocations: [count]
 
 The "Notes" column captures notable events from the AGENT_COMPLETION block: retry counts, partial failures, escalations, large operations.
 
-Also append the agent's `actions_summary` to the **Action Log** section of session.md:
+Also append the agent's `actions_summary` to the **Action Log** section of session.md. Only friction/surprises/workarounds are logged — clean runs get "Clean run":
 
 ```markdown
 ### Action Log
 
 #### #1 tdd-explorer (EXPLORE)
 
-- Read 4 pattern files and architecture.md
-- Identified SkillSystem as entry point
-- Found 2 existing test patterns to follow
+- Clean run
 
-#### #2 tdd-planner (PLAN)
+#### #2 tdd-coder (IMPLEMENT)
 
-- Created 6-step plan targeting 3 files
-- Decided against new abstraction (used existing SkillSystem)
+- Tried 3 selector strategies for Add Friendly button before aria-label query worked
+- Had to refactor test setup when discovered BattleManager requires explicit init()
 ```
 
-Each entry uses the agent invocation number, agent name, and phase as header, then lists the `actions_summary` items verbatim from the AGENT_COMPLETION block.
+Each entry uses the agent invocation number, agent name, and phase as header, then lists the `actions_summary` items verbatim from the AGENT_COMPLETION block. Empty `actions_summary` = "Clean run".
 
 ### Step 3: Evaluate Thresholds
 
@@ -606,11 +604,11 @@ Compactions: [N]
 
 #### #1 tdd-explorer (EXPLORE)
 
-- [actions_summary items from completion block]
+- Clean run
 
-#### #2 tdd-planner (PLAN)
+#### #2 tdd-coder (IMPLEMENT)
 
-- [actions_summary items from completion block]
+- [friction/surprise items from completion block, or "Clean run" if empty]
 
 ## Files Touched
 

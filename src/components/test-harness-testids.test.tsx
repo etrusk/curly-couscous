@@ -58,7 +58,7 @@ describe("data-testid attributes", () => {
     expect(addEnemyBtn.tagName.toLowerCase()).toBe("button");
   });
 
-  it("CharacterPanel renders panel and tab testids when character is selected", () => {
+  it("CharacterPanel renders panel testids when character is selected", () => {
     // Add a character and select it
     useGameStore.getState().actions.addCharacter("friendly");
     const charId = useGameStore.getState().gameState.characters[0]!.id;
@@ -73,17 +73,9 @@ describe("data-testid attributes", () => {
     expect(panelTitle).toBeInTheDocument();
     // Title should contain the character's faction and letter
     expect(panelTitle.textContent).toMatch(/friendly/i);
-
-    const loadoutTab = screen.getByTestId("tab-loadout");
-    expect(loadoutTab).toBeInTheDocument();
-    expect(loadoutTab).toHaveAttribute("role", "tab");
-
-    const priorityTab = screen.getByTestId("tab-priority");
-    expect(priorityTab).toBeInTheDocument();
-    expect(priorityTab).toHaveAttribute("role", "tab");
   });
 
-  it("CharacterPanel placeholder state does not render tab testids", () => {
+  it("CharacterPanel placeholder state does not render title testid", () => {
     // No character selected -- placeholder state
     render(<CharacterPanel />);
 
@@ -91,9 +83,7 @@ describe("data-testid attributes", () => {
     const panel = screen.getByTestId("character-panel");
     expect(panel).toBeInTheDocument();
 
-    // Tabs and title should NOT be present in placeholder
-    expect(screen.queryByTestId("tab-loadout")).toBeNull();
-    expect(screen.queryByTestId("tab-priority")).toBeNull();
+    // Title should NOT be present in placeholder
     expect(screen.queryByTestId("character-panel-title")).toBeNull();
   });
 });

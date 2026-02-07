@@ -359,7 +359,7 @@ describe("SkillRow AND Combinator", () => {
     });
   });
 
-  it("does not show + AND button in battle mode", () => {
+  it("shows + AND button and trigger controls in battle mode alongside evaluation", () => {
     const skill = createSkill({
       id: "light-punch",
       name: "Light Punch",
@@ -381,11 +381,16 @@ describe("SkillRow AND Combinator", () => {
       />,
     );
 
+    // Config controls remain visible alongside evaluation indicators
     expect(
-      screen.queryByRole("button", { name: /add and/i }),
-    ).not.toBeInTheDocument();
-    // Trigger dropdown should also be hidden in battle mode
-    expect(screen.queryByLabelText(/trigger/i)).not.toBeInTheDocument();
+      screen.getByRole("button", { name: /add and/i }),
+    ).toBeInTheDocument();
+    // Trigger dropdown also visible
+    expect(
+      screen.getByRole("combobox", { name: /trigger for light punch/i }),
+    ).toBeInTheDocument();
+    // Evaluation indicator present
+    expect(screen.getByLabelText(/selected/i)).toBeInTheDocument();
   });
 
   it("shows + AND button for empty triggers array", () => {

@@ -203,8 +203,8 @@ describe("PriorityTab", () => {
 
       // Should show selected status icon
       expect(screen.getByLabelText("Selected")).toBeInTheDocument();
-      // Enemy at slotPosition 1 renders as "A"
-      expect(screen.getByText(/A/)).toBeInTheDocument();
+      // Enemy at slotPosition 1 renders as "Enemy A" in target display
+      expect(screen.getByText(/Enemy A/i)).toBeInTheDocument();
     });
 
     it("rejected skill shows rejection reason via real evaluation", () => {
@@ -365,6 +365,45 @@ describe("PriorityTab", () => {
       expect(
         screen.getByLabelText(/criterion.*light punch/i),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("Inventory Hidden in Battle Mode", () => {
+    it("inventory-hidden-in-battle-mode", () => {
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+        damage: 10,
+        range: 1,
+        actionType: "attack",
+        triggers: [{ type: "always" }],
+      });
+      const friendly = createCharacter({
+        id: "friendly",
+        faction: "friendly",
+        position: { q: 0, r: 0 },
+        skills: [lightPunch],
+      });
+      const enemy = createCharacter({
+        id: "enemy",
+        faction: "enemy",
+        position: { q: 1, r: 0 },
+      });
+
+      useGameStore.getState().actions.initBattle([friendly, enemy]);
+      useGameStore.getState().actions.selectCharacter("friendly");
+      useGameStore.setState((state) => {
+        state.gameState.battleStatus = "active";
+      });
+
+      render(<PriorityTab mode="battle" />);
+
+      // No inventory section in battle mode
+      expect(screen.queryByText(/inventory/i)).toBeNull();
+      // No inventory "Assign" buttons (but "Unassign" config button may exist)
+      expect(screen.queryByRole("button", { name: /^assign/i })).toBeNull();
+      // Skill evaluation content IS present
+      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
     });
   });
 });

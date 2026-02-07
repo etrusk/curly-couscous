@@ -1,11 +1,10 @@
 /**
- * Tests for CharacterPanel component - Two-panel tabbed layout (D1)
+ * Tests for CharacterPanel component - Unified single-panel layout (no tabs)
  * Following TDD workflow - tests written before implementation.
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { userEvent } from "@testing-library/user-event";
 import { CharacterPanel } from "./CharacterPanel";
 import { useGameStore } from "../../stores/gameStore";
 import { useAccessibilityStore } from "../../stores/accessibilityStore";
@@ -16,325 +15,79 @@ describe("CharacterPanel", () => {
     useGameStore.getState().actions.reset();
   });
 
-  describe("Tab Structure", () => {
-    it("renders tabs for Loadout and Priority", () => {
-      const char1 = createCharacter({ id: "char1", name: "Hero" });
-      useGameStore.getState().actions.initBattle([char1]);
-      useGameStore.getState().actions.selectCharacter("char1");
-
-      render(<CharacterPanel />);
-
-      const loadoutTab = screen.getByRole("tab", { name: /loadout/i });
-      const priorityTab = screen.getByRole("tab", { name: /priority/i });
-
-      expect(loadoutTab).toBeInTheDocument();
-      expect(priorityTab).toBeInTheDocument();
-
-      // Exactly 2 tabs
-      const allTabs = screen.getAllByRole("tab");
-      expect(allTabs).toHaveLength(2);
-    });
-
-    it("default tab is Loadout in config phase", () => {
-      const char1 = createCharacter({ id: "char1" });
-      useGameStore.getState().actions.initBattle([char1]);
-      useGameStore.getState().actions.selectCharacter("char1");
-
-      // Ensure battleStatus is not "active" (config phase)
-      useGameStore.setState((state) => {
-        state.gameState.battleStatus = "draw";
-      });
-
-      render(<CharacterPanel />);
-
-      const loadoutTab = screen.getByRole("tab", { name: /loadout/i });
-      const priorityTab = screen.getByRole("tab", { name: /priority/i });
-
-      expect(loadoutTab).toHaveAttribute("aria-selected", "true");
-      expect(priorityTab).toHaveAttribute("aria-selected", "false");
-
-      // Loadout content visible
-      expect(screen.getByText(/equipped skills/i)).toBeInTheDocument();
-    });
-
-    it("switches tabs when clicked", async () => {
-      const user = userEvent.setup();
+  describe("No Tab Bar", () => {
+    it("no-tablist-rendered", () => {
       const char1 = createCharacter({ id: "char1" });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
       render(<CharacterPanel />);
 
-      const priorityTab = screen.getByRole("tab", { name: /priority/i });
-      await user.click(priorityTab);
-
-      expect(priorityTab).toHaveAttribute("aria-selected", "true");
-
-      // Priority content becomes visible
-      const priorityPanel = screen.getByRole("tabpanel", { name: /priority/i });
-      expect(priorityPanel).toBeInTheDocument();
+      expect(screen.queryByRole("tablist")).toBeNull();
+      expect(screen.queryByRole("tab")).toBeNull();
+      expect(screen.queryByRole("tabpanel")).toBeNull();
     });
   });
 
   describe("No Selection State", () => {
-    it("shows placeholder when no character selected", () => {
+    it("placeholder-when-no-selection", () => {
       render(<CharacterPanel />);
 
       expect(
         screen.getByText(/click a character on the grid to configure/i),
       ).toBeInTheDocument();
-
-      // No tab content visible
-      expect(screen.queryByRole("tabpanel")).not.toBeInTheDocument();
+      expect(screen.queryByRole("tablist")).toBeNull();
+      expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
     });
   });
 
   describe("Character Header", () => {
-    it("shows character letter in header", () => {
+    it("character-header-shows-letter", () => {
       const char1 = createCharacter({ id: "char1", slotPosition: 1 });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
       render(<CharacterPanel />);
 
-      // Character A (slotPosition 1 = index 0)
+      // slotPosition 1 = letter A (0-indexed)
       expect(screen.getByText(/character.*a/i)).toBeInTheDocument();
     });
   });
 
-  describe("Phase-Based Tab Selection", () => {
-    it("auto-selects Priority tab when battle starts", () => {
-      const char1 = createCharacter({ id: "char1" });
+  describe("Config Mode", () => {
+    it("renders-config-mode-by-default", () => {
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [lightPunch] });
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      // Enable auto-focus so tab auto-switches
-      useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
-
-      // Start in config phase with Loadout tab
+      // Set to config phase
       useGameStore.setState((state) => {
         state.gameState.battleStatus = "draw";
       });
-
-      const { rerender } = render(<CharacterPanel />);
-
-      // Loadout tab should be selected initially
-      expect(screen.getByRole("tab", { name: /loadout/i })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-
-      // Change to battle phase
-      useGameStore.setState((state) => {
-        state.gameState.battleStatus = "active";
-      });
-
-      rerender(<CharacterPanel />);
-
-      // Priority tab should now be selected
-      expect(screen.getByRole("tab", { name: /priority/i })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-    });
-
-    it("preserves tab selection when returning to config phase", async () => {
-      const user = userEvent.setup();
-      const char1 = createCharacter({ id: "char1" });
-      useGameStore.getState().actions.initBattle([char1]);
-      useGameStore.getState().actions.selectCharacter("char1");
-
-      useGameStore.setState((state) => {
-        state.gameState.battleStatus = "draw";
-      });
-
-      const { rerender } = render(<CharacterPanel />);
-
-      // Click Priority tab
-      const priorityTab = screen.getByRole("tab", { name: /priority/i });
-      await user.click(priorityTab);
-
-      expect(priorityTab).toHaveAttribute("aria-selected", "true");
-
-      // Enter battle phase
-      useGameStore.setState((state) => {
-        state.gameState.battleStatus = "active";
-      });
-      rerender(<CharacterPanel />);
-
-      // Priority should still be selected
-      expect(priorityTab).toHaveAttribute("aria-selected", "true");
-
-      // Return to config phase
-      useGameStore.setState((state) => {
-        state.gameState.battleStatus = "draw";
-      });
-      rerender(<CharacterPanel />);
-
-      // Priority should still be selected (preserves last selection)
-      expect(priorityTab).toHaveAttribute("aria-selected", "true");
-    });
-  });
-
-  describe("Accessibility", () => {
-    it("has proper ARIA roles for tablist", () => {
-      const char1 = createCharacter({ id: "char1" });
-      useGameStore.getState().actions.initBattle([char1]);
-      useGameStore.getState().actions.selectCharacter("char1");
 
       render(<CharacterPanel />);
 
-      const tablist = screen.getByRole("tablist");
-      expect(tablist).toBeInTheDocument();
-
-      const tabs = screen.getAllByRole("tab");
-      expect(tabs).toHaveLength(2);
-
-      // Each tab should have aria-controls linking to panel
-      for (const tab of tabs) {
-        const controls = tab.getAttribute("aria-controls");
-        expect(controls).toBeTruthy();
-      }
-    });
-
-    it("tabpanels have correct ARIA attributes", () => {
-      const char1 = createCharacter({ id: "char1" });
-      useGameStore.getState().actions.initBattle([char1]);
-      useGameStore.getState().actions.selectCharacter("char1");
-
-      render(<CharacterPanel />);
-
-      // Active tabpanel should exist
-      const activePanel = screen.getByRole("tabpanel");
-      expect(activePanel).toBeInTheDocument();
-
-      // Should have aria-labelledby linking to tab
-      const labelledBy = activePanel.getAttribute("aria-labelledby");
-      expect(labelledBy).toBeTruthy();
+      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
+      expect(
+        screen.getByRole("combobox", { name: /trigger for light punch/i }),
+      ).toBeInTheDocument();
+      expect(screen.queryByLabelText(/selected|rejected|skipped/i)).toBeNull();
     });
   });
 
-  describe("Auto-Focus Tab Switching", () => {
-    beforeEach(() => {
-      useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
-    });
-
-    it("does not auto-switch to Priority tab when autoFocus is false", () => {
-      useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
-
-      const char1 = createCharacter({ id: "char1" });
-      useGameStore.getState().actions.initBattle([char1]);
-      useGameStore.getState().actions.selectCharacter("char1");
-
-      // Start in config phase with Loadout tab
-      useGameStore.setState((state) => {
-        state.gameState.battleStatus = "draw";
-      });
-
-      const { rerender } = render(<CharacterPanel />);
-
-      // Loadout tab should be selected initially
-      expect(screen.getByRole("tab", { name: /loadout/i })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-
-      // Change to battle phase
-      useGameStore.setState((state) => {
-        state.gameState.battleStatus = "active";
-      });
-
-      rerender(<CharacterPanel />);
-
-      // Loadout tab should STILL be selected (autoFocus is false)
-      expect(screen.getByRole("tab", { name: /loadout/i })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-      expect(screen.getByRole("tab", { name: /priority/i })).toHaveAttribute(
-        "aria-selected",
-        "false",
-      );
-    });
-
-    it("auto-switches to Priority tab when autoFocus is true", () => {
-      useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
-
-      const char1 = createCharacter({ id: "char1" });
-      useGameStore.getState().actions.initBattle([char1]);
-      useGameStore.getState().actions.selectCharacter("char1");
-
-      // Start in config phase
-      useGameStore.setState((state) => {
-        state.gameState.battleStatus = "draw";
-      });
-
-      const { rerender } = render(<CharacterPanel />);
-
-      // Verify Loadout selected
-      expect(screen.getByRole("tab", { name: /loadout/i })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-
-      // Start battle
-      useGameStore.setState((state) => {
-        state.gameState.battleStatus = "active";
-      });
-
-      rerender(<CharacterPanel />);
-
-      // Priority tab should now be selected
-      expect(screen.getByRole("tab", { name: /priority/i })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-      expect(screen.getByRole("tab", { name: /loadout/i })).toHaveAttribute(
-        "aria-selected",
-        "false",
-      );
-    });
-
-    it("toggling autoFocus on mid-battle triggers tab switch", () => {
-      useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
-
-      const char1 = createCharacter({ id: "char1" });
-      useGameStore.getState().actions.initBattle([char1]);
-      useGameStore.getState().actions.selectCharacter("char1");
-
-      // Start with active battle but autoFocus disabled
-      useGameStore.setState((state) => {
-        state.gameState.battleStatus = "active";
-      });
-
-      const { rerender } = render(<CharacterPanel />);
-
-      // Loadout tab should be selected (autoFocus was false, no switch)
-      expect(screen.getByRole("tab", { name: /loadout/i })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-
-      // Toggle autoFocus on mid-battle
-      useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
-
-      rerender(<CharacterPanel />);
-
-      // Priority tab should now be selected (autoFocus toggled on during active battle)
-      expect(screen.getByRole("tab", { name: /priority/i })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
-    });
-  });
-
-  describe("D2: Full flow battle evaluation integration", () => {
-    it("battle start auto-switches to Priority tab with evaluation display", () => {
+  describe("Battle Mode", () => {
+    it("renders-battle-mode-when-active", () => {
       const attackSkill = createSkill({
-        id: "attack",
-        name: "Punch",
+        id: "light-punch",
+        name: "Light Punch",
         damage: 10,
         range: 1,
+        actionType: "attack",
+        triggers: [{ type: "always" }],
       });
       const friendly = createCharacter({
         id: "friendly",
@@ -350,29 +103,53 @@ describe("CharacterPanel", () => {
 
       useGameStore.getState().actions.initBattle([friendly, enemy]);
       useGameStore.getState().actions.selectCharacter("friendly");
+      useGameStore.setState((state) => {
+        state.gameState.battleStatus = "active";
+      });
 
-      // Start in config
+      render(<CharacterPanel />);
+
+      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/selected|rejected/i)).toBeInTheDocument();
+      // Config controls remain visible alongside evaluation indicators
+      expect(
+        screen.getByRole("combobox", { name: /trigger/i }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe("Auto-Focus", () => {
+    it("auto-focus-no-tab-switch-needed", () => {
+      useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
+
+      const lightPunch = createSkill({
+        id: "light-punch",
+        name: "Light Punch",
+      });
+      const char1 = createCharacter({ id: "char1", skills: [lightPunch] });
+      useGameStore.getState().actions.initBattle([char1]);
+      useGameStore.getState().actions.selectCharacter("char1");
+
       useGameStore.setState((state) => {
         state.gameState.battleStatus = "draw";
       });
 
       const { rerender } = render(<CharacterPanel />);
 
-      // Start battle
+      // Initial render: no tab elements
+      expect(screen.queryByRole("tablist")).toBeNull();
+
+      // Switch to battle mode
       useGameStore.setState((state) => {
         state.gameState.battleStatus = "active";
       });
       rerender(<CharacterPanel />);
 
-      // Priority tab should be selected
-      expect(screen.getByRole("tab", { name: /priority/i })).toHaveAttribute(
-        "aria-selected",
-        "true",
-      );
+      // Still no tab elements
+      expect(screen.queryByRole("tablist")).toBeNull();
 
-      // Should show skill with evaluation (selected status and target)
-      // Note: This test checks integration - actual evaluation display tested in PriorityTab
-      expect(screen.getByText(/punch/i)).toBeInTheDocument();
+      // Skill content still renders (no crash, no blank panel)
+      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
     });
   });
 });

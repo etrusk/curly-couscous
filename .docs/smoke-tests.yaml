@@ -41,17 +41,17 @@ checks:
 
   - id: 05-assign-attack
     tier: T2
-    action: "Add friendly at center, select it, in Loadout tab click 'Assign' next to 'Light Punch'"
-    expect: "Light Punch appears in Equipped Skills section below Move"
+    action: "Add friendly at center, select it, click 'Assign' next to 'Light Punch' in the Inventory section"
+    expect: "Light Punch appears in the skill list above Inventory section, below Move"
 
   - id: 06-skill-toggle
     tier: T2
-    action: "Add friendly at center, select it, click toggle switch on Move skill in Loadout tab to disable it"
-    expect: "Move skill shows disabled state (grayed or unchecked)"
+    action: "Add friendly at center, select it, click the enable checkbox on Move skill to disable it"
+    expect: "Move skill shows disabled state (unchecked checkbox)"
 
   - id: 07-skill-reorder
     tier: T2
-    action: "Add friendly at center, assign Light Punch, in Priority tab click move-up button on Light Punch"
+    action: "Add friendly at center, assign Light Punch, click move-up button on Light Punch"
     expect: "Light Punch moves to position 0 (top of list)"
 
   - id: 08-step-battle
@@ -104,32 +104,22 @@ checks:
     expect: "Characters restored to initial positions with full HP, tick 0, badge 'Active'"
     verify_js: "window.__TEST_HARNESS__.getTick() === 0 && window.__TEST_HARNESS__.getBattleStatus() === 'active'"
 
-  # === SCRIPT: Two-Panel Layout ===
-  # Tests new tabbed interface for CharacterPanel
+  # === SCRIPT: CharacterPanel Layout ===
+  # Tests single-view CharacterPanel (no tabs)
 
-  - id: 17-panel-tabs
-    tier: T3
-    action: "Add friendly at center, select friendly character, observe CharacterPanel"
-    expect: "Two tabs visible: Loadout and Priority. Loadout tab active by default."
-
-  - id: 18-loadout-tab-content
+  - id: 19-skill-config-content
     tier: T2
-    action: "Add friendly at center, select it, observe Loadout tab"
-    expect: "Equipped section shows Move skill. Inventory section shows Light Punch, Heavy Punch, Heal."
+    action: "Add friendly at center, select it, observe CharacterPanel"
+    expect: "Skill list shows Move skill row with trigger, target, criterion, behavior dropdowns. Inventory section shows Light Punch, Heavy Punch, Heal with Assign buttons."
 
-  - id: 19-priority-tab-content
-    tier: T2
-    action: "Add friendly at center, select it, click Priority tab"
-    expect: "Priority tab shows Move skill row with trigger, target, criterion, behavior dropdowns."
-
-  - id: 20-battle-tab-auto-switch
+  - id: 20-battle-mode-display
     tier: T2
     action: "Add friendly with Light Punch at center, add enemy adjacent, select friendly, click 'Step' button"
-    expect: "Panel auto-switches to Priority tab. Skills show evaluation icons."
+    expect: "Panel shows battle evaluation. Skills show evaluation icons. No Inventory section visible."
 
   - id: 21-evaluation-inline-display
     tier: T3
-    action: "Add friendly with Light Punch at center, add enemy adjacent, click 'Step', observe Priority tab"
+    action: "Add friendly with Light Punch at center, add enemy adjacent, click 'Step', observe CharacterPanel"
     expect: "Selected skill shows green checkmark and target. Skipped skills show gray dash."
 
   # === SCRIPT: AND Combinator UI ===
@@ -137,37 +127,37 @@ checks:
 
   - id: 22-and-trigger-add
     tier: T2
-    action: "Add friendly at center, select it, assign Light Punch, click Priority tab, click '+ AND' button on Light Punch skill row"
+    action: "Add friendly at center, select it, assign Light Punch, click '+ AND' button on Light Punch skill row"
     expect: "Two trigger dropdowns visible with 'AND' label between them. Second dropdown shows default trigger type."
 
   - id: 23-and-trigger-remove
     tier: T2
-    action: "Add friendly at center, select it, assign Light Punch, click Priority tab, click '+ AND' on Light Punch, then click remove button on second trigger"
+    action: "Add friendly at center, select it, assign Light Punch, click '+ AND' on Light Punch, then click remove button on second trigger"
     expect: "Returns to single trigger dropdown. 'AND' label and second dropdown no longer visible. '+ AND' button reappears."
 
   # === SCRIPT: UI Gap Fixes (NOT toggle, Non-Move duplication) ===
 
   - id: 24-not-toggle-trigger
     tier: T3
-    action: "Add friendly at center, select it, assign Light Punch, click Priority tab, change Light Punch trigger from 'Always' to 'HP below', observe NOT toggle button"
+    action: "Add friendly at center, select it, assign Light Punch, change Light Punch trigger from 'Always' to 'HP below', observe NOT toggle button"
     expect: "NOT toggle button appears before the trigger dropdown. Clicking it highlights the button and shows 'NOT' in active state."
 
   - id: 25-duplicate-non-move-skill
     tier: T3
-    action: "Add friendly at center, select it, assign Light Punch, observe Loadout tab equipped section"
-    expect: "Duplicate button visible next to Light Punch. Clicking it creates a second Light Punch instance in equipped skills."
+    action: "Add friendly at center, select it, assign Light Punch, observe skill list"
+    expect: "Duplicate button visible next to Light Punch. Clicking it creates a second Light Punch instance in skill list."
 
   # === SCRIPT: Selector Filter UI ===
   # Tests filter add/configure/remove in Priority tab
 
   - id: 26-add-selector-filter
     tier: T2
-    action: "Add friendly at center, select it, assign Light Punch, click Priority tab, click '+ Filter' button on Light Punch skill row"
+    action: "Add friendly at center, select it, assign Light Punch, click '+ Filter' button on Light Punch skill row"
     expect: "Filter type dropdown ('HP below'/'HP above') and value input (default 50) appear. '+ Filter' button is replaced by filter controls."
 
   - id: 27-remove-selector-filter
     tier: T2
-    action: "Add friendly at center, select it, assign Light Punch, click Priority tab, add filter on Light Punch, then click remove filter button (x)"
+    action: "Add friendly at center, select it, assign Light Punch, add filter on Light Punch, then click remove filter button (x)"
     expect: "Filter controls disappear. '+ Filter' button reappears. Skill no longer has a filter configured."
 
   - id: 28-filter-rejection-display
@@ -180,18 +170,23 @@ checks:
 
   - id: 29-remove-duplicate-skill
     tier: T2
-    action: "Add friendly at center, select it, assign Light Punch, observe Loadout tab, click 'Duplicate' on Light Punch, then click 'Remove' on one of the Light Punch instances"
-    expect: "Only one Light Punch remains in Equipped Skills. Remove button no longer visible on remaining instance."
+    action: "Add friendly at center, select it, assign Light Punch, click 'Duplicate' on Light Punch, then click 'Remove' on one of the Light Punch instances"
+    expect: "Only one Light Punch remains in skill list. Remove button no longer visible on remaining instance."
 
   - id: 30-remove-duplicate-innate
     tier: T2
-    action: "Add friendly at center, select it, observe Loadout tab, click 'Duplicate' on Move, then click 'Remove' on one of the Move instances"
-    expect: "Only one Move remains in Equipped Skills with Innate badge. Remove button no longer visible on remaining Move."
+    action: "Add friendly at center, select it, click 'Duplicate' on Move, then click 'Remove' on one of the Move instances"
+    expect: "Only one Move remains in skill list. Remove button no longer visible on remaining Move."
 
-  - id: 31-auto-focus-toggle-disables-battle-switch
+  - id: 31-auto-focus-layout-shift
     tier: T2
-    action: "Uncheck 'Auto-focus battle' checkbox in header. Add friendly with Light Punch at center, add enemy adjacent, click 'Step'"
-    expect: "Panel does NOT auto-switch to Priority tab. Grid proportions remain at config layout (wider skills panel). Checkbox state persists after page reload."
+    action: "Check 'Auto-focus battle' checkbox. Add friendly with Light Punch at center, add enemy adjacent, click 'Step'"
+    expect: "Grid proportions shift to battle layout (wider grid). No tab switch occurs (no tabs). Skills show evaluation icons."
+
+  - id: 32-unassign-skill
+    tier: T2
+    action: "Add friendly at center, select it, assign Light Punch, click 'Unassign' button on Light Punch"
+    expect: "Light Punch removed from skill list and reappears in Inventory section with Assign button"
 
   # === VERIFICATION ===
 

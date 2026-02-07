@@ -74,10 +74,10 @@ describe("SkillRow", () => {
       // Green check mark icon should be visible
       expect(screen.getByLabelText(/selected/i)).toBeInTheDocument();
 
-      // Priority arrows should NOT be visible
+      // Config controls remain visible alongside evaluation indicators
       expect(
-        screen.queryByRole("button", { name: /move up/i }),
-      ).not.toBeInTheDocument();
+        screen.getByRole("button", { name: /move up/i }),
+      ).toBeInTheDocument();
 
       // Resolved target should be shown
       expect(screen.getByText(/enemy b|-> b/i)).toBeInTheDocument();
@@ -140,8 +140,8 @@ describe("SkillRow", () => {
     });
   });
 
-  describe("D2: Battle Mode - Controls Hidden", () => {
-    it("hides config controls in battle mode", () => {
+  describe("D2: Battle Mode - Config Controls Visible", () => {
+    it("shows config controls alongside evaluation in battle mode", () => {
       const skill = createSkill({ id: "light-punch", name: "Light Punch" });
       const character = createCharacter({ id: "char1", skills: [skill] });
 
@@ -160,21 +160,21 @@ describe("SkillRow", () => {
         />,
       );
 
-      // No priority arrows
-      expect(
-        screen.queryByRole("button", { name: /move up/i }),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole("button", { name: /move down/i }),
-      ).not.toBeInTheDocument();
+      // Evaluation indicator visible
+      expect(screen.getByLabelText(/selected/i)).toBeInTheDocument();
 
-      // No unassign button
+      // Config controls remain visible alongside evaluation
       expect(
-        screen.queryByRole("button", { name: /unassign/i }),
-      ).not.toBeInTheDocument();
+        screen.getByRole("button", { name: /move up/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /move down/i }),
+      ).toBeInTheDocument();
 
-      // Dropdowns should be hidden or disabled
-      expect(screen.queryByLabelText(/trigger/i)).not.toBeInTheDocument();
+      // Trigger dropdown still visible
+      expect(
+        screen.getByRole("combobox", { name: /trigger for light punch/i }),
+      ).toBeInTheDocument();
     });
   });
 

@@ -165,8 +165,10 @@ describe("SkillRow - Selector Filter", () => {
 
       // X mark visible for rejected status
       expect(screen.getByLabelText(/rejected/i)).toBeInTheDocument();
-      // Rejection reason text mentions "filter"
-      expect(screen.getByText(/filter/i)).toBeInTheDocument();
+      // Rejection reason text shows formatted filter failure message
+      expect(
+        screen.getByText(/filter: target hp mismatch/i),
+      ).toBeInTheDocument();
     });
   });
 });

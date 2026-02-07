@@ -163,6 +163,26 @@
   color: white;
 }
 
+.unassignBtn {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border-primary);
+  background: var(--surface-tertiary);
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.unassignBtn:hover {
+  filter: brightness(1.1);
+}
+
+.enableCheckbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
 .target {
   color: var(--accent-primary);
   font-weight: 500;

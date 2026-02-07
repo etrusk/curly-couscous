@@ -85,7 +85,7 @@ describe("App - Empty Arena Start", () => {
     expect(removeButton).toBeInTheDocument();
   });
 
-  it("should not render old InventoryPanel (migrated to LoadoutTab)", () => {
+  it("should not render old InventoryPanel (migrated to CharacterPanel)", () => {
     render(<App />);
 
     // Inventory is now in LoadoutTab within CharacterPanel, not a separate panel

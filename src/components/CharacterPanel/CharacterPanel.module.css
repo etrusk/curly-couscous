@@ -1,5 +1,5 @@
 /**
- * CharacterPanel styles - Tabbed interface for character configuration
+ * CharacterPanel styles - Single-panel interface for character configuration
  */
 
 .panel {
@@ -36,42 +36,7 @@
   color: var(--text-primary);
 }
 
-.tabs {
-  display: flex;
-  border-bottom: 2px solid var(--border-primary);
-  background: var(--surface-secondary);
-}
-
-.tab {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 0.95rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border-bottom: 3px solid transparent;
-}
-
-.tab:hover {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-}
-
-.tab.active {
-  color: var(--text-primary);
-  border-bottom-color: var(--accent-primary);
-  background: var(--surface-primary);
-}
-
-.tab:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: -2px;
-}
-
-.tabContent {
+.content {
   flex: 1;
   overflow-y: auto;
   padding: 1rem;

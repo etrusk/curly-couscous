@@ -12,6 +12,7 @@ import { useGameStore, selectActions } from "../../stores/gameStore";
 import { MAX_SKILL_SLOTS } from "../../stores/gameStore-constants";
 import { getSkillDefinition } from "../../engine/skill-registry";
 import { TriggerDropdown } from "./TriggerDropdown";
+import { SkillRowActions } from "./SkillRowActions";
 import styles from "./SkillRow.module.css";
 
 interface SkillRowProps {
@@ -35,16 +36,11 @@ export function SkillRow({
   index,
   isFirst,
   isLast,
-  mode,
+  mode: _mode,
   evaluation,
 }: SkillRowProps) {
-  const {
-    updateSkill,
-    moveSkillUp,
-    moveSkillDown,
-    duplicateSkill,
-    removeSkillFromCharacter,
-  } = useGameStore(selectActions);
+  const { updateSkill, moveSkillUp, moveSkillDown } =
+    useGameStore(selectActions);
   const allCharacters = useGameStore((state) => state.gameState.characters);
 
   const triggers = skill.triggers ?? [];
@@ -104,10 +100,6 @@ export function SkillRow({
     });
   };
 
-  const handleDuplicate = () => {
-    duplicateSkill(character.id, skill.instanceId);
-  };
-
   const handleAddFilter = () => {
     updateSkill(character.id, skill.instanceId, {
       selectorFilter: { type: "hp_below", value: 50 },
@@ -143,75 +135,58 @@ export function SkillRow({
   ).length;
   const canDuplicate = character.skills.length < MAX_SKILL_SLOTS;
   const isDuplicate = instanceCount > 1;
+  const isInnate = skillDef?.innate ?? false;
 
-  const handleRemove = () => {
-    removeSkillFromCharacter(character.id, skill.instanceId);
+  const handleToggleEnabled = () => {
+    updateSkill(character.id, skill.instanceId, { enabled: !skill.enabled });
   };
 
-  if (mode === "battle" && evaluation) {
-    // Battle mode: show evaluation status
-    const statusIcon =
-      evaluation.status === "selected"
-        ? "✓"
-        : evaluation.status === "rejected"
-          ? "✗"
-          : "—";
-    const statusLabel =
-      evaluation.status === "selected"
-        ? "Selected"
-        : evaluation.status === "rejected"
-          ? "Rejected"
-          : "Skipped";
-    const statusClass =
-      evaluation.status === "selected"
-        ? styles.statusSelected
-        : evaluation.status === "rejected"
-          ? styles.statusRejected
-          : styles.statusSkipped;
+  // Compute evaluation display data when available
+  const evalDisplay = evaluation
+    ? {
+        statusIcon:
+          evaluation.status === "selected"
+            ? "✓"
+            : evaluation.status === "rejected"
+              ? "✗"
+              : "—",
+        statusLabel:
+          evaluation.status === "selected"
+            ? "Selected"
+            : evaluation.status === "rejected"
+              ? "Rejected"
+              : "Skipped",
+        statusClass:
+          evaluation.status === "selected"
+            ? styles.statusSelected
+            : evaluation.status === "rejected"
+              ? styles.statusRejected
+              : styles.statusSkipped,
+      }
+    : null;
 
-    return (
-      <div
-        className={`${styles.skillRow} ${styles.battleMode} ${statusClass}`}
-        data-mode="battle"
-      >
-        <span className={styles.statusIcon} aria-label={statusLabel}>
-          {statusIcon}
-        </span>
-        <h3 className={styles.skillName}>{skill.name}</h3>
-        {evaluation.status === "selected" && evaluation.resolvedTarget && (
-          <span className={styles.target}>
-            →{" "}
-            {evaluation.resolvedTarget.faction === "friendly"
-              ? "Friendly"
-              : "Enemy"}{" "}
-            {(() => {
-              const factionChars = allCharacters
-                .filter((c) => c.faction === evaluation.resolvedTarget!.faction)
-                .sort((a, b) => a.slotPosition - b.slotPosition);
-              const factionIndex = factionChars.findIndex(
-                (c) => c.id === evaluation.resolvedTarget!.id,
-              );
-              // Use per-faction index if found, otherwise fall back to raw slotPosition
-              const letterIndex =
-                factionIndex >= 0
-                  ? factionIndex
-                  : evaluation.resolvedTarget.slotPosition - 1;
-              return String.fromCharCode(65 + letterIndex);
-            })()}
-          </span>
-        )}
-        {evaluation.status === "rejected" && evaluation.rejectionReason && (
-          <span className={styles.rejectionReason}>
-            {formatRejectionReason(evaluation.rejectionReason)}
-          </span>
-        )}
-      </div>
-    );
-  }
-
-  // Config mode: show full controls
+  // Always show config controls; add evaluation indicators when available
   return (
-    <div className={styles.skillRow}>
+    <div
+      className={`${styles.skillRow} ${evalDisplay ? `${styles.battleMode} ${evalDisplay.statusClass}` : ""}`}
+      data-mode={evaluation ? "battle" : undefined}
+    >
+      {evalDisplay && (
+        <span
+          className={styles.statusIcon}
+          aria-label={evalDisplay.statusLabel}
+        >
+          {evalDisplay.statusIcon}
+        </span>
+      )}
+      <label className={styles.enableCheckbox}>
+        <input
+          type="checkbox"
+          checked={skill.enabled}
+          onChange={handleToggleEnabled}
+          aria-label={`Enable ${skill.name}`}
+        />
+      </label>
       <div className={styles.priorityControls}>
         <button
           onClick={() => moveSkillUp(character.id, index)}
@@ -230,6 +205,33 @@ export function SkillRow({
       </div>
 
       <h3 className={styles.skillName}>{skill.name}</h3>
+
+      {evaluation?.status === "selected" && evaluation.resolvedTarget && (
+        <span className={styles.target}>
+          →{" "}
+          {evaluation.resolvedTarget.faction === "friendly"
+            ? "Friendly"
+            : "Enemy"}{" "}
+          {(() => {
+            const factionChars = allCharacters
+              .filter((c) => c.faction === evaluation.resolvedTarget!.faction)
+              .sort((a, b) => a.slotPosition - b.slotPosition);
+            const factionIndex = factionChars.findIndex(
+              (c) => c.id === evaluation.resolvedTarget!.id,
+            );
+            const letterIndex =
+              factionIndex >= 0
+                ? factionIndex
+                : evaluation.resolvedTarget.slotPosition - 1;
+            return String.fromCharCode(65 + letterIndex);
+          })()}
+        </span>
+      )}
+      {evaluation?.status === "rejected" && evaluation.rejectionReason && (
+        <span className={styles.rejectionReason}>
+          {formatRejectionReason(evaluation.rejectionReason)}
+        </span>
+      )}
 
       <div className={styles.triggerGroup}>
         <TriggerDropdown
@@ -340,25 +342,14 @@ export function SkillRow({
         </select>
       )}
 
-      {canDuplicate && (
-        <button
-          onClick={handleDuplicate}
-          className={styles.duplicateBtn}
-          aria-label={`Duplicate ${skill.name}`}
-        >
-          Duplicate
-        </button>
-      )}
-
-      {isDuplicate && (
-        <button
-          onClick={handleRemove}
-          className={styles.removeBtn}
-          aria-label={`Remove ${skill.name}`}
-        >
-          Remove
-        </button>
-      )}
+      <SkillRowActions
+        skill={skill}
+        character={character}
+        skillDef={skillDef}
+        canDuplicate={canDuplicate}
+        isDuplicate={isDuplicate}
+        isInnate={isInnate}
+      />
     </div>
   );
 }

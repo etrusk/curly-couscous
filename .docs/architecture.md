@@ -47,7 +47,7 @@ src/
 #   └── accessibilityStore.ts
 ├── components/       # React components (view layer)
 │   ├── BattleViewer/ # Grid, Cell, Token, IntentLine, IntentOverlay, CharacterTooltip
-│   ├── CharacterPanel/ # Two-panel tabbed interface (Loadout + Priority tabs, SkillRow)
+│   ├── CharacterPanel/ # Single-view panel (PriorityTab, SkillRow, SkillRowActions)
 │   ├── SkillsPanel/  # (Legacy - to be deleted)
 │   ├── InventoryPanel/ # (Legacy - to be deleted)
 │   ├── RuleEvaluations/ # Formatters and display components (used by CharacterTooltip)
@@ -85,26 +85,19 @@ The grid renders using SVG elements instead of CSS Grid (ADR-008). All rendering
 
 ## Character Panel Architecture
 
-The CharacterPanel replaces the three-panel layout (BattleViewer + SkillsPanel + InventoryPanel) with a two-panel design (BattleViewer + CharacterPanel). The panel implements phase-based rendering with responsive grid proportions.
+The CharacterPanel provides a single-view design (BattleViewer + CharacterPanel) with no tab navigation. The panel implements phase-based rendering with responsive grid proportions.
 
 ### Component Hierarchy
 
 ```
-CharacterPanel (container, tab state, character selector)
-├── LoadoutTab (equipped skills + inventory sections)
-│   └── SkillRow (config mode: enable/disable, unassign, duplicate)
-└── PriorityTab (priority configuration)
-    └── SkillRow (config mode: reorder, dropdowns, AND combinator, duplicate)
-        │        (battle mode: evaluation status, resolved target, rejection reason)
-        └── TriggerDropdown (trigger type select, value input, remove button)
+CharacterPanel (container, character selector)
+└── PriorityTab (skill list + inventory section)
+    ├── SkillRow (config mode: enable/disable checkbox, reorder, dropdowns, AND combinator)
+    │   │        (battle mode: evaluation indicators shown alongside config controls)
+    │   ├── SkillRowActions (unassign, remove, duplicate buttons)
+    │   └── TriggerDropdown (trigger type select, value input, remove button)
+    └── Inventory section (config mode only: assignable skills with Assign buttons)
 ```
-
-### Tab Behavior
-
-- **Default tab (config phase)**: Loadout - Users primarily configure equipment and inventory
-- **Battle phase auto-switch**: Priority tab auto-selects when battle starts
-- **Tab memory**: Selected tab preserved when returning to config phase from battle
-- **Keyboard/ARIA**: Tabs follow ARIA tab pattern with roles, aria-selected, aria-controls
 
 ### Phase-Based Layout
 
@@ -121,13 +114,14 @@ The App-level grid container uses data attributes to drive responsive proportion
 
 ### Inline Evaluation Display
 
-During battle phase, SkillRow shifts from config mode to battle mode:
+During battle phase, SkillRow shows evaluation indicators alongside config controls:
 
-- **Config mode** (Loadout/Priority tabs): Shows priority controls, dropdowns, enable/disable checkbox
-- **Battle mode** (Priority tab only): Shows evaluation results with status icons
-  - Selected: Green check mark + resolved target character (e.g., "→ Enemy B")
+- **Config mode**: Shows enable/disable checkbox, priority controls, dropdowns, unassign/remove/duplicate buttons, inventory section
+- **Battle mode**: Config controls remain visible. Evaluation indicators appear alongside them:
+  - Selected: Green check mark + resolved target character (e.g., "-> Enemy B")
   - Rejected: Red X mark + rejection reason (e.g., "No valid target")
   - Skipped: Gray dash + visual de-emphasis
+  - Inventory section is hidden during battle
 - Evaluation data flows from character's evaluation results to SkillRow via props
 - Rejection reasons use formatters from `src/components/RuleEvaluations/` for consistency
 

@@ -40,6 +40,14 @@ Before exploration, read:
 4. Document existing patterns and conventions
 5. Flag open questions for the planning phase
 
+### Systematic Impact Search
+
+When a task involves removing, renaming, or changing the interface of a component/prop/function:
+
+- Use Grep to find ALL references to the affected identifier across the codebase (e.g., `grep 'mode=' --type ts` for a prop removal)
+- Do NOT rely on manually browsing known files — unknown consumers will be missed
+- List every file that references the affected interface under "Relevant Files", even if no logic change is needed (test files with render calls count)
+
 ## Output
 
 Write findings to `.tdd/exploration.md`:

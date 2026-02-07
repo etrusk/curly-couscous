@@ -40,7 +40,9 @@ describe("combat-targeting-mode", () => {
     expect(result.updatedCharacters.find((c) => c.id === "target")?.hp).toBe(
       100,
     );
-    expect(result.events).toHaveLength(0);
+    // WhiffEvent is emitted on miss
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0]).toMatchObject({ type: "whiff" });
   });
 
   it("attack-hits-different-character-in-cell", () => {

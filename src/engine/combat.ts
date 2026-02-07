@@ -3,7 +3,13 @@
  * Handles attack resolution and damage application during the Resolution Phase.
  */
 
-import { Character, DamageEvent, DeathEvent, positionsEqual } from "./types";
+import {
+  Character,
+  DamageEvent,
+  DeathEvent,
+  WhiffEvent,
+  positionsEqual,
+} from "./types";
 
 /**
  * Result of combat resolution containing updated state and events.
@@ -11,8 +17,8 @@ import { Character, DamageEvent, DeathEvent, positionsEqual } from "./types";
 export interface CombatResult {
   /** Characters with updated HP values after damage */
   updatedCharacters: Character[];
-  /** Damage and death events generated during resolution */
-  events: (DamageEvent | DeathEvent)[];
+  /** Damage, death, and whiff events generated during resolution */
+  events: (DamageEvent | DeathEvent | WhiffEvent)[];
 }
 
 /**
@@ -37,7 +43,7 @@ export function resolveCombat(
   characters: Character[],
   tick: number,
 ): CombatResult {
-  const events: (DamageEvent | DeathEvent)[] = [];
+  const events: (DamageEvent | DeathEvent | WhiffEvent)[] = [];
 
   // Create shallow copies of characters for mutation
   const updatedCharacters = characters.map((c) => ({ ...c }));
@@ -59,7 +65,16 @@ export function resolveCombat(
       positionsEqual(c.position, action.targetCell),
     );
 
-    if (!target) continue; // Miss: cell is empty
+    if (!target) {
+      events.push({
+        type: "whiff",
+        tick,
+        sourceId: attacker.id,
+        actionType: "attack",
+        targetCell: action.targetCell,
+      });
+      continue; // Miss: cell is empty
+    }
 
     const damage = action.skill.damage ?? 0;
     target.hp -= damage;

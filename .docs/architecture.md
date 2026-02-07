@@ -27,13 +27,13 @@
 ```
 src/
 ├── engine/           # Pure TypeScript game logic (no React)
-│   ├── types.ts      # Character, Skill, Trigger, Target, Criterion, Action, Position {q,r}
+│   ├── types.ts      # Character, Skill, Trigger, Target, Criterion, Action, Position {q,r}, GameEvent (DamageEvent, DeathEvent, HealEvent, WhiffEvent)
 │   ├── hex.ts        # Hex grid utilities: distance, neighbors, validation, pixel conversion
 │   ├── game.ts       # Core tick processing (barrel exports)
 │   ├── game-core.ts  # Tick processing: healing → movement → combat (ADR-010)
 │   ├── game-movement.ts # Move destination calculation with hex tiebreaking
-│   ├── combat.ts     # Attack resolution, damage calculation
-│   ├── healing.ts    # Heal resolution, HP restoration (ADR-006)
+│   ├── combat.ts     # Attack resolution, damage calculation, WhiffEvent emission on miss
+│   ├── healing.ts    # Heal resolution, HP restoration (ADR-006), WhiffEvent emission on miss
 │   ├── movement.ts   # Movement, collision resolution
 │   ├── pathfinding.ts # A* pathfinding on hex grid with binary heap
 │   ├── selectors.ts  # Target selection strategies (hex distance, R/Q tiebreaking)
@@ -41,12 +41,12 @@ src/
 │   ├── triggers.ts   # Trigger condition evaluation
 │   └── skill-registry.ts # Centralized skill definitions (ADR-005)
 ├── stores/           # Zustand stores
-│   └── gameStore.ts  # Game state + selectors (BattleViewer selectors included)
+│   └── gameStore.ts  # Game state + selectors (BattleViewer selectors included, e.g., selectRecentWhiffEvents)
 #   Future stores (planned):
 #   ├── uiStore.ts    # UI state (selected, modes, visibility)
 #   └── accessibilityStore.ts
 ├── components/       # React components (view layer)
-│   ├── BattleViewer/ # Grid, Cell, Token, IntentLine, IntentOverlay, CharacterTooltip
+│   ├── BattleViewer/ # Grid, Cell, Token, IntentLine, IntentOverlay, WhiffOverlay, CharacterTooltip
 │   ├── CharacterPanel/ # Single-view panel (PriorityTab, SkillRow, SkillRowActions)
 │   ├── SkillsPanel/  # (Legacy - to be deleted)
 │   ├── InventoryPanel/ # (Legacy - to be deleted)
@@ -74,13 +74,13 @@ The grid system uses axial coordinates {q, r} with flat-top hexagonal orientatio
 
 The grid renders using SVG elements instead of CSS Grid (ADR-008). All rendering layers share a common viewBox coordinate system for pixel-perfect alignment.
 
-- **Grid**: `<svg>` root with `role="grid"`. Iterates `generateAllHexes(5)` to render 91 hex cells.
-- **Cell**: SVG `<g>` containing `<polygon>` for hex shape. Uses `hexVertices()` for the 6-point polygon. `role="gridcell"` with `aria-label`.
-- **Token**: SVG `<g>` with `transform="translate(cx-20, cy-20)"` to position at hex center. Internal coordinates (0..40) unchanged from standalone SVG.
-- **Overlays**: IntentOverlay, DamageOverlay, and TargetingLineOverlay each render as separate `<svg>` elements with `position: absolute` overlay. All use identical viewBox for coordinate alignment.
+- **Grid**: `<svg>` root with `role="grid"`. Uses two-pass rendering: Pass 1 renders all hex cells (polygons only, no tokens), Pass 2 renders all tokens directly. This ensures tokens always appear above hex cells in SVG paint order, preventing selection glow and HP bars from being occluded.
+- **Cell**: SVG `<g>` containing `<polygon>` for hex shape. Uses `hexVertices()` for the 6-point polygon. `role="gridcell"` with `aria-label`. In the two-pass Grid, cells are rendered without tokens (character prop is unused).
+- **Token**: SVG `<g>` with `transform="translate(cx-20, cy-20)"` to position at hex center. Internal coordinates (0..40) unchanged from standalone SVG. Rendered directly by Grid in pass 2 (not nested inside Cell).
+- **Overlays**: IntentOverlay, WhiffOverlay, DamageOverlay, and TargetingLineOverlay each render as separate `<svg>` elements with `position: absolute` overlay. All use identical viewBox for coordinate alignment. Render order: Grid -> WhiffOverlay -> IntentOverlay -> TargetingLineOverlay -> DamageOverlay.
 - **ViewBox utility**: `computeHexViewBox(hexSize, radius)` dynamically computes bounds from hex geometry. Returns `{ viewBox, width, height }`. Used by Grid and all overlays.
 - **Hex sizing**: Default `hexSize = 30`. Hex width = 60px, height ~52px. Column spacing = 45px, row spacing ~52px.
-- **Event handling**: `pointer-events="all"` on Cell `<g>` elements. Hex-shaped polygon provides natural hit area. CSS `:hover` and `cursor: pointer` work on SVG elements.
+- **Event handling**: `pointer-events="all"` on Cell `<g>` elements. Hex-shaped polygon provides natural hit area. CSS `:hover` and `cursor: pointer` work on SVG elements. With two-pass rendering, token clicks do not bubble through Cell handlers (separate `<g>` elements). Empty cell clicks and BattleViewer background clicks trigger deselection in idle selection mode.
 - **Tooltip positioning**: Token's `<g>` element supports `getBoundingClientRect()` for portal tooltip anchoring (ADR-004).
 
 ## Character Panel Architecture

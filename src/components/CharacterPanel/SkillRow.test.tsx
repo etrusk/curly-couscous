@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- comprehensive tests for SkillRow config and battle modes */
 /**
  * Tests for SkillRow component - Config mode and battle mode display (D2)
  * Following TDD workflow - tests written before implementation.
@@ -344,6 +345,164 @@ describe("SkillRow", () => {
       expect(
         screen.queryByRole("button", { name: /duplicate.*light punch/i }),
       ).not.toBeInTheDocument();
+    });
+  });
+
+  describe("Cooldown Indicators", () => {
+    it("shows cooldown badge when cooldownRemaining is positive", () => {
+      const skill = createSkill({
+        id: "heavy-punch",
+        name: "Heavy Punch",
+        cooldownRemaining: 3,
+      });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          index={0}
+          isFirst={false}
+          isLast={false}
+        />,
+      );
+
+      expect(screen.getByText(/CD:\s*3/)).toBeInTheDocument();
+    });
+
+    it("cooldown badge format matches CD: N", () => {
+      const skill = createSkill({
+        id: "heavy-punch",
+        name: "Heavy Punch",
+        cooldownRemaining: 1,
+      });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          index={0}
+          isFirst={false}
+          isLast={false}
+        />,
+      );
+
+      expect(screen.getByText(/CD:\s*1/)).toBeInTheDocument();
+    });
+
+    it("no cooldown badge when cooldownRemaining is zero", () => {
+      const skill = createSkill({
+        id: "heavy-punch",
+        name: "Heavy Punch",
+        cooldownRemaining: 0,
+      });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          index={0}
+          isFirst={false}
+          isLast={false}
+        />,
+      );
+
+      expect(screen.queryByText(/CD:/i)).not.toBeInTheDocument();
+    });
+
+    it("no cooldown badge when cooldownRemaining is undefined", () => {
+      const skill = createSkill({
+        id: "heavy-punch",
+        name: "Heavy Punch",
+      });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          index={0}
+          isFirst={false}
+          isLast={false}
+        />,
+      );
+
+      expect(screen.queryByText(/CD:/i)).not.toBeInTheDocument();
+    });
+
+    it("has onCooldown class when on cooldown", () => {
+      const skill = createSkill({
+        id: "heavy-punch",
+        name: "Heavy Punch",
+        cooldownRemaining: 2,
+      });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          index={0}
+          isFirst={false}
+          isLast={false}
+        />,
+      );
+
+      const row = screen.getByText(/heavy punch/i).closest("div");
+      expect(row?.className).toMatch(/onCooldown/);
+    });
+
+    it("does not have onCooldown class when ready", () => {
+      const skill = createSkill({
+        id: "heavy-punch",
+        name: "Heavy Punch",
+        cooldownRemaining: 0,
+      });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          index={0}
+          isFirst={false}
+          isLast={false}
+        />,
+      );
+
+      const row = screen.getByText(/heavy punch/i).closest("div");
+      expect(row?.className).not.toMatch(/onCooldown/);
+    });
+
+    it("cooldown badge visible in battle mode with evaluation", () => {
+      const skill = createSkill({
+        id: "heavy-punch",
+        name: "Heavy Punch",
+        cooldownRemaining: 2,
+      });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          index={0}
+          isFirst={false}
+          isLast={false}
+          evaluation={{
+            status: "rejected",
+            rejectionReason: "on_cooldown",
+          }}
+        />,
+      );
+
+      // Badge visible alongside evaluation
+      expect(screen.getByText(/CD:\s*2/)).toBeInTheDocument();
+      // Dimming applied
+      const row = screen.getByText(/heavy punch/i).closest("div");
+      expect(row?.className).toMatch(/onCooldown/);
     });
   });
 

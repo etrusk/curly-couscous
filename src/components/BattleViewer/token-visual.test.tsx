@@ -27,7 +27,7 @@ describe("Token Visual", () => {
       expect(circle).toBeInTheDocument();
     });
 
-    it("renders diamond (polygon) shape for enemy faction", () => {
+    it("renders diamond (path) shape for enemy faction", () => {
       render(
         <Token
           id="char-2"
@@ -40,11 +40,9 @@ describe("Token Visual", () => {
         />,
       );
 
-      // Check for polygon element (diamond)
-      const polygon = screen
-        .getByTestId("token-char-2")
-        .querySelector("polygon");
-      expect(polygon).toBeInTheDocument();
+      // Check for path element (diamond)
+      const path = screen.getByTestId("token-char-2").querySelector("path");
+      expect(path).toBeInTheDocument();
     });
   });
 
@@ -79,11 +77,9 @@ describe("Token Visual", () => {
         />,
       );
 
-      const polygon = screen
-        .getByTestId("token-char-2")
-        .querySelector("polygon");
+      const path = screen.getByTestId("token-char-2").querySelector("path");
       // Enemy token should use pattern fill, not solid color
-      expect(polygon?.getAttribute("fill")).toMatch(
+      expect(path?.getAttribute("fill")).toMatch(
         /^url\(#stripe-enemy-char-2\)$/,
       );
     });

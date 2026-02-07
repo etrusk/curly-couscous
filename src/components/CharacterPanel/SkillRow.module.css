@@ -231,3 +231,14 @@
   background: var(--health-low);
   color: white;
 }
+
+.cooldownBadge {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-left: 0.5em;
+  font-weight: normal;
+}
+
+.onCooldown {
+  opacity: 0.6;
+}

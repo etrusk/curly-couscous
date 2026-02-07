@@ -6,6 +6,7 @@
 import { describe, it, expect } from "vitest";
 import { resolveHealing } from "./healing";
 import { createCharacter, createSkill } from "./game-test-helpers";
+import type { HealEvent } from "./types";
 
 describe("resolveHealing", () => {
   it("heal-basic-hit", () => {
@@ -75,7 +76,7 @@ describe("resolveHealing", () => {
     expect(result.updatedCharacters.find((c) => c.id === "target")?.hp).toBe(
       100,
     );
-    expect(result.events[0]!.resultingHp).toBe(100);
+    expect((result.events[0] as HealEvent).resultingHp).toBe(100);
   });
 
   it("heal-generates-HealEvent", () => {
@@ -169,7 +170,13 @@ describe("resolveHealing", () => {
     expect(result.updatedCharacters.find((c) => c.id === "target")?.hp).toBe(
       50,
     );
-    expect(result.events).toHaveLength(0);
+    // After WhiffEvent implementation, events will have length 1 (the WhiffEvent)
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0]).toMatchObject({
+      type: "whiff",
+      actionType: "heal",
+      targetCell: { q: 3, r: 0 },
+    });
   });
 
   it("heal-multiple-healers-same-target", () => {
@@ -255,8 +262,8 @@ describe("resolveHealing", () => {
     expect(result.updatedCharacters.find((c) => c.id === "target")?.hp).toBe(
       100,
     );
-    expect(result.events[0]!.resultingHp).toBe(100);
-    expect(result.events[1]!.resultingHp).toBe(100);
+    expect((result.events[0] as HealEvent).resultingHp).toBe(100);
+    expect((result.events[1] as HealEvent).resultingHp).toBe(100);
   });
 
   it("heal-ignores-non-resolving-actions", () => {
@@ -317,5 +324,108 @@ describe("resolveHealing", () => {
       50,
     );
     expect(result.events).toHaveLength(0);
+  });
+
+  // =========================================================================
+  // WhiffEvent Emission from Healing
+  // =========================================================================
+  describe("whiff event emission", () => {
+    it("should emit WhiffEvent when heal target cell is empty", () => {
+      const healer = createCharacter({
+        id: "healer",
+        position: { q: 0, r: 0 },
+        slotPosition: 0,
+        currentAction: {
+          type: "heal",
+          skill: createSkill({ id: "heal", healing: 25, tickCost: 0 }),
+          targetCell: { q: 3, r: 0 },
+          targetCharacter: null,
+          startedAtTick: 0,
+          resolvesAtTick: 0,
+        },
+      });
+      const target = createCharacter({
+        id: "target",
+        position: { q: 4, r: 0 },
+        hp: 50,
+        maxHp: 100,
+        slotPosition: 1,
+      });
+
+      const result = resolveHealing([healer, target], 0);
+
+      const whiffEvents = result.events.filter((e) => e.type === "whiff");
+      expect(whiffEvents).toHaveLength(1);
+      expect(whiffEvents[0]).toMatchObject({
+        actionType: "heal",
+        targetCell: { q: 3, r: 0 },
+      });
+    });
+
+    it("should have correct fields on healing WhiffEvent", () => {
+      const healer = createCharacter({
+        id: "healer-a",
+        position: { q: 0, r: 0 },
+        slotPosition: 0,
+        currentAction: {
+          type: "heal",
+          skill: createSkill({ id: "heal", healing: 25, tickCost: 0 }),
+          targetCell: { q: 3, r: 0 },
+          targetCharacter: null,
+          startedAtTick: 3,
+          resolvesAtTick: 3,
+        },
+      });
+      const target = createCharacter({
+        id: "target",
+        position: { q: 4, r: 0 },
+        hp: 50,
+        maxHp: 100,
+        slotPosition: 1,
+      });
+
+      const result = resolveHealing([healer, target], 3);
+
+      const whiffEvents = result.events.filter((e) => e.type === "whiff");
+      expect(whiffEvents).toHaveLength(1);
+      expect(whiffEvents[0]).toEqual({
+        type: "whiff",
+        tick: 3,
+        sourceId: "healer-a",
+        actionType: "heal",
+        targetCell: { q: 3, r: 0 },
+      });
+    });
+
+    it("should not emit WhiffEvent when heal hits target", () => {
+      const healer = createCharacter({
+        id: "healer",
+        position: { q: 0, r: 0 },
+        slotPosition: 0,
+        currentAction: {
+          type: "heal",
+          skill: createSkill({ id: "heal", healing: 25, tickCost: 0 }),
+          targetCell: { q: 1, r: 0 },
+          targetCharacter: null,
+          startedAtTick: 0,
+          resolvesAtTick: 0,
+        },
+      });
+      const target = createCharacter({
+        id: "target",
+        position: { q: 1, r: 0 },
+        hp: 50,
+        maxHp: 100,
+        slotPosition: 1,
+      });
+
+      const result = resolveHealing([healer, target], 0);
+
+      const whiffEvents = result.events.filter((e) => e.type === "whiff");
+      expect(whiffEvents).toHaveLength(0);
+
+      const healEvents = result.events.filter((e) => e.type === "heal");
+      expect(healEvents).toHaveLength(1);
+    });
   });
 });

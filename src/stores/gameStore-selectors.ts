@@ -10,6 +10,7 @@ import type {
   Faction,
   Action,
   DamageEvent,
+  WhiffEvent,
   CharacterEvaluationResult,
 } from "../engine/types";
 import {
@@ -263,6 +264,17 @@ export const selectRecentDamageEvents = (state: GameStore): DamageEvent[] => {
   const { history, tick } = state.gameState;
   return history.filter(
     (e): e is DamageEvent => e.type === "damage" && e.tick === tick,
+  );
+};
+
+/**
+ * Select whiff events from current tick only.
+ * Used by useWhiffIndicators hook for whiff display.
+ */
+export const selectRecentWhiffEvents = (state: GameStore): WhiffEvent[] => {
+  const { history, tick } = state.gameState;
+  return history.filter(
+    (e): e is WhiffEvent => e.type === "whiff" && e.tick === tick,
   );
 };
 

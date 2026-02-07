@@ -15,7 +15,7 @@ describe("TargetingLine", () => {
     hexSize: 40,
   };
 
-  it("should render exactly one line element (no outline)", () => {
+  it("should render two line elements (outline + main)", () => {
     const { container } = render(
       <svg>
         <TargetingLine {...defaultProps} />
@@ -23,40 +23,104 @@ describe("TargetingLine", () => {
     );
 
     const lines = container.querySelectorAll("line");
-    expect(lines).toHaveLength(1);
+    expect(lines).toHaveLength(2);
   });
 
-  it("should use neutral gray color via CSS variable", () => {
+  it("should render outline before main in DOM order", () => {
     const { container } = render(
       <svg>
         <TargetingLine {...defaultProps} />
       </svg>,
     );
 
-    const line = container.querySelector("line");
-    expect(line).toHaveAttribute("stroke", "var(--targeting-line-color)");
+    const lines = container.querySelectorAll("line");
+    // First line is outline with contrast color
+    expect(lines[0]).toHaveAttribute("stroke", "var(--contrast-line)");
+    // Second line is main with targeting color
+    expect(lines[1]).toHaveAttribute("stroke", "var(--targeting-line-color)");
   });
 
-  it("should use dotted pattern (1 3)", () => {
+  it("should use contrast-line stroke on outline", () => {
     const { container } = render(
       <svg>
         <TargetingLine {...defaultProps} />
       </svg>,
     );
 
-    const line = container.querySelector("line");
-    expect(line).toHaveAttribute("stroke-dasharray", "1 3");
+    const lines = container.querySelectorAll("line");
+    expect(lines[0]).toHaveAttribute("stroke", "var(--contrast-line)");
   });
 
-  it("should use thin stroke width (1.5px)", () => {
+  it("should have outline stroke-width of main + 1 (2.5)", () => {
     const { container } = render(
       <svg>
         <TargetingLine {...defaultProps} />
       </svg>,
     );
 
-    const line = container.querySelector("line");
-    expect(line).toHaveAttribute("stroke-width", "1.5");
+    const lines = container.querySelectorAll("line");
+    // Outline: main (1.5) + 1 = 2.5
+    expect(lines[0]).toHaveAttribute("stroke-width", "2.5");
+    // Main: 1.5
+    expect(lines[1]).toHaveAttribute("stroke-width", "1.5");
+  });
+
+  it("should have round linecap on both lines", () => {
+    const { container } = render(
+      <svg>
+        <TargetingLine {...defaultProps} />
+      </svg>,
+    );
+
+    const lines = container.querySelectorAll("line");
+    expect(lines[0]).toHaveAttribute("stroke-linecap", "round");
+    expect(lines[1]).toHaveAttribute("stroke-linecap", "round");
+  });
+
+  it("should have same dash pattern on both lines", () => {
+    const { container } = render(
+      <svg>
+        <TargetingLine {...defaultProps} />
+      </svg>,
+    );
+
+    const lines = container.querySelectorAll("line");
+    expect(lines[0]).toHaveAttribute("stroke-dasharray", "1 3");
+    expect(lines[1]).toHaveAttribute("stroke-dasharray", "1 3");
+  });
+
+  it("should use neutral gray color via CSS variable on main line", () => {
+    const { container } = render(
+      <svg>
+        <TargetingLine {...defaultProps} />
+      </svg>,
+    );
+
+    const lines = container.querySelectorAll("line");
+    // Main line is the second one (after outline)
+    expect(lines[1]).toHaveAttribute("stroke", "var(--targeting-line-color)");
+  });
+
+  it("should use dotted pattern (1 3) on main line", () => {
+    const { container } = render(
+      <svg>
+        <TargetingLine {...defaultProps} />
+      </svg>,
+    );
+
+    const lines = container.querySelectorAll("line");
+    expect(lines[1]).toHaveAttribute("stroke-dasharray", "1 3");
+  });
+
+  it("should use thin stroke width (1.5px) on main line", () => {
+    const { container } = render(
+      <svg>
+        <TargetingLine {...defaultProps} />
+      </svg>,
+    );
+
+    const lines = container.querySelectorAll("line");
+    expect(lines[1]).toHaveAttribute("stroke-width", "1.5");
   });
 
   it("should use reduced opacity (0.4)", () => {
@@ -127,13 +191,19 @@ describe("TargetingLine", () => {
       </svg>,
     );
 
-    const line1 = container1.querySelector("line");
-    const line2 = container2.querySelector("line");
+    const lines1 = container1.querySelectorAll("line");
+    const lines2 = container2.querySelectorAll("line");
 
-    // Both should have identical stroke color (no faction distinction)
-    expect(line1?.getAttribute("stroke")).toBe("var(--targeting-line-color)");
-    expect(line2?.getAttribute("stroke")).toBe("var(--targeting-line-color)");
-    expect(line1?.getAttribute("stroke")).toBe(line2?.getAttribute("stroke"));
+    // Both should have identical main line stroke color (no faction distinction)
+    expect(lines1[1]?.getAttribute("stroke")).toBe(
+      "var(--targeting-line-color)",
+    );
+    expect(lines2[1]?.getAttribute("stroke")).toBe(
+      "var(--targeting-line-color)",
+    );
+    expect(lines1[1]?.getAttribute("stroke")).toBe(
+      lines2[1]?.getAttribute("stroke"),
+    );
   });
 
   it("should apply perpendicular offset when provided", () => {

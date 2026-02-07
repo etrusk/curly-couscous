@@ -3,11 +3,13 @@
  * Coordinates grid rendering and overlays for intents and damage numbers.
  */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
+import { positionKey } from "../../engine/hex";
 import { Grid } from "./Grid";
 import { IntentOverlay } from "./IntentOverlay";
 import { TargetingLineOverlay } from "./TargetingLineOverlay";
 import { DamageOverlay } from "./DamageOverlay";
+import { WhiffOverlay } from "./WhiffOverlay";
 import { CharacterTooltip } from "./CharacterTooltip";
 import {
   useGameStore,
@@ -53,6 +55,14 @@ export function BattleViewer({ hexSize = 30 }: BattleViewerProps) {
     } else if (selectionMode === "moving" && selectedCharacterId) {
       actions.moveCharacter(selectedCharacterId, { q, r });
       actions.setSelectionMode("idle");
+    } else if (selectionMode === "idle") {
+      const key = positionKey({ q, r });
+      const hasCharacter = characters.some(
+        (c) => positionKey(c.position) === key,
+      );
+      if (!hasCharacter) {
+        actions.selectCharacter(null);
+      }
     }
   };
 
@@ -82,9 +92,27 @@ export function BattleViewer({ hexSize = 30 }: BattleViewerProps) {
     setHoverState(null);
   };
 
+  // Refs for background click detection
+  const gridContainerRef = useRef<HTMLDivElement>(null);
+
+  // Handle background click to deselect in idle mode
+  const handleBackgroundClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (selectionMode !== "idle") return;
+      // Only deselect when clicking the container itself, not children
+      if (
+        e.target === e.currentTarget ||
+        e.target === gridContainerRef.current
+      ) {
+        actions.selectCharacter(null);
+      }
+    },
+    [selectionMode, actions],
+  );
+
   return (
-    <div className={styles.battleViewer}>
-      <div className={styles.gridContainer}>
+    <div className={styles.battleViewer} onClick={handleBackgroundClick}>
+      <div className={styles.gridContainer} ref={gridContainerRef}>
         <Grid
           hexSize={hexSize}
           characters={characters}
@@ -94,6 +122,7 @@ export function BattleViewer({ hexSize = 30 }: BattleViewerProps) {
           onTokenLeave={handleTokenLeave}
           hoveredTokenId={hoverState?.characterId}
         />
+        <WhiffOverlay hexSize={hexSize} />
         <IntentOverlay hexSize={hexSize} />
         <TargetingLineOverlay hexSize={hexSize} />
         <DamageOverlay hexSize={hexSize} />

@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- comprehensive integration tests for BattleViewer */
 /**
  * Tests for BattleViewer and Grid components (SVG hex rendering).
  * Following TDD workflow - tests written first.
@@ -111,9 +112,9 @@ describe("Grid - SVG Hex Grid", () => {
     const token = screen.getByTestId("token-c1");
     expect(token).toBeInTheDocument();
 
-    // Token should be inside cell-0-0
-    const cell = screen.getByTestId("cell-0-0");
-    expect(cell.contains(token)).toBe(true);
+    // Token should be inside the grid SVG (two-pass rendering)
+    const grid = screen.getByRole("grid");
+    expect(grid.contains(token)).toBe(true);
   });
 
   it("does not have CSS Grid layout styles", () => {
@@ -238,9 +239,9 @@ describe("BattleViewer - Integration", () => {
     const token = screen.getByTestId("token-test-char");
     expect(token).toBeInTheDocument();
 
-    // Token should be inside cell-1--1
-    const cell = screen.getByTestId("cell-1--1");
-    expect(cell.contains(token)).toBe(true);
+    // Token should be inside the grid SVG (two-pass rendering)
+    const grid = screen.getByRole("grid");
+    expect(grid.contains(token)).toBe(true);
   });
 
   it("click handling on SVG cells in placing mode", async () => {
@@ -461,5 +462,302 @@ describe("BattleViewer - Click-to-Place", () => {
         expect(y).toBeCloseTo(0 - TOKEN_RADIUS, 0);
       }
     });
+  });
+});
+
+describe("BattleViewer - Token Z-ordering", () => {
+  it("tokens render after all hex polygons in SVG document order", () => {
+    useGameStore.setState({
+      gameState: {
+        ...useGameStore.getState().gameState,
+        characters: [
+          {
+            id: "char-a",
+            name: "Character A",
+            position: { q: 0, r: 0 },
+            faction: "friendly",
+            hp: 100,
+            maxHp: 100,
+            slotPosition: 1,
+            skills: [],
+            currentAction: null,
+          },
+          {
+            id: "char-b",
+            name: "Character B",
+            position: { q: 2, r: -1 },
+            faction: "enemy",
+            hp: 100,
+            maxHp: 100,
+            slotPosition: 2,
+            skills: [],
+            currentAction: null,
+          },
+        ],
+      },
+    });
+
+    render(<BattleViewer />);
+
+    const grid = screen.getByRole("grid");
+    const polygons = grid.querySelectorAll("polygon");
+    const tokens = grid.querySelectorAll("[data-testid^='token-']");
+
+    expect(polygons.length).toBeGreaterThan(0);
+    expect(tokens.length).toBe(2);
+
+    // Last polygon should precede first token in document order
+    const lastPolygon = polygons[polygons.length - 1]!;
+    const firstToken = tokens[0]!;
+    const position = lastPolygon.compareDocumentPosition(firstToken);
+    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("tokens remain inside the Grid SVG element", () => {
+    useGameStore.setState({
+      gameState: {
+        ...useGameStore.getState().gameState,
+        characters: [
+          {
+            id: "char-in-grid",
+            name: "Test",
+            position: { q: 0, r: 0 },
+            faction: "friendly",
+            hp: 100,
+            maxHp: 100,
+            slotPosition: 1,
+            skills: [],
+            currentAction: null,
+          },
+        ],
+      },
+    });
+
+    render(<BattleViewer />);
+
+    const gridSvg = screen.getByRole("grid");
+    const token = screen.getByTestId("token-char-in-grid");
+    expect(gridSvg.contains(token)).toBe(true);
+  });
+});
+
+describe("BattleViewer - Deselection", () => {
+  it("empty cell click deselects in idle mode", async () => {
+    const user = userEvent.setup();
+
+    useGameStore.setState({
+      selectionMode: "idle",
+      selectedCharacterId: "char-1",
+      gameState: {
+        ...useGameStore.getState().gameState,
+        characters: [
+          {
+            id: "char-1",
+            name: "Character 1",
+            position: { q: 0, r: 0 },
+            faction: "friendly",
+            hp: 100,
+            maxHp: 100,
+            slotPosition: 1,
+            skills: [],
+            currentAction: null,
+          },
+        ],
+      },
+    });
+
+    render(<BattleViewer />);
+
+    // Click an empty cell (not where char-1 is)
+    const emptyCell = screen.getByTestId("cell-1-0");
+    await user.click(emptyCell);
+
+    expect(useGameStore.getState().selectedCharacterId).toBeNull();
+  });
+
+  it("empty cell click does not deselect in placing mode", async () => {
+    const user = userEvent.setup();
+
+    useGameStore.setState({
+      selectionMode: "placing-friendly",
+      selectedCharacterId: "char-1",
+      gameState: {
+        ...useGameStore.getState().gameState,
+        characters: [],
+      },
+    });
+
+    render(<BattleViewer />);
+
+    const cell = screen.getByTestId("cell-1-0");
+    await user.click(cell);
+
+    // In placing mode, character gets placed, not deselected
+    expect(useGameStore.getState().selectedCharacterId).not.toBeNull();
+  });
+
+  it("empty cell click does not deselect in moving mode", async () => {
+    const user = userEvent.setup();
+
+    useGameStore.setState({
+      selectionMode: "moving",
+      selectedCharacterId: "char-1",
+      gameState: {
+        ...useGameStore.getState().gameState,
+        characters: [
+          {
+            id: "char-1",
+            name: "Character 1",
+            position: { q: 0, r: 0 },
+            faction: "friendly",
+            hp: 100,
+            maxHp: 100,
+            slotPosition: 1,
+            skills: [],
+            currentAction: null,
+          },
+        ],
+      },
+    });
+
+    render(<BattleViewer />);
+
+    const cell = screen.getByTestId("cell-1-0");
+    await user.click(cell);
+
+    expect(useGameStore.getState().selectedCharacterId).toBe("char-1");
+  });
+
+  it("background click deselects in idle mode", async () => {
+    const user = userEvent.setup();
+
+    useGameStore.setState({
+      selectionMode: "idle",
+      selectedCharacterId: "char-1",
+      gameState: {
+        ...useGameStore.getState().gameState,
+        characters: [
+          {
+            id: "char-1",
+            name: "Character 1",
+            position: { q: 0, r: 0 },
+            faction: "friendly",
+            hp: 100,
+            maxHp: 100,
+            slotPosition: 1,
+            skills: [],
+            currentAction: null,
+          },
+        ],
+      },
+    });
+
+    const { container } = render(<BattleViewer />);
+
+    // Click directly on the battleViewer container div
+    const battleViewerDiv = container.firstChild as HTMLElement;
+    await user.click(battleViewerDiv);
+
+    expect(useGameStore.getState().selectedCharacterId).toBeNull();
+  });
+
+  it("background click does not deselect in placing mode", async () => {
+    const user = userEvent.setup();
+
+    useGameStore.setState({
+      selectionMode: "placing-friendly",
+      selectedCharacterId: "char-1",
+      gameState: {
+        ...useGameStore.getState().gameState,
+        characters: [],
+      },
+    });
+
+    const { container } = render(<BattleViewer />);
+
+    const battleViewerDiv = container.firstChild as HTMLElement;
+    await user.click(battleViewerDiv);
+
+    // Selection should remain unchanged in placing mode
+    expect(useGameStore.getState().selectedCharacterId).toBe("char-1");
+  });
+
+  it("token click still selects and toggles after two-pass refactor", async () => {
+    const user = userEvent.setup();
+
+    useGameStore.setState({
+      selectionMode: "idle",
+      selectedCharacterId: null,
+      gameState: {
+        ...useGameStore.getState().gameState,
+        characters: [
+          {
+            id: "toggle-char",
+            name: "Toggle Test",
+            position: { q: 0, r: 0 },
+            faction: "friendly",
+            hp: 100,
+            maxHp: 100,
+            slotPosition: 1,
+            skills: [],
+            currentAction: null,
+          },
+        ],
+      },
+    });
+
+    render(<BattleViewer />);
+
+    // Click token to select
+    await user.click(screen.getByTestId("token-toggle-char"));
+    expect(useGameStore.getState().selectedCharacterId).toBe("toggle-char");
+
+    // Click token again to deselect (toggle)
+    await user.click(screen.getByTestId("token-toggle-char"));
+    expect(useGameStore.getState().selectedCharacterId).toBeNull();
+  });
+
+  it("occupied cell click selects character, does not deselect in idle mode", async () => {
+    const user = userEvent.setup();
+
+    useGameStore.setState({
+      selectionMode: "idle",
+      selectedCharacterId: "other-char",
+      gameState: {
+        ...useGameStore.getState().gameState,
+        characters: [
+          {
+            id: "other-char",
+            name: "Other Character",
+            position: { q: 0, r: 0 },
+            faction: "friendly",
+            hp: 100,
+            maxHp: 100,
+            slotPosition: 1,
+            skills: [],
+            currentAction: null,
+          },
+          {
+            id: "char-2",
+            name: "Character 2",
+            position: { q: 1, r: 0 },
+            faction: "enemy",
+            hp: 100,
+            maxHp: 100,
+            slotPosition: 2,
+            skills: [],
+            currentAction: null,
+          },
+        ],
+      },
+    });
+
+    render(<BattleViewer />);
+
+    // Click on token at {q:1, r:0}
+    await user.click(screen.getByTestId("token-char-2"));
+
+    // Should select new character, not deselect
+    expect(useGameStore.getState().selectedCharacterId).toBe("char-2");
   });
 });

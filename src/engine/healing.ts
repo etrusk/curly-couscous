@@ -3,7 +3,7 @@
  * Handles heal action resolution during the Resolution Phase.
  */
 
-import { Character, HealEvent, positionsEqual } from "./types";
+import { Character, HealEvent, WhiffEvent, positionsEqual } from "./types";
 import { getSkillDefinition } from "./skill-registry";
 
 /**
@@ -11,7 +11,7 @@ import { getSkillDefinition } from "./skill-registry";
  */
 export interface HealingResult {
   updatedCharacters: Character[];
-  events: HealEvent[];
+  events: (HealEvent | WhiffEvent)[];
 }
 
 /**
@@ -31,7 +31,7 @@ export function resolveHealing(
   characters: Character[],
   tick: number,
 ): HealingResult {
-  const events: HealEvent[] = [];
+  const events: (HealEvent | WhiffEvent)[] = [];
 
   // Create shallow copies for mutation
   const updatedCharacters = characters.map((c) => ({ ...c }));
@@ -64,7 +64,16 @@ export function resolveHealing(
       );
     }
 
-    if (!target) continue; // Miss: target not found or dead
+    if (!target) {
+      events.push({
+        type: "whiff",
+        tick,
+        sourceId: healer.id,
+        actionType: "heal",
+        targetCell: action.targetCell,
+      });
+      continue; // Miss: target not found or dead
+    }
 
     const healing = action.skill.healing ?? 0;
     target.hp = Math.min(target.hp + healing, target.maxHp);

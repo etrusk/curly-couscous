@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import { resolveHealing } from "./healing";
 import { createCharacter, createSkill } from "./game-test-helpers";
-import type { Character } from "./types";
+import type { Character, HealEvent } from "./types";
 
 describe("healing-targeting-mode", () => {
   it("heal-character-targeting-lands-on-moved-target", () => {
@@ -101,7 +101,9 @@ describe("healing-targeting-mode", () => {
 
     // Heal should NOT apply to dead target
     expect(result.updatedCharacters.find((c) => c.id === "target")?.hp).toBe(0);
-    expect(result.events).toHaveLength(0);
+    // WhiffEvent is emitted when target not found/dead
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0]).toMatchObject({ type: "whiff" });
   });
 
   it("heal-character-targeting-finds-target-by-id", () => {
@@ -147,7 +149,7 @@ describe("healing-targeting-mode", () => {
       75,
     );
     expect(result.events).toHaveLength(1);
-    expect(result.events[0]?.targetId).toBe("target");
+    expect((result.events[0] as HealEvent).targetId).toBe("target");
   });
 
   it("heal-character-targeting-fallback-when-targetCharacter-null", () => {

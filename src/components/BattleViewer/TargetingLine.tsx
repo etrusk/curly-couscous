@@ -35,6 +35,16 @@ export function TargetingLine({
         y1={y1}
         x2={x2}
         y2={y2}
+        stroke="var(--contrast-line)"
+        strokeWidth="2.5"
+        strokeDasharray="1 3"
+        strokeLinecap="round"
+      />
+      <line
+        x1={x1}
+        y1={y1}
+        x2={x2}
+        y2={y2}
         stroke="var(--targeting-line-color)"
         strokeWidth="1.5"
         strokeDasharray="1 3"

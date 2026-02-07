@@ -5,6 +5,7 @@
 
 import { useMemo } from "react";
 import { Cell } from "./Cell";
+import { Token } from "./Token";
 import {
   generateAllHexes,
   hexToPixel,
@@ -39,16 +40,6 @@ export function Grid({
   // Generate all hex coordinates (memoized)
   const allHexes = useMemo(() => generateAllHexes(), []);
 
-  // Create a map of position -> character for O(1) lookup
-  const characterMap = useMemo(() => {
-    const map = new Map<string, TokenData>();
-    for (const char of characters) {
-      const key = positionKey(char.position);
-      map.set(key, char);
-    }
-    return map;
-  }, [characters]);
-
   return (
     <svg
       className={styles.grid}
@@ -58,10 +49,10 @@ export function Grid({
       width={viewBox.width}
       height={viewBox.height}
     >
+      {/* Pass 1: Hex polygons only (no tokens) */}
       {allHexes.map((hex) => {
         const key = positionKey(hex);
         const center = hexToPixel(hex, hexSize);
-        const character = characterMap.get(key);
         const isClickable = clickableCells?.has(key) ?? false;
 
         return (
@@ -72,15 +63,34 @@ export function Grid({
             centerX={center.x}
             centerY={center.y}
             hexSize={hexSize}
-            character={character}
             onClick={onCellClick}
             isClickable={isClickable}
-            onTokenHover={onTokenHover}
-            onTokenLeave={onTokenLeave}
-            hoveredTokenId={hoveredTokenId}
           />
         );
       })}
+      {/* Pass 2: All tokens rendered after all hex polygons for correct z-order */}
+      <g>
+        {characters.map((char) => {
+          const center = hexToPixel(char.position, hexSize);
+          const tooltipId =
+            hoveredTokenId === char.id ? `tooltip-${char.id}` : undefined;
+          return (
+            <Token
+              key={char.id}
+              id={char.id}
+              faction={char.faction}
+              hp={char.hp}
+              maxHp={char.maxHp}
+              slotPosition={char.slotPosition}
+              cx={center.x}
+              cy={center.y}
+              onMouseEnter={onTokenHover}
+              onMouseLeave={onTokenLeave}
+              tooltipId={tooltipId}
+            />
+          );
+        })}
+      </g>
     </svg>
   );
 }

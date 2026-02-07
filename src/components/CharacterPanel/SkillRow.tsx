@@ -166,7 +166,16 @@ export function SkillRow({
   // Always show config controls; add evaluation indicators when available
   return (
     <div
-      className={`${styles.skillRow} ${evalDisplay ? `${styles.battleMode} ${evalDisplay.statusClass}` : ""}`}
+      className={[
+        styles.skillRow,
+        evalDisplay && styles.battleMode,
+        evalDisplay && evalDisplay.statusClass,
+        skill.cooldownRemaining &&
+          skill.cooldownRemaining > 0 &&
+          styles.onCooldown,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       data-mode={evaluation ? "battle" : undefined}
     >
       {evalDisplay && (
@@ -203,6 +212,11 @@ export function SkillRow({
       </div>
 
       <h3 className={styles.skillName}>{skill.name}</h3>
+      {skill.cooldownRemaining != null && skill.cooldownRemaining > 0 && (
+        <span className={styles.cooldownBadge}>
+          CD: {skill.cooldownRemaining}
+        </span>
+      )}
 
       {evaluation?.status === "selected" && evaluation.resolvedTarget && (
         <span className={styles.target}>

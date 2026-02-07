@@ -315,6 +315,26 @@ Intent lines encode three dimensions: action type (color + endpoint marker), fac
 - Contrasting outline: White outline (`strokeWidth + 1`) behind all lines for visibility against any background
 - Endpoint markers (arrowhead, cross, circle, diamond) encode action type and faction, independent of timing
 
+### Targeting Line Visual Encoding
+
+TargetingLine (shown during cell-targeting mode) uses the same two-line outline pattern as IntentLine:
+
+- White contrast outline (`var(--contrast-line)`, `strokeWidth + 1`) rendered behind the main stroke
+- Main stroke: gray (`var(--targeting-line-color)`), `1.5px`, dotted pattern `"1 3"`
+- Both outline and main use `strokeLinecap="round"`
+- Consistent with IntentLine's outline-behind-main layering (two `<line>` elements)
+
+### Whiff Indicators
+
+When a cell-targeted action (attack or heal) resolves against an empty cell (the target moved away), a whiff indicator appears on the hex grid:
+
+- Faded hex fill at the target cell using action-type color (`--action-attack` for attacks, `--action-heal` for heals)
+- Opacity: 0.2 (subtle, does not obscure other elements)
+- Persists for the resolution tick only (1 tick), then disappears
+- Multiple whiffs on the same cell in the same tick: last event's action type wins
+- Renders above base hex fill but below intent lines (WhiffOverlay positioned between Grid and IntentOverlay)
+- Driven by `WhiffEvent` in the game event history, filtered by `selectRecentWhiffEvents` selector
+
 ### Damage Display
 
 - Damage numbers displayed in hex center
@@ -393,3 +413,18 @@ The Inventory section is rendered within PriorityTab below the skill list in con
 - "Assign" button (disabled when character has MAX_SKILL_SLOTS skills)
 
 **Filtering:** The inventory only shows non-innate skills that are not assigned to any character of the selected character's faction. Skills assigned to characters of the opposite faction are still shown. To unassign a skill, use the "Unassign" button on the SkillRow.
+
+### Cooldown Display
+
+SkillRow displays cooldown state for skills with `cooldownRemaining > 0`:
+
+- **Badge:** "CD: N" text badge shown next to the skill name, where N is the remaining tick count
+- **Dimming:** The entire SkillRow receives reduced opacity (`.onCooldown` class, `opacity: 0.6`) to visually distinguish it from ready skills
+- Skills with no cooldown or `cooldownRemaining === 0` show no cooldown indicator
+- Cooldown display is visible in both config mode and battle mode, updating each tick as the value decrements
+
+### Token Z-ordering and Deselection
+
+**Z-ordering:** Token shapes, selection glow, and HP bars are never visually occluded by hex cells. The Grid SVG uses two-pass rendering: all hex polygons render first, then all tokens render second, ensuring tokens always appear on top in SVG paint order.
+
+**Deselection:** Clicking an empty hex cell or the BattleViewer background area deselects the currently selected character (sets `selectedCharacterId` to `null`). Deselection only occurs in `idle` selection mode (not during placement or moving modes). Clicking a token still toggles selection as before.

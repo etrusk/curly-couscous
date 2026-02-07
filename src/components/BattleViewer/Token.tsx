@@ -172,8 +172,8 @@ export function Token({
           className={styles.shape}
         />
       ) : (
-        <polygon
-          points={`${TOKEN_RADIUS},2 ${TOKEN_SIZE - 2},${TOKEN_RADIUS} ${TOKEN_RADIUS},${TOKEN_SIZE - 2} 2,${TOKEN_RADIUS}`}
+        <path
+          d={`M${TOKEN_RADIUS},2 L${TOKEN_SIZE - 2},${TOKEN_RADIUS} L${TOKEN_RADIUS},${TOKEN_SIZE - 2} L2,${TOKEN_RADIUS} Z`}
           fill={`url(#stripe-enemy-${id})`}
           stroke={strokeColor}
           strokeWidth="1.5"

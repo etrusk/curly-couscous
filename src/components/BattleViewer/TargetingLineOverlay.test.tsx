@@ -76,7 +76,8 @@ describe("TargetingLineOverlay", () => {
       const { container } = render(<TargetingLineOverlay {...defaultProps} />);
 
       const lines = container.querySelectorAll("line");
-      expect(lines).toHaveLength(4);
+      // 4 characters with Move skills = 4 TargetingLines, each renders 2 lines (outline + main)
+      expect(lines).toHaveLength(8);
     });
 
     it("should render no lines when no characters exist", () => {
@@ -156,7 +157,8 @@ describe("TargetingLineOverlay", () => {
       const { container } = render(<TargetingLineOverlay {...defaultProps} />);
 
       const lines = container.querySelectorAll("line");
-      expect(lines).toHaveLength(1);
+      // 1 TargetingLine renders 2 lines (outline + main)
+      expect(lines).toHaveLength(2);
       expect(useGameStore.getState().gameState.tick).toBe(0);
     });
   });
@@ -212,13 +214,13 @@ describe("TargetingLineOverlay", () => {
       const { container } = render(<TargetingLineOverlay {...defaultProps} />);
 
       const lines = container.querySelectorAll("line");
-      // 2 characters with Move skills, each should have a line
-      expect(lines).toHaveLength(2);
+      // 2 characters with Move skills, each renders 2 lines (outline + main)
+      expect(lines).toHaveLength(4);
 
       // Verify line endpoints match expected selector results
       // char1 should target char2 (no bidirectional, so no offset)
       // Pixel positions depend on hex conversion - just verify lines exist
-      expect(lines.length).toBe(2);
+      expect(lines.length).toBe(4);
     });
 
     it("should respect different selector types visually", () => {
@@ -265,12 +267,13 @@ describe("TargetingLineOverlay", () => {
       const { container } = render(<TargetingLineOverlay {...defaultProps} />);
 
       const lines = container.querySelectorAll("line");
-      expect(lines).toHaveLength(2);
+      // 2 TargetingLines, each renders 2 lines (outline + main)
+      expect(lines).toHaveLength(4);
 
       // Line from charA should go to nearest enemy (enemyNear)
       // Line from charB should go to lowest HP enemy (enemyFarLowHp)
       // Pixel positions depend on hex conversion - just verify both lines exist
-      expect(lines.length).toBe(2);
+      expect(lines.length).toBe(4);
     });
 
     it("should not render lines for dead characters", () => {
@@ -308,8 +311,8 @@ describe("TargetingLineOverlay", () => {
       const { container } = render(<TargetingLineOverlay {...defaultProps} />);
 
       const lines = container.querySelectorAll("line");
-      // Only 2 lines (char2 and char3, not char1 because hp=0)
-      expect(lines).toHaveLength(2);
+      // Only 2 TargetingLines (char2 and char3, not char1 because hp=0), each renders 2 lines
+      expect(lines).toHaveLength(4);
     });
 
     it("should use uniform color for all factions", () => {
@@ -349,18 +352,26 @@ describe("TargetingLineOverlay", () => {
       const { container } = render(<TargetingLineOverlay {...defaultProps} />);
 
       const lines = container.querySelectorAll("line");
-      expect(lines).toHaveLength(4);
+      // 4 TargetingLines, each renders 2 lines (outline + main) = 8
+      expect(lines).toHaveLength(8);
 
-      // All lines should have identical styling
-      lines.forEach((line) => {
-        expect(line).toHaveAttribute("stroke", "var(--targeting-line-color)");
-        expect(line).toHaveAttribute("stroke-dasharray", "1 3");
-        expect(line).toHaveAttribute("stroke-width", "1.5");
-        // Opacity can be on line or group
-        const lineOpacity = line.getAttribute("opacity");
-        const groupOpacity = line.parentElement?.getAttribute("opacity");
-        expect(lineOpacity === "0.4" || groupOpacity === "0.4").toBe(true);
-      });
+      // All main lines (every second line) should have identical styling
+      for (let i = 0; i < lines.length; i += 2) {
+        // Outline line (even index)
+        expect(lines[i]).toHaveAttribute("stroke", "var(--contrast-line)");
+        expect(lines[i]).toHaveAttribute("stroke-dasharray", "1 3");
+        expect(lines[i]).toHaveAttribute("stroke-width", "2.5");
+        // Main line (odd index)
+        expect(lines[i + 1]).toHaveAttribute(
+          "stroke",
+          "var(--targeting-line-color)",
+        );
+        expect(lines[i + 1]).toHaveAttribute("stroke-dasharray", "1 3");
+        expect(lines[i + 1]).toHaveAttribute("stroke-width", "1.5");
+        // Opacity on group
+        const groupOpacity = lines[i]?.parentElement?.getAttribute("opacity");
+        expect(groupOpacity === "0.4").toBe(true);
+      }
     });
 
     it("should apply perpendicular offset only to bidirectional targeting lines", () => {
@@ -393,12 +404,13 @@ describe("TargetingLineOverlay", () => {
       const { container } = render(<TargetingLineOverlay {...defaultProps} />);
 
       const lines = container.querySelectorAll("line");
-      expect(lines).toHaveLength(3);
+      // 3 TargetingLines, each renders 2 lines (outline + main)
+      expect(lines).toHaveLength(6);
 
       // Bidirectional lines (char1 and char2) should have perpendicular offset
       // Unidirectional line (char3) should NOT have offset
-      // Exact pixel offsets depend on hex conversion - just verify 3 lines exist
-      expect(lines.length).toBe(3);
+      // Exact pixel offsets depend on hex conversion - just verify 6 lines exist
+      expect(lines.length).toBe(6);
     });
   });
 });

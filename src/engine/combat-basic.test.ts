@@ -168,6 +168,8 @@ describe("resolveCombat", () => {
 
       const damageEvents = result.events.filter((e) => e.type === "damage");
       expect(damageEvents).toHaveLength(0);
+      // After WhiffEvent implementation, total events will be 1 (the WhiffEvent)
+      // but DamageEvents remain 0
     });
 
     it("should not modify any HP on miss", () => {
@@ -300,6 +302,82 @@ describe("resolveCombat", () => {
       expect(
         result.updatedCharacters.find((c) => c.id === "attacker")?.hp,
       ).toBe(90);
+    });
+  });
+
+  // =========================================================================
+  // Section 4: WhiffEvent Emission
+  // =========================================================================
+  describe("whiff event emission", () => {
+    it("should emit WhiffEvent when target cell is empty", () => {
+      const attacker = createCharacter({
+        id: "attacker",
+        position: { q: 0, r: 0 },
+        slotPosition: 1,
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
+      });
+      const target = createCharacter({
+        id: "target",
+        position: { q: 2, r: 0 }, // Not in target cell
+        hp: 100,
+        slotPosition: 2,
+      });
+
+      const result = resolveCombat([attacker, target], 1);
+
+      const whiffEvents = result.events.filter((e) => e.type === "whiff");
+      expect(whiffEvents).toHaveLength(1);
+      expect(whiffEvents[0]).toMatchObject({
+        type: "whiff",
+        tick: 1,
+        sourceId: "attacker",
+        actionType: "attack",
+        targetCell: { q: 1, r: 0 },
+      });
+    });
+
+    it("should have correct fields on WhiffEvent", () => {
+      const attacker = createCharacter({
+        id: "attacker",
+        position: { q: 0, r: 0 },
+        slotPosition: 1,
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 5),
+      });
+
+      const result = resolveCombat([attacker], 5);
+
+      const whiffEvents = result.events.filter((e) => e.type === "whiff");
+      expect(whiffEvents).toHaveLength(1);
+      expect(whiffEvents[0]).toEqual({
+        type: "whiff",
+        tick: 5,
+        sourceId: "attacker",
+        actionType: "attack",
+        targetCell: { q: 1, r: 0 },
+      });
+    });
+
+    it("should not emit WhiffEvent when attack hits", () => {
+      const attacker = createCharacter({
+        id: "attacker",
+        position: { q: 0, r: 0 },
+        slotPosition: 1,
+        currentAction: createAttackAction({ q: 1, r: 0 }, null, 10, 1),
+      });
+      const target = createCharacter({
+        id: "target",
+        position: { q: 1, r: 0 }, // In target cell
+        hp: 100,
+        slotPosition: 2,
+      });
+
+      const result = resolveCombat([attacker, target], 1);
+
+      const whiffEvents = result.events.filter((e) => e.type === "whiff");
+      expect(whiffEvents).toHaveLength(0);
+
+      const damageEvents = result.events.filter((e) => e.type === "damage");
+      expect(damageEvents).toHaveLength(1);
     });
   });
 });

@@ -179,7 +179,8 @@ export type GameEvent =
   | HealEvent
   | MovementEvent
   | DeathEvent
-  | TickEvent;
+  | TickEvent
+  | WhiffEvent;
 
 export interface SkillDecisionEvent {
   type: "skill_decision";
@@ -234,6 +235,14 @@ export interface TickEvent {
   type: "tick";
   tick: number;
   phase: BattlePhase;
+}
+
+export interface WhiffEvent {
+  type: "whiff";
+  tick: number;
+  sourceId: string;
+  actionType: "attack" | "heal";
+  targetCell: Position;
 }
 
 // ============================================================================

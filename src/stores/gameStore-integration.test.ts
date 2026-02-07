@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- integration test file with multiple feature test sections */
 /**
  * Tests for engine-store integration (processTick, damage event filtering, initial state storage).
  * Phase 1: Engine-Store Integration tests for processTick and reset.
@@ -8,6 +9,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   useGameStore,
   selectRecentDamageEvents,
+  selectRecentWhiffEvents,
   selectIntentData,
 } from "./gameStore";
 import type { DamageEvent, GameEvent } from "../engine/types";
@@ -502,5 +504,82 @@ describe("Initial State Storage", () => {
     // Empty battle is a draw per engine's checkBattleStatus([])
     expect(useGameStore.getState().gameState.battleStatus).toBe("draw");
     expect(useGameStore.getState().gameState.characters).toHaveLength(0);
+  });
+});
+
+// ============================================================================
+// Whiff Event Selector Tests
+// ============================================================================
+
+describe("selectRecentWhiffEvents", () => {
+  beforeEach(() => {
+    useGameStore.getState().actions.reset();
+  });
+
+  it("returns whiff events for current tick", () => {
+    const char1 = createCharacter({ id: "char1" });
+    useGameStore.getState().actions.initBattle([char1]);
+
+    // Set tick to 1
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
+
+    // Add a whiff event at tick 1
+    const whiffEvent = {
+      type: "whiff" as const,
+      tick: 1,
+      sourceId: "char1",
+      actionType: "attack" as const,
+      targetCell: { q: 2, r: 0 },
+    };
+    useGameStore.getState().actions.addEvent(whiffEvent);
+
+    const result = selectRecentWhiffEvents(useGameStore.getState());
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject(whiffEvent);
+  });
+
+  it("excludes whiff events from other ticks", () => {
+    const char1 = createCharacter({ id: "char1" });
+    useGameStore.getState().actions.initBattle([char1]);
+
+    // Add whiff event at tick 0
+    useGameStore.getState().actions.addEvent({
+      type: "whiff" as const,
+      tick: 0,
+      sourceId: "char1",
+      actionType: "attack" as const,
+      targetCell: { q: 1, r: 0 },
+    });
+
+    // Advance to tick 1
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
+
+    // Add whiff event at tick 1
+    useGameStore.getState().actions.addEvent({
+      type: "whiff" as const,
+      tick: 1,
+      sourceId: "char1",
+      actionType: "heal" as const,
+      targetCell: { q: 2, r: 0 },
+    });
+
+    const result = selectRecentWhiffEvents(useGameStore.getState());
+
+    expect(result).toHaveLength(1);
+    expect(result[0]!.tick).toBe(1);
+  });
+
+  it("returns empty array when no whiff events exist", () => {
+    const char1 = createCharacter({ id: "char1" });
+    useGameStore.getState().actions.initBattle([char1]);
+
+    const result = selectRecentWhiffEvents(useGameStore.getState());
+
+    expect(result).toEqual([]);
   });
 });

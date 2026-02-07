@@ -62,6 +62,15 @@ If your plan introduces a NEW architectural decision:
 
 2. Recommend adding to `.docs/decisions/index.md` in your handoff
 
+## File List Completeness Rule
+
+When a plan involves migrating or modifying a known set of files:
+
+- NEVER use approximate counts like "~8 files" or "multiple files" in file lists
+- ALWAYS enumerate every file path explicitly using Glob/Grep results from the EXPLORE phase
+- If the explorer identified N files, the plan must list exactly N file paths (or explain why some are excluded)
+- Group files by category for readability, but every individual file must appear by name
+
 ## Output
 
 Write plan to `.tdd/plan.md`. Be concise and actionable. Focus on what to do, not lengthy explanations.

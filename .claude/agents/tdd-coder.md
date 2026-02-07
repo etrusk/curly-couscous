@@ -56,6 +56,15 @@ If uncertain, read the file first. Don't assume.
 6. Run linter and type-check
 7. Repeat for next test
 
+## Large Migration Protocol
+
+When WRITE_TESTS involves migrating 10+ files:
+
+1. **Before starting**: Extract the complete file list from `.tdd/plan.md` or `.tdd/test-designs.md` into a tracking checklist in `.tdd/session.md` under a "Migration Checklist" heading
+2. **After each batch of edits**: Run `npm run type-check` to identify remaining unmigrated files (compiler errors reveal files still using old types)
+3. **Before reporting COMPLETE**: Run `npm run type-check` and verify zero errors related to the migration. If errors remain, fix them before completing.
+4. **Post-compaction**: Re-read the migration checklist from `.tdd/session.md` to recover the full file list
+
 ## Exchange Budget
 
 - **Checkpoint**: 15 exchanges (pause and assess progress)

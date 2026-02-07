@@ -27,7 +27,6 @@ describe("SkillRow - Enable/Disable Checkbox", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -53,7 +52,6 @@ describe("SkillRow - Enable/Disable Checkbox", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -81,7 +79,6 @@ describe("SkillRow - Enable/Disable Checkbox", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -108,7 +105,6 @@ describe("SkillRow - Enable/Disable Checkbox", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="battle"
         index={0}
         isFirst={false}
         isLast={false}
@@ -139,7 +135,6 @@ describe("SkillRow - Unassign Button", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -165,7 +160,6 @@ describe("SkillRow - Unassign Button", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -190,7 +184,6 @@ describe("SkillRow - Unassign Button", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}

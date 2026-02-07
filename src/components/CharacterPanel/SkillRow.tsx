@@ -1,5 +1,5 @@
 /**
- * SkillRow - Displays a single skill in priority list (config or battle mode)
+ * SkillRow - Displays a single skill in priority list.
  */
 
 import type {
@@ -21,7 +21,6 @@ interface SkillRowProps {
   index: number;
   isFirst: boolean;
   isLast: boolean;
-  mode: "config" | "battle";
   evaluation?: {
     status: "selected" | "rejected" | "skipped";
     rejectionReason?: string;
@@ -36,7 +35,6 @@ export function SkillRow({
   index,
   isFirst,
   isLast,
-  mode: _mode,
   evaluation,
 }: SkillRowProps) {
   const { updateSkill, moveSkillUp, moveSkillDown } =

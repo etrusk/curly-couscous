@@ -79,7 +79,6 @@ export function PriorityTab({ mode }: PriorityTabProps) {
             index={index}
             isFirst={index === 0}
             isLast={index === character.skills.length - 1}
-            mode={isBattleMode ? "battle" : "config"}
             evaluation={evaluations[index]}
           />
         ))}

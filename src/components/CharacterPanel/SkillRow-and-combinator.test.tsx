@@ -27,7 +27,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -53,7 +52,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -80,7 +78,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -108,7 +105,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -147,7 +143,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -185,7 +180,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -212,7 +206,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -246,7 +239,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -284,7 +276,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -332,7 +323,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -371,7 +361,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="battle"
         index={0}
         isFirst={false}
         isLast={false}
@@ -405,7 +394,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}
@@ -439,7 +427,6 @@ describe("SkillRow AND Combinator", () => {
       <SkillRow
         skill={skill}
         character={character}
-        mode="config"
         index={0}
         isFirst={false}
         isLast={false}

@@ -18,7 +18,6 @@ describe("SkillRow - Selector Filter", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="config"
           index={0}
           isFirst={false}
           isLast={false}
@@ -43,7 +42,6 @@ describe("SkillRow - Selector Filter", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="config"
           index={0}
           isFirst={false}
           isLast={false}
@@ -74,7 +72,6 @@ describe("SkillRow - Selector Filter", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="config"
           index={0}
           isFirst={false}
           isLast={false}
@@ -105,7 +102,6 @@ describe("SkillRow - Selector Filter", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="config"
           index={0}
           isFirst={false}
           isLast={false}
@@ -124,7 +120,6 @@ describe("SkillRow - Selector Filter", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="config"
           index={0}
           isFirst={false}
           isLast={false}
@@ -152,7 +147,6 @@ describe("SkillRow - Selector Filter", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="battle"
           index={0}
           isFirst={false}
           isLast={false}

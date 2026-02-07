@@ -20,7 +20,6 @@ describe("SkillRow", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="config"
           index={0}
           isFirst={false}
           isLast={false}
@@ -60,7 +59,6 @@ describe("SkillRow", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="battle"
           index={0}
           isFirst={false}
           isLast={false}
@@ -93,7 +91,6 @@ describe("SkillRow", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="battle"
           index={0}
           isFirst={false}
           isLast={false}
@@ -121,7 +118,6 @@ describe("SkillRow", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="battle"
           index={1}
           isFirst={false}
           isLast={false}
@@ -149,7 +145,6 @@ describe("SkillRow", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="battle"
           index={0}
           isFirst={false}
           isLast={false}
@@ -196,7 +191,6 @@ describe("SkillRow", () => {
           <SkillRow
             skill={skill}
             character={character}
-            mode="battle"
             index={0}
             isFirst={false}
             isLast={false}
@@ -226,7 +220,6 @@ describe("SkillRow", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="config"
           index={0}
           isFirst={false}
           isLast={false}
@@ -258,7 +251,6 @@ describe("SkillRow", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="config"
           index={0}
           isFirst={false}
           isLast={false}
@@ -284,7 +276,6 @@ describe("SkillRow", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="config"
           index={0}
           isFirst={false}
           isLast={false}
@@ -308,7 +299,6 @@ describe("SkillRow", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="config"
           index={0}
           isFirst={false}
           isLast={false}
@@ -344,7 +334,6 @@ describe("SkillRow", () => {
         <SkillRow
           skill={lp1}
           character={character}
-          mode="config"
           index={0}
           isFirst={true}
           isLast={false}
@@ -371,7 +360,6 @@ describe("SkillRow", () => {
         <SkillRow
           skill={skill}
           character={character}
-          mode="config"
           index={0}
           isFirst={true}
           isLast={false}

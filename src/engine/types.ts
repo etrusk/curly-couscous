@@ -62,7 +62,7 @@ export interface Skill {
   healing?: number;
   behavior: string; // Universal behavior value
   enabled: boolean;
-  triggers: Trigger[];
+  trigger: Trigger;
   target: Target;
   criterion: Criterion;
   cooldownRemaining?: number; // Ticks remaining until skill is ready
@@ -84,19 +84,39 @@ export interface SelectorFilter {
 }
 
 /**
+ * Trigger scope determines which character pool to evaluate against.
+ */
+export type TriggerScope = "enemy" | "ally" | "self";
+
+/**
+ * Condition type for trigger evaluation.
+ */
+export type ConditionType =
+  | "always"
+  | "in_range"
+  | "hp_below"
+  | "hp_above"
+  | "targeting_me";
+// Phase 3 will add: "channeling" | "idle" | "targeting_ally"
+
+/**
+ * Qualifier narrows condition matching (e.g., channeling a specific skill).
+ */
+export interface ConditionQualifier {
+  type: "action" | "skill";
+  id: string;
+}
+
+/**
  * Trigger defines a condition that must be met for a skill to activate.
- * Matches spec Section 13.3.
+ * Uses unified scope + condition model (Phase 1 refactor).
  */
 export interface Trigger {
-  type:
-    | "always"
-    | "enemy_in_range"
-    | "ally_in_range"
-    | "hp_below"
-    | "ally_hp_below"
-    | "my_cell_targeted_by_enemy";
-  value?: number; // for range X or X% (undefined for 'always' and 'my_cell_targeted_by_enemy')
-  negated?: boolean; // If true, invert the trigger result
+  scope: TriggerScope;
+  condition: ConditionType;
+  conditionValue?: number;
+  qualifier?: ConditionQualifier;
+  negated?: boolean;
 }
 
 /**
@@ -319,7 +339,7 @@ export interface SkillEvaluationResult {
   // Additional context for display (optional, enriches understanding)
   target?: Character; // The selected/attempted target
   distance?: number; // Distance to target (for out_of_range context)
-  failedTriggers?: Trigger[]; // Which triggers failed (for trigger_failed)
+  failedTrigger?: Trigger; // Which trigger failed (for trigger_failed)
   failedFilter?: SelectorFilter; // Which filter failed (for filter_failed)
 }
 

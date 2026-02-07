@@ -325,10 +325,7 @@ export const selectMovementTargetData = (() => {
           if (!s.enabled) continue;
           if (s.cooldownRemaining && s.cooldownRemaining > 0) continue;
           if (s.behavior === "hold") continue;
-          const allTriggersPass = s.triggers.every((trigger) =>
-            evaluateTrigger(trigger, character, characters),
-          );
-          if (!allTriggersPass) continue;
+          if (!evaluateTrigger(s.trigger, character, characters)) continue;
           moveSkill = s;
           break;
         }

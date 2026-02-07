@@ -44,7 +44,7 @@ export const IDLE_SKILL: Skill = {
   range: 0,
   behavior: "",
   enabled: true,
-  triggers: [],
+  trigger: { scope: "enemy" as const, condition: "always" as const },
   target: "enemy",
   criterion: "nearest",
 };
@@ -87,11 +87,8 @@ function tryExecuteSkill(
     return null;
   }
 
-  // Check all triggers (AND logic)
-  const allTriggersPass = skill.triggers.every((trigger) =>
-    evaluateTrigger(trigger, character, allCharacters),
-  );
-  if (!allTriggersPass) {
+  // Check trigger
+  if (!evaluateTrigger(skill.trigger, character, allCharacters)) {
     return null;
   }
 
@@ -209,15 +206,12 @@ function evaluateSingleSkill(
     return { skill, status: "rejected", rejectionReason: "disabled" };
   }
 
-  const failedTriggers = skill.triggers.filter(
-    (t) => !evaluateTrigger(t, character, allCharacters),
-  );
-  if (failedTriggers.length > 0) {
+  if (!evaluateTrigger(skill.trigger, character, allCharacters)) {
     return {
       skill,
       status: "rejected",
       rejectionReason: "trigger_failed",
-      failedTriggers,
+      failedTrigger: skill.trigger,
     };
   }
 

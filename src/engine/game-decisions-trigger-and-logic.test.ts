@@ -1,5 +1,6 @@
 /**
- * Tests for trigger AND logic in computeDecisions.
+ * Tests for singular trigger evaluation in computeDecisions.
+ * Replaces old AND logic tests with singular trigger tests (Phase 1 refactor).
  */
 
 import { describe, it, expect } from "vitest";
@@ -10,8 +11,8 @@ import {
   createSkill,
 } from "./game-test-helpers";
 
-describe("computeDecisions - trigger AND logic", () => {
-  it("should pass when all triggers pass (AND logic)", () => {
+describe("computeDecisions - singular trigger", () => {
+  it("should select skill when single trigger passes", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -21,15 +22,11 @@ describe("computeDecisions - trigger AND logic", () => {
       id: "char1",
       faction: "friendly",
       position: { q: 3, r: 2 },
-      hp: 30,
       skills: [
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [
-            { type: "enemy_in_range", value: 3 },
-            { type: "hp_below", value: 50 },
-          ],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 3 },
         }),
       ],
     });
@@ -43,7 +40,7 @@ describe("computeDecisions - trigger AND logic", () => {
     expect(decisions[0]!.action.skill.id).toBe("skill1");
   });
 
-  it("should fail when any trigger fails (AND logic)", () => {
+  it("should fall through to idle when single trigger fails", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -53,15 +50,11 @@ describe("computeDecisions - trigger AND logic", () => {
       id: "char1",
       faction: "friendly",
       position: { q: 3, r: 2 },
-      hp: 30,
       skills: [
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [
-            { type: "enemy_in_range", value: 3 },
-            { type: "hp_below", value: 50 },
-          ],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 3 },
         }),
       ],
     });
@@ -75,17 +68,23 @@ describe("computeDecisions - trigger AND logic", () => {
     expect(decisions[0]!.action.type).toBe("idle");
   });
 
-  it("should pass when triggers array is empty (vacuous truth)", () => {
+  it("should select skill with always trigger (default trigger shape)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { q: 4, r: 2 }, // Distance 1 from {q:3, r:2}
+      position: { q: 4, r: 2 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
       position: { q: 3, r: 2 },
-      skills: [createSkill({ id: "skill1", damage: 10, triggers: [] })],
+      skills: [
+        createSkill({
+          id: "skill1",
+          damage: 10,
+          trigger: { scope: "enemy", condition: "always" },
+        }),
+      ],
     });
     const state = createGameState({
       tick: 1,
@@ -97,26 +96,28 @@ describe("computeDecisions - trigger AND logic", () => {
     expect(decisions[0]!.action.skill.id).toBe("skill1");
   });
 
-  it("should pass when all triggers pass with negated trigger (AND with NOT)", () => {
+  it("should select skill when negated trigger passes (NOT hp_below = above threshold)", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { q: 4, r: 2 }, // Distance 1 from {q:3, r:2}
+      position: { q: 4, r: 2 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
       position: { q: 3, r: 2 },
       hp: 80,
-      maxHp: 100, // 80% - NOT below 50%
+      maxHp: 100,
       skills: [
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [
-            { type: "enemy_in_range", value: 3 },
-            { type: "hp_below", value: 50, negated: true },
-          ],
+          trigger: {
+            scope: "self",
+            condition: "hp_below",
+            conditionValue: 50,
+            negated: true,
+          },
         }),
       ],
     });
@@ -130,26 +131,28 @@ describe("computeDecisions - trigger AND logic", () => {
     expect(decisions[0]!.action.skill.id).toBe("skill1");
   });
 
-  it("should fail when negated trigger fails (AND with NOT)", () => {
+  it("should fall through to idle when negated trigger fails", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { q: 4, r: 2 }, // Distance 1 from {q:3, r:2}
+      position: { q: 4, r: 2 },
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
       position: { q: 3, r: 2 },
       hp: 30,
-      maxHp: 100, // 30% - below 50%, negated makes trigger false
+      maxHp: 100,
       skills: [
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [
-            { type: "enemy_in_range", value: 3 },
-            { type: "hp_below", value: 50, negated: true },
-          ],
+          trigger: {
+            scope: "self",
+            condition: "hp_below",
+            conditionValue: 50,
+            negated: true,
+          },
         }),
       ],
     });
@@ -163,7 +166,7 @@ describe("computeDecisions - trigger AND logic", () => {
     expect(decisions[0]!.action.type).toBe("idle");
   });
 
-  it("should work with ally_hp_below in AND combination", () => {
+  it("should demonstrate AND-like behavior via skill duplication with different priorities", () => {
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
@@ -176,10 +179,14 @@ describe("computeDecisions - trigger AND logic", () => {
           actionType: "heal",
           healing: 20,
           target: "ally",
-          triggers: [
-            { type: "ally_in_range", value: 3 },
-            { type: "ally_hp_below", value: 50 },
-          ],
+          trigger: { scope: "ally", condition: "hp_below", conditionValue: 50 },
+        }),
+        createSkill({
+          id: "heal2",
+          actionType: "heal",
+          healing: 20,
+          target: "ally",
+          trigger: { scope: "ally", condition: "in_range", conditionValue: 3 },
         }),
       ],
     });
@@ -195,12 +202,21 @@ describe("computeDecisions - trigger AND logic", () => {
       characters: [character, ally],
     });
 
-    const decisions = computeDecisions(state);
+    // Both triggers pass, heal1 selected due to higher priority
+    const decisions1 = computeDecisions(state);
+    expect(decisions1[0]!.action.skill.id).toBe("heal1");
 
-    expect(decisions[0]!.action.skill.id).toBe("heal1");
+    // When ally HP is 80/100 (hp_below fails), falls through to heal2
+    const allyHealthy = { ...ally, hp: 80 };
+    const state2 = createGameState({
+      tick: 1,
+      characters: [character, allyHealthy],
+    });
+    const decisions2 = computeDecisions(state2);
+    expect(decisions2[0]!.action.skill.id).toBe("heal2");
   });
 
-  it("should include negated field in failed triggers", () => {
+  it("should produce failedTrigger (singular) in evaluateSkillsForCharacter", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
@@ -211,12 +227,55 @@ describe("computeDecisions - trigger AND logic", () => {
       faction: "friendly",
       position: { q: 3, r: 2 },
       hp: 30,
-      maxHp: 100, // 30% - below 50%
+      maxHp: 100,
       skills: [
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [{ type: "hp_below", value: 50, negated: true }],
+          trigger: {
+            scope: "self",
+            condition: "hp_below",
+            conditionValue: 50,
+            negated: true,
+          },
+        }),
+      ],
+    });
+
+    const result = evaluateSkillsForCharacter(character, [character, enemy]);
+
+    expect(result.skillEvaluations[0]?.status).toBe("rejected");
+    expect(result.skillEvaluations[0]?.rejectionReason).toBe("trigger_failed");
+    expect(result.skillEvaluations[0]?.failedTrigger).toBeDefined();
+    expect(result.skillEvaluations[0]?.failedTrigger?.condition).toBe(
+      "hp_below",
+    );
+    expect(result.skillEvaluations[0]?.failedTrigger?.negated).toBe(true);
+    expect(result.skillEvaluations[0]?.failedTrigger?.scope).toBe("self");
+  });
+
+  it("should propagate failedTrigger (singular) through computeDecisions evaluations", () => {
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 4, r: 2 },
+    });
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+      hp: 30,
+      maxHp: 100,
+      skills: [
+        createSkill({
+          id: "skill1",
+          damage: 10,
+          trigger: {
+            scope: "self",
+            condition: "hp_below",
+            conditionValue: 50,
+            negated: true,
+          },
         }),
       ],
     });
@@ -227,7 +286,6 @@ describe("computeDecisions - trigger AND logic", () => {
 
     const decisions = computeDecisions(state);
 
-    // Skill rejected because HP IS below 50%, negated makes trigger false
     expect(decisions[0]!.action.type).toBe("idle");
     expect(decisions[0]!.evaluations).toBeDefined();
     expect(decisions[0]!.evaluations!.skillEvaluations[0]?.status).toBe(
@@ -237,39 +295,82 @@ describe("computeDecisions - trigger AND logic", () => {
       decisions[0]!.evaluations!.skillEvaluations[0]?.rejectionReason,
     ).toBe("trigger_failed");
     expect(
-      decisions[0]!.evaluations!.skillEvaluations[0]?.failedTriggers?.[0]
-        ?.negated,
+      decisions[0]!.evaluations!.skillEvaluations[0]?.failedTrigger,
+    ).toBeDefined();
+    expect(
+      decisions[0]!.evaluations!.skillEvaluations[0]?.failedTrigger?.negated,
     ).toBe(true);
   });
+});
 
-  it("should capture negated field in evaluateSkillsForCharacter failedTriggers", () => {
+describe("computeDecisions - full decision flow with new trigger shape", () => {
+  it("should complete full decision pipeline with in_range trigger", () => {
     const enemy = createCharacter({
       id: "enemy",
       faction: "enemy",
-      position: { q: 4, r: 2 },
+      position: { q: 4, r: 2 }, // Distance 1 from {q:3, r:2}
     });
     const character = createCharacter({
       id: "char1",
       faction: "friendly",
       position: { q: 3, r: 2 },
-      hp: 30,
-      maxHp: 100, // 30% - below 50%
       skills: [
         createSkill({
-          id: "skill1",
+          id: "attack1",
           damage: 10,
-          triggers: [{ type: "hp_below", value: 50, negated: true }],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
         }),
       ],
     });
+    const state = createGameState({
+      tick: 1,
+      characters: [character, enemy],
+    });
 
-    const result = evaluateSkillsForCharacter(character, [character, enemy]);
+    const decisions = computeDecisions(state);
 
-    expect(result.skillEvaluations[0]?.status).toBe("rejected");
-    expect(result.skillEvaluations[0]?.rejectionReason).toBe("trigger_failed");
-    expect(result.skillEvaluations[0]?.failedTriggers?.[0]?.type).toBe(
-      "hp_below",
+    expect(decisions[0]!.action.type).not.toBe("idle");
+    expect(decisions[0]!.action.type).toBe("attack");
+    expect(decisions[0]!.action.skill.id).toBe("attack1");
+    expect(decisions[0]!.evaluations!.skillEvaluations[0]?.status).toBe(
+      "selected",
     );
-    expect(result.skillEvaluations[0]?.failedTriggers?.[0]?.negated).toBe(true);
+  });
+
+  it("should complete targeting_me dodge scenario", () => {
+    const character = createCharacter({
+      id: "char1",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+      skills: [
+        createSkill({
+          id: "dodge-move",
+          actionType: "move",
+          behavior: "away",
+          trigger: { scope: "enemy", condition: "targeting_me" },
+        }),
+      ],
+    });
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 4, r: 2 },
+      currentAction: {
+        type: "attack",
+        skill: createSkill({ id: "test-attack", damage: 10 }),
+        targetCell: { q: 3, r: 2 },
+        targetCharacter: character,
+        startedAtTick: 0,
+        resolvesAtTick: 1,
+      },
+    });
+    const state = createGameState({
+      tick: 1,
+      characters: [character, enemy],
+    });
+
+    const decisions = computeDecisions(state);
+
+    expect(decisions[0]!.action.type).toBe("move");
   });
 });

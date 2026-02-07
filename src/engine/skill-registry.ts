@@ -124,7 +124,7 @@ export function getDefaultSkills(): Skill[] {
     ...(def.healing !== undefined ? { healing: def.healing } : {}),
     behavior: def.defaultBehavior,
     enabled: true,
-    triggers: [{ type: "always" as const }],
+    trigger: { scope: "enemy" as const, condition: "always" as const },
     target: def.defaultTarget,
     criterion: def.defaultCriterion,
   }));
@@ -146,7 +146,7 @@ export function createSkillFromDefinition(def: SkillDefinition): Skill {
     ...(def.healing !== undefined ? { healing: def.healing } : {}),
     behavior: def.defaultBehavior,
     enabled: true,
-    triggers: [{ type: "always" as const }],
+    trigger: { scope: "enemy" as const, condition: "always" as const },
     target: def.defaultTarget,
     criterion: def.defaultCriterion,
   };

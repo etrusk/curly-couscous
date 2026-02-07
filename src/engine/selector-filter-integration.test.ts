@@ -15,7 +15,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           id: "attack",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -41,7 +41,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           id: "attack",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           selectorFilter: { type: "hp_below", value: 50 },
         }),
       ],
@@ -70,7 +70,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           id: "attack",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           selectorFilter: { type: "hp_below", value: 50 },
         }),
       ],
@@ -99,7 +99,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           id: "attack",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           selectorFilter: { type: "hp_above", value: 50 },
         }),
       ],
@@ -127,7 +127,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           id: "attack",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           selectorFilter: { type: "hp_above", value: 50 },
         }),
       ],
@@ -156,7 +156,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           id: "attack",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           selectorFilter: { type: "hp_below", value: 50 },
         }),
       ],
@@ -187,7 +187,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           id: "attack",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           selectorFilter: { type: "hp_below", value: 50 },
         }),
       ],
@@ -217,7 +217,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           instanceId: "attack1",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           selectorFilter: { type: "hp_below", value: 50 },
         }),
         createSkill({
@@ -225,7 +225,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           instanceId: "attack2",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -258,7 +258,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           healing: 25,
           range: 5,
           target: "self",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           selectorFilter: { type: "hp_below", value: 50 },
         }),
       ],
@@ -279,7 +279,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           id: "attack",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           selectorFilter: { type: "hp_below", value: 50 },
         }),
       ],
@@ -296,7 +296,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
 
     expect(result.skillEvaluations[0]!.status).toBe("rejected");
     expect(result.skillEvaluations[0]!.rejectionReason).toBe("filter_failed");
-    expect(result.skillEvaluations[0]!.failedTriggers).toBeUndefined();
+    expect(result.skillEvaluations[0]!.failedTrigger).toBeUndefined();
   });
 
   it("filter on move skill: filter checked even though move skips range check", () => {
@@ -308,7 +308,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
         createSkill({
           id: "move",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           selectorFilter: { type: "hp_below", value: 50 },
         }),
       ],
@@ -338,7 +338,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           healing: 25,
           range: 5,
           target: "ally",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           selectorFilter: { type: "hp_below", value: 50 },
         }),
       ],
@@ -369,7 +369,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           name: "Light Punch",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           selectorFilter: { type: "hp_below", value: 50 },
         }),
         createSkill({
@@ -378,7 +378,7 @@ describe("selector filter integration via evaluateSkillsForCharacter", () => {
           name: "Light Punch",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });

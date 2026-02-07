@@ -33,7 +33,7 @@ function createIdleAction(): Action {
       behavior: "",
       actionType: "attack",
       enabled: true,
-      triggers: [],
+      trigger: { scope: "enemy", condition: "always" },
     },
     targetCell: { q: 0, r: 0 },
     targetCharacter: null,
@@ -181,7 +181,7 @@ describe("RuleEvaluations - Action Summary", () => {
           actionType: "attack",
           damage: 10,
           enabled: true,
-          triggers: [{ type: "enemy_in_range", value: 1 }],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
         },
         {
           id: "heavy-punch",
@@ -195,7 +195,7 @@ describe("RuleEvaluations - Action Summary", () => {
           actionType: "attack",
           damage: 25,
           enabled: true,
-          triggers: [{ type: "enemy_in_range", value: 2 }],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 2 },
         },
       ];
 
@@ -234,7 +234,7 @@ describe("RuleEvaluations - Action Summary", () => {
           actionType: "attack",
           damage: 25,
           enabled: false, // Will be rejected: disabled
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         },
         {
           id: "light-punch",
@@ -246,7 +246,7 @@ describe("RuleEvaluations - Action Summary", () => {
           damage: 10,
           behavior: "",
           enabled: true,
-          triggers: [{ type: "enemy_in_range", value: 1 }], // Will be rejected: enemy at range 2
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 }, // Will be rejected: enemy at range 2
           target: "enemy",
           criterion: "nearest",
         },
@@ -259,7 +259,7 @@ describe("RuleEvaluations - Action Summary", () => {
           range: 0,
           behavior: "towards",
           enabled: true,
-          triggers: [{ type: "always" }], // Will be selected
+          trigger: { scope: "enemy", condition: "always" }, // Will be selected
           target: "enemy",
           criterion: "nearest",
         },
@@ -275,7 +275,7 @@ describe("RuleEvaluations - Action Summary", () => {
           actionType: "attack",
           damage: 5,
           enabled: true,
-          triggers: [{ type: "always" }], // Will be skipped (not evaluated)
+          trigger: { scope: "enemy", condition: "always" }, // Will be skipped (not evaluated)
         },
       ];
 
@@ -416,7 +416,7 @@ describe("RuleEvaluations - Action Summary", () => {
           actionType: "attack",
           damage: 10,
           enabled: true,
-          triggers: [{ type: "enemy_in_range", value: 2 }],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 2 },
         },
       ];
 
@@ -434,8 +434,8 @@ describe("RuleEvaluations - Action Summary", () => {
       });
       await user.click(headerButton);
 
-      // Should show "enemy_in_range(2)" in rejection reason
-      expect(screen.getByText(/enemy_in_range\(2\)/)).toBeInTheDocument();
+      // Should show "in_range(2)" in rejection reason (enemy scope has no prefix)
+      expect(screen.getByText(/in_range\(2\)/)).toBeInTheDocument();
     });
 
     it("should omit value for always trigger", async () => {
@@ -477,7 +477,7 @@ describe("RuleEvaluations - Action Summary", () => {
           actionType: "heal",
           behavior: "",
           enabled: true,
-          triggers: [{ type: "hp_below", value: 50 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
         },
       ];
 
@@ -515,7 +515,7 @@ describe("RuleEvaluations - Action Summary", () => {
           range: 1,
           criterion: "nearest",
           target: "ally",
-          triggers: [{ type: "hp_below", value: 50 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
           enabled: true,
           actionType: "heal",
           behavior: "",
@@ -562,7 +562,7 @@ describe("RuleEvaluations - Action Summary", () => {
           actionType: "attack",
           damage: 10,
           enabled: true,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         },
       ];
 
@@ -606,7 +606,7 @@ describe("RuleEvaluations - Action Summary", () => {
           actionType: "attack",
           damage: 10,
           enabled: false,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         },
       ];
 
@@ -644,7 +644,7 @@ describe("RuleEvaluations - Action Summary", () => {
           actionType: "attack",
           damage: 10,
           enabled: true,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         },
       ];
 

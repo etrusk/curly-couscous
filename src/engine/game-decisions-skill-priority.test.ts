@@ -26,12 +26,12 @@ describe("computeDecisions - skill priority order", () => {
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
         createSkill({
           id: "skill2",
           damage: 20,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -59,13 +59,13 @@ describe("computeDecisions - skill priority order", () => {
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [{ type: "enemy_in_range", value: 1 }],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
         }),
         createSkill({
           id: "skill2",
           damage: 20,
           range: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -94,18 +94,18 @@ describe("computeDecisions - skill priority order", () => {
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [{ type: "enemy_in_range", value: 1 }],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
         }),
         createSkill({
           id: "skill2",
           damage: 20,
-          triggers: [{ type: "hp_below", value: 50 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
         }),
         createSkill({
           id: "skill3",
           damage: 30,
           range: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -137,13 +137,13 @@ describe("computeDecisions - skill priority order", () => {
           id: "move-towards",
           instanceId: "move-away-inst",
           behavior: "away",
-          triggers: [{ type: "hp_below", value: 50 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move-towards-inst",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -175,13 +175,13 @@ describe("computeDecisions - skill priority order", () => {
           id: "move-towards",
           instanceId: "move-away-inst",
           behavior: "away",
-          triggers: [{ type: "hp_below", value: 50 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move-towards-inst",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -213,13 +213,13 @@ describe("computeDecisions - skill priority order", () => {
           id: "move-towards",
           instanceId: "move-away-inst",
           behavior: "away",
-          triggers: [{ type: "hp_below", value: 50 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move-towards-inst",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -259,13 +259,13 @@ describe("computeDecisions - skill priority order", () => {
           id: "move-towards",
           instanceId: "move-away-inst",
           behavior: "away",
-          triggers: [{ type: "hp_below", value: 50 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move-towards-inst",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -303,13 +303,13 @@ describe("computeDecisions - skill priority order", () => {
           id: "move-towards",
           instanceId: "charA-away",
           behavior: "away",
-          triggers: [{ type: "hp_below", value: 50 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
         }),
         createSkill({
           id: "move-towards",
           instanceId: "charA-towards",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -324,13 +324,13 @@ describe("computeDecisions - skill priority order", () => {
           id: "move-towards",
           instanceId: "charB-away",
           behavior: "away",
-          triggers: [{ type: "hp_below", value: 50 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
         }),
         createSkill({
           id: "move-towards",
           instanceId: "charB-towards",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -366,19 +366,19 @@ describe("computeDecisions - skill priority order", () => {
           id: "move-towards",
           instanceId: "move1",
           behavior: "away",
-          triggers: [{ type: "hp_below", value: 25 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 25 },
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move2",
           behavior: "away",
-          triggers: [{ type: "hp_below", value: 50 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move3",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -410,19 +410,19 @@ describe("computeDecisions - skill priority order", () => {
           id: "move-towards",
           instanceId: "move1",
           behavior: "away",
-          triggers: [{ type: "hp_below", value: 25 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 25 },
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move2",
           behavior: "away",
-          triggers: [{ type: "hp_below", value: 50 }],
+          trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
         }),
         createSkill({
           id: "move-towards",
           instanceId: "move3",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });

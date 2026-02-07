@@ -24,7 +24,7 @@ describe("game-decisions-cooldown", () => {
           id: "skill1",
           damage: 10,
           cooldownRemaining: 2, // ON COOLDOWN
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           range: 3,
         }),
       ],
@@ -53,7 +53,7 @@ describe("game-decisions-cooldown", () => {
           id: "skill1",
           damage: 10,
           cooldownRemaining: 0, // READY
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           range: 3,
         }),
       ],
@@ -82,7 +82,7 @@ describe("game-decisions-cooldown", () => {
           id: "skill1",
           damage: 10,
           // cooldownRemaining: undefined (no cooldown field)
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           range: 3,
         }),
       ],
@@ -111,7 +111,7 @@ describe("game-decisions-cooldown", () => {
           instanceId: "skill1",
           damage: 20,
           cooldownRemaining: 3, // ON COOLDOWN
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           range: 3,
         }),
         createSkill({
@@ -119,7 +119,7 @@ describe("game-decisions-cooldown", () => {
           instanceId: "skill2",
           damage: 10,
           cooldownRemaining: 0, // READY
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           range: 3,
         }),
       ],

@@ -154,7 +154,7 @@ describe("processTick - combat and movement integration", () => {
         tickCost: 0,
         range: 1,
         damage: 10,
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const friendly = createCharacter({
         id: "friendly",
@@ -188,7 +188,7 @@ describe("processTick - combat and movement integration", () => {
         tickCost: 0,
         range: 1,
         damage: 10,
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const friendly = createCharacter({
         id: "friendly",

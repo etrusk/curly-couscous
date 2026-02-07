@@ -86,7 +86,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 10,
         behavior: "",
         enabled: false, // Disabled
-        triggers: [{ type: "enemy_in_range", value: 1 }],
+        trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
         target: "enemy",
         criterion: "nearest",
       },
@@ -99,7 +99,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         range: 0,
         behavior: "towards",
         enabled: false, // Disabled
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
         target: "enemy",
         criterion: "nearest",
       },
@@ -113,7 +113,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 25,
         behavior: "",
         enabled: true, // Only this enabled
-        triggers: [{ type: "enemy_in_range", value: 1 }],
+        trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
         target: "enemy",
         criterion: "nearest",
       },
@@ -148,7 +148,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 10,
         behavior: "",
         enabled: true,
-        triggers: [{ type: "always" }], // No range-based trigger, so we hit the range check
+        trigger: { scope: "enemy", condition: "always" }, // No range-based trigger, so we hit the range check
         target: "enemy",
         criterion: "nearest",
       },
@@ -183,7 +183,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 10,
         behavior: "",
         enabled: true,
-        triggers: [{ type: "hp_below", value: 50 }], // Will fail at 100 HP
+        trigger: { scope: "self", condition: "hp_below", conditionValue: 50 }, // Will fail at 100 HP
         target: "enemy",
         criterion: "nearest",
       },
@@ -197,7 +197,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 10,
         behavior: "",
         enabled: true,
-        triggers: [{ type: "hp_below", value: 50 }], // Will fail at 100 HP
+        trigger: { scope: "self", condition: "hp_below", conditionValue: 50 }, // Will fail at 100 HP
         target: "enemy",
         criterion: "nearest",
       },
@@ -211,7 +211,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 10,
         behavior: "",
         enabled: true,
-        triggers: [{ type: "enemy_in_range", value: 1 }], // Will succeed
+        trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 }, // Will succeed
         target: "enemy",
         criterion: "nearest",
       },
@@ -281,7 +281,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 10,
         behavior: "",
         enabled: true,
-        triggers: [{ type: "enemy_in_range", value: 1 }],
+        trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
         target: "enemy",
         criterion: "nearest",
       },
@@ -294,7 +294,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         range: 0,
         behavior: "towards",
         enabled: true,
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
         target: "enemy",
         criterion: "nearest",
       },
@@ -308,7 +308,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 25,
         behavior: "",
         enabled: true,
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
         target: "enemy",
         criterion: "nearest",
       },
@@ -347,7 +347,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 10,
         behavior: "",
         enabled: true,
-        triggers: [{ type: "enemy_in_range", value: 1 }],
+        trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
         target: "enemy",
         criterion: "nearest",
       },
@@ -360,7 +360,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         range: 0,
         behavior: "towards",
         enabled: false, // Disabled
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
         target: "enemy",
         criterion: "nearest",
       },
@@ -374,7 +374,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 25,
         behavior: "",
         enabled: true,
-        triggers: [{ type: "enemy_in_range", value: 2 }],
+        trigger: { scope: "enemy", condition: "in_range", conditionValue: 2 },
         target: "enemy",
         criterion: "nearest",
       },
@@ -419,7 +419,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 10,
         behavior: "",
         enabled: false,
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
         target: "enemy",
         criterion: "nearest",
       },
@@ -433,7 +433,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 10,
         behavior: "",
         enabled: true,
-        triggers: [{ type: "hp_below", value: 10 }], // 100 HP, will fail
+        trigger: { scope: "self", condition: "hp_below", conditionValue: 10 }, // 100 HP, will fail
         target: "enemy",
         criterion: "nearest",
       },
@@ -447,7 +447,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 10,
         behavior: "",
         enabled: true,
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
         target: "enemy",
         criterion: "nearest",
       },
@@ -460,7 +460,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         range: 0,
         behavior: "towards",
         enabled: true,
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
         target: "enemy",
         criterion: "nearest",
       },
@@ -515,7 +515,7 @@ describe("RuleEvaluations - Skill Priority & Rejection", () => {
         damage: 10,
         behavior: "",
         enabled: true,
-        triggers: [{ type: "enemy_in_range", value: 1 }],
+        trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
         target: "enemy",
         criterion: "nearest",
       },

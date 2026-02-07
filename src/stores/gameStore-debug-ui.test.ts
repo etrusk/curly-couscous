@@ -174,7 +174,7 @@ describe("addCharacterAtPosition", () => {
     expect(skill).toHaveProperty("tickCost");
     expect(skill).toHaveProperty("range");
     expect(skill).toHaveProperty("enabled");
-    expect(skill).toHaveProperty("triggers");
+    expect(skill).toHaveProperty("trigger");
   });
 
   it("addCharacterAtPosition should create character with 100 HP", () => {

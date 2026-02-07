@@ -26,7 +26,7 @@ describe("computeDecisions - disabled skills", () => {
           id: "skill1",
           damage: 10,
           enabled: false,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -55,13 +55,13 @@ describe("computeDecisions - disabled skills", () => {
           id: "skill1",
           damage: 10,
           enabled: false,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
         createSkill({
           id: "skill2",
           damage: 20,
           enabled: true,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });

@@ -387,7 +387,7 @@ export const useGameStore = create<GameStore>()(
             ...(def.healing !== undefined ? { healing: def.healing } : {}),
             behavior: def.defaultBehavior,
             enabled: true,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy" as const, condition: "always" as const },
             target: def.defaultTarget,
             criterion: def.defaultCriterion,
           };

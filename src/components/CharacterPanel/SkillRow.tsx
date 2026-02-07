@@ -41,37 +41,10 @@ export function SkillRow({
     useGameStore(selectActions);
   const allCharacters = useGameStore((state) => state.gameState.characters);
 
-  const triggers = skill.triggers ?? [];
-  const trigger0: Trigger = triggers[0] || { type: "always" };
-  const trigger1: Trigger | undefined = triggers[1];
   const skillDef = getSkillDefinition(skill.id);
 
-  const handleTriggerUpdate = (idx: number, newTrigger: Trigger) => {
-    const newTriggers = [...triggers];
-    // Ensure array has at least the right size
-    if (newTriggers.length === 0) {
-      newTriggers.push(trigger0);
-    }
-    newTriggers[idx] = newTrigger;
-    updateSkill(character.id, skill.instanceId, { triggers: newTriggers });
-  };
-
-  const handleAddTrigger = () => {
-    const defaultTrigger: Trigger = { type: "hp_below", value: 50 };
-    let first = trigger0;
-    // Auto-replace "always" when adding second trigger
-    if (first.type === "always") {
-      first = { type: "hp_below", value: 50 };
-    }
-    updateSkill(character.id, skill.instanceId, {
-      triggers: [first, defaultTrigger],
-    });
-  };
-
-  const handleRemoveTrigger = () => {
-    updateSkill(character.id, skill.instanceId, {
-      triggers: [trigger0],
-    });
+  const handleTriggerUpdate = (newTrigger: Trigger) => {
+    updateSkill(character.id, skill.instanceId, { trigger: newTrigger });
   };
 
   const handleTargetChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -247,36 +220,11 @@ export function SkillRow({
 
       <div className={styles.triggerGroup}>
         <TriggerDropdown
-          trigger={trigger0}
+          trigger={skill.trigger}
           skillName={skill.name}
           triggerIndex={0}
-          onTriggerChange={(t) => handleTriggerUpdate(0, t)}
+          onTriggerChange={handleTriggerUpdate}
         />
-
-        {trigger1 && (
-          <>
-            <span className={styles.andLabel} aria-hidden="true">
-              AND
-            </span>
-            <TriggerDropdown
-              trigger={trigger1}
-              skillName={skill.name}
-              triggerIndex={1}
-              onTriggerChange={(t) => handleTriggerUpdate(1, t)}
-              onRemove={handleRemoveTrigger}
-            />
-          </>
-        )}
-
-        {triggers.length < 2 && (
-          <button
-            onClick={handleAddTrigger}
-            className={styles.addTriggerBtn}
-            aria-label={`Add AND trigger for ${skill.name}`}
-          >
-            + AND
-          </button>
-        )}
       </div>
 
       <select

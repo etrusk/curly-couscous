@@ -160,7 +160,7 @@ describe("BattleViewer Tooltip Integration", () => {
           damage: 10,
           behavior: "",
           enabled: true,
-          triggers: [{ type: "enemy_in_range", value: 1 }],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
           target: "enemy",
           criterion: "nearest",
         },

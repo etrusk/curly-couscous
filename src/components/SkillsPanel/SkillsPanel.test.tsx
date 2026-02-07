@@ -194,7 +194,7 @@ describe("SkillsPanel", () => {
     it("should display current trigger type", () => {
       const skill1 = createSkill({
         id: "skill1",
-        triggers: [{ type: "enemy_in_range", value: 3 }],
+        trigger: { scope: "enemy", condition: "in_range", conditionValue: 3 },
       });
       const char1 = createCharacter({ id: "char1", skills: [skill1] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -202,13 +202,13 @@ describe("SkillsPanel", () => {
 
       render(<SkillsPanel />);
 
-      expect(screen.getByText(/enemy in range/i)).toBeInTheDocument();
+      expect(screen.getByText(/in range/i)).toBeInTheDocument();
     });
 
     it("should display trigger value when applicable", () => {
       const skill1 = createSkill({
         id: "skill1",
-        triggers: [{ type: "hp_below", value: 50 }],
+        trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
       });
       const char1 = createCharacter({ id: "char1", skills: [skill1] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -223,7 +223,7 @@ describe("SkillsPanel", () => {
       const user = userEvent.setup();
       const skill1 = createSkill({
         id: "skill1",
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const char1 = createCharacter({ id: "char1", skills: [skill1] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -234,21 +234,21 @@ describe("SkillsPanel", () => {
       const triggerSelect = screen.getByRole("combobox", { name: /trigger/i });
       await user.click(triggerSelect);
 
-      // All trigger types should be available
+      // All condition types should be available
       expect(
         screen.getByRole("option", { name: /always/i }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("option", { name: /enemy in range/i }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("option", { name: /ally in range/i }),
+        screen.getByRole("option", { name: /in range/i }),
       ).toBeInTheDocument();
       expect(
         screen.getByRole("option", { name: /hp below/i }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("option", { name: /my cell targeted/i }),
+        screen.getByRole("option", { name: /hp above/i }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("option", { name: /cell targeted/i }),
       ).toBeInTheDocument();
     });
 
@@ -256,7 +256,7 @@ describe("SkillsPanel", () => {
       const user = userEvent.setup();
       const skill1 = createSkill({
         id: "skill1",
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const char1 = createCharacter({ id: "char1", skills: [skill1] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -265,21 +265,21 @@ describe("SkillsPanel", () => {
       render(<SkillsPanel />);
 
       const triggerSelect = screen.getByRole("combobox", { name: /trigger/i });
-      await user.selectOptions(triggerSelect, "enemy_in_range");
+      await user.selectOptions(triggerSelect, "in_range");
 
       // After implementation, trigger should be updated
       const updatedChar = useGameStore
         .getState()
         .gameState.characters.find((c) => c.id === "char1");
       const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-      expect(updatedSkill?.triggers[0]?.type).toBe("enemy_in_range");
+      expect(updatedSkill?.trigger?.condition).toBe("in_range");
     });
 
     it("should update trigger value when value input is changed", async () => {
       const user = userEvent.setup();
       const skill1 = createSkill({
         id: "skill1",
-        triggers: [{ type: "enemy_in_range", value: 3 }],
+        trigger: { scope: "enemy", condition: "in_range", conditionValue: 3 },
       });
       const char1 = createCharacter({ id: "char1", skills: [skill1] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -296,7 +296,7 @@ describe("SkillsPanel", () => {
         .getState()
         .gameState.characters.find((c) => c.id === "char1");
       const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-      expect(updatedSkill?.triggers[0]?.value).toBe(5);
+      expect(updatedSkill?.trigger?.conditionValue).toBe(5);
     });
   });
 
@@ -1474,14 +1474,14 @@ describe("SkillsPanel", () => {
         instanceId: "inst1",
         name: "Move",
         behavior: "towards",
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const move2 = createSkill({
         id: "move-towards",
         instanceId: "inst2",
         name: "Move",
         behavior: "towards",
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const char1 = createCharacter({ id: "char1", skills: [move1, move2] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -1498,12 +1498,12 @@ describe("SkillsPanel", () => {
         .getState()
         .gameState.characters.find((c) => c.id === "char1");
       expect(
-        updatedChar?.skills.find((s) => s.instanceId === "inst1")?.triggers[0]
-          ?.type,
+        updatedChar?.skills.find((s) => s.instanceId === "inst1")?.trigger
+          ?.condition,
       ).toBe("hp_below");
       expect(
-        updatedChar?.skills.find((s) => s.instanceId === "inst2")?.triggers[0]
-          ?.type,
+        updatedChar?.skills.find((s) => s.instanceId === "inst2")?.trigger
+          ?.condition,
       ).toBe("always");
     });
 

@@ -25,7 +25,7 @@ describe("game-cooldown-integration", () => {
           instanceId: "test-skill",
           damage: 20,
           tickCost: 2,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
       currentAction: {
@@ -105,7 +105,7 @@ describe("game-cooldown-integration", () => {
           instanceId: "primary-skill",
           damage: 20,
           cooldownRemaining: 2, // ON COOLDOWN
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           range: 3,
         }),
       ],
@@ -166,7 +166,7 @@ describe("game-cooldown-integration", () => {
           behavior: "towards",
           tickCost: 1,
           cooldownRemaining: 0, // READY
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           target: "enemy",
         }),
         createSkill({
@@ -175,7 +175,7 @@ describe("game-cooldown-integration", () => {
           behavior: "towards",
           tickCost: 1,
           cooldownRemaining: 0, // READY
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
           target: "enemy",
         }),
       ],

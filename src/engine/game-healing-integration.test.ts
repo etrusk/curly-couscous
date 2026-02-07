@@ -83,7 +83,7 @@ describe("game-healing-integration", () => {
       range: 5,
       healing: 25,
       enabled: true,
-      triggers: [{ type: "always" }],
+      trigger: { scope: "enemy", condition: "always" },
       target: "ally",
       criterion: "lowest_hp",
     });
@@ -94,7 +94,7 @@ describe("game-healing-integration", () => {
       range: 1,
       behavior: "towards",
       enabled: true,
-      triggers: [{ type: "always" }],
+      trigger: { scope: "enemy", condition: "always" },
     });
 
     const healer = createCharacter({
@@ -148,7 +148,7 @@ describe("game-healing-integration", () => {
       range: 5,
       tickCost: 0,
       enabled: true,
-      triggers: [{ type: "always" }],
+      trigger: { scope: "enemy", condition: "always" },
       target: "ally",
       criterion: "lowest_hp",
     });
@@ -158,7 +158,7 @@ describe("game-healing-integration", () => {
       range: 1,
       behavior: "towards",
       enabled: true,
-      triggers: [{ type: "always" }],
+      trigger: { scope: "enemy", condition: "always" },
     });
 
     const healer = createCharacter({
@@ -208,7 +208,7 @@ describe("game-healing-integration", () => {
       range: 5,
       tickCost: 0,
       enabled: true,
-      triggers: [{ type: "always" }],
+      trigger: { scope: "enemy", condition: "always" },
       target: "ally",
       criterion: "lowest_hp",
     });
@@ -218,7 +218,7 @@ describe("game-healing-integration", () => {
       range: 1,
       behavior: "towards",
       enabled: true,
-      triggers: [{ type: "always" }],
+      trigger: { scope: "enemy", condition: "always" },
     });
 
     const healer = createCharacter({
@@ -267,7 +267,7 @@ describe("game-healing-integration", () => {
       range: 5,
       tickCost: 0,
       enabled: true,
-      triggers: [{ type: "always" }],
+      trigger: { scope: "enemy", condition: "always" },
       target: "ally",
       criterion: "lowest_hp",
     });
@@ -277,7 +277,7 @@ describe("game-healing-integration", () => {
       range: 1,
       behavior: "towards",
       enabled: true,
-      triggers: [{ type: "always" }],
+      trigger: { scope: "enemy", condition: "always" },
     });
 
     const healer = createCharacter({
@@ -317,7 +317,7 @@ describe("game-healing-integration", () => {
       range: 5,
       tickCost: 0,
       enabled: true,
-      triggers: [{ type: "always" }],
+      trigger: { scope: "enemy", condition: "always" },
       target: "ally",
       criterion: "lowest_hp",
     });

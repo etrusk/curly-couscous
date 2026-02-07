@@ -34,18 +34,11 @@ export function formatActionSummary(action: Action | null): string {
  */
 export function formatTrigger(trigger: Trigger): string {
   const prefix = trigger.negated ? "NOT " : "";
-  if (trigger.value !== undefined) {
-    return `${prefix}${trigger.type}(${trigger.value})`;
+  const scopePrefix = trigger.scope !== "enemy" ? `${trigger.scope}:` : "";
+  if (trigger.conditionValue !== undefined) {
+    return `${prefix}${scopePrefix}${trigger.condition}(${trigger.conditionValue})`;
   }
-  return `${prefix}${trigger.type}`;
-}
-
-/**
- * Format multiple triggers with AND logic.
- */
-export function formatTriggers(triggers: Trigger[]): string {
-  if (triggers.length === 0) return "always";
-  return triggers.map(formatTrigger).join(" AND ");
+  return `${prefix}${scopePrefix}${trigger.condition}`;
 }
 
 /**
@@ -58,9 +51,8 @@ export function formatRejectionReasonCompact(
     case "disabled":
       return "disabled";
     case "trigger_failed":
-      if (result.failedTriggers && result.failedTriggers.length > 0) {
-        const triggers = result.failedTriggers.map(formatTrigger).join(", ");
-        return `trigger_failed: ${triggers}`;
+      if (result.failedTrigger) {
+        return `trigger_failed: ${formatTrigger(result.failedTrigger)}`;
       }
       return "trigger_failed";
     case "no_target":

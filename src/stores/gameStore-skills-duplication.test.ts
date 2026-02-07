@@ -71,7 +71,7 @@ describe("duplicateSkill", () => {
       id: "move-towards",
       instanceId: "source",
       behavior: "away",
-      triggers: [{ type: "hp_below", value: 50 }],
+      trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
       target: "enemy",
       criterion: "lowest_hp",
     });
@@ -87,7 +87,7 @@ describe("duplicateSkill", () => {
     expect(newSkill?.behavior).toBe("towards");
     expect(newSkill?.target).toBe("enemy");
     expect(newSkill?.criterion).toBe("nearest");
-    expect(newSkill?.triggers).toEqual([{ type: "always" }]);
+    expect(newSkill?.trigger).toEqual({ scope: "enemy", condition: "always" });
     expect(newSkill?.enabled).toBe(true);
   });
 
@@ -260,7 +260,7 @@ describe("duplicateSkill", () => {
       id: "move-towards",
       instanceId: "move-source",
       behavior: "away",
-      triggers: [{ type: "hp_below", value: 50 }],
+      trigger: { scope: "self", condition: "hp_below", conditionValue: 50 },
       target: "ally",
       criterion: "lowest_hp",
     });
@@ -278,7 +278,7 @@ describe("duplicateSkill", () => {
     expect(newSkill?.behavior).toBe("towards");
     expect(newSkill?.target).toBe("enemy");
     expect(newSkill?.criterion).toBe("nearest");
-    expect(newSkill?.triggers).toEqual([{ type: "always" }]);
+    expect(newSkill?.trigger).toEqual({ scope: "enemy", condition: "always" });
     expect(newSkill?.enabled).toBe(true);
   });
 });

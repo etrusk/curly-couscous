@@ -15,7 +15,7 @@ describe("TriggerDropdown", () => {
   it("renders trigger type dropdown with correct value", () => {
     render(
       <TriggerDropdown
-        trigger={{ type: "hp_below", value: 50 }}
+        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
         {...defaultProps}
         onTriggerChange={vi.fn()}
       />,
@@ -25,19 +25,16 @@ describe("TriggerDropdown", () => {
     });
     expect(select).toBeInTheDocument();
     expect(select).toHaveValue("hp_below");
-    // All 6 trigger type options present
+    // All 5 condition type options present
     expect(screen.getByRole("option", { name: "Always" })).toBeInTheDocument();
     expect(
-      screen.getByRole("option", { name: "Enemy in range" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: "Ally in range" }),
+      screen.getByRole("option", { name: "In range" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("option", { name: "HP below" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("option", { name: "Ally HP below" }),
+      screen.getByRole("option", { name: "HP above" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("option", { name: "Cell targeted" }),
@@ -47,7 +44,7 @@ describe("TriggerDropdown", () => {
   it("renders value input for value-based triggers", () => {
     render(
       <TriggerDropdown
-        trigger={{ type: "hp_below", value: 50 }}
+        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
         {...defaultProps}
         onTriggerChange={vi.fn()}
       />,
@@ -60,7 +57,7 @@ describe("TriggerDropdown", () => {
   it("hides value input for non-value triggers", () => {
     render(
       <TriggerDropdown
-        trigger={{ type: "always" }}
+        trigger={{ scope: "enemy", condition: "always" }}
         {...defaultProps}
         onTriggerChange={vi.fn()}
       />,
@@ -71,7 +68,7 @@ describe("TriggerDropdown", () => {
   it("hides value input for cell-targeted trigger", () => {
     render(
       <TriggerDropdown
-        trigger={{ type: "my_cell_targeted_by_enemy" }}
+        trigger={{ scope: "enemy", condition: "targeting_me" }}
         {...defaultProps}
         onTriggerChange={vi.fn()}
       />,
@@ -79,12 +76,12 @@ describe("TriggerDropdown", () => {
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
   });
 
-  it("calls onTriggerChange when type changes", async () => {
+  it("calls onTriggerChange when condition changes", async () => {
     const user = userEvent.setup();
     const onTriggerChange = vi.fn();
     render(
       <TriggerDropdown
-        trigger={{ type: "always" }}
+        trigger={{ scope: "enemy", condition: "always" }}
         {...defaultProps}
         onTriggerChange={onTriggerChange}
       />,
@@ -92,20 +89,21 @@ describe("TriggerDropdown", () => {
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",
     });
-    await user.selectOptions(select, "enemy_in_range");
+    await user.selectOptions(select, "in_range");
     expect(onTriggerChange).toHaveBeenCalledTimes(1);
     expect(onTriggerChange).toHaveBeenCalledWith({
-      type: "enemy_in_range",
-      value: 3,
+      scope: "enemy",
+      condition: "in_range",
+      conditionValue: 3,
     });
   });
 
-  it("calls onTriggerChange with hp defaults on type change", async () => {
+  it("calls onTriggerChange with hp defaults on condition change", async () => {
     const user = userEvent.setup();
     const onTriggerChange = vi.fn();
     render(
       <TriggerDropdown
-        trigger={{ type: "always" }}
+        trigger={{ scope: "enemy", condition: "always" }}
         {...defaultProps}
         onTriggerChange={onTriggerChange}
       />,
@@ -115,8 +113,9 @@ describe("TriggerDropdown", () => {
     });
     await user.selectOptions(select, "hp_below");
     expect(onTriggerChange).toHaveBeenCalledWith({
-      type: "hp_below",
-      value: 50,
+      scope: "enemy",
+      condition: "hp_below",
+      conditionValue: 50,
     });
   });
 
@@ -125,7 +124,7 @@ describe("TriggerDropdown", () => {
     const onTriggerChange = vi.fn();
     render(
       <TriggerDropdown
-        trigger={{ type: "hp_below", value: 50 }}
+        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
         {...defaultProps}
         onTriggerChange={onTriggerChange}
       />,
@@ -134,14 +133,18 @@ describe("TriggerDropdown", () => {
     await user.clear(input);
     await user.type(input, "75");
     expect(onTriggerChange).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "hp_below", value: 75 }),
+      expect.objectContaining({
+        scope: "self",
+        condition: "hp_below",
+        conditionValue: 75,
+      }),
     );
   });
 
   it("shows remove button when onRemove provided", () => {
     render(
       <TriggerDropdown
-        trigger={{ type: "hp_below", value: 50 }}
+        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
         {...defaultProps}
         triggerIndex={1}
         onTriggerChange={vi.fn()}
@@ -160,7 +163,7 @@ describe("TriggerDropdown", () => {
     const onRemove = vi.fn();
     render(
       <TriggerDropdown
-        trigger={{ type: "hp_below", value: 50 }}
+        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
         {...defaultProps}
         triggerIndex={1}
         onTriggerChange={vi.fn()}
@@ -177,7 +180,7 @@ describe("TriggerDropdown", () => {
   it("hides remove button when onRemove not provided", () => {
     render(
       <TriggerDropdown
-        trigger={{ type: "hp_below", value: 50 }}
+        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
         {...defaultProps}
         onTriggerChange={vi.fn()}
       />,
@@ -192,7 +195,12 @@ describe("TriggerDropdown", () => {
     const onTriggerChange = vi.fn();
     render(
       <TriggerDropdown
-        trigger={{ type: "hp_below", value: 50, negated: true }}
+        trigger={{
+          scope: "self",
+          condition: "hp_below",
+          conditionValue: 50,
+          negated: true,
+        }}
         {...defaultProps}
         onTriggerChange={onTriggerChange}
       />,
@@ -202,8 +210,9 @@ describe("TriggerDropdown", () => {
     await user.type(input, "75");
     expect(onTriggerChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "hp_below",
-        value: 75,
+        scope: "self",
+        condition: "hp_below",
+        conditionValue: 75,
         negated: true,
       }),
     );
@@ -214,7 +223,7 @@ describe("TriggerDropdown", () => {
     const onTriggerChange = vi.fn();
     render(
       <TriggerDropdown
-        trigger={{ type: "hp_below", value: 50 }}
+        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
         {...defaultProps}
         onTriggerChange={onTriggerChange}
       />,
@@ -226,12 +235,17 @@ describe("TriggerDropdown", () => {
     expect(onTriggerChange).not.toHaveBeenCalled();
   });
 
-  it("preserves negated field on type change", async () => {
+  it("preserves negated field on condition change", async () => {
     const user = userEvent.setup();
     const onTriggerChange = vi.fn();
     render(
       <TriggerDropdown
-        trigger={{ type: "hp_below", value: 50, negated: true }}
+        trigger={{
+          scope: "self",
+          condition: "hp_below",
+          conditionValue: 50,
+          negated: true,
+        }}
         {...defaultProps}
         onTriggerChange={onTriggerChange}
       />,
@@ -239,11 +253,12 @@ describe("TriggerDropdown", () => {
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",
     });
-    await user.selectOptions(select, "enemy_in_range");
+    await user.selectOptions(select, "in_range");
     expect(onTriggerChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        type: "enemy_in_range",
-        value: 3,
+        scope: "self",
+        condition: "in_range",
+        conditionValue: 3,
         negated: true,
       }),
     );
@@ -252,7 +267,7 @@ describe("TriggerDropdown", () => {
   it("unique aria-labels include trigger index", () => {
     const { unmount } = render(
       <TriggerDropdown
-        trigger={{ type: "hp_below", value: 50 }}
+        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
         {...defaultProps}
         onTriggerChange={vi.fn()}
       />,
@@ -264,7 +279,7 @@ describe("TriggerDropdown", () => {
 
     render(
       <TriggerDropdown
-        trigger={{ type: "hp_below", value: 50 }}
+        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
         {...defaultProps}
         triggerIndex={1}
         onTriggerChange={vi.fn()}
@@ -282,7 +297,7 @@ describe("TriggerDropdown", () => {
     const onTriggerChange = vi.fn();
     render(
       <TriggerDropdown
-        trigger={{ type: "hp_below", value: 50 }}
+        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
         {...defaultProps}
         onTriggerChange={onTriggerChange}
       />,
@@ -291,14 +306,17 @@ describe("TriggerDropdown", () => {
       name: "Trigger for Light Punch",
     });
     await user.selectOptions(select, "always");
-    expect(onTriggerChange).toHaveBeenCalledWith({ type: "always" });
+    expect(onTriggerChange).toHaveBeenCalledWith({
+      scope: "self",
+      condition: "always",
+    });
   });
 
   describe("Gap 3: NOT Toggle Modifier", () => {
     it("NOT toggle visible for non-always triggers", () => {
       render(
         <TriggerDropdown
-          trigger={{ type: "hp_below", value: 50 }}
+          trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
           {...defaultProps}
           onTriggerChange={vi.fn()}
         />,
@@ -313,7 +331,7 @@ describe("TriggerDropdown", () => {
     it("NOT toggle hidden for always trigger", () => {
       render(
         <TriggerDropdown
-          trigger={{ type: "always" }}
+          trigger={{ scope: "enemy", condition: "always" }}
           {...defaultProps}
           onTriggerChange={vi.fn()}
         />,
@@ -328,25 +346,7 @@ describe("TriggerDropdown", () => {
       const onTriggerChange = vi.fn();
       render(
         <TriggerDropdown
-          trigger={{ type: "hp_below", value: 50 }}
-          {...defaultProps}
-          onTriggerChange={onTriggerChange}
-        />,
-      );
-      await user.click(
-        screen.getByRole("button", { name: /toggle not.*light punch/i }),
-      );
-      expect(onTriggerChange).toHaveBeenCalledWith(
-        expect.objectContaining({ type: "hp_below", value: 50, negated: true }),
-      );
-    });
-
-    it("NOT toggle sets negated to false when clicked on negated trigger", async () => {
-      const user = userEvent.setup();
-      const onTriggerChange = vi.fn();
-      render(
-        <TriggerDropdown
-          trigger={{ type: "hp_below", value: 50, negated: true }}
+          trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
           {...defaultProps}
           onTriggerChange={onTriggerChange}
         />,
@@ -356,8 +356,37 @@ describe("TriggerDropdown", () => {
       );
       expect(onTriggerChange).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: "hp_below",
-          value: 50,
+          scope: "self",
+          condition: "hp_below",
+          conditionValue: 50,
+          negated: true,
+        }),
+      );
+    });
+
+    it("NOT toggle sets negated to false when clicked on negated trigger", async () => {
+      const user = userEvent.setup();
+      const onTriggerChange = vi.fn();
+      render(
+        <TriggerDropdown
+          trigger={{
+            scope: "self",
+            condition: "hp_below",
+            conditionValue: 50,
+            negated: true,
+          }}
+          {...defaultProps}
+          onTriggerChange={onTriggerChange}
+        />,
+      );
+      await user.click(
+        screen.getByRole("button", { name: /toggle not.*light punch/i }),
+      );
+      expect(onTriggerChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          scope: "self",
+          condition: "hp_below",
+          conditionValue: 50,
           negated: false,
         }),
       );
@@ -366,7 +395,12 @@ describe("TriggerDropdown", () => {
     it("NOT toggle aria-pressed reflects negated state", () => {
       const { unmount } = render(
         <TriggerDropdown
-          trigger={{ type: "hp_below", value: 50, negated: true }}
+          trigger={{
+            scope: "self",
+            condition: "hp_below",
+            conditionValue: 50,
+            negated: true,
+          }}
           {...defaultProps}
           onTriggerChange={vi.fn()}
         />,
@@ -378,7 +412,7 @@ describe("TriggerDropdown", () => {
 
       render(
         <TriggerDropdown
-          trigger={{ type: "hp_below", value: 50 }}
+          trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
           {...defaultProps}
           onTriggerChange={vi.fn()}
         />,
@@ -393,7 +427,12 @@ describe("TriggerDropdown", () => {
       const onTriggerChange = vi.fn();
       render(
         <TriggerDropdown
-          trigger={{ type: "hp_below", value: 50, negated: true }}
+          trigger={{
+            scope: "self",
+            condition: "hp_below",
+            conditionValue: 50,
+            negated: true,
+          }}
           {...defaultProps}
           onTriggerChange={onTriggerChange}
         />,
@@ -402,7 +441,10 @@ describe("TriggerDropdown", () => {
         name: "Trigger for Light Punch",
       });
       await user.selectOptions(select, "always");
-      expect(onTriggerChange).toHaveBeenCalledWith({ type: "always" });
+      expect(onTriggerChange).toHaveBeenCalledWith({
+        scope: "self",
+        condition: "always",
+      });
       const callArg = onTriggerChange.mock.calls[0]?.[0] as
         | Record<string, unknown>
         | undefined;

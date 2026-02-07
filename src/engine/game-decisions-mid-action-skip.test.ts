@@ -21,7 +21,7 @@ describe("computeDecisions - mid-action skip", () => {
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -50,7 +50,7 @@ describe("computeDecisions - mid-action skip", () => {
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -80,7 +80,7 @@ describe("computeDecisions - mid-action skip", () => {
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -92,7 +92,7 @@ describe("computeDecisions - mid-action skip", () => {
         createSkill({
           id: "skill2",
           damage: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });

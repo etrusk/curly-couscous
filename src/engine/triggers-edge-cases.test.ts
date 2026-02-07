@@ -8,6 +8,97 @@ import { evaluateTrigger } from "./triggers";
 import { Trigger } from "./types";
 import { createCharacter, createAction } from "./triggers-test-helpers";
 
+describe("evaluateTrigger - scope ally pool excludes self and enemies", () => {
+  it("should return false when only dead ally and enemy present", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+      hp: 30,
+      maxHp: 100,
+    });
+    const deadAlly = createCharacter({
+      id: "dead-ally",
+      faction: "friendly",
+      position: { q: 4, r: 2 },
+      hp: 0,
+      maxHp: 100,
+    });
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 5, r: 2 },
+      hp: 30,
+      maxHp: 100,
+    });
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
+
+    const result = evaluateTrigger(trigger, evaluator, [
+      evaluator,
+      deadAlly,
+      enemy,
+    ]);
+
+    expect(result).toBe(false);
+  });
+});
+
+describe("evaluateTrigger - unified in_range with ally scope", () => {
+  it("should return true when ally is within range", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+    });
+    const ally = createCharacter({
+      id: "ally",
+      faction: "friendly",
+      position: { q: 4, r: 2 }, // Distance 1
+    });
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "in_range",
+      conditionValue: 2,
+    };
+
+    const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
+
+    expect(result).toBe(true);
+  });
+});
+
+describe("evaluateTrigger - unified hp_below with ally scope", () => {
+  it("should check ally pool members, not self", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+      hp: 100,
+      maxHp: 100,
+    });
+    const ally = createCharacter({
+      id: "ally",
+      faction: "friendly",
+      position: { q: 4, r: 2 },
+      hp: 30,
+      maxHp: 100, // 30%
+    });
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
+
+    const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
+
+    expect(result).toBe(true);
+  });
+});
+
 describe("evaluateTrigger - edge cases", () => {
   it("should handle empty allCharacters array for range triggers", () => {
     const evaluator = createCharacter({
@@ -15,7 +106,11 @@ describe("evaluateTrigger - edge cases", () => {
       faction: "friendly",
       position: { q: 3, r: 2 },
     });
-    const trigger: Trigger = { type: "enemy_in_range", value: 3 };
+    const trigger: Trigger = {
+      scope: "enemy",
+      condition: "in_range",
+      conditionValue: 3,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, []);
 
@@ -29,8 +124,16 @@ describe("evaluateTrigger - edge cases", () => {
       position: { q: 3, r: 2 },
     });
 
-    const enemyRangeTrigger: Trigger = { type: "enemy_in_range", value: 5 };
-    const allyRangeTrigger: Trigger = { type: "ally_in_range", value: 5 };
+    const enemyRangeTrigger: Trigger = {
+      scope: "enemy",
+      condition: "in_range",
+      conditionValue: 5,
+    };
+    const allyRangeTrigger: Trigger = {
+      scope: "ally",
+      condition: "in_range",
+      conditionValue: 5,
+    };
 
     const enemyResult = evaluateTrigger(enemyRangeTrigger, evaluator, [
       evaluator,
@@ -51,7 +154,11 @@ describe("evaluateTrigger - edge cases", () => {
       hp: 30,
       maxHp: 100,
     });
-    const trigger: Trigger = { type: "hp_below", value: 50 };
+    const trigger: Trigger = {
+      scope: "self",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator]);
 
@@ -78,7 +185,11 @@ describe("evaluateTrigger - dead character handling", () => {
       position: { q: -2, r: 0 }, // hex dist=7 (out of range 3)
       hp: 50,
     });
-    const trigger: Trigger = { type: "enemy_in_range", value: 3 };
+    const trigger: Trigger = {
+      scope: "enemy",
+      condition: "in_range",
+      conditionValue: 3,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [
       evaluator,
@@ -101,7 +212,11 @@ describe("evaluateTrigger - dead character handling", () => {
       position: { q: 2, r: 3 }, // hex dist=2
       hp: 0,
     });
-    const trigger: Trigger = { type: "ally_in_range", value: 3 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "in_range",
+      conditionValue: 3,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, deadAlly]);
 
@@ -125,7 +240,7 @@ describe("evaluateTrigger - dead character handling", () => {
         resolvesAtTick: 1,
       }),
     });
-    const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
+    const trigger: Trigger = { scope: "enemy", condition: "targeting_me" };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, deadEnemy]);
 

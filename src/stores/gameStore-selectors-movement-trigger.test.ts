@@ -105,7 +105,7 @@ describe("selectMovementTargetData", () => {
         id: "move-1",
         behavior: "towards",
         tickCost: 1,
-        triggers: [{ type: "hp_below", value: 10 }],
+        trigger: { scope: "self", condition: "hp_below", conditionValue: 10 },
         target: "enemy",
         criterion: "nearest",
       });
@@ -113,7 +113,7 @@ describe("selectMovementTargetData", () => {
         id: "move-2",
         behavior: "towards",
         tickCost: 1,
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
         target: "ally",
         criterion: "nearest",
       });

@@ -26,7 +26,7 @@ describe("computeDecisions - attack targeting", () => {
           id: "skill1",
           damage: 10,
           range: 5,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -54,7 +54,7 @@ describe("computeDecisions - attack targeting", () => {
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -84,7 +84,7 @@ describe("computeDecisions - attack targeting", () => {
           id: "skill1",
           damage: 10,
           range: 1,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -113,7 +113,7 @@ describe("computeDecisions - attack targeting", () => {
           id: "skill1",
           damage: 10,
           range: 1,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -137,7 +137,7 @@ describe("computeDecisions - attack targeting", () => {
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });

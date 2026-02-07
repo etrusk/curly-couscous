@@ -73,7 +73,7 @@ New characters start with only innate skills. Players build their skill loadout 
 
 Every skill instance has a uniform shape with four configurable fields:
 
-- **Trigger**: Conditions that must be met for the skill to activate (AND logic)
+- **Trigger**: A single condition that must be met for the skill to activate (scope + condition model)
 - **Target**: Which group to select from (`enemy`, `ally`, or `self`)
 - **Criterion**: How to pick within the target group (`nearest`, `furthest`, `lowest_hp`, `highest_hp`)
 - **Behavior**: Action-specific modifier (e.g., `towards`/`away` for Move; empty string for skills without behavior choices)
@@ -191,26 +191,31 @@ Each skill specifies a **target** (which group to select from) and a **criterion
 
 ### Trigger Conditions
 
-Skills can have 0, 1, or 2 triggers evaluated with AND logic. All triggers in a skill's trigger list must pass for the skill to activate.
+Each skill has exactly one trigger that must pass for the skill to activate. Triggers use a unified scope + condition model.
 
-**Trigger types:**
+**Trigger structure:** `{ scope, condition, conditionValue?, qualifier?, negated? }`
 
-- `always`: Triggers unconditionally (no parameter)
-- `enemy_in_range X`: True if any enemy within X hexes
-- `ally_in_range X`: True if any ally within X hexes
-- `hp_below X%`: True if own HP below X% of maxHp
-- `ally_hp_below X%`: True if any ally (excluding self) has HP below X% of maxHp
-- `my_cell_targeted_by_enemy`: True if enemy has locked-in action targeting this hex
+- **scope** (`TriggerScope`): Determines which characters to evaluate against -- `"enemy"` (opposing faction), `"ally"` (same faction, excluding self), or `"self"` (evaluator only)
+- **condition** (`ConditionType`): The check to perform -- `"always"`, `"in_range"`, `"hp_below"`, `"hp_above"`, `"targeting_me"`
+- **conditionValue** (optional number): Threshold for conditions that need one (range distance, HP percentage)
+- **qualifier** (`ConditionQualifier`, optional): Narrows condition matching (e.g., channeling a specific skill). Structure: `{ type: "action" | "skill", id: string }`
+- **negated** (optional boolean): When true, inverts the condition result
 
-**Trigger modifiers:**
+**Condition types:**
 
-- `NOT` (negation): Any trigger can be inverted with a NOT modifier. When applied, the trigger result is inverted (true becomes false, false becomes true). For example, "NOT hp_below 50%" triggers when HP is at or above 50%.
+| Condition      | Scope      | Description                                                       | Example                                                        |
+| -------------- | ---------- | ----------------------------------------------------------------- | -------------------------------------------------------------- |
+| `always`       | any        | Always passes                                                     | `{ scope: "enemy", condition: "always" }`                      |
+| `in_range`     | enemy/ally | True if any character in pool within `conditionValue` hexes       | `{ scope: "enemy", condition: "in_range", conditionValue: 2 }` |
+| `hp_below`     | self/ally  | True if character HP below `conditionValue`% of maxHp             | `{ scope: "self", condition: "hp_below", conditionValue: 50 }` |
+| `hp_above`     | self/ally  | True if character HP above `conditionValue`% of maxHp             | `{ scope: "self", condition: "hp_above", conditionValue: 75 }` |
+| `targeting_me` | enemy      | True if any enemy has locked-in action targeting evaluator's cell | `{ scope: "enemy", condition: "targeting_me" }`                |
 
-**Trigger logic:**
+**Negation modifier:**
 
-When a skill has multiple triggers, they are evaluated with AND logic—all triggers must pass for the skill to activate. A skill can have 0 triggers (always activates), 1 trigger, or 2 triggers (maximum). Empty trigger arrays are treated as always-pass (vacuous truth).
+Any trigger can be inverted with `negated: true`. The condition result is flipped (true becomes false, false becomes true). For example, `{ scope: "self", condition: "hp_below", conditionValue: 50, negated: true }` triggers when HP is at or above 50%.
 
-**Note:** `my_cell_targeted_by_enemy` detects any pending action targeting the cell. Wind-up actions (tickCost >= 1) have at least 1 tick of visibility before resolution. Instant actions (tickCost: 0) resolve the same tick they are chosen, so they cannot be dodged via this trigger.
+**Note:** `targeting_me` detects any pending action targeting the cell. Wind-up actions (tickCost >= 1) have at least 1 tick of visibility before resolution. Instant actions (tickCost: 0) resolve the same tick they are chosen, so they cannot be dodged via this trigger.
 
 ### Selector Filters
 

@@ -26,7 +26,7 @@ describe("evaluateSkillsForCharacter", () => {
           createSkill({
             id: "skill1",
             damage: 10,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });
@@ -55,7 +55,7 @@ describe("evaluateSkillsForCharacter", () => {
             id: "skill1",
             damage: 10,
             range: 5,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });
@@ -77,7 +77,7 @@ describe("evaluateSkillsForCharacter", () => {
             id: "skill1",
             damage: 10,
             enabled: false,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });
@@ -89,7 +89,7 @@ describe("evaluateSkillsForCharacter", () => {
       expect(result.skillEvaluations[0]!.rejectionReason).toBe("disabled");
     });
 
-    it("should reject skill with failed trigger and include failedTriggers", () => {
+    it("should reject skill with failed trigger and include failedTrigger", () => {
       const character = createCharacter({
         id: "char1",
         faction: "friendly",
@@ -98,7 +98,11 @@ describe("evaluateSkillsForCharacter", () => {
           createSkill({
             id: "skill1",
             damage: 10,
-            triggers: [{ type: "enemy_in_range", value: 1 }],
+            trigger: {
+              scope: "enemy",
+              condition: "in_range",
+              conditionValue: 1,
+            },
           }),
         ],
       });
@@ -110,9 +114,9 @@ describe("evaluateSkillsForCharacter", () => {
       expect(result.skillEvaluations[0]!.rejectionReason).toBe(
         "trigger_failed",
       );
-      expect(result.skillEvaluations[0]!.failedTriggers).toHaveLength(1);
-      expect(result.skillEvaluations[0]!.failedTriggers![0]!.type).toBe(
-        "enemy_in_range",
+      expect(result.skillEvaluations[0]!.failedTrigger).toBeDefined();
+      expect(result.skillEvaluations[0]!.failedTrigger?.condition).toBe(
+        "in_range",
       );
     });
 
@@ -125,7 +129,7 @@ describe("evaluateSkillsForCharacter", () => {
           createSkill({
             id: "skill1",
             damage: 10,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });
@@ -152,7 +156,7 @@ describe("evaluateSkillsForCharacter", () => {
             id: "skill1",
             damage: 10,
             range: 1,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });
@@ -183,7 +187,7 @@ describe("evaluateSkillsForCharacter", () => {
             id: "skill1",
             damage: 10,
             range: 5,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });
@@ -211,13 +215,13 @@ describe("evaluateSkillsForCharacter", () => {
             id: "skill1",
             damage: 10,
             range: 5,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
           createSkill({
             id: "skill2",
             damage: 20,
             range: 5,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });
@@ -244,13 +248,13 @@ describe("evaluateSkillsForCharacter", () => {
             id: "skill1",
             damage: 10,
             range: 1,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
           createSkill({
             id: "skill2",
             damage: 20,
             range: 10,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });
@@ -280,19 +284,19 @@ describe("evaluateSkillsForCharacter", () => {
             id: "skill1",
             damage: 10,
             range: 5,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
           createSkill({
             id: "skill2",
             damage: 20,
             range: 5,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
           createSkill({
             id: "skill3",
             damage: 30,
             range: 5,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });
@@ -317,7 +321,11 @@ describe("evaluateSkillsForCharacter", () => {
             id: "skill1",
             damage: 10,
             range: 1,
-            triggers: [{ type: "enemy_in_range", value: 1 }],
+            trigger: {
+              scope: "enemy",
+              condition: "in_range",
+              conditionValue: 1,
+            },
           }),
         ],
       });
@@ -359,24 +367,28 @@ describe("evaluateSkillsForCharacter", () => {
             id: "skill1",
             damage: 10,
             enabled: false,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
           createSkill({
             id: "skill2",
             damage: 20,
-            triggers: [{ type: "hp_below", value: 50 }],
+            trigger: {
+              scope: "self",
+              condition: "hp_below",
+              conditionValue: 50,
+            },
           }),
           createSkill({
             id: "skill3",
             damage: 30,
             range: 1,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
           createSkill({
             id: "skill4",
             damage: 40,
             range: 10,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });
@@ -407,7 +419,7 @@ describe("evaluateSkillsForCharacter", () => {
           createSkill({
             id: "skill1",
             behavior: "hold" as "towards" | "away",
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });
@@ -436,13 +448,13 @@ describe("evaluateSkillsForCharacter", () => {
           createSkill({
             id: "skill1",
             behavior: "hold" as "towards" | "away",
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
           createSkill({
             id: "skill2",
             damage: 10,
             range: 5,
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });
@@ -473,13 +485,17 @@ describe("evaluateSkillsForCharacter", () => {
             id: "move-towards",
             instanceId: "move-away-inst",
             behavior: "away",
-            triggers: [{ type: "hp_below", value: 50 }],
+            trigger: {
+              scope: "self",
+              condition: "hp_below",
+              conditionValue: 50,
+            },
           }),
           createSkill({
             id: "move-towards",
             instanceId: "move-towards-inst",
             behavior: "towards",
-            triggers: [{ type: "always" }],
+            trigger: { scope: "enemy", condition: "always" },
           }),
         ],
       });

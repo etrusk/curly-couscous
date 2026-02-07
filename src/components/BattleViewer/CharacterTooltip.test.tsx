@@ -80,7 +80,7 @@ describe("CharacterTooltip - Content Rendering", () => {
           damage: 10,
           behavior: "",
           enabled: true,
-          triggers: [{ type: "enemy_in_range", value: 1 }],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
           target: "enemy",
           criterion: "nearest",
         },
@@ -95,7 +95,7 @@ describe("CharacterTooltip - Content Rendering", () => {
           actionType: "attack",
           behavior: "towards",
           enabled: true,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         },
         {
           id: "heavy-punch",
@@ -109,7 +109,7 @@ describe("CharacterTooltip - Content Rendering", () => {
           actionType: "attack",
           damage: 25,
           enabled: false,
-          triggers: [{ type: "enemy_in_range", value: 1 }],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
         },
       ],
     });

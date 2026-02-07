@@ -161,7 +161,7 @@ describe("PriorityTab", () => {
       const skill1 = createSkill({
         id: "skill1",
         name: "Punch",
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const char1 = createCharacter({ id: "char1", skills: [skill1] });
       useGameStore.getState().actions.initBattle([char1]);
@@ -179,7 +179,7 @@ describe("PriorityTab", () => {
         .getState()
         .gameState.characters.find((c) => c.id === "char1");
       if (!updatedChar) throw new Error("Character not found after update");
-      expect(updatedChar.skills[0]?.triggers[0]?.type).toBe("hp_below");
+      expect(updatedChar.skills[0]?.trigger?.condition).toBe("hp_below");
 
       // Value input should appear for hp_below
       expect(screen.getByLabelText(/value.*punch/i)).toBeInTheDocument();

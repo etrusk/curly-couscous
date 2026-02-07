@@ -30,21 +30,28 @@ describe("updateSkill", () => {
     expect(updatedSkill?.enabled).toBe(false);
   });
 
-  it("should update skill triggers", () => {
-    const skill = createSkill({ id: "skill1", triggers: [{ type: "always" }] });
+  it("should update skill trigger", () => {
+    const skill = createSkill({
+      id: "skill1",
+      trigger: { scope: "enemy", condition: "always" },
+    });
     const char1 = createCharacter({ id: "char1", skills: [skill] });
     useGameStore.getState().actions.initBattle([char1]);
 
-    const newTriggers = [{ type: "enemy_in_range" as const, value: 3 }];
+    const newTrigger = {
+      scope: "enemy" as const,
+      condition: "in_range" as const,
+      conditionValue: 3,
+    };
     useGameStore
       .getState()
-      .actions.updateSkill("char1", "skill1", { triggers: newTriggers });
+      .actions.updateSkill("char1", "skill1", { trigger: newTrigger });
 
     const updatedChar = useGameStore
       .getState()
       .gameState.characters.find((c) => c.id === "char1");
     const updatedSkill = updatedChar?.skills.find((s) => s.id === "skill1");
-    expect(updatedSkill?.triggers).toEqual(newTriggers);
+    expect(updatedSkill?.trigger).toEqual(newTrigger);
   });
 
   it("should update skill target and criterion", () => {

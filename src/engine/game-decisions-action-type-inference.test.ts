@@ -24,7 +24,7 @@ describe("computeDecisions - action type inference", () => {
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -51,7 +51,7 @@ describe("computeDecisions - action type inference", () => {
         createSkill({
           id: "skill1",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -81,7 +81,7 @@ describe("computeDecisions - tick resolution for intent visibility", () => {
           id: "light-punch",
           damage: 10,
           tickCost: 1,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -112,7 +112,7 @@ describe("computeDecisions - tick resolution for intent visibility", () => {
           id: "heavy-punch",
           damage: 25,
           tickCost: 2,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -144,7 +144,7 @@ describe("getActionType - explicit actionType field", () => {
         createSkill({
           id: "skill1",
           actionType: "attack",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -174,7 +174,7 @@ describe("getActionType - explicit actionType field", () => {
           id: "skill-move",
           actionType: "move",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });

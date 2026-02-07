@@ -3,14 +3,14 @@ import {
   selectSelectedCharacter,
   selectActions,
 } from "../../stores/gameStore";
-import type { Trigger, Criterion } from "../../engine/types";
+import type { Trigger, Criterion, ConditionType } from "../../engine/types";
 import { SKILL_REGISTRY } from "../../engine/skill-registry";
 import { MAX_SKILL_SLOTS } from "../../stores/gameStore-constants";
 import { slotPositionToLetter } from "../../utils/letterMapping";
 import styles from "./SkillsPanel.module.css";
 
 // Default fallbacks extracted to module-level constants to avoid recreating on every render
-const DEFAULT_TRIGGER: Trigger = { type: "always" };
+const DEFAULT_TRIGGER: Trigger = { scope: "enemy", condition: "always" };
 
 // Type definitions for target and criterion selection
 type TargetCategory = "enemy" | "ally" | "self";
@@ -45,39 +45,42 @@ export function SkillsPanel() {
     removeSkillFromCharacter(selectedCharacter.id, instanceId);
   };
 
-  // Type assertion acceptable for 80/20 - select values are guaranteed to match Trigger['type']
-  const handleTriggerTypeChange = (
+  const handleTriggerConditionChange = (
     instanceId: string,
-    triggerType: Trigger["type"],
+    condition: ConditionType,
   ) => {
-    let newTriggers: Trigger[];
+    const skill = selectedCharacter.skills.find(
+      (s) => s.instanceId === instanceId,
+    );
+    const currentScope = skill?.trigger?.scope ?? "enemy";
 
-    if (
-      triggerType === "always" ||
-      triggerType === "my_cell_targeted_by_enemy"
-    ) {
-      newTriggers = [{ type: triggerType }];
-    } else if (
-      triggerType === "enemy_in_range" ||
-      triggerType === "ally_in_range"
-    ) {
-      newTriggers = [{ type: triggerType, value: 3 }];
-    } else if (triggerType === "hp_below") {
-      newTriggers = [{ type: triggerType, value: 50 }];
+    let newTrigger: Trigger;
+    if (condition === "in_range") {
+      newTrigger = { scope: currentScope, condition, conditionValue: 3 };
+    } else if (condition === "hp_below" || condition === "hp_above") {
+      newTrigger = { scope: currentScope, condition, conditionValue: 50 };
     } else {
-      newTriggers = [{ type: "always" }];
+      newTrigger = { scope: currentScope, condition };
     }
 
-    updateSkill(selectedCharacter.id, instanceId, { triggers: newTriggers });
+    updateSkill(selectedCharacter.id, instanceId, { trigger: newTrigger });
   };
 
   const handleTriggerValueChange = (
     instanceId: string,
-    triggerType: Trigger["type"],
+    condition: ConditionType,
     value: number,
   ) => {
-    const newTriggers: Trigger[] = [{ type: triggerType, value }];
-    updateSkill(selectedCharacter.id, instanceId, { triggers: newTriggers });
+    const skill = selectedCharacter.skills.find(
+      (s) => s.instanceId === instanceId,
+    );
+    const currentScope = skill?.trigger?.scope ?? "enemy";
+    const newTrigger: Trigger = {
+      scope: currentScope,
+      condition,
+      conditionValue: value,
+    };
+    updateSkill(selectedCharacter.id, instanceId, { trigger: newTrigger });
   };
 
   const handleCategoryChange = (
@@ -144,11 +147,11 @@ export function SkillsPanel() {
       <div className={styles.skillsList}>
         {/* eslint-disable-next-line complexity */}
         {selectedCharacter.skills.map((skill, index) => {
-          const trigger = skill.triggers[0] || DEFAULT_TRIGGER;
+          const trigger = skill.trigger || DEFAULT_TRIGGER;
           const needsValue =
-            trigger.type === "enemy_in_range" ||
-            trigger.type === "ally_in_range" ||
-            trigger.type === "hp_below";
+            trigger.condition === "in_range" ||
+            trigger.condition === "hp_below" ||
+            trigger.condition === "hp_above";
           const isMove = skill.behavior !== undefined && skill.behavior !== "";
           const skillDef = SKILL_REGISTRY.find((def) => def.id === skill.id);
           const isInnate = !!skillDef?.innate;
@@ -227,42 +230,51 @@ export function SkillsPanel() {
                   <label>
                     Trigger:
                     <select
-                      value={trigger.type}
+                      value={trigger.condition}
                       onChange={(e) =>
-                        handleTriggerTypeChange(
+                        handleTriggerConditionChange(
                           skill.instanceId,
-                          e.target.value as Trigger["type"],
+                          e.target.value as ConditionType,
                         )
                       }
                       aria-label="Trigger"
                     >
                       <option value="always">Always</option>
-                      <option value="enemy_in_range">Enemy in Range</option>
-                      <option value="ally_in_range">Ally in Range</option>
+                      <option value="in_range">In Range</option>
                       <option value="hp_below">HP Below</option>
-                      <option value="my_cell_targeted_by_enemy">
-                        My Cell Targeted
-                      </option>
+                      <option value="hp_above">HP Above</option>
+                      <option value="targeting_me">Cell Targeted</option>
                     </select>
                   </label>
 
                   {needsValue && (
                     <label>
-                      {trigger.type === "hp_below" ? "Percentage:" : "Range:"}
+                      {trigger.condition === "hp_below" ||
+                      trigger.condition === "hp_above"
+                        ? "Percentage:"
+                        : "Range:"}
                       <input
                         type="number"
-                        value={trigger.value ?? 0}
+                        value={trigger.conditionValue ?? 0}
                         onChange={(e) =>
                           handleTriggerValueChange(
                             skill.instanceId,
-                            trigger.type,
+                            trigger.condition,
                             parseInt(e.target.value, 10),
                           )
                         }
                         min="0"
-                        max={trigger.type === "hp_below" ? "100" : "12"}
+                        max={
+                          trigger.condition === "hp_below" ||
+                          trigger.condition === "hp_above"
+                            ? "100"
+                            : "12"
+                        }
                         aria-label={
-                          trigger.type === "hp_below" ? "Percentage" : "Range"
+                          trigger.condition === "hp_below" ||
+                          trigger.condition === "hp_above"
+                            ? "Percentage"
+                            : "Range"
                         }
                       />
                     </label>

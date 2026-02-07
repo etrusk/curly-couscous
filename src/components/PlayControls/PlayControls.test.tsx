@@ -402,7 +402,7 @@ describe("PlayControls", () => {
         actionType: "attack",
         damage: 100,
         enabled: true,
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       };
 
       const testCharacters: Character[] = [

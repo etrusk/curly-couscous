@@ -45,7 +45,10 @@ export const createSkill = (
   damage: overrides.damage ?? undefined,
   behavior: overrides.behavior ?? "",
   enabled: overrides.enabled ?? true,
-  triggers: overrides.triggers ?? [{ type: "always" }],
+  trigger: overrides.trigger ?? {
+    scope: "enemy" as const,
+    condition: "always" as const,
+  },
   target: overrides.target ?? "enemy",
   criterion: overrides.criterion ?? "nearest",
 });

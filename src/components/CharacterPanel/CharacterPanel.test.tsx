@@ -86,7 +86,7 @@ describe("CharacterPanel", () => {
         damage: 10,
         range: 1,
         actionType: "attack",
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const friendly = createCharacter({
         id: "friendly",
@@ -112,7 +112,7 @@ describe("CharacterPanel", () => {
       expect(screen.getByLabelText(/selected|rejected/i)).toBeInTheDocument();
       // Config controls remain visible alongside evaluation indicators
       expect(
-        screen.getByRole("combobox", { name: /trigger/i }),
+        screen.getByRole("combobox", { name: /^Trigger for/i }),
       ).toBeInTheDocument();
     });
   });

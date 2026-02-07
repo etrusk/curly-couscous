@@ -24,7 +24,11 @@ describe("evaluateTrigger - ally_hp_below trigger", () => {
       hp: 30,
       maxHp: 100, // 30%
     });
-    const trigger: Trigger = { type: "ally_hp_below", value: 50 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
 
@@ -46,7 +50,11 @@ describe("evaluateTrigger - ally_hp_below trigger", () => {
       hp: 70,
       maxHp: 100, // 70%
     });
-    const trigger: Trigger = { type: "ally_hp_below", value: 50 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
 
@@ -68,7 +76,11 @@ describe("evaluateTrigger - ally_hp_below trigger", () => {
       hp: 100,
       maxHp: 100, // 100%
     });
-    const trigger: Trigger = { type: "ally_hp_below", value: 50 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
 
@@ -90,7 +102,11 @@ describe("evaluateTrigger - ally_hp_below trigger", () => {
       hp: 50,
       maxHp: 100, // Exactly 50%
     });
-    const trigger: Trigger = { type: "ally_hp_below", value: 50 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
 
@@ -112,7 +128,11 @@ describe("evaluateTrigger - ally_hp_below trigger", () => {
       hp: 49,
       maxHp: 100, // 49%
     });
-    const trigger: Trigger = { type: "ally_hp_below", value: 50 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
 
@@ -134,7 +154,11 @@ describe("evaluateTrigger - ally_hp_below trigger", () => {
       hp: 100,
       maxHp: 100,
     });
-    const trigger: Trigger = { type: "ally_hp_below", value: 50 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, enemy]);
 
@@ -156,7 +180,11 @@ describe("evaluateTrigger - ally_hp_below trigger", () => {
       hp: 0, // Dead
       maxHp: 100,
     });
-    const trigger: Trigger = { type: "ally_hp_below", value: 50 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, deadAlly]);
 
@@ -178,7 +206,11 @@ describe("evaluateTrigger - ally_hp_below trigger", () => {
       hp: 10,
       maxHp: 100, // 10% - below threshold but wrong faction
     });
-    const trigger: Trigger = { type: "ally_hp_below", value: 50 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, enemy]);
 
@@ -200,7 +232,11 @@ describe("evaluateTrigger - ally_hp_below trigger", () => {
       hp: 99,
       maxHp: 100, // 99% - below 100%
     });
-    const trigger: Trigger = { type: "ally_hp_below", value: 100 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 100,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
 
@@ -222,7 +258,11 @@ describe("evaluateTrigger - ally_hp_below trigger", () => {
       hp: 1,
       maxHp: 100, // 1% - cannot be below 0%
     });
-    const trigger: Trigger = { type: "ally_hp_below", value: 0 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 0,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
 
@@ -244,7 +284,11 @@ describe("evaluateTrigger - ally_hp_below trigger", () => {
       hp: 0,
       maxHp: 0, // Division by zero guard
     });
-    const trigger: Trigger = { type: "ally_hp_below", value: 50 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
 
@@ -273,7 +317,11 @@ describe("evaluateTrigger - ally_hp_below trigger", () => {
       hp: 30,
       maxHp: 100, // 30% - below threshold
     });
-    const trigger: Trigger = { type: "ally_hp_below", value: 50 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [
       evaluator,

@@ -20,7 +20,11 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
       faction: "friendly",
       position: { q: 2, r: 4 }, // hex dist from (3,2) = 2
     });
-    const trigger: Trigger = { type: "ally_in_range", value: 3 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "in_range",
+      conditionValue: 3,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
 
@@ -38,7 +42,11 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
       faction: "friendly",
       position: { q: 2, r: -2 }, // hex dist from (3,2) = 4
     });
-    const trigger: Trigger = { type: "ally_in_range", value: 3 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "in_range",
+      conditionValue: 3,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
 
@@ -56,7 +64,11 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
       faction: "friendly",
       position: { q: 2, r: 5 }, // hex dist from (3,2) = 3
     });
-    const trigger: Trigger = { type: "ally_in_range", value: 3 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "in_range",
+      conditionValue: 3,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
 
@@ -69,7 +81,11 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
       faction: "friendly",
       position: { q: 3, r: 2 },
     });
-    const trigger: Trigger = { type: "ally_in_range", value: 0 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "in_range",
+      conditionValue: 0,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator]);
 
@@ -92,7 +108,11 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
       faction: "friendly",
       position: { q: 2, r: 3 }, // hex dist from (3,2) = 1
     });
-    const trigger: Trigger = { type: "ally_in_range", value: 3 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "in_range",
+      conditionValue: 3,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [
       evaluator,
@@ -114,7 +134,11 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
       faction: "enemy",
       position: { q: 2, r: 3 },
     });
-    const trigger: Trigger = { type: "ally_in_range", value: 3 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "in_range",
+      conditionValue: 3,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, enemy]);
 
@@ -132,7 +156,11 @@ describe("evaluateTrigger - ally_in_range trigger", () => {
       faction: "enemy",
       position: { q: 2, r: 3 }, // hex dist from (3,2) = 1
     });
-    const trigger: Trigger = { type: "ally_in_range", value: 3 };
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "in_range",
+      conditionValue: 3,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, enemy]);
 

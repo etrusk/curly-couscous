@@ -34,7 +34,7 @@ export function createIdleAction(character: Character, tick: number): Action {
     range: 0,
     behavior: "",
     enabled: true,
-    triggers: [],
+    trigger: { scope: "enemy" as const, condition: "always" as const },
     target: "enemy",
     criterion: "nearest",
   };

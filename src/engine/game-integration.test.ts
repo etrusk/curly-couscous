@@ -24,7 +24,7 @@ describe("processTick decision integration", () => {
         createSkill({
           id: "attack",
           damage: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -63,7 +63,7 @@ describe("processTick decision integration", () => {
           id: "heavy",
           damage: 25,
           tickCost: 2,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -106,7 +106,7 @@ describe("processTick decision integration", () => {
         createSkill({
           id: "attack",
           damage: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -142,7 +142,7 @@ describe("processTick decision integration", () => {
         createSkill({
           id: "attack",
           damage: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -188,7 +188,7 @@ describe("processTick decision integration", () => {
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [{ type: "enemy_in_range", value: 1 }],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
         }),
       ],
     });
@@ -220,7 +220,7 @@ describe("cross-module integration", () => {
         createSkill({
           id: "attack",
           damage: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -276,7 +276,7 @@ describe("cross-module integration", () => {
           id: "move",
           behavior: "towards",
           range: 1, // Need to get within range 1
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -328,13 +328,13 @@ describe("cross-module integration", () => {
         createSkill({
           id: "skill1",
           damage: 10,
-          triggers: [{ type: "enemy_in_range", value: 1 }],
+          trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
         }),
         createSkill({
           id: "skill2",
           damage: 20,
           range: 10,
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });

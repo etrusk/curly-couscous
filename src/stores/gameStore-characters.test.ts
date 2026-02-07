@@ -106,7 +106,7 @@ describe("addCharacter", () => {
     expect(skill).toHaveProperty("tickCost");
     expect(skill).toHaveProperty("range");
     expect(skill).toHaveProperty("enabled");
-    expect(skill).toHaveProperty("triggers");
+    expect(skill).toHaveProperty("trigger");
   });
 
   it("should set HP and maxHP to 100", () => {

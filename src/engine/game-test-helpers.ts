@@ -64,7 +64,10 @@ export function createSkill(overrides: Partial<Skill> & { id: string }): Skill {
     healing: overrides.healing,
     behavior: overrides.behavior ?? "",
     enabled: overrides.enabled ?? true,
-    triggers: overrides.triggers ?? [],
+    trigger: overrides.trigger ?? {
+      scope: "enemy" as const,
+      condition: "always" as const,
+    },
     target: overrides.target ?? "enemy",
     criterion: overrides.criterion ?? "nearest",
     cooldownRemaining: overrides.cooldownRemaining,

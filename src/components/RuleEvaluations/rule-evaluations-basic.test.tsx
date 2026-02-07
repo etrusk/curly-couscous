@@ -249,7 +249,11 @@ describe("RuleEvaluations - Basic Rendering", () => {
         damage: 10,
         behavior: "",
         enabled: true,
-        triggers: [{ type: "enemy_in_range" as const, value: 1 }],
+        trigger: {
+          scope: "enemy" as const,
+          condition: "in_range" as const,
+          conditionValue: 1,
+        },
         target: "enemy" as const,
         criterion: "nearest" as const,
       },

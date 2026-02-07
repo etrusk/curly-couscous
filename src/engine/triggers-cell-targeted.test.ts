@@ -12,6 +12,31 @@ import {
   createSkill,
 } from "./triggers-test-helpers";
 
+describe("evaluateTrigger - targeting_me condition with enemy scope", () => {
+  it("should detect enemy action targeting evaluator cell", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+    });
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 2, r: 3 },
+      currentAction: createAction({
+        type: "attack",
+        targetCell: { q: 3, r: 2 },
+        resolvesAtTick: 1,
+      }),
+    });
+    const trigger: Trigger = { scope: "enemy", condition: "targeting_me" };
+
+    const result = evaluateTrigger(trigger, evaluator, [evaluator, enemy]);
+
+    expect(result).toBe(true);
+  });
+});
+
 describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
   it("should return true when enemy has locked-in action on evaluator cell", () => {
     const evaluator = createCharacter({
@@ -29,7 +54,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
         resolvesAtTick: 1,
       }),
     });
-    const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
+    const trigger: Trigger = { scope: "enemy", condition: "targeting_me" };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, enemy]);
 
@@ -52,7 +77,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
         resolvesAtTick: 1,
       }),
     });
-    const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
+    const trigger: Trigger = { scope: "enemy", condition: "targeting_me" };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, enemy]);
 
@@ -71,7 +96,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
       position: { q: 2, r: 3 },
       currentAction: null,
     });
-    const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
+    const trigger: Trigger = { scope: "enemy", condition: "targeting_me" };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, enemy]);
 
@@ -94,7 +119,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
         resolvesAtTick: 1,
       }),
     });
-    const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
+    const trigger: Trigger = { scope: "enemy", condition: "targeting_me" };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
 
@@ -127,7 +152,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
         resolvesAtTick: 1,
       }),
     });
-    const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
+    const trigger: Trigger = { scope: "enemy", condition: "targeting_me" };
 
     const result = evaluateTrigger(trigger, evaluator, [
       evaluator,
@@ -155,7 +180,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
         resolvesAtTick: 1,
       }),
     });
-    const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
+    const trigger: Trigger = { scope: "enemy", condition: "targeting_me" };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, enemy]);
 
@@ -179,7 +204,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
         resolvesAtTick: 2,
       }),
     });
-    const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
+    const trigger: Trigger = { scope: "enemy", condition: "targeting_me" };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, enemy]);
 
@@ -212,7 +237,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
         resolvesAtTick: 1,
       }),
     });
-    const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
+    const trigger: Trigger = { scope: "enemy", condition: "targeting_me" };
 
     const result = evaluateTrigger(trigger, evaluator, [
       evaluator,
@@ -239,7 +264,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
         resolvesAtTick: 1,
       }),
     });
-    const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
+    const trigger: Trigger = { scope: "enemy", condition: "targeting_me" };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, enemy]);
 
@@ -262,7 +287,7 @@ describe("evaluateTrigger - my_cell_targeted_by_enemy trigger", () => {
         resolvesAtTick: 1,
       }),
     });
-    const trigger: Trigger = { type: "my_cell_targeted_by_enemy" };
+    const trigger: Trigger = { scope: "enemy", condition: "targeting_me" };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator, enemy]);
 

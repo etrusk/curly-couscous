@@ -177,7 +177,7 @@ describe("PriorityTab", () => {
         damage: 10,
         range: 1,
         actionType: "attack",
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const friendly = createCharacter({
         id: "friendly",
@@ -214,7 +214,7 @@ describe("PriorityTab", () => {
         damage: 10,
         range: 1,
         actionType: "attack",
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const friendly = createCharacter({
         id: "friendly",
@@ -253,7 +253,7 @@ describe("PriorityTab", () => {
         damage: 10,
         range: 1,
         actionType: "attack",
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const heavyPunch = createSkill({
         id: "heavy-punch",
@@ -261,7 +261,7 @@ describe("PriorityTab", () => {
         damage: 25,
         range: 2,
         actionType: "attack",
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const friendly = createCharacter({
         id: "friendly",
@@ -297,7 +297,7 @@ describe("PriorityTab", () => {
         damage: 10,
         range: 1,
         actionType: "attack",
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const heavyPunch = createSkill({
         id: "heavy-punch",
@@ -305,7 +305,7 @@ describe("PriorityTab", () => {
         damage: 25,
         range: 2,
         actionType: "attack",
-        triggers: [{ type: "always" }],
+        trigger: { scope: "enemy", condition: "always" },
       });
       const friendly = createCharacter({
         id: "friendly",

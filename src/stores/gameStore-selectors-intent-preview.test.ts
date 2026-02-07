@@ -397,13 +397,13 @@ describe("selectIntentData - preview intent lines", () => {
       tickCost: 1,
       range: 1,
       damage: 10,
-      triggers: [{ type: "enemy_in_range", value: 1 }],
+      trigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
     });
     const moveSkill = createSkill({
       id: "move-towards",
       tickCost: 1,
       behavior: "towards",
-      triggers: [{ type: "always" }],
+      trigger: { scope: "enemy", condition: "always" },
     });
     const friendly = createCharacter({
       id: "friendly",

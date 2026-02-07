@@ -121,10 +121,22 @@ describe("Skill Registry", () => {
       const skill = skills[0]!;
 
       expect(skill.enabled).toBe(true);
-      expect(skill.triggers).toHaveLength(1);
-      expect(skill.triggers[0]?.type).toBe("always");
+      expect(skill.trigger).toBeDefined();
+      expect(skill.trigger.scope).toBe("enemy");
+      expect(skill.trigger.condition).toBe("always");
       expect(skill.target).toBe("enemy");
       expect(skill.criterion).toBe("nearest");
+    });
+
+    it("produces new trigger shape (no triggers plural property)", () => {
+      const skills = getDefaultSkills();
+
+      skills.forEach((skill) => {
+        expect(skill.trigger.scope).toBeDefined();
+        expect(skill.trigger.condition).toBe("always");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access -- runtime guard
+        expect((skill as any).triggers).toBeUndefined();
+      });
     });
 
     it("preserves intrinsic properties for innate skills", () => {
@@ -174,10 +186,22 @@ describe("Skill Registry", () => {
       expect(skill.range).toBe(1);
       expect(skill.damage).toBe(10);
       expect(skill.enabled).toBe(true);
-      expect(skill.triggers).toHaveLength(1);
-      expect(skill.triggers[0]?.type).toBe("always");
+      expect(skill.trigger).toBeDefined();
+      expect(skill.trigger.scope).toBe("enemy");
+      expect(skill.trigger.condition).toBe("always");
       expect(skill.target).toBe("enemy");
       expect(skill.criterion).toBe("nearest");
+    });
+
+    it("produces new trigger shape from definition", () => {
+      const lightPunchDef = SKILL_REGISTRY.find((s) => s.id === "light-punch")!;
+      const skill = createSkillFromDefinition(lightPunchDef);
+
+      expect(skill.trigger).toBeDefined();
+      expect(skill.trigger.scope).toBe("enemy");
+      expect(skill.trigger.condition).toBe("always");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access -- runtime guard
+      expect((skill as any).triggers).toBeUndefined();
     });
 
     it("creates move skill with direction in name", () => {

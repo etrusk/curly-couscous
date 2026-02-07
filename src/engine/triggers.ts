@@ -24,78 +24,79 @@ export function evaluateTrigger(
   evaluator: Character,
   allCharacters: Character[],
 ): boolean {
-  let result: boolean;
+  // 1. Determine character pool based on scope
+  let pool: Character[];
+  switch (trigger.scope) {
+    case "enemy":
+      pool = allCharacters.filter(
+        (c) => c.faction !== evaluator.faction && c.hp > 0,
+      );
+      break;
+    case "ally":
+      pool = allCharacters.filter(
+        (c) =>
+          c.faction === evaluator.faction && c.id !== evaluator.id && c.hp > 0,
+      );
+      break;
+    case "self":
+      pool = [evaluator];
+      break;
+  }
 
-  switch (trigger.type) {
+  // 2. Evaluate condition against pool
+  let result: boolean;
+  const conditionValue = trigger.conditionValue ?? 0;
+
+  switch (trigger.condition) {
     case "always":
       result = true;
       break;
 
-    case "enemy_in_range": {
-      const range = trigger.value ?? 0;
-      result = allCharacters.some(
-        (c) =>
-          c.faction !== evaluator.faction &&
-          c.hp > 0 &&
-          hexDistance(c.position, evaluator.position) <= range,
+    case "in_range":
+      result = pool.some(
+        (c) => hexDistance(c.position, evaluator.position) <= conditionValue,
       );
       break;
-    }
 
-    case "ally_in_range": {
-      const range = trigger.value ?? 0;
-      result = allCharacters.some(
-        (c) =>
-          c.faction === evaluator.faction &&
-          c.id !== evaluator.id &&
-          c.hp > 0 &&
-          hexDistance(c.position, evaluator.position) <= range,
-      );
-      break;
-    }
-
-    case "hp_below": {
-      const thresholdPercent = trigger.value ?? 0;
-      // Guard against division by zero; if maxHp <= 0, treat as undefined and return false
-      if (evaluator.maxHp <= 0) {
-        result = false;
-        break;
+    case "hp_below":
+      if (trigger.scope === "self") {
+        // Guard against division by zero
+        if (evaluator.maxHp <= 0) {
+          result = false;
+          break;
+        }
+        result = (evaluator.hp / evaluator.maxHp) * 100 < conditionValue;
+      } else {
+        result = pool.some(
+          (c) => c.maxHp > 0 && (c.hp / c.maxHp) * 100 < conditionValue,
+        );
       }
-      const currentPercent = (evaluator.hp / evaluator.maxHp) * 100;
-      result = currentPercent < thresholdPercent;
       break;
-    }
 
-    case "ally_hp_below": {
-      const thresholdPercent = trigger.value ?? 0;
-      result = allCharacters.some(
-        (c) =>
-          c.faction === evaluator.faction &&
-          c.id !== evaluator.id &&
-          c.hp > 0 &&
-          c.maxHp > 0 &&
-          (c.hp / c.maxHp) * 100 < thresholdPercent,
-      );
+    case "hp_above":
+      if (trigger.scope === "self") {
+        if (evaluator.maxHp <= 0) {
+          result = false;
+          break;
+        }
+        result = (evaluator.hp / evaluator.maxHp) * 100 > conditionValue;
+      } else {
+        result = pool.some(
+          (c) => c.maxHp > 0 && (c.hp / c.maxHp) * 100 > conditionValue,
+        );
+      }
       break;
-    }
 
-    case "my_cell_targeted_by_enemy": {
-      // TODO: With absolute timing, this needs current tick to check if action is pending
-      // Currently detects any enemy action targeting this cell, including same-tick actions.
-      // According to design, same-tick actions (e.g., Light Punch) should be invisible.
-      // For now, check if action exists and targets this cell.
-      result = allCharacters.some(
+    case "targeting_me":
+      result = pool.some(
         (c) =>
-          c.faction !== evaluator.faction &&
-          c.hp > 0 &&
           c.currentAction !== null &&
           positionsEqual(c.currentAction.targetCell, evaluator.position),
       );
       break;
-    }
 
     default: {
-      const _exhaustive: never = trigger.type;
+      const _exhaustive: never = trigger.condition;
       return _exhaustive; // Compile-time error if case missing
     }
   }

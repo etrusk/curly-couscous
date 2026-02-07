@@ -16,7 +16,11 @@ describe("evaluateTrigger - NOT modifier", () => {
       hp: 100,
       maxHp: 100,
     });
-    const trigger: Trigger = { type: "always", negated: true };
+    const trigger: Trigger = {
+      scope: "enemy",
+      condition: "always",
+      negated: true,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator]);
 
@@ -30,7 +34,12 @@ describe("evaluateTrigger - NOT modifier", () => {
       hp: 70,
       maxHp: 100, // 70% - not below 50%
     });
-    const trigger: Trigger = { type: "hp_below", value: 50, negated: true };
+    const trigger: Trigger = {
+      scope: "self",
+      condition: "hp_below",
+      conditionValue: 50,
+      negated: true,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator]);
 
@@ -53,8 +62,9 @@ describe("evaluateTrigger - NOT modifier", () => {
       maxHp: 100,
     });
     const trigger: Trigger = {
-      type: "enemy_in_range",
-      value: 2,
+      scope: "enemy",
+      condition: "in_range",
+      conditionValue: 2,
       negated: true,
     };
 
@@ -80,8 +90,9 @@ describe("evaluateTrigger - NOT modifier", () => {
       maxHp: 100,
     });
     const trigger: Trigger = {
-      type: "enemy_in_range",
-      value: 2,
+      scope: "enemy",
+      condition: "in_range",
+      conditionValue: 2,
       negated: true,
     };
 
@@ -98,7 +109,7 @@ describe("evaluateTrigger - NOT modifier", () => {
       hp: 100,
       maxHp: 100,
     });
-    const trigger: Trigger = { type: "always" }; // No negated field
+    const trigger: Trigger = { scope: "enemy", condition: "always" }; // No negated field
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator]);
 
@@ -112,7 +123,11 @@ describe("evaluateTrigger - NOT modifier", () => {
       hp: 100,
       maxHp: 100,
     });
-    const trigger: Trigger = { type: "always", negated: false };
+    const trigger: Trigger = {
+      scope: "enemy",
+      condition: "always",
+      negated: false,
+    };
 
     const result = evaluateTrigger(trigger, evaluator, [evaluator]);
 
@@ -135,8 +150,9 @@ describe("evaluateTrigger - NOT modifier", () => {
       maxHp: 100, // 30% - below 50%
     });
     const trigger: Trigger = {
-      type: "ally_hp_below",
-      value: 50,
+      scope: "ally",
+      condition: "hp_below",
+      conditionValue: 50,
       negated: true,
     };
 
@@ -163,7 +179,8 @@ describe("evaluateTrigger - NOT modifier", () => {
       currentAction: null, // Not targeting evaluator
     });
     const trigger: Trigger = {
-      type: "my_cell_targeted_by_enemy",
+      scope: "enemy",
+      condition: "targeting_me",
       negated: true,
     };
 
@@ -171,5 +188,49 @@ describe("evaluateTrigger - NOT modifier", () => {
 
     // Cell is NOT targeted, base is false, NOT inverts to true
     expect(result).toBe(true);
+  });
+
+  it("should work with hp_above condition", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      position: { q: 3, r: 2 },
+      hp: 70,
+      maxHp: 100, // 70% - IS above 50%
+    });
+    const trigger: Trigger = {
+      scope: "self",
+      condition: "hp_above",
+      conditionValue: 50,
+      negated: true,
+    };
+
+    const result = evaluateTrigger(trigger, evaluator, [evaluator]);
+
+    // hp IS above 50%, negated inverts to false
+    expect(result).toBe(false);
+  });
+
+  it("should work with in_range condition under ally scope", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+    });
+    const ally = createCharacter({
+      id: "ally",
+      faction: "friendly",
+      position: { q: 4, r: 2 }, // Distance 1
+    });
+    const trigger: Trigger = {
+      scope: "ally",
+      condition: "in_range",
+      conditionValue: 2,
+      negated: true,
+    };
+
+    const result = evaluateTrigger(trigger, evaluator, [evaluator, ally]);
+
+    // Ally IS in range, negated inverts to false
+    expect(result).toBe(false);
   });
 });

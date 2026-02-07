@@ -25,7 +25,7 @@ describe("computeDecisions - move destination", () => {
         createSkill({
           id: "skill1",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -56,7 +56,7 @@ describe("computeDecisions - move destination", () => {
         createSkill({
           id: "skill1",
           behavior: "away",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -87,7 +87,7 @@ describe("computeDecisions - move destination", () => {
         createSkill({
           id: "skill1",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -111,7 +111,7 @@ describe("computeDecisions - move destination", () => {
         createSkill({
           id: "skill1",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });
@@ -139,7 +139,7 @@ describe("computeDecisions - move destination", () => {
         createSkill({
           id: "skill1",
           behavior: "towards",
-          triggers: [{ type: "always" }],
+          trigger: { scope: "enemy", condition: "always" },
         }),
       ],
     });

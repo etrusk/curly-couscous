@@ -246,7 +246,7 @@ describe("Movement Fairness and Edge Cases", () => {
             range: 1,
             behavior: "",
             enabled: true,
-            triggers: [],
+            trigger: { scope: "enemy", condition: "always" },
             target: "enemy" as const,
             criterion: "nearest" as const,
           },

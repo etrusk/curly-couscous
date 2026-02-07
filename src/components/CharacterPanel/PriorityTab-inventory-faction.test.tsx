@@ -125,7 +125,7 @@ describe("PriorityTab - Inventory Faction Filtering", () => {
       damage: 10,
       range: 1,
       actionType: "attack",
-      triggers: [{ type: "always" }],
+      trigger: { scope: "enemy", condition: "always" },
     });
     const friendly = createCharacter({
       id: "friendly",

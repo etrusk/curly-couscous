@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import App from "./App";
 import { useAccessibilityStore } from "./stores/accessibilityStore";
 import { useGameStore } from "./stores/gameStore";
@@ -160,21 +161,94 @@ describe("App - D1: Two-Panel Layout", () => {
     });
   });
 
-  it("renders auto-focus checkbox, unchecked by default", () => {
-    // Ensure autoFocus is at default (false)
+  it("auto-focus-switch-renders-with-role-switch", () => {
     useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
 
     render(<App />);
 
-    const checkbox = screen.getByRole("checkbox", {
+    // Should render as role="switch" with aria-checked="false"
+    const switchEl = screen.getByRole("switch", {
       name: /auto-focus battle/i,
     });
-    expect(checkbox).toBeInTheDocument();
-    expect(checkbox).not.toBeChecked();
-
+    expect(switchEl).toBeInTheDocument();
+    expect(switchEl).toHaveAttribute("aria-checked", "false");
+    // Old checkbox should be gone
+    expect(
+      screen.queryByRole("checkbox", { name: /auto-focus battle/i }),
+    ).toBeNull();
     // Accessible description element should exist
     const description = document.getElementById("auto-focus-description");
     expect(description).toBeInTheDocument();
+    // Switch should reference the description
+    expect(switchEl).toHaveAttribute(
+      "aria-describedby",
+      "auto-focus-description",
+    );
+  });
+
+  it("auto-focus-switch-toggles-on-click", async () => {
+    useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    const switchEl = screen.getByRole("switch", {
+      name: /auto-focus battle/i,
+    });
+    // Initially false
+    expect(switchEl).toHaveAttribute("aria-checked", "false");
+
+    // Click to toggle on
+    await user.click(switchEl);
+    expect(switchEl).toHaveAttribute("aria-checked", "true");
+    expect(useAccessibilityStore.getState().autoFocus).toBe(true);
+
+    // Click to toggle off
+    await user.click(switchEl);
+    expect(switchEl).toHaveAttribute("aria-checked", "false");
+    expect(useAccessibilityStore.getState().autoFocus).toBe(false);
+  });
+
+  it("auto-focus-switch-keyboard-operable", async () => {
+    useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    const switchEl = screen.getByRole("switch", {
+      name: /auto-focus battle/i,
+    });
+    // Focus the switch
+    switchEl.focus();
+
+    // Press Enter to toggle on
+    await user.keyboard("{Enter}");
+    expect(switchEl).toHaveAttribute("aria-checked", "true");
+
+    // Press Space to toggle off
+    await user.keyboard(" ");
+    expect(switchEl).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("auto-focus-switch-has-pill-styling", async () => {
+    useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    const switchEl = screen.getByRole("switch", {
+      name: /auto-focus battle/i,
+    });
+    // Should have pillSwitch class
+    expect(switchEl.classList.contains("pillSwitch")).toBe(true);
+    // Should NOT have pillSwitchOn when off
+    expect(switchEl.classList.contains("pillSwitchOn")).toBe(false);
+
+    // Click to toggle on
+    await user.click(switchEl);
+    // Should now have both pillSwitch and pillSwitchOn
+    expect(switchEl.classList.contains("pillSwitch")).toBe(true);
+    expect(switchEl.classList.contains("pillSwitchOn")).toBe(true);
   });
 
   it("data-phase stays config during battle when autoFocus is false", async () => {

@@ -35,7 +35,7 @@ describe("PriorityTab", () => {
         state.gameState.battleStatus = "active";
       });
 
-      render(<PriorityTab mode="battle" />);
+      render(<PriorityTab />);
 
       // First skill should show selected status (check mark icon or similar)
       // Remaining skills should show skipped status
@@ -68,7 +68,7 @@ describe("PriorityTab", () => {
         state.gameState.battleStatus = "active";
       });
 
-      render(<PriorityTab mode="battle" />);
+      render(<PriorityTab />);
 
       expect(screen.getByText(/long range attack/i)).toBeInTheDocument();
       expect(
@@ -103,7 +103,7 @@ describe("PriorityTab", () => {
         state.gameState.battleStatus = "active";
       });
 
-      render(<PriorityTab mode="battle" />);
+      render(<PriorityTab />);
 
       expect(screen.getByText(/punch/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/selected/i)).toBeInTheDocument();
@@ -120,7 +120,7 @@ describe("PriorityTab", () => {
         state.gameState.battleStatus = "active";
       });
 
-      const { container } = render(<PriorityTab mode="battle" />);
+      const { container } = render(<PriorityTab />);
 
       // Should have compact class or attribute
       expect(
@@ -152,7 +152,7 @@ describe("PriorityTab", () => {
         state.gameState.battleStatus = "active";
       });
 
-      const { rerender } = render(<PriorityTab mode="battle" />);
+      const { rerender } = render(<PriorityTab />);
 
       // Initial render should show evaluation
       expect(screen.getByText(/punch/i)).toBeInTheDocument();
@@ -162,7 +162,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.processTick();
 
       // Rerender to reflect new evaluation state
-      rerender(<PriorityTab mode="battle" />);
+      rerender(<PriorityTab />);
 
       // Evaluation should reflect post-step state
       expect(screen.getByText(/punch/i)).toBeInTheDocument();
@@ -199,7 +199,7 @@ describe("PriorityTab", () => {
         state.gameState.battleStatus = "active";
       });
 
-      render(<PriorityTab mode="battle" />);
+      render(<PriorityTab />);
 
       // Should show selected status icon
       expect(screen.getByLabelText("Selected")).toBeInTheDocument();
@@ -236,7 +236,7 @@ describe("PriorityTab", () => {
         state.gameState.battleStatus = "active";
       });
 
-      render(<PriorityTab mode="battle" />);
+      render(<PriorityTab />);
 
       // Should show rejected status icon
       expect(screen.getByLabelText("Rejected")).toBeInTheDocument();
@@ -283,7 +283,7 @@ describe("PriorityTab", () => {
         state.gameState.battleStatus = "active";
       });
 
-      render(<PriorityTab mode="battle" />);
+      render(<PriorityTab />);
 
       // First skill selected, second skipped
       expect(screen.getByLabelText("Skipped")).toBeInTheDocument();
@@ -327,7 +327,7 @@ describe("PriorityTab", () => {
         state.gameState.battleStatus = "active";
       });
 
-      render(<PriorityTab mode="battle" />);
+      render(<PriorityTab />);
 
       // Both skills should be rejected (enemy out of range for both)
       const rejectedIcons = screen.getAllByLabelText("Rejected");
@@ -348,11 +348,15 @@ describe("PriorityTab", () => {
       });
 
       useGameStore.getState().actions.initBattle([char1]);
+      // initBattle sets "active" when characters present; override to non-active
+      useGameStore.setState((state) => {
+        state.gameState.battleStatus = "draw";
+      });
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
-      // No evaluation icons in config mode
+      // No evaluation icons when battle is not active
       expect(screen.queryByLabelText("Selected")).not.toBeInTheDocument();
       expect(screen.queryByLabelText("Rejected")).not.toBeInTheDocument();
       expect(screen.queryByLabelText("Skipped")).not.toBeInTheDocument();
@@ -368,42 +372,5 @@ describe("PriorityTab", () => {
     });
   });
 
-  describe("Inventory Hidden in Battle Mode", () => {
-    it("inventory-hidden-in-battle-mode", () => {
-      const lightPunch = createSkill({
-        id: "light-punch",
-        name: "Light Punch",
-        damage: 10,
-        range: 1,
-        actionType: "attack",
-        triggers: [{ type: "always" }],
-      });
-      const friendly = createCharacter({
-        id: "friendly",
-        faction: "friendly",
-        position: { q: 0, r: 0 },
-        skills: [lightPunch],
-      });
-      const enemy = createCharacter({
-        id: "enemy",
-        faction: "enemy",
-        position: { q: 1, r: 0 },
-      });
-
-      useGameStore.getState().actions.initBattle([friendly, enemy]);
-      useGameStore.getState().actions.selectCharacter("friendly");
-      useGameStore.setState((state) => {
-        state.gameState.battleStatus = "active";
-      });
-
-      render(<PriorityTab mode="battle" />);
-
-      // No inventory section in battle mode
-      expect(screen.queryByText(/inventory/i)).toBeNull();
-      // No inventory "Assign" buttons (but "Unassign" config button may exist)
-      expect(screen.queryByRole("button", { name: /^assign/i })).toBeNull();
-      // Skill evaluation content IS present
-      expect(screen.getByText(/light punch/i)).toBeInTheDocument();
-    });
-  });
+  // Inventory faction-based tests moved to PriorityTab-inventory-faction.test.tsx
 });

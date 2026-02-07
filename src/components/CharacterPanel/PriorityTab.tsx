@@ -1,6 +1,7 @@
 /**
- * PriorityTab - Displays skill priority list with configuration or battle evaluation.
- * In config mode, also shows an inventory section for assigning skills.
+ * PriorityTab - Displays skill priority list with configuration and battle evaluation.
+ * Shows inventory section for assigning skills when only one faction is on the board.
+ * Evaluation indicators display when battleStatus is "active" (read from store).
  */
 
 import { useGameStore, selectActions } from "../../stores/gameStore";
@@ -10,12 +11,9 @@ import { SKILL_REGISTRY } from "../../engine/skill-registry";
 import { SkillRow } from "./SkillRow";
 import styles from "./PriorityTab.module.css";
 
-interface PriorityTabProps {
-  mode: "config" | "battle";
-}
-
-export function PriorityTab({ mode }: PriorityTabProps) {
+export function PriorityTab() {
   const allCharacters = useGameStore((state) => state.gameState.characters);
+  const battleStatus = useGameStore((state) => state.gameState.battleStatus);
   const selectedCharacterId = useGameStore(
     (state) => state.selectedCharacterId,
   );
@@ -26,11 +24,14 @@ export function PriorityTab({ mode }: PriorityTabProps) {
     return null;
   }
 
-  const isBattleMode = mode === "battle";
+  const isBattleActive = battleStatus === "active";
+  const hasBothFactions =
+    allCharacters.some((c) => c.faction === "friendly") &&
+    allCharacters.some((c) => c.faction === "enemy");
 
-  // In battle mode, get evaluation data from real engine evaluation
+  // When battle is active, get evaluation data from real engine evaluation
   const evaluations = (() => {
-    if (!isBattleMode) {
+    if (!isBattleActive) {
       return character.skills.map(() => undefined);
     }
 
@@ -49,7 +50,7 @@ export function PriorityTab({ mode }: PriorityTabProps) {
   })();
 
   // Filter inventory: exclude innate skills and skills assigned to same-faction characters
-  const availableSkills = isBattleMode
+  const availableSkills = hasBothFactions
     ? []
     : SKILL_REGISTRY.filter((skillDef) => {
         if (skillDef.innate) return false;
@@ -83,7 +84,7 @@ export function PriorityTab({ mode }: PriorityTabProps) {
           />
         ))}
       </div>
-      {!isBattleMode && (
+      {!hasBothFactions && (
         <section className={styles.inventorySection}>
           <h3 className={styles.sectionTitle}>Inventory</h3>
           <div className={styles.inventoryList}>

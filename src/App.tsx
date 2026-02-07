@@ -45,19 +45,17 @@ function App() {
           <span id="targeting-lines-description" className="visuallyHidden">
             Toggle visibility of movement target lines on the battle grid
           </span>
-          <label htmlFor="auto-focus" className="toggleLabel">
-            <input
-              id="auto-focus"
-              type="checkbox"
-              checked={autoFocus}
-              onChange={(e) => setAutoFocus(e.target.checked)}
-              aria-describedby="auto-focus-description"
-            />
+          <button
+            role="switch"
+            aria-checked={autoFocus}
+            onClick={() => setAutoFocus(!autoFocus)}
+            aria-describedby="auto-focus-description"
+            className={`pillSwitch ${autoFocus ? "pillSwitchOn" : ""}`}
+          >
             Auto-focus battle
-          </label>
+          </button>
           <span id="auto-focus-description" className="visuallyHidden">
-            Automatically expand battle view and switch to Priority tab when
-            battle starts
+            Automatically expand battle view when battle starts
           </span>
           <ThemeToggle />
         </div>

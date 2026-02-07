@@ -12,7 +12,6 @@ export function CharacterPanel() {
   const selectedCharacterId = useGameStore(
     (state) => state.selectedCharacterId,
   );
-  const battleStatus = useGameStore((state) => state.gameState.battleStatus);
   const character = useGameStore((state) =>
     state.gameState.characters.find((c) => c.id === selectedCharacterId),
   );
@@ -43,7 +42,7 @@ export function CharacterPanel() {
 
       {/* Content */}
       <div className={styles.content}>
-        <PriorityTab mode={battleStatus === "active" ? "battle" : "config"} />
+        <PriorityTab />
       </div>
     </div>
   );

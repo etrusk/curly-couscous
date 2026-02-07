@@ -1,6 +1,6 @@
 /**
  * Tests for PriorityTab component - Inventory section, enable/disable checkboxes,
- * and unassign buttons in config mode.
+ * and unassign buttons.
  * Split from PriorityTab-config.test.tsx per 400-line project limit (review directive).
  */
 
@@ -27,7 +27,7 @@ describe("PriorityTab - Inventory Section", () => {
     useGameStore.getState().actions.initBattle([char1]);
     useGameStore.getState().actions.selectCharacter("char1");
 
-    render(<PriorityTab mode="config" />);
+    render(<PriorityTab />);
 
     expect(screen.getByText(/inventory/i)).toBeInTheDocument();
     const assignButtons = screen.getAllByRole("button", { name: /assign/i });
@@ -43,7 +43,7 @@ describe("PriorityTab - Inventory Section", () => {
     useGameStore.getState().actions.initBattle([char1]);
     useGameStore.getState().actions.selectCharacter("char1");
 
-    render(<PriorityTab mode="config" />);
+    render(<PriorityTab />);
 
     // Innate skill Move should not have an assign button
     expect(screen.queryByRole("button", { name: /assign.*move/i })).toBeNull();
@@ -70,16 +70,11 @@ describe("PriorityTab - Inventory Section", () => {
       faction: "friendly",
       skills: [],
     });
-    const enemy1 = createCharacter({
-      id: "enemy1",
-      faction: "enemy",
-      skills: [],
-    });
 
-    useGameStore.getState().actions.initBattle([friendly1, friendly2, enemy1]);
+    useGameStore.getState().actions.initBattle([friendly1, friendly2]);
     useGameStore.getState().actions.selectCharacter("friendly2");
 
-    render(<PriorityTab mode="config" />);
+    render(<PriorityTab />);
 
     // Light Punch should NOT be available (assigned to friendly1)
     expect(
@@ -94,33 +89,6 @@ describe("PriorityTab - Inventory Section", () => {
     ).toBeInTheDocument();
   });
 
-  it("inventory-available-for-different-faction", () => {
-    const lightPunch = createSkill({
-      id: "light-punch",
-      name: "Light Punch",
-    });
-    const friendly1 = createCharacter({
-      id: "friendly1",
-      faction: "friendly",
-      skills: [lightPunch],
-    });
-    const enemy1 = createCharacter({
-      id: "enemy1",
-      faction: "enemy",
-      skills: [],
-    });
-
-    useGameStore.getState().actions.initBattle([friendly1, enemy1]);
-    useGameStore.getState().actions.selectCharacter("enemy1");
-
-    render(<PriorityTab mode="config" />);
-
-    // Light Punch is on friendly, not same faction -- should be available
-    expect(
-      screen.getByRole("button", { name: /assign light punch/i }),
-    ).toBeInTheDocument();
-  });
-
   it("assign-button-adds-skill", async () => {
     const user = userEvent.setup();
     const moveSkill = createSkill({
@@ -132,7 +100,7 @@ describe("PriorityTab - Inventory Section", () => {
     useGameStore.getState().actions.initBattle([char1]);
     useGameStore.getState().actions.selectCharacter("char1");
 
-    render(<PriorityTab mode="config" />);
+    render(<PriorityTab />);
 
     await user.click(
       screen.getByRole("button", { name: /assign light punch/i }),
@@ -167,7 +135,7 @@ describe("PriorityTab - Inventory Section", () => {
     useGameStore.getState().actions.initBattle([char1]);
     useGameStore.getState().actions.selectCharacter("char1");
 
-    render(<PriorityTab mode="config" />);
+    render(<PriorityTab />);
 
     // All assign buttons should be disabled
     const assignButtons = screen.getAllByRole("button", { name: /assign/i });
@@ -193,7 +161,7 @@ describe("PriorityTab - Inventory Section", () => {
     useGameStore.getState().actions.initBattle([char1]);
     useGameStore.getState().actions.selectCharacter("char1");
 
-    render(<PriorityTab mode="config" />);
+    render(<PriorityTab />);
 
     // Light Punch already assigned -- should not have assign button
     expect(
@@ -244,7 +212,7 @@ describe("PriorityTab - Inventory Section", () => {
       .actions.initBattle([friendly1, friendly2, friendly3, friendly4]);
     useGameStore.getState().actions.selectCharacter("friendly4");
 
-    render(<PriorityTab mode="config" />);
+    render(<PriorityTab />);
 
     // Inventory section heading still renders
     expect(screen.getByText(/inventory/i)).toBeInTheDocument();
@@ -277,7 +245,7 @@ describe("PriorityTab - Enable/Disable Checkbox Integration", () => {
     useGameStore.getState().actions.initBattle([char1]);
     useGameStore.getState().actions.selectCharacter("char1");
 
-    render(<PriorityTab mode="config" />);
+    render(<PriorityTab />);
 
     expect(
       screen.getByRole("checkbox", { name: /enable.*light punch/i }),
@@ -298,7 +266,7 @@ describe("PriorityTab - Enable/Disable Checkbox Integration", () => {
     useGameStore.getState().actions.initBattle([char1]);
     useGameStore.getState().actions.selectCharacter("char1");
 
-    render(<PriorityTab mode="config" />);
+    render(<PriorityTab />);
 
     const checkbox = screen.getByRole("checkbox", {
       name: /enable.*light punch/i,
@@ -329,7 +297,7 @@ describe("PriorityTab - Unassign Button Integration", () => {
     useGameStore.getState().actions.initBattle([char1]);
     useGameStore.getState().actions.selectCharacter("char1");
 
-    render(<PriorityTab mode="config" />);
+    render(<PriorityTab />);
 
     expect(
       screen.getByRole("button", { name: /unassign.*light punch/i }),
@@ -346,10 +314,12 @@ describe("PriorityTab - Unassign Button Integration", () => {
     useGameStore.getState().actions.initBattle([char1]);
     useGameStore.getState().actions.selectCharacter("char1");
 
-    render(<PriorityTab mode="config" />);
+    render(<PriorityTab />);
 
     expect(
       screen.queryByRole("button", { name: /unassign.*move/i }),
     ).toBeNull();
   });
 });
+
+// Faction-based inventory visibility tests are in PriorityTab-inventory-faction.test.tsx

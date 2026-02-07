@@ -96,7 +96,7 @@ CharacterPanel (container, character selector)
     │   │        (battle mode: evaluation indicators shown alongside config controls)
     │   ├── SkillRowActions (unassign, remove, duplicate buttons)
     │   └── TriggerDropdown (trigger type select, value input, remove button)
-    └── Inventory section (config mode only: assignable skills with Assign buttons)
+    └── Inventory section (hidden when both factions present: assignable skills with Assign buttons)
 ```
 
 ### Phase-Based Layout
@@ -116,12 +116,11 @@ The App-level grid container uses data attributes to drive responsive proportion
 
 During battle phase, SkillRow shows evaluation indicators alongside config controls:
 
-- **Config mode**: Shows enable/disable checkbox, priority controls, dropdowns, unassign/remove/duplicate buttons, inventory section
-- **Battle mode**: Config controls remain visible. Evaluation indicators appear alongside them:
+- **Single faction on board**: Shows enable/disable checkbox, priority controls, dropdowns, unassign/remove/duplicate buttons, inventory section
+- **Both factions on board**: Config controls remain visible. Inventory section is hidden. When `battleStatus` is "active", evaluation indicators appear alongside config controls:
   - Selected: Green check mark + resolved target character (e.g., "-> Enemy B")
   - Rejected: Red X mark + rejection reason (e.g., "No valid target")
   - Skipped: Gray dash + visual de-emphasis
-  - Inventory section is hidden during battle
 - Evaluation data flows from character's evaluation results to SkillRow via props
 - Rejection reasons use formatters from `src/components/RuleEvaluations/` for consistency
 

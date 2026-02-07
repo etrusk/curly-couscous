@@ -27,7 +27,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
       const skillHeadings = screen.getAllByRole("heading", { level: 3 });
       expect(skillHeadings[0]).toHaveTextContent("First");
@@ -45,7 +45,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
       // Trigger dropdown
       expect(
@@ -76,7 +76,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
       // Click move up on skill B
       const moveUpButtons = screen.getAllByRole("button", { name: /move up/i });
@@ -106,7 +106,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
       // Click move down on skill B
       const moveDownButtons = screen.getAllByRole("button", {
@@ -133,7 +133,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
       const moveUpButtons = screen.getAllByRole("button", { name: /move up/i });
       expect(moveUpButtons[0]).toBeDisabled(); // First skill's button
@@ -146,7 +146,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
       const moveDownButtons = screen.getAllByRole("button", {
         name: /move down/i,
@@ -167,7 +167,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
       const triggerDropdown = screen.getByRole("combobox", {
         name: /trigger for punch/i,
@@ -196,7 +196,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
       const targetDropdown = screen.getByLabelText(/target.*punch/i);
       await user.selectOptions(targetDropdown, "ally");
@@ -220,7 +220,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
       const criterionDropdown = screen.getByLabelText(/criterion.*punch/i);
       await user.selectOptions(criterionDropdown, "lowest_hp");
@@ -243,7 +243,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
       const criterionDropdown = screen.getByLabelText(/criterion.*buff/i);
       expect(criterionDropdown).toBeDisabled();
@@ -266,7 +266,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
       // Move should have behavior dropdown
       expect(screen.getByLabelText(/behavior.*move/i)).toBeInTheDocument();
@@ -291,7 +291,7 @@ describe("PriorityTab", () => {
       useGameStore.getState().actions.initBattle([char1]);
       useGameStore.getState().actions.selectCharacter("char1");
 
-      render(<PriorityTab mode="config" />);
+      render(<PriorityTab />);
 
       const duplicateButton = screen.getByRole("button", {
         name: /duplicate.*move/i,

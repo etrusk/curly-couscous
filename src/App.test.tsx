@@ -3,12 +3,10 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import { userEvent } from "@testing-library/user-event";
+import { render, screen } from "@testing-library/react";
 import App from "./App";
 import { useAccessibilityStore } from "./stores/accessibilityStore";
 import { useGameStore } from "./stores/gameStore";
-import { createCharacter } from "./engine/game-test-helpers";
 
 describe("App - Theme Integration", () => {
   beforeEach(() => {
@@ -120,192 +118,37 @@ describe("App - D1: Two-Panel Layout", () => {
     expect(screen.queryByText(/skills & priority/i)).not.toBeInTheDocument();
   });
 
-  it("config phase uses 40%/60% grid proportions", () => {
+  it("does not render auto-focus toggle", () => {
     render(<App />);
 
-    // Ensure in config phase (no active battle)
-    const battleStatus = useGameStore.getState().gameState.battleStatus;
-    expect(battleStatus).not.toBe("active");
-
-    // Grid container should have config phase data attribute
-    const gridContainer = document.querySelector("[data-phase='config']");
-    expect(gridContainer).toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: /auto-focus/i })).toBeNull();
+    expect(document.getElementById("auto-focus-description")).toBeNull();
   });
 
-  it("battle phase uses 70%/30% grid proportions", async () => {
-    // Enable auto-focus so grid proportions switch on battle
-    useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
-
-    // Create characters and start battle
-    const friendly = createCharacter({
-      id: "friendly",
-      faction: "friendly",
-      position: { q: 0, r: 0 },
-    });
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { q: 5, r: 0 },
-    });
-
+  it("does not render targeting lines checkbox", () => {
     render(<App />);
 
-    // initBattle after render to override App's useEffect init
-    useGameStore.getState().actions.initBattle([friendly, enemy]);
-    // battleStatus should already be "active" from initBattle
-
-    // Wait for React to re-render with new state
-    await waitFor(() => {
-      const gridContainer = document.querySelector("[data-phase='battle']");
-      expect(gridContainer).toBeInTheDocument();
-    });
-  });
-
-  it("auto-focus-switch-renders-with-role-switch", () => {
-    useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
-
-    render(<App />);
-
-    // Should render as role="switch" with aria-checked="false"
-    const switchEl = screen.getByRole("switch", {
-      name: /auto-focus battle/i,
-    });
-    expect(switchEl).toBeInTheDocument();
-    expect(switchEl).toHaveAttribute("aria-checked", "false");
-    // Old checkbox should be gone
     expect(
-      screen.queryByRole("checkbox", { name: /auto-focus battle/i }),
+      screen.queryByRole("checkbox", { name: /targeting lines/i }),
     ).toBeNull();
-    // Accessible description element should exist
-    const description = document.getElementById("auto-focus-description");
-    expect(description).toBeInTheDocument();
-    // Switch should reference the description
-    expect(switchEl).toHaveAttribute(
-      "aria-describedby",
-      "auto-focus-description",
-    );
+    expect(document.getElementById("targeting-lines-description")).toBeNull();
   });
 
-  it("auto-focus-switch-toggles-on-click", async () => {
-    useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
-    const user = userEvent.setup();
-
+  it("does not have data-phase attribute on grid container", () => {
     render(<App />);
 
-    const switchEl = screen.getByRole("switch", {
-      name: /auto-focus battle/i,
-    });
-    // Initially false
-    expect(switchEl).toHaveAttribute("aria-checked", "false");
-
-    // Click to toggle on
-    await user.click(switchEl);
-    expect(switchEl).toHaveAttribute("aria-checked", "true");
-    expect(useAccessibilityStore.getState().autoFocus).toBe(true);
-
-    // Click to toggle off
-    await user.click(switchEl);
-    expect(switchEl).toHaveAttribute("aria-checked", "false");
-    expect(useAccessibilityStore.getState().autoFocus).toBe(false);
+    expect(document.querySelector("[data-phase]")).toBeNull();
+    expect(
+      document.querySelector("[class*='gridContainer']"),
+    ).toBeInTheDocument();
   });
 
-  it("auto-focus-switch-keyboard-operable", async () => {
-    useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
-    const user = userEvent.setup();
-
+  it("renders grid container with gridContainer class", () => {
     render(<App />);
 
-    const switchEl = screen.getByRole("switch", {
-      name: /auto-focus battle/i,
-    });
-    // Focus the switch
-    switchEl.focus();
-
-    // Press Enter to toggle on
-    await user.keyboard("{Enter}");
-    expect(switchEl).toHaveAttribute("aria-checked", "true");
-
-    // Press Space to toggle off
-    await user.keyboard(" ");
-    expect(switchEl).toHaveAttribute("aria-checked", "false");
-  });
-
-  it("auto-focus-switch-has-pill-styling", async () => {
-    useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
-    const user = userEvent.setup();
-
-    render(<App />);
-
-    const switchEl = screen.getByRole("switch", {
-      name: /auto-focus battle/i,
-    });
-    // Should have pillSwitch class
-    expect(switchEl.classList.contains("pillSwitch")).toBe(true);
-    // Should NOT have pillSwitchOn when off
-    expect(switchEl.classList.contains("pillSwitchOn")).toBe(false);
-
-    // Click to toggle on
-    await user.click(switchEl);
-    // Should now have both pillSwitch and pillSwitchOn
-    expect(switchEl.classList.contains("pillSwitch")).toBe(true);
-    expect(switchEl.classList.contains("pillSwitchOn")).toBe(true);
-  });
-
-  it("data-phase stays config during battle when autoFocus is false", async () => {
-    // Disable autoFocus
-    useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
-
-    // Create characters for battle
-    const friendly = createCharacter({
-      id: "friendly",
-      faction: "friendly",
-      position: { q: 0, r: 0 },
-    });
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { q: 5, r: 0 },
-    });
-
-    render(<App />);
-
-    // Start battle
-    useGameStore.getState().actions.initBattle([friendly, enemy]);
-
-    // data-phase should remain "config" since autoFocus is false
-    await waitFor(() => {
-      expect(
-        document.querySelector("[data-phase='config']"),
-      ).toBeInTheDocument();
-      expect(
-        document.querySelector("[data-phase='battle']"),
-      ).not.toBeInTheDocument();
-    });
-  });
-
-  it("data-phase switches to battle when autoFocus is enabled", async () => {
-    // Ensure autoFocus is true (default)
-    useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
-
-    const friendly = createCharacter({
-      id: "friendly",
-      faction: "friendly",
-      position: { q: 0, r: 0 },
-    });
-    const enemy = createCharacter({
-      id: "enemy",
-      faction: "enemy",
-      position: { q: 5, r: 0 },
-    });
-
-    render(<App />);
-
-    useGameStore.getState().actions.initBattle([friendly, enemy]);
-
-    await waitFor(() => {
-      const gridContainer = document.querySelector("[data-phase='battle']");
-      expect(gridContainer).toBeInTheDocument();
-    });
+    expect(
+      document.querySelector("[class*='gridContainer']"),
+    ).toBeInTheDocument();
   });
 
   it("responsive layout at mobile breakpoint (<=768px)", () => {

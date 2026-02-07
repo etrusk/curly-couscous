@@ -85,7 +85,7 @@ The grid renders using SVG elements instead of CSS Grid (ADR-008). All rendering
 
 ## Character Panel Architecture
 
-The CharacterPanel provides a single-view design (BattleViewer + CharacterPanel) with no tab navigation. The panel implements phase-based rendering with responsive grid proportions.
+The CharacterPanel provides a single-view design (BattleViewer + CharacterPanel) with no tab navigation. The App uses a fixed `2fr 3fr` grid layout at all times (~40% battle viewer, ~60% character panel).
 
 ### Component Hierarchy
 
@@ -97,19 +97,6 @@ CharacterPanel (container, character selector)
     │   ├── SkillRowActions (unassign, remove, duplicate buttons)
     │   └── TriggerDropdown (trigger type select, value input, remove button)
     └── Inventory section (hidden when both factions present: assignable skills with Assign buttons)
-```
-
-### Phase-Based Layout
-
-The App-level grid container uses data attributes to drive responsive proportions:
-
-```css
-[data-phase="config"] {
-  --grid-cols: 2fr 3fr;
-} /* 40% battle, 60% panel */
-[data-phase="battle"] {
-  --grid-cols: 7fr 3fr;
-} /* 70% battle, 30% panel */
 ```
 
 ### Inline Evaluation Display

@@ -7,7 +7,6 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { CharacterPanel } from "./CharacterPanel";
 import { useGameStore } from "../../stores/gameStore";
-import { useAccessibilityStore } from "../../stores/accessibilityStore";
 import { createCharacter, createSkill } from "../../engine/game-test-helpers";
 
 describe("CharacterPanel", () => {
@@ -118,10 +117,8 @@ describe("CharacterPanel", () => {
     });
   });
 
-  describe("Auto-Focus", () => {
-    it("auto-focus-no-tab-switch-needed", () => {
-      useAccessibilityStore.setState({ autoFocus: true } as Partial<unknown>);
-
+  describe("No Tab Navigation", () => {
+    it("no-tab-switch-during-battle-mode-transition", () => {
       const lightPunch = createSkill({
         id: "light-punch",
         name: "Light Punch",

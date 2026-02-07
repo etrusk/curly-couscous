@@ -28,7 +28,6 @@ import {
 import {
   findNextAvailablePosition,
   calculateBattleStatus,
-  calculatePreBattleStatus,
 } from "./gameStore-helpers";
 import type { GameStore, SelectionMode } from "./gameStore-types";
 import {
@@ -444,7 +443,7 @@ export const useGameStore = create<GameStore>()(
           state.initialCharacters.push(structuredClone(newCharacter));
 
           // Recalculate battleStatus (pre-battle setup)
-          state.gameState.battleStatus = calculatePreBattleStatus(
+          state.gameState.battleStatus = calculateBattleStatus(
             state.gameState.characters,
           );
 
@@ -525,7 +524,7 @@ export const useGameStore = create<GameStore>()(
           state.initialCharacters.push(structuredClone(newCharacter));
 
           // Recalculate battleStatus (pre-battle setup)
-          state.gameState.battleStatus = calculatePreBattleStatus(
+          state.gameState.battleStatus = calculateBattleStatus(
             state.gameState.characters,
           );
 

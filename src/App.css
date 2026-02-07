@@ -25,69 +25,12 @@
   align-items: center;
 }
 
-.toggleLabel {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-}
-
-.pillSwitch {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
-  border: 2px solid var(--border-default);
-  border-radius: 999px;
-  background: var(--surface-secondary);
-  color: inherit;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.pillSwitchOn {
-  background: var(--accent-primary);
-  color: #fff;
-  border-color: var(--accent-primary);
-}
-
-.pillSwitch:hover {
-  filter: brightness(1.1);
-}
-
-.pillSwitch:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
-}
-
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
 .gridContainer {
   display: grid;
-  grid-template-columns: var(--grid-cols, 2fr 1fr);
+  grid-template-columns: 2fr 3fr;
   grid-template-rows: auto auto;
   gap: 1rem;
   margin-bottom: 1rem;
-  transition: grid-template-columns 0.3s ease;
-}
-
-.gridContainer[data-phase="config"] {
-  --grid-cols: 2fr 3fr; /* 40% / 60% */
-}
-
-.gridContainer[data-phase="battle"] {
-  --grid-cols: 7fr 3fr; /* 70% / 30% */
 }
 
 .battleViewer {

@@ -4,7 +4,6 @@
  */
 
 import { useGameStore, selectMovementTargetData } from "../../stores/gameStore";
-import { useAccessibilityStore } from "../../stores/accessibilityStore";
 import type { MovementTargetData } from "../../stores/gameStore-selectors";
 import { positionsEqual } from "../../engine/types";
 import { hexToPixel, computeHexViewBox } from "../../engine/hex";
@@ -82,16 +81,8 @@ function detectBidirectionalTargeting(
 }
 
 export function TargetingLineOverlay({ hexSize }: TargetingLineOverlayProps) {
-  // Subscribe to toggle state
-  const showTargetLines = useAccessibilityStore((s) => s.showTargetLines);
-
   // Subscribe to movement target data
   const targetData = useGameStore(selectMovementTargetData);
-
-  // Early return if toggle is off (after all hooks)
-  if (!showTargetLines) {
-    return null;
-  }
 
   // Detect bidirectional targeting and compute offsets
   const offsets = detectBidirectionalTargeting(targetData, hexSize);

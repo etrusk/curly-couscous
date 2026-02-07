@@ -362,18 +362,8 @@ Character tokens display alphabetical letters for visual distinction, making it 
 
 Four-panel structure:
 
-1. **Battle Viewer (50% width):** Hexagonal grid (radius 5, 91 hexes) with tokens, intent lines, damage numbers. Hovering over character tokens displays rule evaluation tooltips. Uses CSS Grid rendering.
-2. **CharacterPanel (50% width):** Single-view panel (no tabs) combining skill configuration, priority ordering, and inventory. Shows a skill list with enable/disable checkboxes, trigger/target/criterion/behavior dropdowns, priority reorder buttons, unassign buttons (non-innate), and duplicate/remove buttons. An Inventory section below the skill list shows assignable skills with Assign buttons (hidden when both factions are present on the board). During active battle, evaluation indicators (selected/rejected/skipped) appear alongside config controls.
-
-### Auto-Focus Toggle
-
-The header includes an "Auto-focus battle" pill/switch toggle (`role="switch"`, `aria-checked`) (default: off) that controls automatic UI layout switching when battle starts:
-
-- **When enabled (on):** Grid proportions shift to battle layout (30%/70%) when `battleStatus` becomes `"active"`. Pill shows active styling (`.pillSwitchOn`).
-- **When disabled (off, default):** Grid proportions remain at config layout (60%/40%) regardless of battle status. Pill shows default styling (`.pillSwitch`).
-- **Persistence:** Setting is stored in localStorage (key: `"auto-focus"`) and survives page reloads.
-- **Mid-battle toggle:** Enabling auto-focus during an active battle immediately triggers the layout change.
-- **Accessibility:** Uses `<button role="switch">` with `aria-checked` and `aria-describedby`. Keyboard operable via native button behavior (Enter/Space).
+1. **Battle Viewer (~40% width):** Hexagonal grid (radius 5, 91 hexes) with tokens, intent lines, damage numbers. Hovering over character tokens displays rule evaluation tooltips. Uses CSS Grid rendering. Fixed `2fr 3fr` grid layout at all times.
+2. **CharacterPanel (~60% width):** Single-view panel (no tabs) combining skill configuration, priority ordering, and inventory. Shows a skill list with enable/disable checkboxes, trigger/target/criterion/behavior dropdowns, priority reorder buttons, unassign buttons (non-innate), and duplicate/remove buttons. An Inventory section below the skill list shows assignable skills with Assign buttons (hidden when both factions are present on the board). During active battle, evaluation indicators (selected/rejected/skipped) appear alongside config controls.
 
 ### Character Tooltip
 

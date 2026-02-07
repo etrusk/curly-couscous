@@ -3,14 +3,12 @@
  * Tests overlay rendering, toggle behavior, and integration with game state.
  */
 
-/* eslint-disable max-lines */
 // File exceeds 400 lines due to comprehensive integration test coverage.
 // TODO: Split into unit tests (overlay-unit.test.tsx) and integration tests (overlay-integration.test.tsx)
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
 import { TargetingLineOverlay } from "./TargetingLineOverlay";
-import { useAccessibilityStore } from "../../stores/accessibilityStore";
 import { useGameStore } from "../../stores/gameStore";
 import {
   createCharacter,
@@ -24,105 +22,24 @@ describe("TargetingLineOverlay", () => {
 
   beforeEach(() => {
     useGameStore.getState().actions.reset();
-    useAccessibilityStore.setState({ showTargetLines: false });
   });
 
-  describe("Toggle Behavior", () => {
-    it("should render null when toggle is off", () => {
-      useAccessibilityStore.setState({ showTargetLines: false });
-      const moveSkill = createSkill({
-        id: "move-skill",
-        behavior: "towards",
-        tickCost: 1,
-      });
-      const char1 = createCharacter({
-        id: "char1",
-        position: { q: 0, r: 0 },
-        skills: [moveSkill],
-      });
-      const char2 = createCharacter({
-        id: "char2",
-        faction: "enemy",
-        position: { q: 3, r: 1 },
-      });
-      useGameStore.getState().actions.initBattle([char1, char2]);
-
-      const { container } = render(<TargetingLineOverlay {...defaultProps} />);
-
-      expect(container.querySelector("svg")).toBeNull();
-    });
-
-    it("should render SVG when toggle is on", () => {
-      useAccessibilityStore.setState({ showTargetLines: true });
-      const moveSkill = createSkill({
-        id: "move-skill",
-        behavior: "towards",
-        tickCost: 1,
-      });
-      const char1 = createCharacter({
-        id: "char1",
-        faction: "friendly",
-        position: { q: 0, r: 0 },
-        skills: [moveSkill],
-      });
-      const char2 = createCharacter({
-        id: "char2",
-        faction: "enemy",
-        position: { q: 3, r: 1 },
-      });
-      useGameStore.getState().actions.initBattle([char1, char2]);
+  describe("Always Renders", () => {
+    it("should always render SVG overlay without toggle gating", () => {
+      // Do NOT set any showTargetLines state -- overlay should render regardless
+      useGameStore.getState().actions.initBattle([]);
 
       const { container } = render(<TargetingLineOverlay {...defaultProps} />);
 
       const svg = container.querySelector("svg");
       expect(svg).toBeInTheDocument();
-      // Verify SVG has positive numeric dimensions (hex viewBox is computed, not gridWidth*cellSize)
       expect(Number(svg?.getAttribute("width"))).toBeGreaterThan(0);
       expect(Number(svg?.getAttribute("height"))).toBeGreaterThan(0);
-    });
-
-    it("should toggle reactively show/hide when toggle changes", () => {
-      useAccessibilityStore.setState({ showTargetLines: false });
-      const moveSkill = createSkill({
-        id: "move-skill",
-        behavior: "towards",
-        tickCost: 1,
-      });
-      const char1 = createCharacter({
-        id: "char1",
-        faction: "friendly",
-        position: { q: 0, r: 0 },
-        skills: [moveSkill],
-      });
-      const char2 = createCharacter({
-        id: "char2",
-        faction: "enemy",
-        position: { q: 3, r: 1 },
-      });
-      useGameStore.getState().actions.initBattle([char1, char2]);
-
-      const { container, rerender } = render(
-        <TargetingLineOverlay {...defaultProps} />,
-      );
-
-      // Initially off
-      expect(container.querySelector("line")).toBeNull();
-
-      // Toggle on
-      useAccessibilityStore.setState({ showTargetLines: true });
-      rerender(<TargetingLineOverlay {...defaultProps} />);
-      expect(container.querySelector("line")).toBeInTheDocument();
-
-      // Toggle off again
-      useAccessibilityStore.setState({ showTargetLines: false });
-      rerender(<TargetingLineOverlay {...defaultProps} />);
-      expect(container.querySelector("line")).toBeNull();
     });
   });
 
   describe("Line Rendering", () => {
     it("should render lines for each character with valid movement target", () => {
-      useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
         behavior: "towards",
@@ -163,7 +80,6 @@ describe("TargetingLineOverlay", () => {
     });
 
     it("should render no lines when no characters exist", () => {
-      useAccessibilityStore.setState({ showTargetLines: true });
       useGameStore.getState().actions.initBattle([]);
 
       const { container } = render(<TargetingLineOverlay {...defaultProps} />);
@@ -174,7 +90,6 @@ describe("TargetingLineOverlay", () => {
     });
 
     it("should update lines when character positions change", () => {
-      useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
         behavior: "towards",
@@ -219,7 +134,6 @@ describe("TargetingLineOverlay", () => {
     });
 
     it("should render lines visible at tick zero", () => {
-      useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
         behavior: "towards",
@@ -249,7 +163,6 @@ describe("TargetingLineOverlay", () => {
 
   describe("Overlay Styling", () => {
     it("should have pointer-events none (not block mouse)", () => {
-      useAccessibilityStore.setState({ showTargetLines: true });
       useGameStore.getState().actions.initBattle([]);
 
       const { container } = render(<TargetingLineOverlay {...defaultProps} />);
@@ -260,7 +173,6 @@ describe("TargetingLineOverlay", () => {
     });
 
     it("should be positioned absolutely", () => {
-      useAccessibilityStore.setState({ showTargetLines: true });
       useGameStore.getState().actions.initBattle([]);
 
       const { container } = render(<TargetingLineOverlay {...defaultProps} />);
@@ -273,7 +185,6 @@ describe("TargetingLineOverlay", () => {
 
   describe("Integration Tests", () => {
     it("should integrate with game state end-to-end", () => {
-      useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
         behavior: "towards",
@@ -311,7 +222,6 @@ describe("TargetingLineOverlay", () => {
     });
 
     it("should respect different selector types visually", () => {
-      useAccessibilityStore.setState({ showTargetLines: true });
       const nearestEnemySkill = createSkill({
         id: "move-nearest",
         behavior: "towards",
@@ -364,7 +274,6 @@ describe("TargetingLineOverlay", () => {
     });
 
     it("should not render lines for dead characters", () => {
-      useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
         behavior: "towards",
@@ -404,7 +313,6 @@ describe("TargetingLineOverlay", () => {
     });
 
     it("should use uniform color for all factions", () => {
-      useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
         behavior: "towards",
@@ -456,7 +364,6 @@ describe("TargetingLineOverlay", () => {
     });
 
     it("should apply perpendicular offset only to bidirectional targeting lines", () => {
-      useAccessibilityStore.setState({ showTargetLines: true });
       const moveSkill = createSkill({
         id: "move-skill",
         behavior: "towards",

@@ -293,33 +293,21 @@ describe("accessibilityStore", () => {
     });
   });
 
-  describe("Auto-Focus Toggle", () => {
-    // Type helpers for not-yet-implemented autoFocus feature (RED phase)
-    type StoreWithAutoFocus = {
-      autoFocus: boolean;
-      setAutoFocus: (enabled: boolean) => void;
-    };
-    const getState = () =>
-      useAccessibilityStore.getState() as unknown as StoreWithAutoFocus;
-
-    it("autoFocus defaults to false", () => {
-      // Store initializes with autoFocus: false (default)
-      expect(getState().autoFocus).toBe(false);
+  describe("Removed Features", () => {
+    it("store has no autoFocus or showTargetLines properties", () => {
+      const state = useAccessibilityStore.getState();
+      expect("autoFocus" in state).toBe(false);
+      expect("setAutoFocus" in state).toBe(false);
+      expect("showTargetLines" in state).toBe(false);
+      expect("setShowTargetLines" in state).toBe(false);
     });
 
-    it("setAutoFocus persists to localStorage", () => {
-      const setItemSpy = vi.spyOn(localStorage, "setItem");
-      getState().setAutoFocus(false);
-      expect(setItemSpy).toHaveBeenCalledWith("auto-focus", "false");
-      expect(mockLocalStorage["auto-focus"]).toBe("false");
-      expect(getState().autoFocus).toBe(false);
-    });
-
-    it("autoFocus reads from localStorage on init", () => {
-      mockLocalStorage["auto-focus"] = "false";
-      // Since the store is a singleton, we set state to match what init would do
-      useAccessibilityStore.setState({ autoFocus: false } as Partial<unknown>);
-      expect(getState().autoFocus).toBe(false);
+    it("store retains theme and high-contrast functionality", () => {
+      const state = useAccessibilityStore.getState();
+      expect(state.theme).toBe("dark");
+      expect(state.highContrast).toBe(false);
+      expect(typeof state.setTheme).toBe("function");
+      expect(typeof state.setHighContrast).toBe("function");
     });
   });
 

@@ -45,18 +45,3 @@ export function calculateBattleStatus(
   if (!hasFriendly) return "defeat";
   return "active";
 }
-
-/**
- * Calculate battle status for pre-battle setup (addCharacter).
- * Requires both factions for "active", otherwise "draw".
- * @param characters - Current characters
- * @returns Battle status
- */
-export function calculatePreBattleStatus(
-  characters: Character[],
-): "active" | "draw" {
-  const hasFriendly = characters.some((c) => c.faction === "friendly");
-  const hasEnemy = characters.some((c) => c.faction === "enemy");
-
-  return hasFriendly && hasEnemy ? "active" : "draw";
-}

@@ -146,10 +146,18 @@ describe("addCharacter", () => {
     expect(useGameStore.getState().gameState.battleStatus).toBe("draw");
 
     useGameStore.getState().actions.addCharacter("friendly");
-    expect(useGameStore.getState().gameState.battleStatus).toBe("draw");
+    expect(useGameStore.getState().gameState.battleStatus).toBe("victory");
 
     useGameStore.getState().actions.addCharacter("enemy");
     expect(useGameStore.getState().gameState.battleStatus).toBe("active");
+  });
+
+  it("should recalculate battleStatus to defeat when only enemies exist", () => {
+    useGameStore.getState().actions.initBattle([]);
+    expect(useGameStore.getState().gameState.battleStatus).toBe("draw");
+
+    useGameStore.getState().actions.addCharacter("enemy");
+    expect(useGameStore.getState().gameState.battleStatus).toBe("defeat");
   });
 
   it("should update initialCharacters so reset includes added character", () => {

@@ -37,7 +37,7 @@ export interface CombatResult {
  * @preconditions
  * - All characters have valid positions
  * - Attack actions have valid targetCell and targetCharacter
- * - Characters with HP <= 0 should have been removed in previous tick
+ * - Characters with HP <= 0 may be present (e.g., killed by charges in same tick); combat skips their DeathEvents
  */
 export function resolveCombat(
   characters: Character[],
@@ -47,6 +47,9 @@ export function resolveCombat(
 
   // Create shallow copies of characters for mutation
   const updatedCharacters = characters.map((c) => ({ ...c }));
+
+  // Snapshot pre-combat HP to avoid emitting DeathEvents for already-dead characters
+  const preHpMap = new Map(updatedCharacters.map((c) => [c.id, c.hp]));
 
   // 1. Find all resolving attacks, sorted by attacker slotPosition for determinism
   const resolvingAttacks = characters
@@ -90,8 +93,11 @@ export function resolveCombat(
   }
 
   // 3. Check for deaths (after all damage applied)
+  // Only emit DeathEvents for characters killed during THIS combat resolution,
+  // not characters already dead from earlier pipeline stages (e.g., charges).
   for (const character of updatedCharacters) {
-    if (character.hp <= 0) {
+    const preHp = preHpMap.get(character.id)!;
+    if (character.hp <= 0 && preHp > 0) {
       events.push({
         type: "death",
         tick,

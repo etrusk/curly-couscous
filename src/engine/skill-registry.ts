@@ -149,6 +149,11 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     defaultCriterion: "nearest",
     targetingMode: "cell",
     cooldown: 3,
+    defaultTrigger: {
+      scope: "enemy",
+      condition: "in_range",
+      conditionValue: 1,
+    },
   },
   {
     id: "kick",

@@ -9,26 +9,26 @@
 
 ## Current Focus
 
-All Skill Expansion phases (1-8) complete. Ready for commit. (TDD/Claude Code)
+Cleanup session complete. Ready for commit. (TDD/Claude Code)
 
-Note: `.tdd/requirements.md` can be deleted at commit time -- all phases are complete.
+Note: `.tdd/` ephemeral files can be deleted at commit time -- all tasks are complete.
 
 ## Recent Completions
+
+- 2026-02-08: Cleanup Session -- test split, DeathEvent dedup, Dash defaultTrigger (COMPLETE, TDD/Claude Code) - Split `selector-filter-integration.test.ts` (639 lines) into 3 files under 400-line limit. Fixed DeathEvent duplication on charge kills via pre-combat HP snapshot in `combat.ts`. Retrofitted Dash with `defaultTrigger: { scope: "enemy", condition: "in_range", conditionValue: 1 }`. 6 new test files, 2 source files modified. 29 new tests.
 
 - 2026-02-08: Skill Expansion Session C -- Phases 7+8 (COMPLETE, TDD/Claude Code) - Added Kick (interrupt, tickCost 0, range 1, cooldown 4, instant) and Charge (charge, tickCost 1, range 3, damage 20, distance 3, cooldown 3). New action types `interrupt` and `charge` in all type unions. New event types: InterruptEvent, InterruptMissEvent, ChargeEvent. New engine modules: `interrupt.ts`, `charge.ts`. Pipeline order: Healing -> Interrupts -> Charges -> Movement -> Combat. Added `defaultTrigger`/`defaultFilter` to SkillDefinition. 12 source files modified, 6 new test files, 3 existing test files updated. 36 new tests, 1504/1504 passing.
 
 - 2026-02-08: Skill Expansion Session B -- Phases 4+5+6 (COMPLETE, TDD/Claude Code) - Added Ranged Attack (attack, range 4, damage 15, cooldown 2) and Dash (move, distance 2, tickCost 0, cooldown 3) to skill registry. Added `distance` field to Skill/SkillDefinition with `computeMultiStepDestination()` wrapper for multi-step movement. Added `most_enemies_nearby` criterion (2-hex radius, self-exclusion, position tiebreak). 16 source files modified, 4 new test files. 35 new tests, 1468/1468 passing.
 
-- 2026-02-08: Skill Expansion Phase 3 -- New Trigger Conditions (COMPLETE, TDD/Claude Code) - Added trigger-context integration tests for `channeling`, `idle`, `targeting_ally` conditions with scope/qualifier variations. TriggerDropdown updated to expose all 8 conditions. TriggerDropdown.test.tsx split to resolve 400-line tech debt. 3 new engine test files (24 tests), 6 NOT modifier tests, 8 TriggerDropdown tests. 1434/1434 passing.
+## Priority Next Tasks
 
-## Priority Next Tasks (from TDD session)
-
-- [x] TriggerDropdown.test.tsx exceeds 400-line limit (454 lines, pre-existing) -- RESOLVED: split NOT toggle tests to TriggerDropdown-not-toggle.test.tsx (Phase 3, 2026-02-08)
-- [ ] `src/engine/selector-filter-integration.test.ts` exceeds 400-line limit (610 lines, pre-existing) (found during: Phase 3 New Trigger Conditions, date: 2026-02-08)
+- [ ] `src/engine/charge-events.test.ts:146` -- TS18048 error (pre-existing, unrelated to recent changes)
+- [ ] `src/engine/interrupt.test.ts:122` -- TS2532 error (pre-existing, unrelated to recent changes)
 
 ## Next Steps
 
-All Skill Expansion phases complete. Potential future work:
+All Skill Expansion phases and cleanup tasks complete. Potential future work:
 
-- [ ] Deduplicate DeathEvent on charge kills (NB-1 from review, non-blocking)
-- [ ] Retrofit Dash with `defaultTrigger` (cleanup pass, noted in plan)
+- [ ] Fix pre-existing TypeScript errors listed above
+- [ ] New skill types or game mechanics

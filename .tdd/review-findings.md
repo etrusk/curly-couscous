@@ -1,50 +1,48 @@
-# Review Findings: Phases 7+8 (Kick/Interrupt + Charge)
+# Review Findings
 
-**Reviewer:** TDD Review Agent
-**Date:** 2026-02-08
-**Tests:** 1504/1504 passing, TypeScript + ESLint clean
+**Reviewer:** tdd-reviewer | **Date:** 2026-02-08 | **Cycle:** 1
 
-## Verdict: APPROVED (0 critical, 3 non-blocking)
+## Verdict: PASS
 
-All 18 acceptance criteria verified against requirements.md. Pipeline ordering correct: Healing -> Interrupts -> Charges -> Movement -> Combat. All files under 400 lines. No `any` casts in source. No security concerns.
+No CRITICAL or IMPORTANT issues found. All acceptance criteria met.
 
----
+## Acceptance Criteria Verification
 
-## NON-BLOCKING Issues
+- [x] `selector-filter-integration.test.ts` deleted; split into 3 files each under 400 lines (251, 211, 197)
+- [x] Split preserves all 23 tests (10 + 7 + 6 = 23)
+- [x] Charge kills emit exactly one DeathEvent (pre-HP snapshot dedup in `combat.ts`)
+- [x] Dash skill definition has `defaultTrigger` matching spec line 133
+- [x] All 1510 tests passing, 0 skipped (per task report)
+- [x] All files under 400 lines
 
-### NB-1: Duplicate DeathEvent emission on charge kills (IMPORTANT)
+## Spec Compliance
 
-**Files:** `src/engine/charge.ts:124-133`, `src/engine/combat.ts:92-101`
+- Dash `defaultTrigger`: `{ scope: "enemy", condition: "in_range", conditionValue: 1 }` matches spec line 133 exactly.
+- DeathEvent dedup: Fixes undocumented bug where `resolveCombat` re-emitted DeathEvents for characters already killed by `resolveCharges` in the same tick pipeline.
+- `@preconditions` comment updated to accurately describe that hp <= 0 characters may be present.
 
-Both `resolveCharges` and `resolveCombat` iterate ALL `updatedCharacters` and emit `DeathEvent` for any with `hp <= 0`. When charge kills a character, charge emits a DeathEvent. Then combat runs on the same `updatedCharacters` and emits another DeathEvent for the same character (still has `hp <= 0`). The test `charge-kill-followed-by-combat-no-duplicate-death` uses `toContainEqual` which passes even with duplicates -- it does not assert exactly one death event.
+## Pattern Compliance
 
-**Impact:** UI event log may show duplicate death messages. No gameplay impact (dead chars filtered at line 107 of game-core.ts regardless).
+- Test files follow existing import patterns (`combat-test-helpers`, `game-test-helpers`).
+- `makeAction()` helper correctly kept local to `selector-filter-conditions.test.ts` (only file that uses it).
+- Registry change follows exact pattern of Kick and Charge definitions.
+- `createSkillFromDefinition` propagation test follows existing factory test pattern.
 
-**Recommendation:** Add `hp > 0` pre-check guard before death emission in combat.ts, or deduplicate in charge.ts by tracking pre-charge HP. Address in a follow-up patch.
+## Duplication Check
 
-### NB-2: Test helper type cast `actionType: "charge" as "attack"`
+- No copy-pasted logic detected across split files. Each file has distinct imports and test concerns.
+- `makeAction()` in `selector-filter-conditions.test.ts` is a local helper (4 of 6 tests use it). Not duplicated elsewhere.
 
-**Files:** All 6 test files use `actionType: "interrupt" as "attack"` or `actionType: "charge" as "attack"` in `createSkill` calls.
+## Logic Review
 
-The `createSkill` helper already accepts the full `Skill` type which includes `"interrupt" | "charge"` in `actionType`. The `as "attack"` cast is unnecessary and misleading -- it obscures the actual type being set. The runtime behavior is correct because the `type` field on the Action object is set separately via `type: "charge" as const`.
+- `preHpMap` snapshot taken after shallow copy but before damage loop -- correct placement ensures snapshot captures pre-combat HP.
+- Death check `character.hp <= 0 && preHp > 0` correctly identifies only combat-caused deaths.
+- Non-null assertion `preHpMap.get(character.id)!` is safe because the map is built from the same `updatedCharacters` array being iterated.
 
-**Impact:** Readability only. No runtime issue.
+## Minor Observations
 
-### NB-3: Charge movement uses greedy algorithm (different from Dash's A\*)
+- MINOR: `skill-registry-interrupt-charge.test.ts` filename no longer fully describes its contents now that Dash tests are included. Acceptable per plan; optional future rename.
 
-**Files:** `src/engine/charge.ts:163-222`
+## Security
 
-Plan Step 6 specified reusing `computeMultiStepDestination()` from Dash. Implementation instead created a separate `computeChargeDestination()` using greedy distance minimization. Session notes justify this (charge should not route around obstacles), and all tests pass. The deviation is reasonable and intentional. However, the plan.md should reflect this for documentation accuracy.
-
-**Impact:** Documentation/plan divergence only. Behavior is correct per acceptance criteria.
-
----
-
-## Positive Observations
-
-- Pipeline integration is clean; `resolvedCharacterIds` prevents already-resolved charge/interrupt characters from blocking movement
-- Interrupt resolution correctly uses shallow copies and sequential visibility for multiple interrupts
-- defaultTrigger/defaultFilter on SkillDefinition is backward-compatible
-- Test coverage is thorough: 36 tests across 6 files covering all acceptance criteria
-- UI updates handle new types exhaustively in switch statements (no default fallthrough)
-- Bidirectional line detection in IntentOverlay correctly includes charge alongside attack
+No security concerns. All changes are pure engine logic with no external I/O.

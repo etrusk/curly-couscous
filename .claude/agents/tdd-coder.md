@@ -109,6 +109,7 @@ If during implementation you discover:
 - The plan doesn't match `.docs/spec.md` → STOP, flag for Architect review
 - A pattern conflict → Note in output
 - Missing spec clarity → Document assumption, proceed cautiously
+- Plan's algorithm/approach is suboptimal → Document deviation and rationale in `AGENT_COMPLETION notable_events`, proceed if alternative is strictly simpler and all tests pass
 
 ## Security Checklist
 

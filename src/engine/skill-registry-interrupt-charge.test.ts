@@ -85,6 +85,23 @@ describe("Skill Registry - Interrupt & Charge", () => {
   });
 
   // =========================================================================
+  // Dash Registry Tests
+  // =========================================================================
+  describe("Dash", () => {
+    it("dash-has-correct-default-trigger", () => {
+      const dash = SKILL_REGISTRY.find((s) => s.id === "dash");
+
+      expect(dash).toBeDefined();
+      expect(dash?.defaultTrigger).toEqual({
+        scope: "enemy",
+        condition: "in_range",
+        conditionValue: 1,
+      });
+      expect(dash?.defaultFilter).toBeUndefined();
+    });
+  });
+
+  // =========================================================================
   // Factory Function Tests
   // =========================================================================
   describe("createSkillFromDefinition propagation", () => {
@@ -119,6 +136,19 @@ describe("Skill Registry - Interrupt & Charge", () => {
         scope: "enemy",
         condition: "always",
       });
+    });
+
+    it("createSkillFromDefinition-propagates-dash-default-trigger", () => {
+      const dashDef = SKILL_REGISTRY.find((s) => s.id === "dash")!;
+      const dashSkill = createSkillFromDefinition(dashDef);
+
+      expect(dashSkill.trigger).toEqual({
+        scope: "enemy",
+        condition: "in_range",
+        conditionValue: 1,
+      });
+      expect(dashSkill.actionType).toBe("move");
+      expect(dashSkill.distance).toBe(2);
     });
 
     it("getDefaultSkills-includes-correct-triggers-for-kick-and-charge", () => {

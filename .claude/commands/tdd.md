@@ -274,6 +274,7 @@ Tests: [passing] passing, [failing] failing, [skipped] skipped
 Gates: TS [✓|✗]  ESLint [✓|✗]  Tests [✓|✗]
 Files: [count] modified ([truncated list...])
 Agent: [exchanges]/[limit] exchanges ([tool_calls] tools) | Orchestrator: [current]K ([percent]%)
+Notable: [notable_events from AGENT_COMPLETION, or "—" if empty]
 Status: [PROCEEDING | COMPACTING | ESCALATING] → [brief next step]
 ══════════════════
 ```

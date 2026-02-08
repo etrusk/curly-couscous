@@ -1,173 +1,377 @@
-# Implementation Plan
+# Implementation Plan: Phase 1 (Token Foundation) + Phase 2 (Global Styles)
 
-Three cleanup/fix tasks. No new architectural decisions needed. All changes are internal engine work with no UI impact.
+Created: 2026-02-08
 
-## Spec Alignment Check
+## Decisions
 
-- [x] Plan aligns with `.docs/spec.md` (Dash defaultTrigger from spec line 133; DeathEvent fix corrects buggy behavior)
-- [x] Approach consistent with `.docs/architecture.md` (pure engine changes, test-first)
-- [x] Patterns follow `.docs/patterns/index.md` (no new patterns needed)
-- [x] No conflicts with `.docs/decisions/index.md` (ADR-005 centralized registry, ADR-010 resolution order, ADR-018 defaultTrigger)
+### D1: No `light-dark()` for new tokens
 
----
+**Decision**: Continue with existing three-block pattern (`:root`, `:root[data-theme="light"]`, `:root[data-theme="high-contrast"]`).
 
-## Task 1: Split `selector-filter-integration.test.ts`
+**Context**: Requirements say "use `light-dark()` where trivially possible," but `light-dark()` is not used anywhere in the codebase. Introducing it for 15+ new tokens while the existing ~50 tokens use the three-block pattern creates inconsistency. `light-dark()` only covers dark+light; high-contrast still needs a separate override block regardless.
 
-**Goal:** Split 639-line file into 3 files, each under 400 lines. No logic changes.
+**Consequences**: Consistent with existing patterns. Slightly more repetition but zero risk of browser compat issues. `light-dark()` adoption can be done in a future unified migration of ALL tokens.
 
-### File Plan
+**Recommendation**: Add to `.docs/decisions/index.md` as ADR-019 after implementation.
 
-**File A: `selector-filter-hp-edge.test.ts` (~300 lines)**
+### D2: `--border-subtle` value unchanged
 
-- Baseline: "no filter" (lines 34-49)
-- HP filters: `hp_below` pass/reject, `hp_above` pass/reject (lines 51-152)
-- Rejection context: `failedFilter` shape, no target on filter_failed (lines 154-205)
-- Edge cases: empty filtered pool vs empty base pool (lines 408-449)
-- Negated filter (lines 451-474)
-- Total: 10 tests
-- Imports: `evaluateSkillsForCharacter` from `./game-decisions`, `createCharacter`, `createSkill` from `./game-test-helpers`
-- Does NOT need `makeAction()` helper
+**Decision**: Keep `--border-subtle: #444` (dark), `#ddd` (light), `#666666` (high-contrast) as-is.
 
-**File B: `selector-filter-pipeline.test.ts` (~200 lines)**
+**Context**: Token already exists with the exact name required. Changing its value would be a modification, not an addition, and could affect existing consumers.
 
-- Pipeline behavior: fallthrough, self-target bypass (lines 207-256)
-- Evaluation order: trigger+filter interaction, move filter, filter before heal-full-HP (lines 258-335)
-- Advanced pool narrowing: duplicate instances, multi-candidate pre-criterion (lines 337-406)
-- Total: 7 tests
-- Same imports as File A
-- Does NOT need `makeAction()` helper
+### D3: Focus ring outlines remain 2px
 
-**File C: `selector-filter-conditions.test.ts` (~140 lines)**
+**Decision**: `outline: 2px solid` focus indicators are OUT OF SCOPE. They are accessibility features, not border styling. Requirements say "ARIA attributes, focus indicators, shape redundancy unchanged."
 
-- Condition-specific: channeling pass/reject, idle, channeling with qualifier, targeting_me, targeting_ally (lines 476-583, plus some setup)
-- Total: 5 tests (the only ones using `makeAction()`)
-- `makeAction()` stays local to this file (only used here, 4 of 5 tests)
-- Additional import: `Action` type from `./types`
+### D4: `--font-mono` value
 
-### Procedure
+**Decision**: `'Fira Code', 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace`
 
-1. Create 3 new files with the groupings above
-2. Each file gets its own top-level `describe` block with a descriptive name
-3. Delete original `selector-filter-integration.test.ts`
-4. Run `npm run test` to confirm all 20 tests pass in the new locations
-5. Verify each file is under 400 lines
+**Context**: Modern developer font stack. `ui-monospace` provides system-native monospace on macOS (SF Mono) and Windows (Cascadia Mono). Named fonts first for users who have them installed. No external font loading required -- all are fallback-safe.
 
-### Risks
+### D5: `--border-primary` undefined bug
 
-- None. This is a mechanical split. No logic changes, no shared state between tests.
+**Decision**: OUT OF SCOPE. Already logged to `.docs/current-task.md` Priority Next Tasks. Will be addressed in Phase 3 component migration.
+
+### D6: New tokens use independent values (not aliases)
+
+**Decision**: New tokens (e.g., `--ground`, `--surface`, `--accent`) use independent color values, NOT `var()` references to existing tokens.
+
+**Context**: The new token taxonomy represents the terminal-overlay aesthetic and may diverge from legacy tokens. Using aliases creates coupling. Independent values allow both systems to coexist during incremental migration and diverge as needed.
+
+**Consequences**: Slightly more maintenance, but cleaner migration path. Legacy tokens can be removed once all consumers are migrated.
 
 ---
 
-## Task 2: Deduplicate DeathEvent on Charge Kills
+## Phase 1: Token Foundation
 
-**Goal:** `resolveCombat` should only emit DeathEvents for characters it killed, not characters already dead from earlier pipeline stages (charges).
+### File: `/home/bob/Projects/auto-battler/src/styles/theme.css`
 
-### Root Cause
+Current: 274 lines. Adding ~60 lines (19 tokens x 3 theme blocks + comments). Result: ~334 lines. Under 400-line limit.
 
-Pipeline order: `resolveCharges` -> `resolveCombat`. Both sweep ALL characters with `hp <= 0` and emit DeathEvents. Dead characters from charges flow into combat without filtering, causing duplicate DeathEvents.
+#### Insertion Point
 
-### Fix: Option B (snapshot pre-combat HP)
+Add a new `/* === TERMINAL OVERLAY TOKENS === */` section AFTER the existing token groups and BEFORE the closing `}` of each theme block. This keeps new tokens visually separated and preserves all existing tokens.
 
-**File:** `/home/bob/Projects/auto-battler/src/engine/combat.ts`
+#### Dark Theme (`:root` block -- insert after scrollbar group, before closing `}`)
 
-**Change:** In `resolveCombat`, before the damage loop (line 62), snapshot each character's HP into a `Map<string, number>`. In the death check loop (line 92-101), change the condition from `character.hp <= 0` to `character.hp <= 0 && preHpMap.get(character.id)! > 0`.
+```css
+/* === TERMINAL OVERLAY TOKENS (new semantic layer) === */
 
-**Pseudocode for the fix:**
+/* Surfaces */
+--ground: #1a1a2e;
+--surface: rgba(255, 255, 255, 0.03);
+--surface-hover: rgba(255, 255, 255, 0.06);
 
+/* Borders & dividers */
+--border: rgba(255, 255, 255, 0.12);
+/* --border-subtle already defined above */
+--divider: rgba(255, 255, 255, 0.06);
+
+/* Text */
+--text-primary: rgba(255, 255, 255, 0.87);
+--text-secondary: rgba(255, 255, 255, 0.6);
+--text-muted: rgba(255, 255, 255, 0.38);
+--text-ghost: rgba(255, 255, 255, 0.15);
+
+/* Accent */
+--accent: #00a8ff;
+--accent-subtle: rgba(0, 168, 255, 0.15);
+--accent-muted: rgba(0, 168, 255, 0.08);
+
+/* Status */
+--danger: #d55e00;
+--danger-subtle: rgba(213, 94, 0, 0.15);
+--success: #009e73;
+
+/* Radii */
+--radius-sm: 2px;
+--radius-md: 4px;
+--radius-lg: 6px;
+
+/* Typography */
+--font-mono:
+  "Fira Code", "Cascadia Code", "JetBrains Mono", ui-monospace, monospace;
 ```
-// Before damage loop:
-const preHpMap = new Map(updatedCharacters.map(c => [c.id, c.hp]));
 
-// Death check changes from:
-if (character.hp <= 0) { ... }
-// To:
-const preHp = preHpMap.get(character.id)!;
-if (character.hp <= 0 && preHp > 0) { ... }
+**Dark theme value rationale**:
+
+- `--ground: #1a1a2e` -- slightly blue-tinted dark for terminal aesthetic. Intentionally differs from `--surface-ground: #242424`.
+- `--surface: rgba(255,255,255,0.03)` -- translucent panel surface instead of opaque `#2a2a2a`. Creates depth layering.
+- `--surface-hover: rgba(255,255,255,0.06)` -- double surface opacity for hover feedback.
+- `--border: rgba(255,255,255,0.12)` -- translucent border instead of opaque `#555`. Blends with any surface.
+- `--divider: rgba(255,255,255,0.06)` -- very subtle separator.
+- `--text-*` tokens reuse existing `--content-*` values (same rgba values).
+- `--accent: #00a8ff` same as existing `--accent-primary`.
+- `--danger: #d55e00` same as existing `--status-error`.
+- `--success: #009e73` same as existing `--status-success`.
+- Radii are small (2/4/6px) for dense terminal aesthetic.
+
+#### Light Theme (`:root[data-theme="light"]` block -- insert before closing `}`)
+
+```css
+/* === TERMINAL OVERLAY TOKENS (new semantic layer) === */
+
+/* Surfaces */
+--ground: #f0f0f5;
+--surface: rgba(0, 0, 0, 0.02);
+--surface-hover: rgba(0, 0, 0, 0.05);
+
+/* Borders & dividers */
+--border: rgba(0, 0, 0, 0.12);
+/* --border-subtle already defined above */
+--divider: rgba(0, 0, 0, 0.06);
+
+/* Text */
+--text-primary: #333;
+--text-secondary: #666;
+--text-muted: #999;
+--text-ghost: rgba(0, 0, 0, 0.15);
+
+/* Accent */
+--accent: #0072b2;
+--accent-subtle: rgba(0, 114, 178, 0.12);
+--accent-muted: rgba(0, 114, 178, 0.06);
+
+/* Status */
+--danger: #d55e00;
+--danger-subtle: rgba(213, 94, 0, 0.12);
+--success: #009e73;
+
+/* Radii */
+--radius-sm: 2px;
+--radius-md: 4px;
+--radius-lg: 6px;
+
+/* Typography */
+--font-mono:
+  "Fira Code", "Cascadia Code", "JetBrains Mono", ui-monospace, monospace;
 ```
 
-This means: only emit a DeathEvent if the character was alive before combat started AND is now dead. Characters entering combat already dead (from charges) are ignored.
+#### High Contrast Theme (`:root[data-theme="high-contrast"]` block -- insert before closing `}`)
 
-### Tests
+```css
+/* === TERMINAL OVERLAY TOKENS (new semantic layer) === */
 
-**New test file:** `/home/bob/Projects/auto-battler/src/engine/combat-death-dedup.test.ts`
+/* Surfaces */
+--ground: #000000;
+--surface: rgba(255, 255, 255, 0.05);
+--surface-hover: rgba(255, 255, 255, 0.1);
 
-Tests needed:
+/* Borders & dividers */
+--border: #ffffff;
+/* --border-subtle already defined above */
+--divider: rgba(255, 255, 255, 0.15);
 
-1. **No duplicate DeathEvent for pre-dead character:** Character enters `resolveCombat` with `hp <= 0` and no attack targets them. Should produce zero DeathEvents.
+/* Text */
+--text-primary: #ffffff;
+--text-secondary: #cccccc;
+--text-muted: #999999;
+--text-ghost: rgba(255, 255, 255, 0.3);
 
-2. **No duplicate DeathEvent when pre-dead character is also attacked:** Character enters with `hp <= 0`, another attack hits their cell. Should produce a DamageEvent but NOT a DeathEvent (already dead).
+/* Accent */
+--accent: #00ff00;
+--accent-subtle: rgba(0, 255, 0, 0.2);
+--accent-muted: rgba(0, 255, 0, 0.1);
 
-3. **Normal death still emits DeathEvent:** Character enters with `hp > 0`, gets killed by combat. Should emit exactly one DeathEvent. (Regression guard.)
+/* Status */
+--danger: #ff6633;
+--danger-subtle: rgba(255, 102, 51, 0.2);
+--success: #00ff88;
 
-4. **Multiple deaths, only combat-caused ones emit:** Two characters with `hp <= 0` enter (pre-dead). One character alive gets killed in combat. Only the combat-killed character gets a DeathEvent.
+/* Radii */
+--radius-sm: 2px;
+--radius-md: 4px;
+--radius-lg: 6px;
 
-**Existing tests that must continue to pass:**
+/* Typography */
+--font-mono:
+  "Fira Code", "Cascadia Code", "JetBrains Mono", ui-monospace, monospace;
+```
 
-- `combat-death.test.ts`: All tests pass because they test characters entering combat alive
-- `charge-events.test.ts`: `charge-emits-death-event-when-killing-target` continues to work (charge still emits its own DeathEvent)
-- `combat-edge-cases.test.ts`: DamageEvent/DeathEvent ordering tests use characters entering alive
-- `combat-multi-attack.test.ts`: Multi-attacker tests use characters entering alive
+**High contrast rationale**: Brighter/purer colors matching existing high-contrast patterns. `--border: #ffffff` matches existing `--border-default: #ffffff`. `--accent: #00ff00` matches existing `--accent-primary: #00ff00`. `--text-ghost` at 0.30 (higher than dark's 0.15) for minimum visibility on black.
 
-### Integration Verification
+#### Token Count Verification
 
-After unit tests pass, run full suite to confirm:
+19 new tokens added per block:
 
-- `charge-integration.test.ts` still passes (death event from charge is preserved)
-- No double DeathEvents in game-core pipeline scenarios
+| #   | Token              | Dark                     | Light                  | High Contrast            |
+| --- | ------------------ | ------------------------ | ---------------------- | ------------------------ |
+| 1   | `--ground`         | `#1a1a2e`                | `#f0f0f5`              | `#000000`                |
+| 2   | `--surface`        | `rgba(255,255,255,0.03)` | `rgba(0,0,0,0.02)`     | `rgba(255,255,255,0.05)` |
+| 3   | `--surface-hover`  | `rgba(255,255,255,0.06)` | `rgba(0,0,0,0.05)`     | `rgba(255,255,255,0.10)` |
+| 4   | `--border`         | `rgba(255,255,255,0.12)` | `rgba(0,0,0,0.12)`     | `#ffffff`                |
+| 5   | `--divider`        | `rgba(255,255,255,0.06)` | `rgba(0,0,0,0.06)`     | `rgba(255,255,255,0.15)` |
+| 6   | `--text-primary`   | `rgba(255,255,255,0.87)` | `#333`                 | `#ffffff`                |
+| 7   | `--text-secondary` | `rgba(255,255,255,0.6)`  | `#666`                 | `#cccccc`                |
+| 8   | `--text-muted`     | `rgba(255,255,255,0.38)` | `#999`                 | `#999999`                |
+| 9   | `--text-ghost`     | `rgba(255,255,255,0.15)` | `rgba(0,0,0,0.15)`     | `rgba(255,255,255,0.30)` |
+| 10  | `--accent`         | `#00a8ff`                | `#0072b2`              | `#00ff00`                |
+| 11  | `--accent-subtle`  | `rgba(0,168,255,0.15)`   | `rgba(0,114,178,0.12)` | `rgba(0,255,0,0.20)`     |
+| 12  | `--accent-muted`   | `rgba(0,168,255,0.08)`   | `rgba(0,114,178,0.06)` | `rgba(0,255,0,0.10)`     |
+| 13  | `--danger`         | `#d55e00`                | `#d55e00`              | `#ff6633`                |
+| 14  | `--danger-subtle`  | `rgba(213,94,0,0.15)`    | `rgba(213,94,0,0.12)`  | `rgba(255,102,51,0.20)`  |
+| 15  | `--success`        | `#009e73`                | `#009e73`              | `#00ff88`                |
+| 16  | `--radius-sm`      | `2px`                    | `2px`                  | `2px`                    |
+| 17  | `--radius-md`      | `4px`                    | `4px`                  | `4px`                    |
+| 18  | `--radius-lg`      | `6px`                    | `6px`                  | `6px`                    |
+| 19  | `--font-mono`      | (same stack)             | (same stack)           | (same stack)             |
 
-### Risks
-
-- The `@preconditions` comment in `resolveCombat` says "Characters with HP <= 0 should have been removed in previous tick." This precondition is NOT enforced and is factually wrong (dead chars flow between stages within a single tick). The fix makes the code robust against this. Update the comment to reflect reality.
+Plus existing `--border-subtle` (already present in all 3 blocks). Total required: 20. Existing: 1. New: 19. Confirmed.
 
 ---
 
-## Task 3: Retrofit Dash with `defaultTrigger`
+## Phase 2: Global Styles
 
-**Goal:** Add `defaultTrigger` field to Dash skill definition per spec line 133.
+### File: `/home/bob/Projects/auto-battler/src/index.css`
 
-### Fix
+Two changes:
 
-**File:** `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts`
+**Change 1 -- Font family (line 5)**:
 
-**Change:** Add one field to the Dash definition object (between lines 151 and 152):
-
-```typescript
-defaultTrigger: { scope: "enemy", condition: "in_range", conditionValue: 1 },
+```
+BEFORE: font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+AFTER:  font-family: var(--font-mono);
 ```
 
-### Tests
+**Change 2 -- Background color (line 11)**:
 
-**File:** `/home/bob/Projects/auto-battler/src/engine/skill-registry-interrupt-charge.test.ts`
+```
+BEFORE: background-color: var(--surface-ground);
+AFTER:  background-color: var(--ground);
+```
 
-Add a new `describe("Dash")` block following the Kick and Charge pattern:
+### File: `/home/bob/Projects/auto-battler/src/App.css`
 
-1. **Dash has defaultTrigger:** Assert `SKILL_REGISTRY.find(s => s.id === "dash")?.defaultTrigger` equals `{ scope: "enemy", condition: "in_range", conditionValue: 1 }`.
+Six changes (7 rem values across 6 locations):
 
-2. **createSkillFromDefinition propagates Dash trigger:** Call `createSkillFromDefinition` for Dash, verify the resulting skill's trigger matches the defaultTrigger.
+**Change 1 -- `.app` padding (line 5)**:
 
-**Note:** The test file name (`skill-registry-interrupt-charge.test.ts`) becomes slightly misnamed with Dash tests added. This is acceptable -- the file tests registry entries for newer skills (Kick, Charge, Dash) and remains well under 400 lines. Renaming is optional future cleanup.
+```
+BEFORE: padding: 0.5rem;
+AFTER:  padding: 8px;
+```
 
-### Risks
+**Change 2 -- `.header` margin-bottom (line 13)**:
 
-- None. One-line addition to registry, follows exact pattern of Kick and Charge.
+```
+BEFORE: margin-bottom: 1rem;
+AFTER:  margin-bottom: 12px;
+```
+
+**Change 3 -- `.header h1` (lines 17-19)**:
+
+```
+BEFORE:
+  font-size: 2.5rem;
+  line-height: 1.1;
+  margin: 0;
+
+AFTER:
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.1;
+  margin: 0;
+```
+
+Note: `font-weight: 700` is added (not present before). `line-height: 1.1` is unitless ratio, stays. `margin: 0` unchanged.
+
+**Change 4 -- `.headerControls` gap (line 24)**:
+
+```
+BEFORE: gap: 1rem;
+AFTER:  gap: 8px;
+```
+
+**Change 5 -- `.gridContainer` gap (line 32)**:
+
+```
+BEFORE: gap: 1rem;
+AFTER:  gap: 12px;
+```
+
+12px for main grid gap (more breathing room between battle viewer and character panel than between header controls).
+
+**Change 6 -- `.gridContainer` margin-bottom (line 33)**:
+
+```
+BEFORE: margin-bottom: 1rem;
+AFTER:  margin-bottom: 12px;
+```
+
+---
+
+## Test Strategy
+
+### Phase 1 (Token Foundation): No Tests
+
+All changes are CSS custom property declarations. No structural, semantic, or behavioral change. CSS custom property values cannot be meaningfully tested with Testing Library (JSDOM does not compute styles).
+
+**Verification**: Manual review of CSS file confirming 19 tokens present in all 3 blocks. Run `npm run lint`.
+
+### Phase 2 (Global Styles): No Tests
+
+All changes are CSS value substitutions (font-family swap, rem-to-px, h1 resize, token swap). None change DOM structure, ARIA attributes, or semantic elements.
+
+**Verification**: `npm run build` to confirm no syntax errors. Visual verification deferred to post-component-phase browser inspection.
+
+### Cross-cutting Verification
+
+After both phases:
+
+1. `npm run test` -- all existing tests must pass (zero behavioral changes)
+2. `npm run lint` -- no regressions
+3. `npm run type-check` -- no type errors
+4. `npm run build` -- clean compilation
 
 ---
 
 ## Implementation Order
 
-1. **Task 3 (Dash defaultTrigger)** -- simplest, independent, 1 source line + 2 tests
-2. **Task 1 (test file split)** -- mechanical, no source changes, reduces risk of merge conflicts for Task 2
-3. **Task 2 (DeathEvent dedup)** -- most complex, benefits from having clean test files first
+1. Add 19 tokens to dark block in `theme.css`
+2. Add 19 tokens to light block in `theme.css`
+3. Add 19 tokens to high-contrast block in `theme.css`
+4. Verify `theme.css` is under 400 lines (~334 expected)
+5. Update `index.css` (2 changes)
+6. Update `App.css` (6 changes)
+7. Run `npm run test && npm run lint && npm run type-check && npm run build`
+8. Commit: `style(tokens): add terminal overlay design tokens and update global styles`
 
-## Files Modified (Expected)
+---
 
-| File                                                 | Task | Change                                       |
-| ---------------------------------------------------- | ---- | -------------------------------------------- |
-| `src/engine/skill-registry.ts`                       | 3    | Add `defaultTrigger` to Dash                 |
-| `src/engine/skill-registry-interrupt-charge.test.ts` | 3    | Add Dash describe block                      |
-| `src/engine/selector-filter-integration.test.ts`     | 1    | DELETE                                       |
-| `src/engine/selector-filter-hp-edge.test.ts`         | 1    | NEW (split A)                                |
-| `src/engine/selector-filter-pipeline.test.ts`        | 1    | NEW (split B)                                |
-| `src/engine/selector-filter-conditions.test.ts`      | 1    | NEW (split C)                                |
-| `src/engine/combat.ts`                               | 2    | Add pre-HP snapshot, conditional death check |
-| `src/engine/combat-death-dedup.test.ts`              | 2    | NEW (dedup regression tests)                 |
+## Files Modified
+
+| File                   | Phase | Changes                                                  |
+| ---------------------- | ----- | -------------------------------------------------------- |
+| `src/styles/theme.css` | 1     | Add 19 new tokens to each of 3 theme blocks              |
+| `src/index.css`        | 2     | Font-family to `var(--font-mono)`, bg to `var(--ground)` |
+| `src/App.css`          | 2     | 6 rem-to-px conversions, h1 resize + weight              |
+
+Total: 3 files modified. 0 new files. 0 deleted files.
+
+---
+
+## Risks
+
+1. **`--ground: #1a1a2e` blue tint**: Intentional for terminal aesthetic but may look off. Can adjust to `#1a1a1a` (neutral) during browser verification. Low risk -- easily tweaked.
+
+2. **Translucent `--surface` stacking**: `rgba(255,255,255,0.03)` assumes dark parent background. Nested translucent surfaces stack opacity. This is desired for depth but could wash out if nested too deep. Phase 3 will account for this.
+
+3. **Font availability**: `ui-monospace` supported in all modern browsers. Worst case falls back to browser default `monospace` (Courier New / Menlo). No external font dependencies.
+
+---
+
+## Spec Alignment Check
+
+- [x] Plan aligns with `.docs/spec.md` (styling-only, no game logic changes)
+- [x] Approach consistent with `.docs/architecture.md` (CSS Custom Properties theming pattern)
+- [x] Patterns follow `.docs/patterns/index.md` (CSS Modules + custom properties)
+- [x] No conflicts with `.docs/decisions/index.md` (no ADR contradictions)
+- [x] Okabe-Ito faction colors unchanged
+- [x] ARIA attributes, focus indicators, shape redundancy unchanged
+- [x] No game logic, store logic, or engine code modified
+
+## New Decision to Record
+
+Recommend adding ADR-019: "Independent Terminal Overlay Token Layer" to `.docs/decisions/index.md` after implementation. Documents D1 (no `light-dark()`, consistency with existing three-block pattern) and D6 (independent values, not aliases, for migration flexibility).

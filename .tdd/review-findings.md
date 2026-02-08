@@ -1,48 +1,61 @@
-# Review Findings
+# Review Findings: Phase 1 (Token Foundation) + Phase 2 (Global Styles)
 
 **Reviewer:** tdd-reviewer | **Date:** 2026-02-08 | **Cycle:** 1
 
 ## Verdict: PASS
 
-No CRITICAL or IMPORTANT issues found. All acceptance criteria met.
+No CRITICAL or IMPORTANT issues found. Implementation matches plan exactly.
 
-## Acceptance Criteria Verification
+## Phase 1: Token Foundation
 
-- [x] `selector-filter-integration.test.ts` deleted; split into 3 files each under 400 lines (251, 211, 197)
-- [x] Split preserves all 23 tests (10 + 7 + 6 = 23)
-- [x] Charge kills emit exactly one DeathEvent (pre-HP snapshot dedup in `combat.ts`)
-- [x] Dash skill definition has `defaultTrigger` matching spec line 133
-- [x] All 1510 tests passing, 0 skipped (per task report)
-- [x] All files under 400 lines
+- [x] 19 new tokens present in all 3 theme blocks (dark, light, high-contrast)
+- [x] Plus existing `--border-subtle` = 20 total required tokens accounted for
+- [x] All token values match `plan.md` exactly (verified per-value)
+- [x] No existing tokens removed or modified (diff is pure additions)
+- [x] `theme.css` at 381 lines -- under 400-line limit
+- [x] Okabe-Ito faction colors unchanged
+- [x] Insertion point consistent (after scrollbar group, before closing `}`)
 
-## Spec Compliance
+## Phase 2: Global Styles
 
-- Dash `defaultTrigger`: `{ scope: "enemy", condition: "in_range", conditionValue: 1 }` matches spec line 133 exactly.
-- DeathEvent dedup: Fixes undocumented bug where `resolveCombat` re-emitted DeathEvents for characters already killed by `resolveCharges` in the same tick pipeline.
-- `@preconditions` comment updated to accurately describe that hp <= 0 characters may be present.
+- [x] `index.css` font-family changed to `var(--font-mono)` (no Inter/system-ui/sans-serif remaining)
+- [x] `index.css` background-color changed to `var(--ground)` (was `var(--surface-ground)`)
+- [x] `App.css` all 6 rem-to-px conversions applied correctly
+- [x] `App.css` h1 font-size 16px, font-weight 700 added
+- [x] `App.css` gap values: 8px (headerControls), 12px (gridContainer)
+- [x] Zero rem/em remaining in `App.css` (grep confirmed)
+- [x] `line-height: 1.1` retained as unitless ratio (correct -- not a spacing unit)
 
-## Pattern Compliance
+## Cross-cutting
 
-- Test files follow existing import patterns (`combat-test-helpers`, `game-test-helpers`).
-- `makeAction()` helper correctly kept local to `selector-filter-conditions.test.ts` (only file that uses it).
-- Registry change follows exact pattern of Kick and Charge definitions.
-- `createSkillFromDefinition` propagation test follows existing factory test pattern.
+- [x] No engine, store, or hook files modified (git diff confirmed empty)
+- [x] All 1510 tests passing
+- [x] Lint clean (zero warnings)
+- [x] Type-check clean
+- [x] Only 3 source files modified: `theme.css`, `index.css`, `App.css`
 
 ## Duplication Check
 
-- No copy-pasted logic detected across split files. Each file has distinct imports and test concerns.
-- `makeAction()` in `selector-filter-conditions.test.ts` is a local helper (4 of 6 tests use it). Not duplicated elsewhere.
+No duplication concerns. New tokens are independent values (not aliases to existing tokens), as specified in plan decision D6. This is intentional for migration flexibility.
 
-## Logic Review
+## MINOR Issues
 
-- `preHpMap` snapshot taken after shallow copy but before damage loop -- correct placement ensures snapshot captures pre-combat HP.
-- Death check `character.hp <= 0 && preHp > 0` correctly identifies only combat-caused deaths.
-- Non-null assertion `preHpMap.get(character.id)!` is safe because the map is built from the same `updatedCharacters` array being iterated.
+### M1: `light-dark()` requirement not met (accepted deviation)
 
-## Minor Observations
+Requirements state "New color tokens use `light-dark()` where trivially possible." Plan explicitly decided against this (D1 in plan.md) with sound rationale (consistency with existing three-block pattern, high-contrast needs separate block regardless). Documented deviation, not oversight.
 
-- MINOR: `skill-registry-interrupt-charge.test.ts` filename no longer fully describes its contents now that Dash tests are included. Acceptable per plan; optional future rename.
+### M2: `--surface-ground` still referenced elsewhere (expected)
+
+After changing `index.css` to use `var(--ground)`, the old `--surface-ground` token remains defined in `theme.css` and may be consumed by components not yet migrated. Expected for incremental migration. No action needed.
 
 ## Security
 
-No security concerns. All changes are pure engine logic with no external I/O.
+No security concerns. All changes are CSS custom property declarations and value substitutions. No external I/O, no user input handling.
+
+## Summary
+
+| Category  | Count                          |
+| --------- | ------------------------------ |
+| CRITICAL  | 0                              |
+| IMPORTANT | 0                              |
+| MINOR     | 2 (both acknowledged/expected) |

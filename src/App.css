@@ -2,7 +2,7 @@
   width: 100%;
   max-width: 100%;
   margin: 0;
-  padding: 0.5rem;
+  padding: 8px;
   box-sizing: border-box;
 }
 
@@ -10,18 +10,19 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 12px;
 }
 
 .header h1 {
-  font-size: 2.5rem;
+  font-size: 16px;
+  font-weight: 700;
   line-height: 1.1;
   margin: 0;
 }
 
 .headerControls {
   display: flex;
-  gap: 1rem;
+  gap: 8px;
   align-items: center;
 }
 
@@ -29,8 +30,8 @@
   display: grid;
   grid-template-columns: 2fr 3fr;
   grid-template-rows: auto auto;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .battleViewer {

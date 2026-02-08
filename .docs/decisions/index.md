@@ -28,6 +28,7 @@ LLM-optimized index of significant architectural and design decisions.
 | ADR-016 | Pre-Criterion Pool Narrowing for Skill Filters                    | 2026-02-08 | Accepted                       | [adr-016-pre-criterion-pool-narrowing.md](./adr-016-pre-criterion-pool-narrowing.md)   |
 | ADR-017 | Wrapper Function for Multi-Step Movement                          | 2026-02-08 | Accepted                       | [adr-017-multi-step-movement-wrapper.md](./adr-017-multi-step-movement-wrapper.md)     |
 | ADR-018 | Default Trigger and Filter on SkillDefinition                     | 2026-02-08 | Accepted                       | (inline, no detail file)                                                               |
+| ADR-019 | Independent Terminal Overlay Token Layer                          | 2026-02-09 | Accepted                       | (inline, no detail file)                                                               |
 
 ## Adding New ADRs
 

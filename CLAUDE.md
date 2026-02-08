@@ -6,7 +6,7 @@
 
 A turn-based auto-battler game built with React and TypeScript. Features AI-controlled characters with configurable behavior rules, visual battle simulation, and comprehensive rule evaluation transparency.
 
-**Version:** 0.15.0 (follows SemVer: MAJOR.MINOR.PATCH)
+**Version:** 0.16.0 (follows SemVer: MAJOR.MINOR.PATCH)
 
 ## Tech Stack
 

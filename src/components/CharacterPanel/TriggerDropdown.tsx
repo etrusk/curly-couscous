@@ -107,6 +107,9 @@ export function TriggerDropdown({
         <option value="hp_below">HP below</option>
         <option value="hp_above">HP above</option>
         <option value="targeting_me">Cell targeted</option>
+        <option value="channeling">Channeling</option>
+        <option value="idle">Idle</option>
+        <option value="targeting_ally">Targeting ally</option>
       </select>
 
       {hasValue && (

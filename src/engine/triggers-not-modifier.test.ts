@@ -6,7 +6,7 @@
 import { describe, it, expect } from "vitest";
 import { evaluateTrigger } from "./triggers";
 import { Trigger } from "./types";
-import { createCharacter } from "./triggers-test-helpers";
+import { createCharacter, createAction } from "./triggers-test-helpers";
 
 describe("evaluateTrigger - NOT modifier", () => {
   it("should invert true to false", () => {
@@ -232,5 +232,154 @@ describe("evaluateTrigger - NOT modifier", () => {
 
     // Ally IS in range, negated inverts to false
     expect(result).toBe(false);
+  });
+});
+
+describe("evaluateTrigger - NOT modifier for new conditions", () => {
+  it("should return true for negated channeling when no enemy is channeling", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+    });
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 2, r: 3 },
+      currentAction: null,
+    });
+    const trigger: Trigger = {
+      scope: "enemy",
+      condition: "channeling",
+      negated: true,
+    };
+    expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(true);
+  });
+
+  it("should return false for negated channeling when enemy is channeling", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+    });
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 2, r: 3 },
+      currentAction: createAction({
+        type: "attack",
+        targetCell: { q: 0, r: 0 },
+        resolvesAtTick: 1,
+      }),
+    });
+    const trigger: Trigger = {
+      scope: "enemy",
+      condition: "channeling",
+      negated: true,
+    };
+    expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(false);
+  });
+
+  it("should return true for negated idle when all enemies are channeling", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+    });
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 2, r: 3 },
+      currentAction: createAction({
+        type: "attack",
+        targetCell: { q: 0, r: 0 },
+        resolvesAtTick: 1,
+      }),
+    });
+    const trigger: Trigger = {
+      scope: "enemy",
+      condition: "idle",
+      negated: true,
+    };
+    expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(true);
+  });
+
+  it("should return false for negated idle when enemy is idle", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+    });
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 2, r: 3 },
+      currentAction: null,
+    });
+    const trigger: Trigger = {
+      scope: "enemy",
+      condition: "idle",
+      negated: true,
+    };
+    expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(false);
+  });
+
+  it("should return true for negated targeting_ally when no enemy targets an ally", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+    });
+    const ally = createCharacter({
+      id: "ally",
+      faction: "friendly",
+      position: { q: 4, r: 2 },
+    });
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 2, r: 3 },
+      currentAction: null,
+    });
+    const trigger: Trigger = {
+      scope: "enemy",
+      condition: "targeting_ally",
+      negated: true,
+    };
+    expect(evaluateTrigger(trigger, evaluator, [evaluator, ally, enemy])).toBe(
+      true,
+    );
+  });
+
+  it("should return false for negated targeting_ally when enemy targets an ally", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 3, r: 2 },
+    });
+    const ally = createCharacter({
+      id: "ally",
+      faction: "friendly",
+      position: { q: 4, r: 2 },
+      hp: 80,
+    });
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 2, r: 3 },
+      currentAction: createAction({
+        type: "attack",
+        targetCell: { q: 4, r: 2 },
+        resolvesAtTick: 1,
+      }),
+    });
+    const trigger: Trigger = {
+      scope: "enemy",
+      condition: "targeting_ally",
+      negated: true,
+    };
+    expect(evaluateTrigger(trigger, evaluator, [evaluator, ally, enemy])).toBe(
+      false,
+    );
   });
 });

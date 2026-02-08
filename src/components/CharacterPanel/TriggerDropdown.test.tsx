@@ -11,15 +11,30 @@ const defaultProps = {
   onTriggerChange: vi.fn(),
 };
 
+/** Shorthand render with defaultProps and fresh onTriggerChange */
+function renderDropdown(
+  trigger: Parameters<typeof TriggerDropdown>[0]["trigger"],
+  overrides?: Partial<Parameters<typeof TriggerDropdown>[0]>,
+) {
+  const onTriggerChange = vi.fn();
+  const result = render(
+    <TriggerDropdown
+      trigger={trigger}
+      {...defaultProps}
+      onTriggerChange={onTriggerChange}
+      {...overrides}
+    />,
+  );
+  return { onTriggerChange, ...result };
+}
+
 describe("TriggerDropdown", () => {
   it("renders trigger type dropdown with correct value", () => {
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-        {...defaultProps}
-        onTriggerChange={vi.fn()}
-      />,
-    );
+    renderDropdown({
+      scope: "self",
+      condition: "hp_below",
+      conditionValue: 50,
+    });
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",
     });
@@ -42,50 +57,32 @@ describe("TriggerDropdown", () => {
   });
 
   it("renders value input for value-based triggers", () => {
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-        {...defaultProps}
-        onTriggerChange={vi.fn()}
-      />,
-    );
+    renderDropdown({
+      scope: "self",
+      condition: "hp_below",
+      conditionValue: 50,
+    });
     const input = screen.getByRole("spinbutton");
     expect(input).toBeInTheDocument();
     expect(input).toHaveValue(50);
   });
 
   it("hides value input for non-value triggers", () => {
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "enemy", condition: "always" }}
-        {...defaultProps}
-        onTriggerChange={vi.fn()}
-      />,
-    );
+    renderDropdown({ scope: "enemy", condition: "always" });
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
   });
 
   it("hides value input for cell-targeted trigger", () => {
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "enemy", condition: "targeting_me" }}
-        {...defaultProps}
-        onTriggerChange={vi.fn()}
-      />,
-    );
+    renderDropdown({ scope: "enemy", condition: "targeting_me" });
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
   });
 
   it("calls onTriggerChange when condition changes", async () => {
     const user = userEvent.setup();
-    const onTriggerChange = vi.fn();
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "enemy", condition: "always" }}
-        {...defaultProps}
-        onTriggerChange={onTriggerChange}
-      />,
-    );
+    const { onTriggerChange } = renderDropdown({
+      scope: "enemy",
+      condition: "always",
+    });
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",
     });
@@ -100,14 +97,10 @@ describe("TriggerDropdown", () => {
 
   it("calls onTriggerChange with hp defaults on condition change", async () => {
     const user = userEvent.setup();
-    const onTriggerChange = vi.fn();
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "enemy", condition: "always" }}
-        {...defaultProps}
-        onTriggerChange={onTriggerChange}
-      />,
-    );
+    const { onTriggerChange } = renderDropdown({
+      scope: "enemy",
+      condition: "always",
+    });
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",
     });
@@ -121,14 +114,11 @@ describe("TriggerDropdown", () => {
 
   it("calls onTriggerChange when value changes", async () => {
     const user = userEvent.setup();
-    const onTriggerChange = vi.fn();
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-        {...defaultProps}
-        onTriggerChange={onTriggerChange}
-      />,
-    );
+    const { onTriggerChange } = renderDropdown({
+      scope: "self",
+      condition: "hp_below",
+      conditionValue: 50,
+    });
     const input = screen.getByRole("spinbutton");
     await user.clear(input);
     await user.type(input, "75");
@@ -142,14 +132,9 @@ describe("TriggerDropdown", () => {
   });
 
   it("shows remove button when onRemove provided", () => {
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-        {...defaultProps}
-        triggerIndex={1}
-        onTriggerChange={vi.fn()}
-        onRemove={vi.fn()}
-      />,
+    renderDropdown(
+      { scope: "self", condition: "hp_below", conditionValue: 50 },
+      { triggerIndex: 1, onRemove: vi.fn() },
     );
     expect(
       screen.getByRole("button", {
@@ -161,30 +146,24 @@ describe("TriggerDropdown", () => {
   it("calls onRemove when remove button clicked", async () => {
     const user = userEvent.setup();
     const onRemove = vi.fn();
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-        {...defaultProps}
-        triggerIndex={1}
-        onTriggerChange={vi.fn()}
-        onRemove={onRemove}
-      />,
+    renderDropdown(
+      { scope: "self", condition: "hp_below", conditionValue: 50 },
+      { triggerIndex: 1, onRemove },
     );
-    const removeBtn = screen.getByRole("button", {
-      name: "Remove second trigger for Light Punch",
-    });
-    await user.click(removeBtn);
+    await user.click(
+      screen.getByRole("button", {
+        name: "Remove second trigger for Light Punch",
+      }),
+    );
     expect(onRemove).toHaveBeenCalledTimes(1);
   });
 
   it("hides remove button when onRemove not provided", () => {
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-        {...defaultProps}
-        onTriggerChange={vi.fn()}
-      />,
-    );
+    renderDropdown({
+      scope: "self",
+      condition: "hp_below",
+      conditionValue: 50,
+    });
     expect(
       screen.queryByRole("button", { name: /remove/i }),
     ).not.toBeInTheDocument();
@@ -192,19 +171,12 @@ describe("TriggerDropdown", () => {
 
   it("preserves negated field on value change", async () => {
     const user = userEvent.setup();
-    const onTriggerChange = vi.fn();
-    render(
-      <TriggerDropdown
-        trigger={{
-          scope: "self",
-          condition: "hp_below",
-          conditionValue: 50,
-          negated: true,
-        }}
-        {...defaultProps}
-        onTriggerChange={onTriggerChange}
-      />,
-    );
+    const { onTriggerChange } = renderDropdown({
+      scope: "self",
+      condition: "hp_below",
+      conditionValue: 50,
+      negated: true,
+    });
     const input = screen.getByRole("spinbutton");
     await user.clear(input);
     await user.type(input, "75");
@@ -220,36 +192,26 @@ describe("TriggerDropdown", () => {
 
   it("handles empty value input without propagating NaN", async () => {
     const user = userEvent.setup();
-    const onTriggerChange = vi.fn();
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-        {...defaultProps}
-        onTriggerChange={onTriggerChange}
-      />,
-    );
+    const { onTriggerChange } = renderDropdown({
+      scope: "self",
+      condition: "hp_below",
+      conditionValue: 50,
+    });
     const input = screen.getByRole("spinbutton");
     await user.clear(input);
-    // Clearing the input produces an empty string which parseInt converts to NaN.
-    // The handler should guard against this and not call onTriggerChange with NaN.
+    // Clearing produces empty string; parseInt converts to NaN.
+    // Handler should guard against this and not call onTriggerChange with NaN.
     expect(onTriggerChange).not.toHaveBeenCalled();
   });
 
   it("preserves negated field on condition change", async () => {
     const user = userEvent.setup();
-    const onTriggerChange = vi.fn();
-    render(
-      <TriggerDropdown
-        trigger={{
-          scope: "self",
-          condition: "hp_below",
-          conditionValue: 50,
-          negated: true,
-        }}
-        {...defaultProps}
-        onTriggerChange={onTriggerChange}
-      />,
-    );
+    const { onTriggerChange } = renderDropdown({
+      scope: "self",
+      condition: "hp_below",
+      conditionValue: 50,
+      negated: true,
+    });
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",
     });
@@ -265,43 +227,32 @@ describe("TriggerDropdown", () => {
   });
 
   it("unique aria-labels include trigger index", () => {
-    const { unmount } = render(
-      <TriggerDropdown
-        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-        {...defaultProps}
-        onTriggerChange={vi.fn()}
-      />,
-    );
+    const { unmount } = renderDropdown({
+      scope: "self",
+      condition: "hp_below",
+      conditionValue: 50,
+    });
     expect(
       screen.getByRole("combobox", { name: "Trigger for Light Punch" }),
     ).toBeInTheDocument();
     unmount();
 
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-        {...defaultProps}
-        triggerIndex={1}
-        onTriggerChange={vi.fn()}
-      />,
+    renderDropdown(
+      { scope: "self", condition: "hp_below", conditionValue: 50 },
+      { triggerIndex: 1 },
     );
     expect(
-      screen.getByRole("combobox", {
-        name: "Second trigger for Light Punch",
-      }),
+      screen.getByRole("combobox", { name: "Second trigger for Light Punch" }),
     ).toBeInTheDocument();
   });
 
   it("strips value when changing to non-value trigger", async () => {
     const user = userEvent.setup();
-    const onTriggerChange = vi.fn();
-    render(
-      <TriggerDropdown
-        trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-        {...defaultProps}
-        onTriggerChange={onTriggerChange}
-      />,
-    );
+    const { onTriggerChange } = renderDropdown({
+      scope: "self",
+      condition: "hp_below",
+      conditionValue: 50,
+    });
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",
     });
@@ -311,144 +262,117 @@ describe("TriggerDropdown", () => {
       condition: "always",
     });
   });
+});
 
-  describe("Gap 3: NOT Toggle Modifier", () => {
-    it("NOT toggle visible for non-always triggers", () => {
-      render(
-        <TriggerDropdown
-          trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-          {...defaultProps}
-          onTriggerChange={vi.fn()}
-        />,
-      );
-      const notToggle = screen.getByRole("button", {
-        name: /toggle not.*light punch/i,
-      });
-      expect(notToggle).toBeInTheDocument();
-      expect(notToggle).toHaveTextContent("NOT");
+describe("TriggerDropdown - new condition options", () => {
+  it("renders all 8 condition options", () => {
+    renderDropdown({
+      scope: "self",
+      condition: "hp_below",
+      conditionValue: 50,
     });
+    expect(screen.getByRole("option", { name: "Always" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "In range" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "HP below" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "HP above" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Cell targeted" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Channeling" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Idle" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Targeting ally" }),
+    ).toBeInTheDocument();
+  });
 
-    it("NOT toggle hidden for always trigger", () => {
-      render(
-        <TriggerDropdown
-          trigger={{ scope: "enemy", condition: "always" }}
-          {...defaultProps}
-          onTriggerChange={vi.fn()}
-        />,
-      );
-      expect(
-        screen.queryByRole("button", { name: /toggle not/i }),
-      ).not.toBeInTheDocument();
+  it("does not render value input for channeling condition", () => {
+    renderDropdown({ scope: "enemy", condition: "channeling" });
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+  });
+
+  it("does not render value input for idle condition", () => {
+    renderDropdown({ scope: "enemy", condition: "idle" });
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+  });
+
+  it("does not render value input for targeting_ally condition", () => {
+    renderDropdown({ scope: "enemy", condition: "targeting_ally" });
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+  });
+
+  it("calls onTriggerChange with correct shape when selecting channeling", async () => {
+    const user = userEvent.setup();
+    const { onTriggerChange } = renderDropdown({
+      scope: "enemy",
+      condition: "always",
     });
-
-    it("NOT toggle sets negated to true when clicked", async () => {
-      const user = userEvent.setup();
-      const onTriggerChange = vi.fn();
-      render(
-        <TriggerDropdown
-          trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-          {...defaultProps}
-          onTriggerChange={onTriggerChange}
-        />,
-      );
-      await user.click(
-        screen.getByRole("button", { name: /toggle not.*light punch/i }),
-      );
-      expect(onTriggerChange).toHaveBeenCalledWith(
-        expect.objectContaining({
-          scope: "self",
-          condition: "hp_below",
-          conditionValue: 50,
-          negated: true,
-        }),
-      );
+    const select = screen.getByRole("combobox", {
+      name: "Trigger for Light Punch",
     });
-
-    it("NOT toggle sets negated to false when clicked on negated trigger", async () => {
-      const user = userEvent.setup();
-      const onTriggerChange = vi.fn();
-      render(
-        <TriggerDropdown
-          trigger={{
-            scope: "self",
-            condition: "hp_below",
-            conditionValue: 50,
-            negated: true,
-          }}
-          {...defaultProps}
-          onTriggerChange={onTriggerChange}
-        />,
-      );
-      await user.click(
-        screen.getByRole("button", { name: /toggle not.*light punch/i }),
-      );
-      expect(onTriggerChange).toHaveBeenCalledWith(
-        expect.objectContaining({
-          scope: "self",
-          condition: "hp_below",
-          conditionValue: 50,
-          negated: false,
-        }),
-      );
+    await user.selectOptions(select, "channeling");
+    expect(onTriggerChange).toHaveBeenCalledTimes(1);
+    expect(onTriggerChange).toHaveBeenCalledWith({
+      scope: "enemy",
+      condition: "channeling",
     });
+  });
 
-    it("NOT toggle aria-pressed reflects negated state", () => {
-      const { unmount } = render(
-        <TriggerDropdown
-          trigger={{
-            scope: "self",
-            condition: "hp_below",
-            conditionValue: 50,
-            negated: true,
-          }}
-          {...defaultProps}
-          onTriggerChange={vi.fn()}
-        />,
-      );
-      expect(
-        screen.getByRole("button", { name: /toggle not.*light punch/i }),
-      ).toHaveAttribute("aria-pressed", "true");
-      unmount();
-
-      render(
-        <TriggerDropdown
-          trigger={{ scope: "self", condition: "hp_below", conditionValue: 50 }}
-          {...defaultProps}
-          onTriggerChange={vi.fn()}
-        />,
-      );
-      expect(
-        screen.getByRole("button", { name: /toggle not.*light punch/i }),
-      ).toHaveAttribute("aria-pressed", "false");
+  it("calls onTriggerChange with correct shape when selecting idle", async () => {
+    const user = userEvent.setup();
+    const { onTriggerChange } = renderDropdown({
+      scope: "enemy",
+      condition: "always",
     });
+    const select = screen.getByRole("combobox", {
+      name: "Trigger for Light Punch",
+    });
+    await user.selectOptions(select, "idle");
+    expect(onTriggerChange).toHaveBeenCalledWith({
+      scope: "enemy",
+      condition: "idle",
+    });
+  });
 
-    it("switching to always clears negated from callback", async () => {
-      const user = userEvent.setup();
-      const onTriggerChange = vi.fn();
-      render(
-        <TriggerDropdown
-          trigger={{
-            scope: "self",
-            condition: "hp_below",
-            conditionValue: 50,
-            negated: true,
-          }}
-          {...defaultProps}
-          onTriggerChange={onTriggerChange}
-        />,
-      );
-      const select = screen.getByRole("combobox", {
-        name: "Trigger for Light Punch",
-      });
-      await user.selectOptions(select, "always");
-      expect(onTriggerChange).toHaveBeenCalledWith({
-        scope: "self",
-        condition: "always",
-      });
-      const callArg = onTriggerChange.mock.calls[0]?.[0] as
-        | Record<string, unknown>
-        | undefined;
-      expect(callArg?.negated).toBeFalsy();
+  it("calls onTriggerChange with correct shape when selecting targeting_ally", async () => {
+    const user = userEvent.setup();
+    const { onTriggerChange } = renderDropdown({
+      scope: "enemy",
+      condition: "always",
+    });
+    const select = screen.getByRole("combobox", {
+      name: "Trigger for Light Punch",
+    });
+    await user.selectOptions(select, "targeting_ally");
+    expect(onTriggerChange).toHaveBeenCalledWith({
+      scope: "enemy",
+      condition: "targeting_ally",
+    });
+  });
+
+  it("preserves negated field when switching to a new condition", async () => {
+    const user = userEvent.setup();
+    const { onTriggerChange } = renderDropdown({
+      scope: "enemy",
+      condition: "hp_below",
+      conditionValue: 50,
+      negated: true,
+    });
+    const select = screen.getByRole("combobox", {
+      name: "Trigger for Light Punch",
+    });
+    await user.selectOptions(select, "channeling");
+    expect(onTriggerChange).toHaveBeenCalledWith({
+      scope: "enemy",
+      condition: "channeling",
+      negated: true,
     });
   });
 });

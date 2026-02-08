@@ -89,6 +89,14 @@ Non-trivial tasks use `/tdd [task description]`:
 6. Reviewer validates against spec and patterns
 7. Coder commits with conventional commit
 
+## Session Start
+
+Read `.deps-check-timestamp` (repo root, ISO 8601 UTC date). Calculate days since that date. If >14 days or file missing, print:
+
+> **Dependency check overdue** ({N} days since last check). Run `/project:deps-check` to update.
+
+Then continue normal session setup.
+
 ## Session State
 
 - **Long-term project status**: `.docs/current-task.md` (shared with Roo workflow)

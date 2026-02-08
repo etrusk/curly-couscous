@@ -41,3 +41,6 @@ build
 .claude/settings.local.json
 CLAUDE.local.md
 
+# Dependency check
+.deps-check-timestamp
+

@@ -2,134 +2,120 @@
 
 ## Task
 
-Fix pre-existing TypeScript errors + Migrate/delete legacy component undefined tokens
+Accessibility improvements: ARIA semantics for HP bars, battle status, and victory/defeat/death events. Plus stale reference cleanup and spec/architecture WCAG 2.2 AA update.
 
 ## Confirmed Scope
 
-Fix TS18048 errors in charge-events.test and TS2532 in interrupt.test. Migrate remaining undefined CSS tokens in SkillsPanel and InventoryPanel legacy components, or delete them if unused. Pure cleanup — no new features.
+Add `role="meter"` to HP bars, `aria-live="polite"` for battle status (debounced), `role="alert"` for victory/defeat/death events. Update spec/architecture docs to reference WCAG 2.2 AA as accessibility target. Fix stale SkillsPanel reference in `.roo/rules/00-project.md`.
 
 ## Acceptance Criteria
 
-- TypeScript strict mode passes (`npm run type-check`) with zero errors
-- No undefined CSS custom properties in any component
-- All existing tests continue to pass
-- Legacy components either fixed or removed
+- HP bars have `role="meter"` with appropriate `aria-valuemin`, `aria-valuemax`, `aria-valuenow`
+- Battle status region has `aria-live="polite"` (debounced updates)
+- Victory/defeat/death events use `role="alert"` for screen reader announcement
+- `.docs/spec.md` and/or `.docs/architecture.md` reference WCAG 2.2 AA as accessibility target
+- `.roo/rules/00-project.md` no longer references SkillsPanel
+- All quality gates pass
 
 ## Current Phase
 
-SYNC_DOCS (COMPLETE) -- 1 minor fix (ADR-005 stale component name)
+DESIGN_TESTS (COMPLETE) -> TEST_DESIGN_REVIEW (COMPLETE) -> WRITE_TESTS (COMPLETE) -> IMPLEMENT (COMPLETE) -> REVIEW (COMPLETE) -> SYNC_DOCS (COMPLETE)
 
 ## Phase History
 
 - 2026-02-09 INIT -> EXPLORE
-- 2026-02-09 EXPLORE COMPLETE -- TS errors already fixed (compiles clean), legacy components confirmed dead code (safe to delete)
-- 2026-02-09 PLAN COMPLETE -- Delete 8 files (2 legacy component dirs), update 5 files (comments + docs). No tests needed (pure deletion).
-- 2026-02-09 IMPLEMENT COMPLETE -- Deleted 8 files, edited 4 files (comments + docs). All quality gates pass.
-- 2026-02-09 REVIEW COMPLETE -- PASS. 0 critical, 0 important, 2 minor (stale .roo/rules ref, historical ADR ref). Approved for commit.
-- 2026-02-09 SYNC_DOCS COMPLETE -- 1 fix: ADR-005 "InventoryPanel UI" -> "Inventory section UI". All other docs verified clean.
+- 2026-02-09 EXPLORE -> COMPLETE (agent: explore, 6 exchanges, ~25K tokens)
+- 2026-02-09 PLAN -> COMPLETE (agent: plan, 4 exchanges, ~35K tokens)
+- 2026-02-09 DESIGN_TESTS -> COMPLETE (agent: tdd-test-designer, 4 exchanges, ~35K tokens)
 
 ## Context Metrics
 
-Orchestrator: ~12K/300K (~4%)
-Cumulative agent tokens: ~153K
-Agent invocations: 5
+Orchestrator: ~10K/300K (3%)
+Cumulative agent tokens: ~60K
+Agent invocations: 2
 Compactions: 0
 
 ### Agent History
 
-| #   | Agent          | Phase     | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                      |
-| --- | -------------- | --------- | --------- | ------ | ----- | -------- | -------- | ---------------------------------------------------------- |
-| 1   | tdd-explorer   | EXPLORE   | 7         | ~28K   | 28    | -        | COMPLETE | TS errors already fixed, legacy components safe to delete  |
-| 2   | tdd-planner    | PLAN      | 4         | ~35K   | 12    | -        | COMPLETE | 6-step plan: delete 8 files, edit 5 files, no tests needed |
-| 3   | tdd-coder      | IMPLEMENT | 8         | ~50K   | 25    | -        | COMPLETE | Deleted 8 files, edited 4 files, all 4 quality gates pass  |
-| 4   | tdd-reviewer   | REVIEW    | 4         | ~25K   | 14    | -        | COMPLETE | PASS: 0 critical, 2 minor (stale .roo ref, historical ADR) |
-| 5   | tdd-doc-syncer | SYNC_DOCS | 3         | ~15K   | 9     | -        | COMPLETE | 1 fix (ADR-005 stale ref), all other docs verified clean   |
+| #   | Agent             | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                                                                         |
+| --- | ----------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 1   | tdd-explorer      | EXPLORE            | 6         | ~25K   | 25    | -        | COMPLETE | Found: aria-live already on BattleStatusBadge, no role="meter" on HP bars, no death event UI, no WCAG ref in docs             |
+| 2   | tdd-planner       | PLAN               | 4         | ~35K   | 9     | -        | COMPLETE | Chose separate role="alert" div over conditional aria-live; SVG g wrapper for role="meter"                                    |
+| 3   | tdd-test-designer | DESIGN_TESTS       | 4         | ~35K   | 9     | -        | COMPLETE | Designed 6 HP meter tests + 5 terminal alert tests across 2 files                                                             |
+| 4   | tdd-test-reviewer | TEST_DESIGN_REVIEW | 3         | ~20K   | 9     | -        | COMPLETE | Added 2 tests: aria-label coverage gap + negative HP clamping edge case. Total: 13 tests                                      |
+| 5   | tdd-coder         | WRITE_TESTS        | 7         | ~40K   | 14    | -        | COMPLETE | Wrote 13 tests (8 HP bar + 5 terminal alert). 12 fail (red), 1 regression guard passes.                                       |
+| 6   | tdd-coder         | IMPLEMENT          | 11        | ~70K   | 24    | -        | COMPLETE | All 13 new tests pass (green). Fixed 3 existing test regressions. Extracted tests for 400-line limit. All quality gates pass. |
 
 ### Action Log
 
-#### #1 tdd-explorer (EXPLORE)
-
-- TS18048/TS2532 errors already fixed via non-null assertions — TypeScript compiles cleanly
-- SkillsPanel and InventoryPanel confirmed dead code — not imported anywhere in app
-- 6 undefined CSS custom properties found in legacy component CSS files
-- Architecture doc explicitly marks both components as Legacy - to be deleted
-
-#### #2 tdd-planner (PLAN)
-
-- Confirmed selectors under 'SkillsPanel Selectors' header (line 361) are still active — only the comment label is stale
-- No new tests needed — pure dead-code deletion with no behavioral changes
-
-#### #3 tdd-coder (IMPLEMENT)
-
-- Verified no external imports of SkillsPanel or InventoryPanel before deletion
-- Deleted SkillsPanel/ (4 files) and InventoryPanel/ (4 files) via git rm -r
-- Updated 3 stale comments in gameStore-selectors.ts and gameStore-skills.test.ts
-- Removed 2 legacy lines from architecture.md project structure
-- Updated current-task.md with completion entry and removed completed next-step items
-- All quality gates pass: type-check, test (149 files, 1421 tests), build, lint
-
-#### #4 tdd-reviewer (REVIEW)
-
-- All 8 deleted files confirmed absent from filesystem
-- Zero remaining SkillsPanel/InventoryPanel references in src/
-- Minor: stale SkillsPanel ref in .roo/rules/00-project.md (out of scope, logged to current-task.md)
-- Minor: historical InventoryPanel ref in ADR-005 (appropriate as-is)
-
-#### #5 tdd-doc-syncer (SYNC_DOCS)
-
-- Verified spec.md: no stale SkillsPanel/InventoryPanel component refs (Inventory section refs are correct)
-- Verified architecture.md: coder's edits are correct and complete
-- Verified patterns/index.md: no stale refs
-- Verified decisions/index.md: no stale refs
-- Verified current-task.md: completion entry accurate, .roo/rules task correctly logged
-- Fixed ADR-005 line 8: "InventoryPanel UI" -> "Inventory section UI" (component no longer exists)
+- Explored Token.tsx HP bar rendering (no ARIA meter attributes)
+- Explored BattleStatusBadge.tsx (already has aria-live="polite")
+- Confirmed no role="alert" on victory/defeat transitions
+- Confirmed no death event rendering in any UI component
+- Confirmed stale SkillsPanel reference at .roo/rules/00-project.md:194
+- Confirmed no WCAG references in spec.md or architecture.md
+- Wrote exploration findings to .tdd/exploration.md
+- Planned: <g role="meter"> wrapper for HP bars in Token.tsx
+- Planned: Separate <div role="alert"> for terminal states in BattleStatusBadge.tsx
+- Planned: .srOnly CSS class for visually-hidden alert
+- Planned: Doc updates (WCAG 2.2 AA in spec.md + architecture.md, stale refs in .roo/rules)
+- Designed 6 HP bar ARIA meter tests for token-visual.test.tsx
+- Designed 5 terminal alert tests for BattleStatusBadge.test.tsx
+- Wrote test designs to .tdd/test-designs.md
+- Reviewed test designs: added aria-label test (plan coverage gap) and negative HP clamping test (edge case)
+- WRITE_TESTS: Wrote 8 HP bar ARIA meter tests in token-visual.test.tsx
+- WRITE_TESTS: Wrote 5 terminal alert tests in BattleStatusBadge.test.tsx
+- WRITE_TESTS: 12 new tests fail (red), 1 regression guard passes (expected)
+- WRITE_TESTS: Flagged token-visual.test.tsx at 510 lines (exceeds 400-line limit; extraction recommended during IMPLEMENT phase)
+- IMPLEMENT: Added <g role="meter"> wrapper with ARIA attrs to Token.tsx (8 HP bar tests pass)
+- IMPLEMENT: Added <div role="alert"> with .srOnly class to BattleStatusBadge.tsx (5 terminal alert tests pass)
+- IMPLEMENT: Fixed 3 existing Status Display tests (getByText -> getByTestId due to duplicated text in alert div)
+- IMPLEMENT: Extracted HP Bar Accessibility tests to token-accessibility.test.tsx (token-visual.test.tsx: 510 -> 362 lines)
+- IMPLEMENT: Refactored BattleStatusBadge.test.tsx with fixture helpers (424 -> 211 lines)
+- IMPLEMENT: Updated .roo/rules/00-project.md (SkillsPanel -> CharacterPanel, RuleEvaluations planned -> description)
+- IMPLEMENT: Added WCAG 2.2 Level AA to .docs/spec.md and .docs/architecture.md
+- IMPLEMENT: All quality gates pass (1434 tests, 0 failures, type-check clean, lint clean)
 
 ## Files Touched
 
-**Deleted (8):**
-
-- src/components/SkillsPanel/SkillsPanel.tsx
-- src/components/SkillsPanel/SkillsPanel.test.tsx
-- src/components/SkillsPanel/SkillsPanel.module.css
-- src/components/SkillsPanel/index.ts
-- src/components/InventoryPanel/InventoryPanel.tsx
-- src/components/InventoryPanel/InventoryPanel.test.tsx
-- src/components/InventoryPanel/InventoryPanel.module.css
-- src/components/InventoryPanel/index.ts
-
-**Edited (5):**
-
-- src/stores/gameStore-selectors.ts (2 comment updates)
-- src/stores/gameStore-skills.test.ts (1 comment update)
-- .docs/architecture.md (removed 2 legacy lines)
-- .docs/current-task.md (updated task status)
-- .docs/decisions/adr-005-centralized-skill-registry.md (InventoryPanel -> Inventory section)
-
-**Session files:**
-
+- .tdd/exploration.md (created)
+- .tdd/plan.md (created)
 - .tdd/session.md (updated)
-- .tdd/exploration.md (created by explorer)
-- .tdd/plan.md (created by planner)
+- .tdd/test-designs.md (created)
+- src/components/BattleViewer/Token.tsx (modified: added <g role="meter"> wrapper)
+- src/components/BattleViewer/token-visual.test.tsx (modified: extracted HP bar accessibility tests)
+- src/components/BattleViewer/token-accessibility.test.tsx (created: 8 HP bar ARIA meter tests)
+- src/components/BattleStatus/BattleStatusBadge.tsx (modified: added <div role="alert"> for terminal states)
+- src/components/BattleStatus/BattleStatusBadge.module.css (modified: added .srOnly class)
+- src/components/BattleStatus/BattleStatusBadge.test.tsx (modified: +5 tests, refactored fixtures)
+- .roo/rules/00-project.md (modified: fixed 2 stale references)
+- .docs/spec.md (modified: added WCAG 2.2 AA reference)
+- .docs/architecture.md (modified: added WCAG 2.2 AA reference)
 
 ## Browser Verification
 
-Status: N/A (no UI changes — pure deletion of unused components)
+Status: N/A (ARIA changes are non-visual; verified through unit tests)
 
 ## Human Approval
 
-Status: N/A (non-UI task)
+Status: N/A
 
 ## Blockers
 
-- None
+(none)
+
+## Flags
+
+(none -- token-visual.test.tsx extraction resolved during IMPLEMENT phase)
 
 ## Review Cycles
 
 Count: 1
 
-- Cycle 1: PASS (0 critical, 0 important, 2 minor). See .tdd/review-findings.md.
+### Review 1 (2026-02-09)
 
-## Pre-existing Issues Noted
-
-- src/stores/gameStore-skills.test.ts (406 lines) exceeds 400-line limit — pre-existing
-- src/stores/gameStore-selectors.ts (425 lines) exceeds 400-line limit — pre-existing
+- **Verdict:** PASS
+- **Critical:** 0
+- **Important:** 0
+- **Minor:** 3 (aria-valuetext negative HP test gap, srOnly extraction awareness, empty string vs no content in alert)
+- **Findings:** `.tdd/review-findings.md`

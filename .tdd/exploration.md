@@ -2,102 +2,71 @@
 
 ## Task Understanding
 
-Two cleanup items:
-
-1. **Pre-existing TypeScript errors (TS18048/TS2532)**: Investigate TS18048 ("possibly undefined") in `charge-events.test.ts` and TS2532 ("possibly undefined") in `interrupt.test.ts`. Determine current status and fixes needed.
-
-2. **Legacy component undefined CSS tokens**: Determine whether `SkillsPanel` and `InventoryPanel` should be migrated to the terminal overlay token system or deleted entirely.
-
-## Findings
-
-### Item 1: TypeScript Errors -- Already Resolved
-
-TypeScript compiles cleanly (`npx tsc --noEmit` exits with code 0). The tsconfig has `"noUncheckedIndexedAccess": true`, which means array index access (`arr[0]`) returns `T | undefined`.
-
-**charge-events.test.ts**: Line 143 uses `chargeEvents[0]!` -- the `!` non-null assertion suppresses the TS18048 error from `noUncheckedIndexedAccess`. This is a valid fix since the preceding assertion (`expect(chargeEvents.length).toBeGreaterThanOrEqual(1)`) guarantees the element exists.
-
-**interrupt.test.ts**: Line 122 uses `updatedChanneler?.skills[0]!.cooldownRemaining` -- the `!` non-null assertion suppresses the TS2532 error from indexed access. The test setup explicitly provides a `skills: [channeledSkill]` array, so `skills[0]` is guaranteed to exist.
-
-**Status**: These errors are already fixed. The `!` assertions are acceptable in test code where the test setup guarantees the values exist. However, if the team prefers to avoid `!` assertions, alternative approaches include:
-
-- Extract to a local variable with an `expect(x).toBeDefined()` guard before accessing
-- Use `?.` with optional chaining throughout (less precise assertions)
-
-**No further action needed unless the team wants to eliminate `!` assertions from tests.**
-
-### Item 2: Legacy Components -- Safe to Delete
-
-**Architecture confirms deletion**: The architecture doc (`architecture.md` lines 54-55) explicitly marks both components as `(Legacy - to be deleted)`. The current-task.md (line 24) lists "Migrate remaining undefined tokens in legacy components (SkillsPanel, InventoryPanel) or delete legacy components" as a next step.
-
-**Not imported in the app**: `App.tsx` does NOT import `SkillsPanel` or `InventoryPanel`. It uses `CharacterPanel` instead, which is the replacement single-view panel. The legacy components are only referenced by:
-
-- Their own source files (`SkillsPanel.tsx`, `InventoryPanel.tsx`)
-- Their own test files (`SkillsPanel.test.tsx`, `InventoryPanel.test.tsx`)
-- Their barrel exports (`index.ts`)
-- Their CSS modules (`.module.css`)
-- Comments in `gameStore-selectors.ts` (lines 76, 361) -- text references only, no imports
-- Comments in `gameStore-skills.test.ts` (line 2) -- text reference in file description only
-
-**Undefined CSS tokens in legacy components** (would need migration if kept):
-
-| Token                   | Used In                                                                     | Defined in theme.css?                                        |
-| ----------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `--surface-tertiary`    | SkillsPanel.module.css (lines 83, 109), InventoryPanel.module.css (line 79) | No -- was migrated to `--surface-hover` in active components |
-| `--border-emphasis`     | InventoryPanel.module.css (line 88)                                         | No -- not defined anywhere                                   |
-| `--content-error`       | SkillsPanel.module.css (lines 93, 124)                                      | No -- has CSS fallback values                                |
-| `--surface-error`       | SkillsPanel.module.css (lines 94, 125)                                      | No -- has CSS fallback values                                |
-| `--border-error`        | SkillsPanel.module.css (lines 95, 126)                                      | No -- has CSS fallback values                                |
-| `--surface-error-hover` | SkillsPanel.module.css (lines 101, 132)                                     | No -- has CSS fallback values                                |
-
-**Recommendation**: Delete both legacy component directories entirely. They are dead code not rendered anywhere in the application. The `CharacterPanel` component fully replaced them.
+Add ARIA semantics to three UI areas (HP bars, battle status, victory/defeat/death events), update spec/architecture docs to reference WCAG 2.2 AA, and fix a stale SkillsPanel reference in `.roo/rules/00-project.md`.
 
 ## Relevant Files
 
-### TypeScript Errors (Item 1)
+### HP Bar (role="meter")
 
-- `/home/bob/Projects/auto-battler/src/engine/charge-events.test.ts` - Line 143: `chargeEvents[0]!` non-null assertion (already fixed)
-- `/home/bob/Projects/auto-battler/src/engine/interrupt.test.ts` - Line 122: `skills[0]!` non-null assertion (already fixed)
-- `/home/bob/Projects/auto-battler/src/engine/game-test-helpers.ts` - Shared test helpers used by both files
-- `/home/bob/Projects/auto-battler/tsconfig.json` - `noUncheckedIndexedAccess: true` causes the indexed access errors
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.tsx` - HP bar rendered as two SVG `<rect>` elements (lines 199-219). Currently has NO `role="meter"`, no `aria-valuemin`, `aria-valuemax`, or `aria-valuenow`. The health bar fill rect has `data-testid="health-bar-${id}"` but no ARIA attributes. The parent `<g>` has `role="img"` with `aria-label` that includes HP info ("Friendly character A, 75 of 100 HP").
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/token-visual.test.tsx` - Tests for Token visual rendering (shape, color, HP bar width, patterns, letters). Tests reference `health-bar-${id}` testid. Will need new tests for `role="meter"` attributes.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.module.css` - Token styles. No changes needed for ARIA.
 
-### Legacy Components (Item 2) -- Candidates for Deletion
+### Battle Status (aria-live)
 
-- `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx` - Legacy component (377 lines)
-- `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.test.tsx` - Legacy tests (~1540 lines)
-- `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.module.css` - Has undefined `--surface-tertiary` token
-- `/home/bob/Projects/auto-battler/src/components/SkillsPanel/index.ts` - Barrel export
-- `/home/bob/Projects/auto-battler/src/components/InventoryPanel/InventoryPanel.tsx` - Legacy component (80 lines)
-- `/home/bob/Projects/auto-battler/src/components/InventoryPanel/InventoryPanel.test.tsx` - Legacy tests
-- `/home/bob/Projects/auto-battler/src/components/InventoryPanel/InventoryPanel.module.css` - Has undefined `--surface-tertiary` and `--border-emphasis` tokens
-- `/home/bob/Projects/auto-battler/src/components/InventoryPanel/index.ts` - Barrel export
+- `/home/bob/Projects/auto-battler/src/components/BattleStatus/BattleStatusBadge.tsx` - ALREADY has `aria-live="polite"` on the `statusContainer` div (line 57). Displays status text ("Battle Active", "Victory!", "Defeat", "Draw") and tick count. No debouncing currently applied.
+- `/home/bob/Projects/auto-battler/src/components/BattleStatus/BattleStatusBadge.test.tsx` - Existing tests already verify `aria-live="polite"` region exists (line 241). Has 4 status display tests, tick display test, and defensive rendering test.
+- `/home/bob/Projects/auto-battler/src/components/BattleStatus/BattleStatusBadge.module.css` - Badge styles with status-specific color variants.
 
-### Context Files
+### Victory/Defeat/Death Events (role="alert")
 
-- `/home/bob/Projects/auto-battler/src/App.tsx` - Confirms neither legacy component is imported
-- `/home/bob/Projects/auto-battler/src/styles/theme.css` - Confirms tokens are undefined
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors.ts` - Has comment references to SkillsPanel/InventoryPanel (text only, lines 76, 361)
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts` - Has comment reference (line 2)
+- `/home/bob/Projects/auto-battler/src/components/BattleStatus/BattleStatusBadge.tsx` - Victory/defeat status is displayed here but does NOT have `role="alert"`. The current `aria-live="polite"` region wraps the status text. Victory/defeat are terminal states that warrant `role="alert"` for immediate screen reader announcement.
+- `/home/bob/Projects/auto-battler/src/engine/types.ts` - `DeathEvent` type defined at line 256: `{ type: "death", tick: number, characterId: string }`. No faction info on death event itself.
+- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors.ts` - Has `selectRecentDamageEvents` and `selectRecentWhiffEvents` selectors but NO death event selector. A new selector would be needed to surface death events to the UI.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/DamageOverlay.tsx` - Shows damage numbers but has no death/death event rendering. No ARIA attributes.
+- **No existing component renders death events in the UI.** EventLog is listed as `(planned)` in architecture.md. Death events exist in the game engine's event history but are not surfaced to any UI component.
+
+### Stale Reference
+
+- `/home/bob/Projects/auto-battler/.roo/rules/00-project.md` line 194 - Contains `SkillsPanel/  # Sentence-builder UI (planned)` which is stale. SkillsPanel was deleted in commit 497e10f. Should reference `CharacterPanel/` instead (which already exists in `.docs/architecture.md`).
+
+### Spec/Architecture Docs
+
+- `/home/bob/Projects/auto-battler/.docs/spec.md` - Has an "Accessibility" section under Character Icons (line 437-441) covering letters, ARIA labels, and colorblind support. No WCAG version reference anywhere.
+- `/home/bob/Projects/auto-battler/.docs/architecture.md` - Has "Accessibility Requirements" section (lines 135-140) covering shape redundancy, pattern fills, action-type colors, movement markers. Lists "High contrast mode option (Phase 5 - planned)" and "UI scale (Phase 5 - planned)". Critical Constraints section (line 120) mentions "Never rely on color alone" and "Minimum 3:1 contrast ratio". No WCAG version reference.
+- `/home/bob/Projects/auto-battler/.docs/current-task.md` - Line 31 explicitly calls out "Update spec/architecture to reference WCAG 2.2 AA as accessibility target" as a next step.
+
+### App Layout
+
+- `/home/bob/Projects/auto-battler/src/App.tsx` - Top-level layout. BattleStatusBadge renders in the `.controls` section alongside CharacterControls and PlayControls. No `role="alert"` wrappers currently.
 
 ## Existing Patterns
 
-- **CSS Custom Property Theming**: Three-block pattern (`:root`, `[data-theme="light"]`, `[data-theme="high-contrast"]`) with terminal overlay tokens as a new independent layer (ADR-019)
-- **Component replacement**: CharacterPanel replaced SkillsPanel+InventoryPanel in a single-view design
-- **Test helpers**: Centralized in `game-test-helpers.ts` with `createCharacter`, `createSkill`, etc.
+- **SVG ARIA on Grid**: Grid.tsx uses `role="grid"` with `aria-label="Hex battle grid, 91 cells"`. Cell.tsx uses `role="gridcell"` with `aria-label="Hex cell at q ${q}, r ${r}"`. These establish an existing pattern of ARIA roles on SVG elements.
+- **Token ARIA**: Token.tsx uses `role="img"` with descriptive `aria-label` including faction, letter, and HP. Has `tabIndex={0}` for keyboard navigation and `aria-describedby={tooltipId}` for tooltip association.
+- **Emoji aria-hidden**: BattleStatusBadge uses `aria-hidden="true"` on emoji spans to prevent screen readers from announcing decorative emoji.
+- **CSS Modules**: All components use CSS Modules for styling. Tests check class names with `toContain()` to handle hashed names.
+- **CSS Custom Property theming**: Three-block pattern (`:root`, `[data-theme="light"]`, `[data-theme="high-contrast"]`) for theme switching.
+- **Selector pattern**: Zustand selectors like `selectRecentDamageEvents` and `selectRecentWhiffEvents` filter `history` by event type and current tick. Same pattern would apply for death events if a selector is needed.
 
 ## Dependencies
 
-- Deleting legacy components has no downstream dependencies (not imported anywhere in the app)
-- Comment references in `gameStore-selectors.ts` and `gameStore-skills.test.ts` should be updated to remove legacy component names
-- The store selectors and actions themselves are NOT legacy -- they are used by CharacterPanel
+- `role="meter"` on HP bar: Must add ARIA attributes to the SVG `<rect>` or a wrapping `<g>` element inside Token.tsx. SVG elements support WAI-ARIA roles, but `role="meter"` on SVG may have browser/AT compatibility considerations.
+- Death event UI: No component currently renders death events. Adding `role="alert"` for death events requires either a new component or extending an existing one. The simplest approach would be to add `role="alert"` conditionally to the BattleStatusBadge when status transitions to victory/defeat/draw, rather than building a separate death event display.
+- Battle status debouncing: The session mentions "debounced" for `aria-live`, but BattleStatusBadge updates are already driven by Zustand store changes (battle status only changes on tick processing, not continuously). Status text only changes on meaningful state transitions (active -> victory/defeat/draw), so debouncing may not be necessary for the status text itself. The tick counter does update every tick during auto-play.
 
 ## Constraints Discovered
 
-- TypeScript strict mode with `noUncheckedIndexedAccess` is enabled, requiring careful handling of array indexing
-- The `!` assertions in test files are already present and working -- this is a style choice, not a bug
-- Legacy components are self-contained (no imports from non-legacy code), making deletion straightforward
+- **SVG `role="meter"` compatibility**: The HP bar is an SVG `<rect>` element. While WAI-ARIA roles are valid on SVG elements per the SVG Accessibility API Mappings spec, `role="meter"` may not be well-supported by all screen readers on SVG elements. A wrapping `<g role="meter">` with `aria-valuemin`, `aria-valuemax`, `aria-valuenow`, and `aria-label` is the most robust approach.
+- **No death event rendering exists**: Death events are tracked in `gameState.history` but never surfaced to any UI component. The `EventLog` component is planned but not implemented. For this task, `role="alert"` for death events may need to be scoped to just the battle outcome (victory/defeat/draw) rather than individual death events, unless a new lightweight component is created.
+- **BattleStatusBadge already has aria-live**: Adding `role="alert"` to the same element would conflict. `role="alert"` implicitly sets `aria-live="assertive"`. The plan should either: (a) conditionally switch from `aria-live="polite"` to `role="alert"` on terminal states, or (b) use a separate element with `role="alert"` that only renders for terminal states.
+- **Token aria-label already contains HP**: The Token `<g>` already has `aria-label` with HP info ("Friendly character A, 75 of 100 HP"). Adding `role="meter"` to the HP bar sub-elements provides structured semantics beyond the text label.
+- **Stale .roo/rules file**: The `.roo/rules/00-project.md` file at line 194 references `SkillsPanel/` which was deleted. The equivalent entry in `.docs/architecture.md` already shows `CharacterPanel/`.
 
 ## Open Questions
 
-- **For Item 1**: Should the `!` non-null assertions be kept as-is (working, acceptable in test code), or replaced with more defensive patterns? Current status is "compiles cleanly" so this may already be considered resolved.
-- **For Item 2**: Should the comment references to "SkillsPanel" in `gameStore-selectors.ts` (line 76, 361) and `gameStore-skills.test.ts` (line 2) be updated when deleting the legacy components? These are purely documentary references, not code dependencies.
-- **Scope decision**: Should both cleanup items be done in a single task/commit, or split into separate tasks?
+1. **Death event scope**: Should `role="alert"` apply only to battle outcome transitions (victory/defeat/draw), or also to individual character death events? Individual deaths would require a new component or extending DamageOverlay. Battle outcome alerts are simpler and higher value.
+2. **SVG role="meter" approach**: Should the HP bar use a wrapping `<g role="meter">` around the two `<rect>` elements, or should the attributes go on the fill `<rect>` alone? The wrapping `<g>` is more semantically correct since it groups background + fill as a single meter.
+3. **Debouncing necessity**: The session.md mentions "debounced" for `aria-live`. Since status text only changes on meaningful transitions (not every tick), is debouncing actually needed? The tick counter updates every tick but is in a separate div from the `aria-live` region. If auto-play runs fast, the tick counter could generate many announcements, but it is outside the `aria-live` div.
+4. **WCAG 2.2 AA placement**: Should the WCAG reference go in spec.md (requirements), architecture.md (constraints), or both? The current-task.md says "spec/architecture" suggesting both.
+5. **`.roo/rules/00-project.md` scope**: This file also has other outdated entries (e.g., line 195 says `RuleEvaluations/ # (planned)` but RuleEvaluations already exists). Should we fix just SkillsPanel or all stale entries?

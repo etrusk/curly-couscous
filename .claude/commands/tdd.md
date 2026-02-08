@@ -358,6 +358,7 @@ phases:
     inputs: [".tdd/exploration.md"]
     outputs: [".tdd/plan.md"]
     next: DESIGN_TESTS
+    skip_condition: "If plan.md explicitly states 'no tests needed' with rationale (e.g., pure CSS/styling changes with no DOM or semantic modifications), skip DESIGN_TESTS/TEST_DESIGN_REVIEW/WRITE_TESTS and proceed directly to IMPLEMENT. Record in session.md: 'DESIGN_TESTS → IMPLEMENT [SKIPPED — planner determined no tests needed]'"
 
   DESIGN_TESTS:
     agent: tdd-test-designer
@@ -681,7 +682,8 @@ Count: [0-2]
 | After              | Next               | Condition                                              |
 | ------------------ | ------------------ | ------------------------------------------------------ |
 | EXPLORE            | PLAN               | Always                                                 |
-| PLAN               | DESIGN_TESTS       | Always                                                 |
+| PLAN               | DESIGN_TESTS       | Default                                                |
+| PLAN               | IMPLEMENT          | Plan states "no tests needed" with rationale (skip)    |
 | DESIGN_TESTS       | TEST_DESIGN_REVIEW | Always                                                 |
 | TEST_DESIGN_REVIEW | WRITE_TESTS        | Always                                                 |
 | WRITE_TESTS        | IMPLEMENT          | Tests fail (red)                                       |

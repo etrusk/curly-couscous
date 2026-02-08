@@ -132,6 +132,7 @@ During battle phase, SkillRow shows evaluation indicators alongside config contr
 
 ## Accessibility Requirements
 
+- Compliance target: WCAG 2.2 Level AA
 - Shape redundancy: Circle (friendly), Diamond (enemy)
 - Pattern fills: Solid (friendly), Diagonal stripes (enemy)
 - Action-type color encoding: Red-orange (attack), Green (heal), Blue (move)

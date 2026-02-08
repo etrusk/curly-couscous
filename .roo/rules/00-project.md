@@ -191,8 +191,8 @@ src/
 #   └── accessibilityStore.ts
 ├── components/       # React components (view layer)
 │   ├── BattleViewer/ # Grid, Cell, Token, IntentLine, IntentOverlay (flat structure)
-│   ├── SkillsPanel/  # Sentence-builder UI (planned)
-│   ├── RuleEvaluations/ # (planned)
+│   ├── CharacterPanel/ # Single-view panel (skill config, priority ordering, inventory)
+│   ├── RuleEvaluations/ # Formatters and display components
 │   ├── EventLog/     # (planned)
 │   └── common/       # (planned)
 ├── hooks/            # Custom React hooks

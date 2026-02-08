@@ -436,6 +436,7 @@ Character tokens display alphabetical letters for visual distinction, making it 
 
 ### Accessibility
 
+- Accessibility target: WCAG 2.2 Level AA compliance
 - Letters provide additional visual distinction beyond shape and color
 - ARIA labels include letter for screen readers (e.g., "Character A, friendly")
 - Supports colorblind users who may struggle with hue differentiation

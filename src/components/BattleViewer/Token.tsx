@@ -195,28 +195,38 @@ export function Token({
         {letter}
       </text>
 
-      {/* HP Bar Background */}
-      <rect
-        x="0"
-        y={HP_BAR_Y}
-        width={HP_BAR_WIDTH}
-        height={HP_BAR_HEIGHT}
-        fill={hpBarBgColor}
-        stroke={strokeColor}
-        strokeWidth="0.5"
-        className={styles.hpBarBackground}
-      />
+      {/* HP Bar - grouped as ARIA meter for screen readers */}
+      <g
+        role="meter"
+        aria-label="HP"
+        aria-valuemin={0}
+        aria-valuemax={maxHp}
+        aria-valuenow={Math.max(0, hp)}
+        aria-valuetext={`${Math.max(0, hp)} of ${maxHp} HP`}
+      >
+        {/* HP Bar Background */}
+        <rect
+          x="0"
+          y={HP_BAR_Y}
+          width={HP_BAR_WIDTH}
+          height={HP_BAR_HEIGHT}
+          fill={hpBarBgColor}
+          stroke={strokeColor}
+          strokeWidth="0.5"
+          className={styles.hpBarBackground}
+        />
 
-      {/* HP Bar Fill */}
-      <rect
-        x="0"
-        y={HP_BAR_Y}
-        width={hpBarFillWidth}
-        height={HP_BAR_HEIGHT}
-        fill={hpBarFillColor}
-        className={styles.hpBarFill}
-        data-testid={`health-bar-${id}`}
-      />
+        {/* HP Bar Fill */}
+        <rect
+          x="0"
+          y={HP_BAR_Y}
+          width={hpBarFillWidth}
+          height={HP_BAR_HEIGHT}
+          fill={hpBarFillColor}
+          className={styles.hpBarFill}
+          data-testid={`health-bar-${id}`}
+        />
+      </g>
     </g>
   );
 }

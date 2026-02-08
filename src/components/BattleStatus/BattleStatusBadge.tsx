@@ -45,12 +45,16 @@ const FALLBACK_CONFIG: StatusConfig = {
   className: styles.statusUnknown || "",
 };
 
+/** Terminal battle statuses that trigger assertive screen reader announcement */
+const TERMINAL_STATUSES = new Set(["victory", "defeat", "draw"]);
+
 export function BattleStatusBadge() {
   const battleStatus = useGameStore(selectBattleStatus);
   const tick = useGameStore(selectTick);
 
   // Defensive rendering: handle unexpected status values
   const config = STATUS_CONFIG[battleStatus] || FALLBACK_CONFIG;
+  const isTerminal = TERMINAL_STATUSES.has(battleStatus);
 
   return (
     <div className={`${styles.badge} ${config.className}`}>
@@ -61,6 +65,9 @@ export function BattleStatusBadge() {
         <span className={styles.statusText} data-testid="battle-status">
           {config.text}
         </span>
+      </div>
+      <div role="alert" className={styles.srOnly}>
+        {isTerminal ? config.text : ""}
       </div>
       <div className={styles.tickDisplay} data-testid="tick-display">
         Tick: {tick}

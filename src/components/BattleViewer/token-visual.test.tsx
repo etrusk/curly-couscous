@@ -357,4 +357,6 @@ describe("Token Visual", () => {
       expect(content1).not.toBe(content2);
     });
   });
+
+  // HP Bar Accessibility tests extracted to token-accessibility.test.tsx (400-line limit)
 });

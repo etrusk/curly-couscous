@@ -51,8 +51,6 @@ src/
 ├── components/       # React components (view layer)
 │   ├── BattleViewer/ # Grid, Cell, Token, IntentLine, IntentOverlay, WhiffOverlay, CharacterTooltip
 │   ├── CharacterPanel/ # Single-view panel (PriorityTab, SkillRow, SkillRowActions)
-│   ├── SkillsPanel/  # (Legacy - to be deleted)
-│   ├── InventoryPanel/ # (Legacy - to be deleted)
 │   ├── RuleEvaluations/ # Formatters and display components (used by CharacterTooltip)
 │   ├── EventLog/     # (planned)
 │   └── common/       # (planned)

@@ -73,7 +73,7 @@ export const selectCharactersByFaction =
 /**
  * Compute the set of assignable skill IDs currently assigned to any character
  * of the given faction. Used by both the store action (enforcement) and
- * InventoryPanel (display filtering).
+ * CharacterPanel (display filtering).
  *
  * Innate skills are excluded because they are never part of the assignment flow.
  */
@@ -358,7 +358,7 @@ export const selectMovementTargetData = (() => {
 })();
 
 // ============================================================================
-// SkillsPanel Selectors
+// CharacterPanel Selectors
 // ============================================================================
 
 /**

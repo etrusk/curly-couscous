@@ -5,7 +5,7 @@
 
 ## Decision
 
-Create `src/engine/skill-registry.ts` as the single source of truth for all skill definitions in the game. Both `DEFAULT_SKILLS` (character initialization) and the InventoryPanel UI derive from this registry. Skills are classified as "innate" (automatically assigned to characters) or "assignable" (manually assigned from inventory).
+Create `src/engine/skill-registry.ts` as the single source of truth for all skill definitions in the game. Both `DEFAULT_SKILLS` (character initialization) and the Inventory section UI derive from this registry. Skills are classified as "innate" (automatically assigned to characters) or "assignable" (manually assigned from inventory).
 
 ## Context
 

@@ -2,95 +2,122 @@
 
 ## Task
 
-Fix undefined `--border-primary` token (used 18x, never defined) + UI/UX Visual Compliance Sweep Phase 3: Component migration to terminal overlay tokens.
+Fix pre-existing TypeScript errors + Migrate/delete legacy component undefined tokens
 
 ## Confirmed Scope
 
-Fix the `--border-primary` CSS custom property that is referenced 18 times in CharacterPanel components but never defined in theme.css. Then migrate remaining component CSS to use the new terminal overlay design tokens established in Phase 1+2 (theme.css, index.css, App.css). This is a CSS-only task — no logic or DOM changes expected.
+Fix TS18048 errors in charge-events.test and TS2532 in interrupt.test. Migrate remaining undefined CSS tokens in SkillsPanel and InventoryPanel legacy components, or delete them if unused. Pure cleanup — no new features.
 
 ## Acceptance Criteria
 
-- `--border-primary` is defined in all 3 theme blocks in theme.css (or references replaced with correct token)
-- All CharacterPanel component CSS files use terminal overlay tokens instead of hardcoded values
-- No visual regressions in terminal overlay theme
+- TypeScript strict mode passes (`npm run type-check`) with zero errors
+- No undefined CSS custom properties in any component
 - All existing tests continue to pass
-- No new TypeScript or ESLint errors introduced
+- Legacy components either fixed or removed
 
 ## Current Phase
 
-EXPLORE (COMPLETE) -> PLAN (COMPLETE) -> IMPLEMENT (COMPLETE) -> REVIEW (COMPLETE: PASS) -> SYNC_DOCS (COMPLETE) [SKIPPED DESIGN_TESTS/TEST_DESIGN_REVIEW/WRITE_TESTS -- planner determined no tests needed]
+SYNC_DOCS (COMPLETE) -- 1 minor fix (ADR-005 stale component name)
 
 ## Phase History
 
-- 2026-02-09T00:00:00Z INIT -> EXPLORE
-- 2026-02-09 EXPLORE COMPLETE - findings in .tdd/exploration.md
-- 2026-02-09 PLAN COMPLETE - plan in .tdd/plan.md (no tests needed, CSS token swap task)
-- 2026-02-09 DESIGN_TESTS -> IMPLEMENT [SKIPPED -- planner determined no tests needed]
-- 2026-02-09 IMPLEMENT COMPLETE - 40 token replacements across 8 files, all quality gates pass
-- 2026-02-09 REVIEW COMPLETE - PASS. 0 critical, 0 important, 2 minor (non-blocking, pre-existing). Findings in .tdd/review-findings.md
-- 2026-02-09 SYNC_DOCS COMPLETE - Updated .docs/current-task.md (moved Phase 3 to Recent Completions, cleared focus, updated next steps)
+- 2026-02-09 INIT -> EXPLORE
+- 2026-02-09 EXPLORE COMPLETE -- TS errors already fixed (compiles clean), legacy components confirmed dead code (safe to delete)
+- 2026-02-09 PLAN COMPLETE -- Delete 8 files (2 legacy component dirs), update 5 files (comments + docs). No tests needed (pure deletion).
+- 2026-02-09 IMPLEMENT COMPLETE -- Deleted 8 files, edited 4 files (comments + docs). All quality gates pass.
+- 2026-02-09 REVIEW COMPLETE -- PASS. 0 critical, 0 important, 2 minor (stale .roo/rules ref, historical ADR ref). Approved for commit.
+- 2026-02-09 SYNC_DOCS COMPLETE -- 1 fix: ADR-005 "InventoryPanel UI" -> "Inventory section UI". All other docs verified clean.
 
 ## Context Metrics
 
-Orchestrator: ~15K/300K (5%)
-Cumulative agent tokens: ~149K
+Orchestrator: ~12K/300K (~4%)
+Cumulative agent tokens: ~153K
 Agent invocations: 5
 Compactions: 0
 
 ### Agent History
 
-| #   | Agent          | Phase     | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                                                    |
-| --- | -------------- | --------- | --------- | ------ | ----- | -------- | -------- | -------------------------------------------------------------------------------------------------------- |
-| 1   | tdd-explorer   | EXPLORE   | 6         | ~25K   | 30    | -        | COMPLETE | Found 18x --border-primary, 12x --surface-tertiary, 5 additional undefined tokens. 23 CSS files audited. |
-| 2   | tdd-planner    | PLAN      | 4         | ~32K   | 14    | -        | COMPLETE | No tests needed. 8 files, ~37 replacements. Legacy excluded.                                             |
-| 3   | tdd-coder      | IMPLEMENT | 10        | ~55K   | 44    | -        | COMPLETE | 40 token replacements across 8 files. All quality gates pass. Visual verified in dark+light themes.      |
-| 4   | tdd-reviewer   | REVIEW    | 6         | ~25K   | 28    | -        | COMPLETE | PASS. All 40 replacements match plan. All 6 tokens defined in 3 theme blocks. 0 critical issues.         |
-| 5   | tdd-doc-syncer | SYNC_DOCS | 3         | ~15K   | 8     | -        | COMPLETE | Updated current-task.md, session.md. No new patterns or ADRs needed.                                     |
+| #   | Agent          | Phase     | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                      |
+| --- | -------------- | --------- | --------- | ------ | ----- | -------- | -------- | ---------------------------------------------------------- |
+| 1   | tdd-explorer   | EXPLORE   | 7         | ~28K   | 28    | -        | COMPLETE | TS errors already fixed, legacy components safe to delete  |
+| 2   | tdd-planner    | PLAN      | 4         | ~35K   | 12    | -        | COMPLETE | 6-step plan: delete 8 files, edit 5 files, no tests needed |
+| 3   | tdd-coder      | IMPLEMENT | 8         | ~50K   | 25    | -        | COMPLETE | Deleted 8 files, edited 4 files, all 4 quality gates pass  |
+| 4   | tdd-reviewer   | REVIEW    | 4         | ~25K   | 14    | -        | COMPLETE | PASS: 0 critical, 2 minor (stale .roo ref, historical ADR) |
+| 5   | tdd-doc-syncer | SYNC_DOCS | 3         | ~15K   | 9     | -        | COMPLETE | 1 fix (ADR-005 stale ref), all other docs verified clean   |
 
 ### Action Log
 
 #### #1 tdd-explorer (EXPLORE)
 
-- Found 4 additional undefined tokens beyond --border-primary: --surface-tertiary (12x), --text-on-accent (1x), --focus-ring (2x), --border-emphasis (1x)
-- Cell.tsx line 73 has inline var(--focus-ring) requiring TSX change beyond pure CSS scope
+- TS18048/TS2532 errors already fixed via non-null assertions — TypeScript compiles cleanly
+- SkillsPanel and InventoryPanel confirmed dead code — not imported anywhere in app
+- 6 undefined CSS custom properties found in legacy component CSS files
+- Architecture doc explicitly marks both components as Legacy - to be deleted
 
 #### #2 tdd-planner (PLAN)
 
-- Clean run
+- Confirmed selectors under 'SkillsPanel Selectors' header (line 361) are still active — only the comment label is stale
+- No new tests needed — pure dead-code deletion with no behavioral changes
 
 #### #3 tdd-coder (IMPLEMENT)
 
-- Applied all replacements per plan steps 1-7
-- Validation step 8: 1510 tests pass, lint clean, type-check clean
-- Browser verification: dark and light themes render correctly, no console errors
-- Remaining --surface-tertiary in SkillsPanel/InventoryPanel confirmed out of scope (legacy)
+- Verified no external imports of SkillsPanel or InventoryPanel before deletion
+- Deleted SkillsPanel/ (4 files) and InventoryPanel/ (4 files) via git rm -r
+- Updated 3 stale comments in gameStore-selectors.ts and gameStore-skills.test.ts
+- Removed 2 legacy lines from architecture.md project structure
+- Updated current-task.md with completion entry and removed completed next-step items
+- All quality gates pass: type-check, test (149 files, 1421 tests), build, lint
 
 #### #4 tdd-reviewer (REVIEW)
 
-- Clean run
+- All 8 deleted files confirmed absent from filesystem
+- Zero remaining SkillsPanel/InventoryPanel references in src/
+- Minor: stale SkillsPanel ref in .roo/rules/00-project.md (out of scope, logged to current-task.md)
+- Minor: historical InventoryPanel ref in ADR-005 (appropriate as-is)
+
+#### #5 tdd-doc-syncer (SYNC_DOCS)
+
+- Verified spec.md: no stale SkillsPanel/InventoryPanel component refs (Inventory section refs are correct)
+- Verified architecture.md: coder's edits are correct and complete
+- Verified patterns/index.md: no stale refs
+- Verified decisions/index.md: no stale refs
+- Verified current-task.md: completion entry accurate, .roo/rules task correctly logged
+- Fixed ADR-005 line 8: "InventoryPanel UI" -> "Inventory section UI" (component no longer exists)
 
 ## Files Touched
 
-1. `src/components/CharacterPanel/SkillRow.module.css` (19 replacements)
-2. `src/components/CharacterPanel/CharacterPanel.module.css` (3 replacements)
-3. `src/components/CharacterPanel/PriorityTab.module.css` (4 replacements)
-4. `src/components/CharacterPanel/TriggerDropdown.module.css` (7 replacements)
-5. `src/components/RuleEvaluations/RuleEvaluations.module.css` (4 replacements)
-6. `src/components/BattleViewer/Cell.module.css` (1 replacement)
-7. `src/components/BattleViewer/Cell.tsx` (1 replacement)
-8. `src/components/BattleViewer/DamageNumber.module.css` (1 replacement)
+**Deleted (8):**
+
+- src/components/SkillsPanel/SkillsPanel.tsx
+- src/components/SkillsPanel/SkillsPanel.test.tsx
+- src/components/SkillsPanel/SkillsPanel.module.css
+- src/components/SkillsPanel/index.ts
+- src/components/InventoryPanel/InventoryPanel.tsx
+- src/components/InventoryPanel/InventoryPanel.test.tsx
+- src/components/InventoryPanel/InventoryPanel.module.css
+- src/components/InventoryPanel/index.ts
+
+**Edited (5):**
+
+- src/stores/gameStore-selectors.ts (2 comment updates)
+- src/stores/gameStore-skills.test.ts (1 comment update)
+- .docs/architecture.md (removed 2 legacy lines)
+- .docs/current-task.md (updated task status)
+- .docs/decisions/adr-005-centralized-skill-registry.md (InventoryPanel -> Inventory section)
+
+**Session files:**
+
+- .tdd/session.md (updated)
+- .tdd/exploration.md (created by explorer)
+- .tdd/plan.md (created by planner)
 
 ## Browser Verification
 
-Status: PASS
-
-- Dark theme: All components render correctly with proper borders, backgrounds, text colors
-- Light theme: All components render correctly with proper borders, backgrounds, text colors
-- No console errors in either theme
+Status: N/A (no UI changes — pure deletion of unused components)
 
 ## Human Approval
 
-Status: N/A
+Status: N/A (non-UI task)
 
 ## Blockers
 
@@ -99,4 +126,10 @@ Status: N/A
 ## Review Cycles
 
 Count: 1
-Verdict: PASS (0 critical, 0 important, 2 minor non-blocking)
+
+- Cycle 1: PASS (0 critical, 0 important, 2 minor). See .tdd/review-findings.md.
+
+## Pre-existing Issues Noted
+
+- src/stores/gameStore-skills.test.ts (406 lines) exceeds 400-line limit — pre-existing
+- src/stores/gameStore-selectors.ts (425 lines) exceeds 400-line limit — pre-existing

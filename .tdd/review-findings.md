@@ -1,59 +1,67 @@
-# Review Findings: CSS Token Migration
+# Review Findings: Delete Legacy Components (SkillsPanel, InventoryPanel)
 
-**Reviewer verdict: PASS**
+## Verdict: PASS
+
+No CRITICAL or IMPORTANT issues found. Implementation matches the plan and all quality gates pass.
+
+## Checklist Results
+
+### 1. Duplication Check
+
+PASS -- No copy-pasted patterns. This is pure deletion with no new code.
+
+### 2. Remaining References in Source Code
+
+PASS -- Zero references to `SkillsPanel` or `InventoryPanel` remain in `src/`. Verified via full codebase grep. All 8 files confirmed deleted. Comment updates in `gameStore-selectors.ts` (lines 76, 361) and `gameStore-skills.test.ts` (line 1) correctly reference the replacement components.
+
+### 3. Spec Compliance
+
+PASS -- The spec references `CharacterPanel` as the active UI component, not the deleted legacy components. No spec violations from deletion.
+
+### 4. Merge/Move Regression
+
+PASS -- No behavior was moved or merged. The deleted components were confirmed dead code (not imported anywhere in the app). CharacterPanel already provides all equivalent functionality.
+
+### 5. Architecture/Docs Updates
+
+PASS -- `architecture.md` project structure tree no longer lists the deleted legacy directories. `current-task.md` correctly records the completion.
+
+### 6. Orphaned Exports/Barrel Files
+
+PASS -- No barrel files or index.ts files outside the deleted directories referenced these components.
+
+### 7. Pattern Compliance
+
+PASS -- No patterns involved (pure deletion).
+
+### 8. Quality Gates
+
+PASS -- type-check, tests (1421 passing, 0 failing), build, lint all pass.
+
+## MINOR Issues
+
+### M1: Stale reference in `.roo/rules/00-project.md` (line 194)
+
+The Roo rules file still lists `SkillsPanel/` in its project structure tree:
+
+```
+│   ├── SkillsPanel/  # Sentence-builder UI (planned)
+```
+
+This file was not examined during exploration and was not in the plan scope. It is a Roo-specific configuration file, not a source file, and does not affect runtime behavior. The `.docs/architecture.md` (the canonical project structure reference) was correctly updated.
+
+**Recommendation**: Update in a future cleanup pass or when next editing `.roo/rules/`.
+
+### M2: Historical ADR reference to InventoryPanel (ADR-005, line 8)
+
+`.docs/decisions/adr-005-centralized-skill-registry.md` mentions "the InventoryPanel UI". This is appropriate -- ADRs document the decision context at the time the decision was made. No update needed.
 
 ## Summary
 
-40 token replacements across 8 files. All replacements match the approved plan exactly. All quality gates pass (1510 tests, lint clean, type-check clean). No critical or important issues found.
+| Category  | Count |
+| --------- | ----- |
+| CRITICAL  | 0     |
+| IMPORTANT | 0     |
+| MINOR     | 2     |
 
-## Verification Results
-
-### Plan Compliance (PASS)
-
-Every replacement in every file matches the plan's token mapping table:
-
-| File                       | Planned | Actual | Match |
-| -------------------------- | ------- | ------ | ----- |
-| SkillRow.module.css        | 19      | 19     | Yes   |
-| CharacterPanel.module.css  | 3       | 3      | Yes   |
-| PriorityTab.module.css     | 4       | 4      | Yes   |
-| TriggerDropdown.module.css | 7       | 7      | Yes   |
-| RuleEvaluations.module.css | 4       | 4      | Yes   |
-| Cell.module.css            | 1       | 1      | Yes   |
-| Cell.tsx                   | 1       | 1      | Yes   |
-| DamageNumber.module.css    | 1       | 1      | Yes   |
-
-### Token Definition Check (PASS)
-
-All 6 replacement tokens verified in all 3 theme blocks (`:root`, `[data-theme="light"]`, `[data-theme="high-contrast"]`):
-`--border`, `--surface-hover`, `--text-on-faction`, `--accent`, `--radius-md`, `--font-mono`.
-
-### Undefined Token Elimination (PASS)
-
-- `--border-primary`: 0 remaining in-scope references (was 18)
-- `--surface-tertiary`: 3 remaining in legacy-only files (SkillsPanel, InventoryPanel) -- out of scope per plan
-- `--text-on-accent`: 0 remaining
-- `--focus-ring`: 0 remaining
-- `--border-emphasis`: 1 remaining in legacy-only file (InventoryPanel) -- out of scope per plan
-
-### Scope Boundaries (PASS)
-
-- Legacy components (SkillsPanel, InventoryPanel): not modified
-- `3px` border-radius values: preserved as hardcoded (no exact token match)
-- DamageNumber `fill: white` / `fill: #333`: preserved as hardcoded (intentional)
-
-### Quality Gates (PASS)
-
-- Tests: 1510 passed, 0 failed
-- ESLint: clean
-- TypeScript: clean
-
-## Minor Observations (non-blocking)
-
-1. MINOR: `RuleEvaluations.module.css` line 274 uses `var(--font-mono, monospace)` with a CSS fallback. The two font-family instances migrated in this task (`monospace` and `"Courier New", monospace`) were correctly changed to `var(--font-mono)` without fallbacks, consistent with all other token usage in migrated files. The remaining fallback instance is in a different class (`.evaluationItem`) and predates this task.
-
-2. MINOR: The Cell.tsx inline `stroke="var(--accent)"` duplicates the CSS class `.clickableOverlay { stroke: var(--accent) }`. Both are applied to the same polygon element (line 69-76). The inline attribute takes priority, making the CSS declaration redundant. This duplication predates this task -- both previously used `--focus-ring`. No action needed, but a future cleanup could remove the inline attribute.
-
-## Issues
-
-**CRITICAL: 0** | **IMPORTANT: 0** | **MINOR: 2** (non-blocking, both pre-existing)
+Implementation is clean and complete. Approved for commit.

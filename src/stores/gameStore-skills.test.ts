@@ -1,5 +1,5 @@
 /**
- * Tests for SkillsPanel store integration (skill configuration, selection, ordering).
+ * Tests for skill store integration (skill configuration, selection, ordering).
  * Extracted from gameStore.test.ts.
  * Note: Duplication tests moved to gameStore-skills-duplication.test.ts
  */

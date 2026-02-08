@@ -21,20 +21,22 @@
 - **Functional Components with Hooks**: Custom hooks for shared logic
 - **Selector-based Subscriptions**: Zustand selectors for fine-grained re-renders
 - **Local State for UI Concerns**: Transient UI state (hover, tooltips) uses local React state, not Zustand (ADR-004)
-- **Action-Based Visual Encoding**: Intent line colors encode action type (attack/heal/move), not faction
+- **Action-Based Visual Encoding**: Intent line colors encode action type (attack/heal/move/interrupt/charge), not faction
 
 ## Project Structure
 
 ```
 src/
 ├── engine/           # Pure TypeScript game logic (no React)
-│   ├── types.ts      # Character, Skill, SkillFilter, Trigger (scope+condition), TriggerScope, ConditionType, ConditionQualifier, Target, Criterion, Action, Position {q,r}, GameEvent (DamageEvent, DeathEvent, HealEvent, WhiffEvent)
+│   ├── types.ts      # Character, Skill, SkillFilter, Trigger (scope+condition), TriggerScope, ConditionType, ConditionQualifier, Target, Criterion, Action, Position {q,r}, GameEvent (DamageEvent, DeathEvent, HealEvent, WhiffEvent, InterruptEvent, InterruptMissEvent, ChargeEvent)
 │   ├── hex.ts        # Hex grid utilities: distance, neighbors, validation, pixel conversion
 │   ├── game.ts       # Core tick processing (barrel exports)
-│   ├── game-core.ts  # Tick processing: healing → movement → combat (ADR-010)
+│   ├── game-core.ts  # Tick processing: healing → interrupts → charges → movement → combat (ADR-010)
 │   ├── game-movement.ts # Move destination calculation with hex tiebreaking
 │   ├── combat.ts     # Attack resolution, damage calculation, WhiffEvent emission on miss
 │   ├── healing.ts    # Heal resolution, HP restoration (ADR-006), WhiffEvent emission on miss
+│   ├── interrupt.ts  # Interrupt resolution, action cancellation
+│   ├── charge.ts     # Charge resolution (greedy movement + melee attack)
 │   ├── movement.ts   # Movement, collision resolution
 │   ├── pathfinding.ts # A* pathfinding on hex grid with binary heap
 │   ├── selectors.ts  # Target selection strategies (hex distance, R/Q tiebreaking)

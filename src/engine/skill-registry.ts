@@ -3,7 +3,13 @@
  * This is the ONLY file that needs to be edited to add/remove/modify skills.
  */
 
-import type { Skill, Target, Criterion } from "./types";
+import type {
+  Skill,
+  Target,
+  Criterion,
+  TriggerScope,
+  ConditionType,
+} from "./types";
 
 /**
  * Module-level counter for generating unique instance IDs.
@@ -26,7 +32,7 @@ export function generateInstanceId(registryId: string): string {
 export interface SkillDefinition {
   id: string;
   name: string;
-  actionType: "attack" | "move" | "heal";
+  actionType: "attack" | "move" | "heal" | "interrupt" | "charge";
   tickCost: number;
   range: number;
   damage?: number;
@@ -39,6 +45,16 @@ export interface SkillDefinition {
   defaultCriterion: Criterion;
   targetingMode: "cell" | "character"; // How targets are tracked during resolution
   cooldown?: number; // Optional cooldown ticks after use
+  defaultTrigger?: {
+    scope: "enemy" | "ally" | "self";
+    condition: string;
+    conditionValue?: number;
+  };
+  defaultFilter?: {
+    condition: string;
+    conditionValue?: number;
+    qualifier?: { type: "action" | "skill"; id: string };
+  };
 }
 
 /**
@@ -134,6 +150,44 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     targetingMode: "cell",
     cooldown: 3,
   },
+  {
+    id: "kick",
+    name: "Kick",
+    actionType: "interrupt",
+    tickCost: 0,
+    range: 1,
+    damage: 0,
+    behaviors: [],
+    defaultBehavior: "",
+    innate: false,
+    defaultTarget: "enemy",
+    defaultCriterion: "nearest",
+    targetingMode: "cell",
+    cooldown: 4,
+    defaultTrigger: { scope: "enemy", condition: "channeling" },
+    defaultFilter: { condition: "channeling" },
+  },
+  {
+    id: "charge",
+    name: "Charge",
+    actionType: "charge",
+    tickCost: 1,
+    range: 3,
+    damage: 20,
+    distance: 3,
+    behaviors: [],
+    defaultBehavior: "",
+    innate: false,
+    defaultTarget: "enemy",
+    defaultCriterion: "nearest",
+    targetingMode: "cell",
+    cooldown: 3,
+    defaultTrigger: {
+      scope: "enemy",
+      condition: "in_range",
+      conditionValue: 3,
+    },
+  },
 ];
 
 /**
@@ -157,9 +211,30 @@ export function getDefaultSkills(): Skill[] {
     ...(def.distance !== undefined ? { distance: def.distance } : {}),
     behavior: def.defaultBehavior,
     enabled: true,
-    trigger: { scope: "enemy" as const, condition: "always" as const },
+    trigger: def.defaultTrigger
+      ? {
+          scope: def.defaultTrigger.scope as TriggerScope,
+          condition: def.defaultTrigger.condition as ConditionType,
+          ...(def.defaultTrigger.conditionValue !== undefined
+            ? { conditionValue: def.defaultTrigger.conditionValue }
+            : {}),
+        }
+      : { scope: "enemy" as const, condition: "always" as const },
     target: def.defaultTarget,
     criterion: def.defaultCriterion,
+    ...(def.defaultFilter
+      ? {
+          filter: {
+            condition: def.defaultFilter.condition as ConditionType,
+            ...(def.defaultFilter.conditionValue !== undefined
+              ? { conditionValue: def.defaultFilter.conditionValue }
+              : {}),
+            ...(def.defaultFilter.qualifier
+              ? { qualifier: def.defaultFilter.qualifier }
+              : {}),
+          },
+        }
+      : {}),
   }));
 }
 
@@ -180,9 +255,30 @@ export function createSkillFromDefinition(def: SkillDefinition): Skill {
     ...(def.distance !== undefined ? { distance: def.distance } : {}),
     behavior: def.defaultBehavior,
     enabled: true,
-    trigger: { scope: "enemy" as const, condition: "always" as const },
+    trigger: def.defaultTrigger
+      ? {
+          scope: def.defaultTrigger.scope as TriggerScope,
+          condition: def.defaultTrigger.condition as ConditionType,
+          ...(def.defaultTrigger.conditionValue !== undefined
+            ? { conditionValue: def.defaultTrigger.conditionValue }
+            : {}),
+        }
+      : { scope: "enemy" as const, condition: "always" as const },
     target: def.defaultTarget,
     criterion: def.defaultCriterion,
+    ...(def.defaultFilter
+      ? {
+          filter: {
+            condition: def.defaultFilter.condition as ConditionType,
+            ...(def.defaultFilter.conditionValue !== undefined
+              ? { conditionValue: def.defaultFilter.conditionValue }
+              : {}),
+            ...(def.defaultFilter.qualifier
+              ? { qualifier: def.defaultFilter.qualifier }
+              : {}),
+          },
+        }
+      : {}),
   };
 }
 

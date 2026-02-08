@@ -84,7 +84,7 @@ This uniform shape means all skills are configured identically in the UI. The `b
 
 Each skill in the registry declares:
 
-- `actionType`: Category (`attack`, `move`, or `heal`)
+- `actionType`: Category (`attack`, `move`, `heal`, `interrupt`, or `charge`)
 - `behaviors`: Available behavior values (e.g., `["towards", "away"]` for Move; `[]` for others)
 - `defaultBehavior`: Default behavior when first assigned
 - `defaultTarget` and `defaultCriterion`: Defaults when first assigned
@@ -133,13 +133,39 @@ Each skill in the registry declares:
 - Default trigger: `{ scope: "enemy", condition: "in_range", conditionValue: 1 }` (dash away when enemy is adjacent).
 - **Assignable** (not innate)
 
+### Kick
+
+- Tick cost: 0, Range: 1, Cooldown: 4
+- Default target: enemy, Default criterion: nearest
+- Default trigger: `{ scope: "enemy", condition: "channeling" }`
+- Default filter: `{ condition: "channeling" }`
+- Instant interrupt. Cancels target's current action if channeling. Wasted (with cooldown) if target is idle or cell is empty.
+- Cancelled action's cooldown is NOT reset (already committed at decision time).
+- Resolves before movement and combat, so interrupted actions never resolve.
+- **Assignable** (not innate)
+
+### Charge
+
+- Tick cost: 1, Range: 3, Damage: 20, Distance: 3, Cooldown: 3
+- Default target: enemy, Default criterion: nearest
+- Default trigger: `{ scope: "enemy", condition: "in_range", conditionValue: 3 }`
+- Wind-up combined move + attack. Moves up to 3 hexes toward locked target cell using greedy movement, then attacks if adjacent after movement.
+- Each movement step respects blocker-wins collision rules independently.
+- If movement fully blocked, attack only hits if already adjacent from original position.
+- Dodgeable (tickCost 1, creates 1-tick intent line). Interruptible (Kick resolves before Charge).
+- Charge damage is applied in the charge resolution phase, separate from regular combat. A character hit by Charge can also take regular attack damage the same tick.
+- Resolves before regular movement (charger arrives before dodge-movers).
+- **Assignable** (not innate)
+
 ### Skill Categories
 
-Skills fall into three action categories:
+Skills fall into five action categories:
 
 - **Attack** (damage): Deal damage to enemies. Light Punch, Heavy Punch, Ranged Attack.
 - **Heal** (healing): Restore HP to allies. Heal.
 - **Move** (movement): Reposition on the grid. Move, Dash.
+- **Interrupt** (action cancellation): Cancel enemy actions. Kick.
+- **Charge** (combined move + attack): Rush toward target and attack. Charge.
 
 Skills fall into two timing categories:
 
@@ -148,8 +174,8 @@ Skills fall into two timing categories:
 
 **Tactical rationale:** Instant attacks exist as an anti-kiting mechanic. Without them, characters with escape-route-weighted movement could indefinitely flee melee attackers, since every attack required at least 1 tick of wind-up during which the target could move away. Instant attacks guarantee hits on contact, forcing tactical tradeoffs: kiting is still viable against wind-up attacks, but closing to melee range carries real risk from instant attacks.
 
-**Current instant skills:** Light Punch (tickCost: 0), Dash (tickCost: 0)
-**Current wind-up skills:** Heavy Punch (tickCost: 2), Heal (tickCost: 2), Move (tickCost: 1), Ranged Attack (tickCost: 1)
+**Current instant skills:** Light Punch (tickCost: 0), Dash (tickCost: 0), Kick (tickCost: 0)
+**Current wind-up skills:** Heavy Punch (tickCost: 2), Heal (tickCost: 2), Move (tickCost: 1), Ranged Attack (tickCost: 1), Charge (tickCost: 1)
 
 ### Move
 
@@ -283,10 +309,12 @@ Battle progresses in discrete ticks. Tick 0 is initial state.
 **Resolution Phase** (simultaneous execution):
 
 1. Healing: Resolve heal actions first (ADR-006)
-2. Movement: Apply collision resolution, then move (ADR-010)
-3. Attacks: Check if target still in locked hex -> hit or miss
-4. Apply other effects
-5. Remove characters with HP <= 0
+2. Interrupts: Cancel channeling targets' actions (Phase 7)
+3. Charges: Greedy movement toward target + melee attack if adjacent (Phase 8)
+4. Movement: Apply collision resolution, then move (ADR-010)
+5. Attacks: Check if target still in locked hex -> hit or miss
+6. Apply other effects
+7. Remove characters with HP <= 0
 
 **Important:** Characters cannot react to same-tick enemy decisions. All decisions are made against game state at tick start.
 
@@ -337,11 +365,12 @@ Intent lines encode three dimensions: action type (color + endpoint marker), fac
 
 **Action-based colors (Okabe-Ito colorblind-safe palette):**
 
-| Action Type | Color                           | Endpoint Marker                                       |
-| ----------- | ------------------------------- | ----------------------------------------------------- |
-| Attack      | Red-orange #d55e00 (vermillion) | Filled arrowhead (`arrowhead-attack`)                 |
-| Heal        | Green #009e73 (bluish green)    | Cross/plus shape (`cross-heal`)                       |
-| Movement    | Blue #0072b2                    | Faction-dependent: circle (friendly), diamond (enemy) |
+| Action Type      | Color                           | Endpoint Marker                                       |
+| ---------------- | ------------------------------- | ----------------------------------------------------- |
+| Attack           | Red-orange #d55e00 (vermillion) | Filled arrowhead (`arrowhead-attack`)                 |
+| Heal             | Green #009e73 (bluish green)    | Cross/plus shape (`cross-heal`)                       |
+| Movement         | Blue #0072b2                    | Faction-dependent: circle (friendly), diamond (enemy) |
+| Interrupt/Charge | Red-orange #d55e00 (vermillion) | Filled arrowhead (`arrowhead-attack`)                 |
 
 **Faction shape differentiation (movement only):** Movement markers retain faction-specific shapes (hollow circle for friendly, hollow diamond for enemy) for accessibility. Attack and heal markers are uniform across factions since color already distinguishes them from movement, and shape redundancy within attack/heal is not needed.
 

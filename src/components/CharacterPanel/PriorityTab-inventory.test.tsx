@@ -195,6 +195,14 @@ describe("PriorityTab - Inventory Section", () => {
       name: "Dash",
       behavior: "away",
     });
+    const kick = createSkill({
+      id: "kick",
+      name: "Kick",
+    });
+    const charge = createSkill({
+      id: "charge",
+      name: "Charge",
+    });
     const friendly1 = createCharacter({
       id: "friendly1",
       faction: "friendly",
@@ -213,7 +221,7 @@ describe("PriorityTab - Inventory Section", () => {
     const friendly4 = createCharacter({
       id: "friendly4",
       faction: "friendly",
-      skills: [dash],
+      skills: [dash, kick, charge],
     });
     const friendly5 = createCharacter({
       id: "friendly5",

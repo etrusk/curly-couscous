@@ -1,52 +1,50 @@
-# Review Findings: Skill Expansion Phases 4+5+6
+# Review Findings: Phases 7+8 (Kick/Interrupt + Charge)
 
-**Reviewer:** review agent | **Date:** 2026-02-08 | **Verdict:** PASS
+**Reviewer:** TDD Review Agent
+**Date:** 2026-02-08
+**Tests:** 1504/1504 passing, TypeScript + ESLint clean
 
-## Summary
+## Verdict: APPROVED (0 critical, 3 non-blocking)
 
-Implementation of Ranged Attack, distance/Dash, and most_enemies_nearby is clean, well-structured, and spec-compliant. No CRITICAL issues found. Two MINOR observations documented below.
+All 18 acceptance criteria verified against requirements.md. Pipeline ordering correct: Healing -> Interrupts -> Charges -> Movement -> Combat. All files under 400 lines. No `any` casts in source. No security concerns.
 
-## Checklist Results
+---
 
-| Check              | Status | Notes                                                            |
-| ------------------ | ------ | ---------------------------------------------------------------- |
-| Spec compliance    | PASS   | All 25 acceptance criteria satisfied                             |
-| Pattern compliance | PASS   | Exhaustive switch, registry pattern, test helpers                |
-| Type safety        | PASS   | Exhaustive switch guard in selectors.ts, proper union extensions |
-| Edge cases         | PASS   | Null/empty handled, partial movement, blocked movement           |
-| Test quality       | PASS   | 35 tests with meaningful assertions, proper isolation            |
-| File limits        | PASS   | All files under 400 lines (max: SkillsPanel.tsx at 369)          |
-| No regressions     | PASS   | Existing callers unaffected; distance defaults to 1              |
-| Security           | PASS   | No injection risks, all inputs validated by type system          |
+## NON-BLOCKING Issues
 
-## MINOR Issues
+### NB-1: Duplicate DeathEvent emission on charge kills (IMPORTANT)
 
-### M1: Performance -- enemy count recalculated per comparison in most_enemies_nearby
+**Files:** `src/engine/charge.ts:124-133`, `src/engine/combat.ts:92-101`
 
-**File:** `/home/bob/Projects/auto-battler/src/engine/selectors.ts` (lines 140-159)
+Both `resolveCharges` and `resolveCombat` iterate ALL `updatedCharacters` and emit `DeathEvent` for any with `hp <= 0`. When charge kills a character, charge emits a DeathEvent. Then combat runs on the same `updatedCharacters` and emits another DeathEvent for the same character (still has `hp <= 0`). The test `charge-kill-followed-by-combat-no-duplicate-death` uses `toContainEqual` which passes even with duplicates -- it does not assert exactly one death event.
 
-The `findMinimum` comparator recalculates enemy-nearby counts for both `a` and `b` on every comparison. With N candidates and E enemies, this is O(N _ E) per `reduce` pass, giving O(N^2 _ E) worst case. With small battle sizes (typically <10 characters) this is negligible, but if battles scale up, pre-computing counts in a Map would be more efficient.
+**Impact:** UI event log may show duplicate death messages. No gameplay impact (dead chars filtered at line 107 of game-core.ts regardless).
 
-**Recommendation:** Consider fixing only if battles grow beyond ~20 characters. Current implementation is correct and clear.
+**Recommendation:** Add `hp > 0` pre-check guard before death emission in combat.ts, or deduplicate in charge.ts by tracking pre-charge HP. Address in a follow-up patch.
 
-### M2: Redundant cast of `MOST_ENEMIES_NEARBY` in test file
+### NB-2: Test helper type cast `actionType: "charge" as "attack"`
 
-**File:** `/home/bob/Projects/auto-battler/src/engine/selectors-most-enemies-nearby.test.ts` (line 14)
+**Files:** All 6 test files use `actionType: "interrupt" as "attack"` or `actionType: "charge" as "attack"` in `createSkill` calls.
 
-```typescript
-const MOST_ENEMIES_NEARBY = "most_enemies_nearby" as Criterion;
-```
+The `createSkill` helper already accepts the full `Skill` type which includes `"interrupt" | "charge"` in `actionType`. The `as "attack"` cast is unnecessary and misleading -- it obscures the actual type being set. The runtime behavior is correct because the `type` field on the Action object is set separately via `type: "charge" as const`.
 
-This cast was needed during the red-phase before the type was extended. Now that `most_enemies_nearby` is in the `Criterion` union, the cast is unnecessary. Purely cosmetic -- no functional impact.
+**Impact:** Readability only. No runtime issue.
+
+### NB-3: Charge movement uses greedy algorithm (different from Dash's A\*)
+
+**Files:** `src/engine/charge.ts:163-222`
+
+Plan Step 6 specified reusing `computeMultiStepDestination()` from Dash. Implementation instead created a separate `computeChargeDestination()` using greedy distance minimization. Session notes justify this (charge should not route around obstacles), and all tests pass. The deviation is reasonable and intentional. However, the plan.md should reflect this for documentation accuracy.
+
+**Impact:** Documentation/plan divergence only. Behavior is correct per acceptance criteria.
+
+---
 
 ## Positive Observations
 
-1. **Multi-step wrapping pattern** is well-designed: `computeMultiStepDestination` wraps `computeMoveDestination` iteratively without modifying the original function, preserving backward compatibility.
-
-2. **Self-exclusion in most_enemies_nearby** (`e.id !== a.id`) correctly prevents enemy candidates from counting themselves, which would inflate all counts equally and make the criterion meaningless.
-
-3. **distance propagation** uses conditional spread (`...(def.distance !== undefined ? { distance: def.distance } : {})`) consistent with the existing `damage` and `healing` patterns.
-
-4. **Test coverage** includes both boundary conditions (fully blocked, partially blocked, single candidate, no candidates) and integration tests through `createSkillAction`.
-
-5. **UI dropdowns** updated in both `SkillRow.tsx` (active) and `SkillsPanel.tsx` (legacy) for completeness.
+- Pipeline integration is clean; `resolvedCharacterIds` prevents already-resolved charge/interrupt characters from blocking movement
+- Interrupt resolution correctly uses shallow copies and sequential visibility for multiple interrupts
+- defaultTrigger/defaultFilter on SkillDefinition is backward-compatible
+- Test coverage is thorough: 36 tests across 6 files covering all acceptance criteria
+- UI updates handle new types exhaustively in switch statements (no default fallthrough)
+- Bidirectional line detection in IntentOverlay correctly includes charge alongside attack

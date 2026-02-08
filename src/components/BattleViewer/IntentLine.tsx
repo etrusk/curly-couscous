@@ -9,7 +9,7 @@ import { hexToPixel } from "../../engine/hex";
 export interface IntentLineProps {
   from: Position;
   to: Position;
-  type: "attack" | "move" | "heal";
+  type: "attack" | "move" | "heal" | "interrupt" | "charge";
   faction: Faction;
   ticksRemaining: number;
   hexSize: number;
@@ -98,7 +98,9 @@ export function IntentLine({
 /**
  * Determine CSS variable for intent line color based on action type.
  */
-function getActionColor(type: "attack" | "move" | "heal"): string {
+function getActionColor(
+  type: "attack" | "move" | "heal" | "interrupt" | "charge",
+): string {
   switch (type) {
     case "attack":
       return "var(--action-attack)";
@@ -106,6 +108,10 @@ function getActionColor(type: "attack" | "move" | "heal"): string {
       return "var(--action-heal)";
     case "move":
       return "var(--action-move)";
+    case "interrupt":
+      return "var(--action-attack)";
+    case "charge":
+      return "var(--action-attack)";
   }
 }
 
@@ -113,7 +119,7 @@ function getActionColor(type: "attack" | "move" | "heal"): string {
  * Determine SVG marker reference based on action type and faction.
  */
 function getMarkerEnd(
-  type: "attack" | "move" | "heal",
+  type: "attack" | "move" | "heal" | "interrupt" | "charge",
   faction: Faction,
 ): string {
   switch (type) {
@@ -125,5 +131,9 @@ function getMarkerEnd(
       return faction === "friendly"
         ? "url(#circle-friendly)"
         : "url(#diamond-enemy)";
+    case "interrupt":
+      return "url(#arrowhead-attack)";
+    case "charge":
+      return "url(#arrowhead-attack)";
   }
 }

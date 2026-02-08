@@ -14,7 +14,7 @@ import {
 describe("Skill Registry", () => {
   describe("SKILL_REGISTRY", () => {
     it("exports all skills", () => {
-      expect(SKILL_REGISTRY).toHaveLength(6);
+      expect(SKILL_REGISTRY).toHaveLength(8);
 
       const skillIds = SKILL_REGISTRY.map((skill) => skill.id);
       expect(skillIds).toEqual([
@@ -24,6 +24,8 @@ describe("Skill Registry", () => {
         "heal",
         "ranged-attack",
         "dash",
+        "kick",
+        "charge",
       ]);
     });
 
@@ -313,7 +315,9 @@ describe("Skill Registry", () => {
     it("should have actionType field on all registry entries", () => {
       SKILL_REGISTRY.forEach((skill) => {
         expect(skill.actionType).toBeDefined();
-        expect(["attack", "move", "heal"]).toContain(skill.actionType);
+        expect(["attack", "move", "heal", "interrupt", "charge"]).toContain(
+          skill.actionType,
+        );
       });
 
       const lightPunch = SKILL_REGISTRY.find((s) => s.id === "light-punch");

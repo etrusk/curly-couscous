@@ -55,7 +55,7 @@ export interface Skill {
   id: string; // Registry ID (shared by duplicates)
   instanceId: string; // Unique per-instance (for React keys, targeted updates, removal)
   name: string;
-  actionType: "attack" | "move" | "heal";
+  actionType: "attack" | "move" | "heal" | "interrupt" | "charge";
   tickCost: number;
   range: number;
   damage?: number;
@@ -143,7 +143,7 @@ export type Criterion =
  * Uses absolute timing for deterministic replay.
  */
 export interface Action {
-  type: "attack" | "move" | "heal" | "idle";
+  type: "attack" | "move" | "heal" | "interrupt" | "charge" | "idle";
   skill: Skill;
   targetCell: Position;
   targetCharacter: Character | null; // null for Move
@@ -205,7 +205,10 @@ export type GameEvent =
   | MovementEvent
   | DeathEvent
   | TickEvent
-  | WhiffEvent;
+  | WhiffEvent
+  | InterruptEvent
+  | InterruptMissEvent
+  | ChargeEvent;
 
 export interface SkillDecisionEvent {
   type: "skill_decision";
@@ -268,6 +271,33 @@ export interface WhiffEvent {
   sourceId: string;
   actionType: "attack" | "heal";
   targetCell: Position;
+}
+
+export interface InterruptEvent {
+  type: "interrupt";
+  tick: number;
+  sourceId: string;
+  targetId: string;
+  cancelledSkillId: string;
+}
+
+export interface InterruptMissEvent {
+  type: "interrupt_miss";
+  tick: number;
+  sourceId: string;
+  targetCell: Position;
+  reason: "empty_cell" | "target_idle";
+}
+
+export interface ChargeEvent {
+  type: "charge";
+  tick: number;
+  sourceId: string;
+  fromPosition: Position;
+  toPosition: Position;
+  targetId?: string;
+  damage?: number;
+  resultingHp?: number;
 }
 
 // ============================================================================

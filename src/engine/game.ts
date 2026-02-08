@@ -26,5 +26,13 @@ export { getActionType } from "./game-actions";
 export { resolveHealing } from "./healing";
 export type { HealingResult } from "./healing";
 
+// Re-export interrupt logic
+export { resolveInterrupts } from "./interrupt";
+export type { InterruptResult } from "./interrupt";
+
+// Re-export charge logic
+export { resolveCharges } from "./charge";
+export type { ChargeResult } from "./charge";
+
 // Note: DEFAULT_SELECTOR and IDLE_SKILL are internal constants
 // and are not exported from this barrel file.

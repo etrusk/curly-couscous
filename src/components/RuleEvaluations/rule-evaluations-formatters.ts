@@ -25,6 +25,14 @@ export function formatActionSummary(action: Action | null): string {
     return action.skill.name;
   }
 
+  if (action.type === "interrupt") {
+    return action.skill.name;
+  }
+
+  if (action.type === "charge") {
+    return action.skill.name;
+  }
+
   // Move action
   return "Move";
 }
@@ -136,6 +144,20 @@ export function formatActionDisplay(action: Action | null): string {
       ? slotPositionToLetter(action.targetCharacter.slotPosition)
       : "Unknown target";
     return `💚 ${action.skill.name} → ${targetName}`;
+  }
+
+  if (action.type === "interrupt") {
+    const targetName = action.targetCharacter
+      ? slotPositionToLetter(action.targetCharacter.slotPosition)
+      : "Unknown target";
+    return `Kick -> ${targetName}`;
+  }
+
+  if (action.type === "charge") {
+    const targetName = action.targetCharacter
+      ? slotPositionToLetter(action.targetCharacter.slotPosition)
+      : "Unknown target";
+    return `Charge -> ${targetName}`;
   }
 
   // Move action

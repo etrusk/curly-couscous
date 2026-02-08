@@ -434,6 +434,7 @@ phases:
     budget: tdd-committer
     actions:
       - Bump package.json version per SemVer (see App Versioning section)
+      - Include `.tdd/` ephemeral files in the commit (session.md, exploration.md, plan.md, test-designs.md, etc.)
       - Commit changes to current branch
       - Push to remote automatically
       - DO NOT create pull requests
@@ -766,7 +767,7 @@ Process: [Clean session | type: summary (logged/noted)]
 
 Token values come from session.md Context Metrics: cumulative agent tokens + orchestrator estimate.
 
-Then delete ephemeral files: `.tdd/session.md`, `.tdd/requirements.md`, `.tdd/exploration.md`, `.tdd/plan.md`, `.tdd/test-designs.md`, `.tdd/review-findings.md`, `.tdd/fix-plan.md`
+Ephemeral `.tdd/` files were already committed in the COMMIT phase for traceability. Now delete them from disk: `.tdd/session.md`, `.tdd/requirements.md`, `.tdd/exploration.md`, `.tdd/plan.md`, `.tdd/test-designs.md`, `.tdd/review-findings.md`, `.tdd/fix-plan.md`
 
 ---
 

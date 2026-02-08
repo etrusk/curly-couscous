@@ -34,14 +34,15 @@ function detectBidirectionalAttacks(
   const processed = new Set<string>();
 
   for (const intent of intents) {
-    if (intent.action.type !== "attack") continue;
+    if (intent.action.type !== "attack" && intent.action.type !== "charge")
+      continue;
     if (processed.has(intent.characterId)) continue;
 
-    // Find if there's an attack going the opposite direction
+    // Find if there's an attack or charge going the opposite direction
     const reverseIntent = intents.find(
       (other) =>
         other.characterId !== intent.characterId &&
-        other.action.type === "attack" &&
+        (other.action.type === "attack" || other.action.type === "charge") &&
         positionsEqual(other.characterPosition, intent.action.targetCell) &&
         positionsEqual(other.action.targetCell, intent.characterPosition),
     );
@@ -223,7 +224,14 @@ export function IntentOverlay({ hexSize }: IntentOverlayProps) {
           key={intent.characterId}
           from={intent.characterPosition}
           to={intent.action.targetCell}
-          type={intent.action.type as "attack" | "move" | "heal"}
+          type={
+            intent.action.type as
+              | "attack"
+              | "move"
+              | "heal"
+              | "interrupt"
+              | "charge"
+          }
           faction={intent.faction}
           ticksRemaining={intent.ticksRemaining}
           hexSize={hexSize}

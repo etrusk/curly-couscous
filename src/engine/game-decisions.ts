@@ -62,6 +62,7 @@ export interface Decision {
  * Evaluate a single skill for execution eligibility.
  * Returns an action if the skill can be executed, null otherwise.
  */
+// eslint-disable-next-line complexity -- sequential pipeline of validation checks
 function tryExecuteSkill(
   skill: Skill,
   character: Character,
@@ -114,8 +115,13 @@ function tryExecuteSkill(
   // Validate action-specific conditions
   const actionType = getActionType(skill);
 
-  // Range check only applies to attack and heal, not move actions
-  if (actionType === "attack" || actionType === "heal") {
+  // Range check only applies to attack, heal, interrupt, and charge, not move actions
+  if (
+    actionType === "attack" ||
+    actionType === "heal" ||
+    actionType === "interrupt" ||
+    actionType === "charge"
+  ) {
     const distance = hexDistance(character.position, target.position);
     if (distance > skill.range) {
       return null;
@@ -249,7 +255,12 @@ function evaluateSingleSkill(
   }
 
   const actionType = getActionType(skill);
-  if (actionType === "attack" || actionType === "heal") {
+  if (
+    actionType === "attack" ||
+    actionType === "heal" ||
+    actionType === "interrupt" ||
+    actionType === "charge"
+  ) {
     const distance = hexDistance(character.position, target.position);
     if (distance > skill.range) {
       return {

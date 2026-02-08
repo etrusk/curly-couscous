@@ -1,435 +1,541 @@
-# Implementation Plan: Session B (Phases 4+5+6)
+# Implementation Plan: Phases 7+8 (Kick/Interrupt + Charge)
 
-## Overview
+## Open Questions Resolved
 
-Three phases bundled into one session (~25 acceptance criteria). Ordered for test-first development with minimal rework.
+1. **Intent line colors**: Reuse attack color (`var(--action-attack)`, #d55e00 vermillion) for both interrupt and charge. They are offensive actions; adding new CSS variables is scope creep.
+2. **Intent line markers**: Reuse attack arrowhead (`url(#arrowhead-attack)`) for both interrupt and charge. No custom markers needed.
+3. **ChargeEvent vs DamageEvent**: Charge resolution emits BOTH a `ChargeEvent` (for EventLog/movement tracking) AND a `DamageEvent` (for `useDamageNumbers` hook which listens for DamageEvent). This follows the pattern where combat emits DamageEvent.
+4. **Death detection**: Charge resolution emits `DeathEvent` like `combat.ts` does, for consistency and EventLog.
+5. **Multiple chargers**: Process by `slotPosition` order (same as combat). First charger's position update is visible to subsequent chargers.
+6. **Charge position persistence**: Yes, `updatedCharacters` flows through all phases. Charge-moved characters are at their new positions for movement and combat phases.
+7. **defaultTrigger/defaultFilter**: Optional fields on `SkillDefinition`. Backward-compatible, no changes to existing entries needed.
 
-**Dependency graph:**
+## New Architectural Decision
 
-- Phase 4 (Ranged Attack): Independent, registry-only
-- Phase 5 (distance/Dash): Depends on Phase 4 pattern; requires type + engine changes
-- Phase 6 (most_enemies_nearby): Fully independent of Phases 4 and 5
+**Decision**: Add optional `defaultTrigger` and `defaultFilter` fields to `SkillDefinition`.
 
-**Recommended order:** Phase 4 -> Phase 6 -> Phase 5 (Phase 6 is simpler, isolates the more complex Phase 5 at the end)
+**Context**: Kick needs `{ scope: "enemy", condition: "channeling" }` trigger and `{ condition: "channeling" }` filter by default. Charge needs `{ scope: "enemy", condition: "in_range", conditionValue: 3 }` trigger. The current code hardcodes `{ scope: "enemy", condition: "always" }` for all skills in `createSkillFromDefinition()` and `getDefaultSkills()`.
+
+**Consequences**: Existing skill definitions continue to work unchanged (fields are optional, fallback to `always`). New skills can declare their intended defaults. Dash could retroactively get `defaultTrigger: { scope: "enemy", condition: "in_range", conditionValue: 1 }` in a future cleanup pass.
+
+**Recommend**: Add to `.docs/decisions/index.md` as ADR-018 during implementation.
 
 ---
 
-## Phase 4: Ranged Attack (Registry Only)
+## Implementation Steps
 
-**Goal:** Add Ranged Attack to `SKILL_REGISTRY`. Zero engine changes.
+### Step 1: Type Changes (Both Phases)
 
-### Step 4.1: Update Registry Tests
+**Files:**
 
-**File:** `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts`
+- `/home/bob/Projects/auto-battler/src/engine/types.ts`
+- `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts`
 
-Tests to add (new `describe("Ranged Attack")` block):
+**types.ts changes:**
 
-1. **Registry count and ID list** -- Update existing test at line 17: `toHaveLength(4)` -> `toHaveLength(5)`, add `"ranged-attack"` to expected ID array
-2. **Stats verification** -- `ranged-attack` has: `actionType: "attack"`, `tickCost: 1`, `range: 4`, `damage: 15`, `cooldown: 2`
-3. **Non-innate** -- `innate: false`
-4. **No behaviors** -- `behaviors: []`, `defaultBehavior: ""`
-5. **Default targeting** -- `defaultTarget: "enemy"`, `defaultCriterion: "nearest"`, `targetingMode: "cell"`
-6. **createSkillFromDefinition propagates stats** -- Create skill from ranged-attack def, verify `damage: 15`, `range: 4`, `tickCost: 1`, `actionType: "attack"`
+1. **Line 58** - `Skill.actionType`: Change `"attack" | "move" | "heal"` to `"attack" | "move" | "heal" | "interrupt" | "charge"`
 
-### Step 4.2: Add Registry Entry
+2. **Line 146** - `Action.type`: Change `"attack" | "move" | "heal" | "idle"` to `"attack" | "move" | "heal" | "interrupt" | "charge" | "idle"`
+
+3. **After line 271 (WhiffEvent)** - Add new event interfaces:
+
+   ```typescript
+   export interface InterruptEvent {
+     type: "interrupt";
+     tick: number;
+     sourceId: string;
+     targetId: string;
+     cancelledSkillId: string;
+   }
+
+   export interface InterruptMissEvent {
+     type: "interrupt_miss";
+     tick: number;
+     sourceId: string;
+     targetCell: Position;
+     reason: "empty_cell" | "target_idle";
+   }
+
+   export interface ChargeEvent {
+     type: "charge";
+     tick: number;
+     sourceId: string;
+     fromPosition: Position;
+     toPosition: Position;
+     targetId?: string;
+     damage?: number;
+     resultingHp?: number;
+   }
+   ```
+
+4. **Lines 200-208** - `GameEvent` union: Add `| InterruptEvent | InterruptMissEvent | ChargeEvent`
+
+**skill-registry.ts changes:**
+
+5. **Line 29** - `SkillDefinition.actionType`: Change to `"attack" | "move" | "heal" | "interrupt" | "charge"`
+
+6. **After line 41 (cooldown)** - Add optional fields:
+   ```typescript
+   defaultTrigger?: { scope: "enemy" | "ally" | "self"; condition: string; conditionValue?: number };
+   defaultFilter?: { condition: string; conditionValue?: number; qualifier?: { type: "action" | "skill"; id: string } };
+   ```
+   Use inline types here (not the full Trigger/SkillFilter types) to avoid coupling SkillDefinition to the runtime Trigger interface. The factory functions will map these to proper typed Trigger/SkillFilter objects.
+
+---
+
+### Step 2: Interrupt Resolution Module (Phase 7)
+
+**Create:** `/home/bob/Projects/auto-battler/src/engine/interrupt.ts`
+
+**Pattern**: Follow `healing.ts` structure (lines 12-92).
+
+```
+InterruptResult {
+  updatedCharacters: Character[];
+  events: (InterruptEvent | InterruptMissEvent)[];
+}
+
+resolveInterrupts(characters: Character[], tick: number): InterruptResult
+```
+
+**Logic:**
+
+1. Create shallow copies: `characters.map(c => ({...c}))`
+2. Find resolving interrupts: `currentAction?.type === "interrupt" && resolvesAtTick === tick`, sorted by `slotPosition`
+3. For each interrupt:
+   - Find target at `action.targetCell` in `updatedCharacters` (using `positionsEqual`)
+   - If target found AND `target.currentAction !== null`:
+     - Record `cancelledSkillId = target.currentAction.skill.id`
+     - Set `target.currentAction = null` (cancel the action)
+     - Do NOT modify target's skill cooldowns (cooldown already committed at decision time)
+     - Emit `InterruptEvent`
+   - If target found but `target.currentAction === null`:
+     - Emit `InterruptMissEvent` with reason `"target_idle"`
+   - If no target at cell:
+     - Emit `InterruptMissEvent` with reason `"empty_cell"`
+
+**Key detail**: The interrupted character's `currentAction` is set to null on the mutable shallow copy. This means subsequent phases (charge, movement, combat) will not see the cancelled action. `clearResolvedActions` checks `resolvesAtTick === tick` and will not re-null it (it's already null).
+
+---
+
+### Step 3: Kick Skill Registry Entry + defaultTrigger/defaultFilter Support (Phase 7)
 
 **File:** `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts`
 
-Add to `SKILL_REGISTRY` array (after heal, before closing bracket):
+**Add Kick entry after Dash (after line 136):**
 
 ```typescript
 {
-  id: "ranged-attack",
-  name: "Ranged Attack",
-  actionType: "attack",
-  tickCost: 1,
-  range: 4,
-  damage: 15,
+  id: "kick",
+  name: "Kick",
+  actionType: "interrupt",
+  tickCost: 0,
+  range: 1,
+  damage: 0,
   behaviors: [],
   defaultBehavior: "",
   innate: false,
   defaultTarget: "enemy",
   defaultCriterion: "nearest",
   targetingMode: "cell",
-  cooldown: 2,
+  cooldown: 4,
+  defaultTrigger: { scope: "enemy", condition: "channeling" },
+  defaultFilter: { condition: "channeling" },
 }
 ```
 
-No other files change. Existing attack resolution (`combat.ts`), decision logic (`game-decisions.ts`), and cooldown system (`game-core.ts`) are already generic.
+**Update `createSkillFromDefinition` (line 170-187):**
+Change the hardcoded trigger line (line 183):
 
-### Step 4.3: Verify All Tests Pass
+```typescript
+// Before:
+trigger: { scope: "enemy" as const, condition: "always" as const },
+// After:
+trigger: def.defaultTrigger
+  ? { scope: def.defaultTrigger.scope as TriggerScope, condition: def.defaultTrigger.condition as ConditionType, ...(def.defaultTrigger.conditionValue !== undefined ? { conditionValue: def.defaultTrigger.conditionValue } : {}) }
+  : { scope: "enemy" as const, condition: "always" as const },
+```
 
-Run `npm run test` and `npm run type-check`. Expect all existing tests + new tests to pass.
+Add filter support (after criterion line, ~line 185):
+
+```typescript
+...(def.defaultFilter ? { filter: { condition: def.defaultFilter.condition as ConditionType, ...(def.defaultFilter.conditionValue !== undefined ? { conditionValue: def.defaultFilter.conditionValue } : {}), ...(def.defaultFilter.qualifier ? { qualifier: def.defaultFilter.qualifier } : {}) } } : {}),
+```
+
+**Update `getDefaultSkills` (line 147-164):** Same trigger/filter changes as `createSkillFromDefinition`. Only affects innate skills (currently just Move, which has no defaultTrigger), but should be consistent.
+
+**Import additions**: Add `TriggerScope`, `ConditionType` to the import from `./types`.
 
 ---
 
-## Phase 6: `most_enemies_nearby` Criterion
+### Step 4: processTick Integration for Interrupts (Phase 7)
 
-**Goal:** Add AoE-optimal targeting criterion. Independent of Phases 4 and 5.
+**File:** `/home/bob/Projects/auto-battler/src/engine/game-core.ts`
 
-### Step 6.1: Update `Criterion` Type
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/types.ts` (line 129)
-
-Change:
+**Import (after line 8):**
 
 ```typescript
-export type Criterion = "nearest" | "furthest" | "lowest_hp" | "highest_hp";
+import { resolveInterrupts } from "./interrupt";
 ```
 
-To:
+**Insert after healing resolution (after line 55), before movement:**
 
 ```typescript
-export type Criterion =
-  | "nearest"
-  | "furthest"
-  | "lowest_hp"
-  | "highest_hp"
-  | "most_enemies_nearby";
+// 4b. Interrupt resolution (interrupts resolve before movement and combat)
+const interruptResult = resolveInterrupts(characters, state.tick);
+characters = interruptResult.updatedCharacters;
+events.push(...interruptResult.events);
 ```
 
-This will cause a compile error in `selectors.ts` (exhaustive switch) -- intentional.
+**Renumber comments**: 4b Movement becomes 4c, 4c Combat becomes 4d.
 
-### Step 6.2: Write Selector Tests
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/selectors-target-criterion.test.ts` (add new `describe` block)
-
-Tests to add:
-
-1. **Basic selection** -- 3 enemies at various positions; evaluator at origin; enemy B has 2 other enemies within 2 hexes, enemy A has 1, enemy C has 0. Criterion selects B.
-2. **Tiebreak by position** -- Two enemies have equal nearby-enemy counts. Lower R wins, then lower Q.
-3. **All equal counts** -- Three enemies each with 1 nearby. First by tiebreak (lower R, lower Q) wins.
-4. **Works with filter** -- Candidate pool is pre-narrowed by filter; criterion operates on filtered pool only.
-5. **Works with enemy target pool** -- Standard case, evaluator is friendly, targets are enemies, counts enemies near each enemy candidate.
-6. **Works with ally target pool** -- Evaluator targets allies; counts enemies (opposing faction to evaluator) near each ally candidate.
-7. **Single candidate** -- Returns the only candidate regardless of nearby count.
-8. **No candidates** -- Returns null.
-
-**Key implementation detail for tests:** "enemies" in the criterion always means the evaluator's opposing faction. Set up characters with known positions and verify the counting logic.
-
-### Step 6.3: Implement `most_enemies_nearby` Case
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/selectors.ts`
-
-Add import for `hexDistance` (already imported via types.ts re-export, but may need direct import from `hex.ts` if not available). Check: `hexDistance` is already imported on line 6 from `./types`.
-
-Add case before the `default` exhaustive guard:
-
-```typescript
-case "most_enemies_nearby": {
-  // Count enemies (evaluator's opposing faction) within 2 hexes of each candidate
-  const enemies = allCharacters.filter(
-    (c) => c.faction !== evaluator.faction && c.hp > 0,
-  );
-  const NEARBY_RADIUS = 2;
-  const result = findMinimum(candidates, (a, b) => {
-    const countA = enemies.filter(
-      (e) => e.id !== a.id && hexDistance(e.position, a.position) <= NEARBY_RADIUS,
-    ).length;
-    const countB = enemies.filter(
-      (e) => e.id !== b.id && hexDistance(e.position, b.position) <= NEARBY_RADIUS,
-    ).length;
-    if (countA !== countB) {
-      return countB - countA; // Higher count wins (reverse sort)
-    }
-    return tieBreakCompare(a, b);
-  });
-  return result;
-}
-```
-
-**Design note:** The `enemies` pool is computed once outside `findMinimum` for efficiency. The `e.id !== a.id` check excludes the candidate itself from its own nearby count (an enemy candidate should not count itself as "nearby enemy"). This matters when target is `enemy` -- the candidate IS an enemy, so without exclusion, every enemy would count itself.
-
-### Step 6.4: Update UI Dropdown
-
-**File:** `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.tsx`
-
-1. **Criterion dropdown** (around line 248): Add `<option value="most_enemies_nearby">Most Enemies Nearby</option>` after `highest_hp`
-2. **handleCriterionChange** (line 60-64): Add `"most_enemies_nearby"` to the type cast union
-
-**File:** `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx` (legacy)
-
-Add `"most_enemies_nearby"` to the Criterion cast at line 128 for completeness.
-
-### Step 6.5: Verify Component Tests
-
-**File:** `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab-config.test.tsx`
-
-Verify or add test that the criterion dropdown renders the `most_enemies_nearby` option.
-
-### Step 6.6: Run Full Test Suite
-
-`npm run test && npm run type-check && npm run lint`
+**No RNG changes needed**: Interrupt resolution is deterministic (no random elements).
 
 ---
 
-## Phase 5: `distance` Field + Dash
-
-**Goal:** Parameterize movement distance and add Dash skill with multi-step movement.
-
-### Step 5.1: Add `distance` to Types
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/types.ts`
-
-Add `distance?: number;` to the `Skill` interface (after `healing?: number;`, around line 62).
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts`
-
-Add `distance?: number;` to the `SkillDefinition` interface (after `healing?: number;`, around line 33).
-
-### Step 5.2: Add `distance` to Test Helper
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/game-test-helpers.ts`
-
-Update `createSkill()` to include `distance`:
-
-```typescript
-distance: overrides.distance,
-```
-
-Add after `healing: overrides.healing,` (line 64).
-
-### Step 5.3: Propagate `distance` in Registry Functions
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts`
-
-1. **`getDefaultSkills()`** (line 115-131): Add `...(def.distance !== undefined ? { distance: def.distance } : {})` after the healing spread.
-2. **`createSkillFromDefinition()`** (line 137-153): Same spread addition.
-
-### Step 5.4: Set `distance: 1` on Move Definition
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts`
-
-Add `distance: 1` to the `move-towards` definition (makes implicit distance explicit).
-
-### Step 5.5: Write Tests for `distance` Propagation
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts`
-
-Add to existing describe blocks:
-
-1. **Move has distance 1** -- `SKILL_REGISTRY.find(s => s.id === "move-towards")?.distance` is `1`
-2. **getDefaultSkills propagates distance** -- Default Move skill has `distance: 1`
-3. **createSkillFromDefinition propagates distance** -- Create from move def, verify `distance: 1`
-4. **Skills without distance have undefined** -- Light Punch, Heavy Punch, Heal have `distance: undefined`
-
-### Step 5.6: Write Multi-Step Movement Tests
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/game-movement-multistep.test.ts` (NEW FILE)
-
-Tests for a new `computeMultiStepDestination()` function (or modified `computeMoveDestination` with distance parameter):
-
-1. **distance=1 returns same as current behavior** -- Single-step, identical to existing `computeMoveDestination`
-2. **distance=2 towards, clear path** -- Mover at (0,0), target at (3,0). After 2 steps, mover at (2,0).
-3. **distance=2 towards, second step blocked** -- Mover at (0,0), target at (3,0), blocker at (2,0). Mover reaches (1,0) only (partial movement).
-4. **distance=2 towards, first step blocked** -- All neighbors of mover blocked. Mover stays at (0,0).
-5. **distance=2 away, clear path** -- Mover moves 2 hexes away from target using iterative best-hex selection.
-6. **distance=2 away, second step blocked** -- Partial away movement.
-7. **distance=2 away, all blocked** -- Stays in place.
-8. **distance=1 away, backward compatible** -- Same as current away behavior.
-9. **distance=undefined defaults to 1** -- Undefined distance treated as 1 step.
-
-### Step 5.7: Implement Multi-Step Movement
-
-**File:** `/home/bob/Projects/auto-battler/src/engine/game-movement.ts`
-
-Add new exported function `computeMultiStepDestination()`:
-
-```typescript
-export function computeMultiStepDestination(
-  mover: Character,
-  target: Character,
-  mode: "towards" | "away",
-  allCharacters: Character[],
-  distance: number = 1,
-): Position {
-  let currentPosition = mover.position;
-
-  for (let step = 0; step < distance; step++) {
-    // Create a virtual mover at the current simulated position
-    const virtualMover = { ...mover, position: currentPosition };
-    const nextPosition = computeMoveDestination(
-      virtualMover,
-      target,
-      mode,
-      allCharacters,
-    );
-
-    // If stuck (returned same position), stop
-    if (positionsEqual(nextPosition, currentPosition)) {
-      break;
-    }
-
-    currentPosition = nextPosition;
-  }
-
-  return currentPosition;
-}
-```
-
-**Design decision:** This wraps `computeMoveDestination()` iteratively rather than modifying it. Each step uses the current simulated position. The obstacle set includes all characters at their original positions (snapshot-based, consistent with how decision phase works). The virtual mover does NOT update the `allCharacters` array between steps -- its own original position remains as an obstacle at step 1 but is filtered out by `buildObstacleSet` which excludes the mover.
-
-**Important subtlety:** The `buildObstacleSet` inside `computeMoveDestination` excludes the mover by ID. Since we pass a virtual mover with the same ID, the mover's original position is correctly excluded. But the virtual mover's intermediate position is NOT in the obstacle set either (since no character occupies it). This means step 2 picks from neighbors of the step-1 position, avoiding obstacles but not avoiding the mover's original cell (which is fine -- the mover has logically left it).
-
-### Step 5.8: Wire Multi-Step into Decision Phase
+### Step 5: Decision Phase Updates for Interrupt (Phase 7)
 
 **File:** `/home/bob/Projects/auto-battler/src/engine/game-actions.ts`
 
-Update `createSkillAction()` move branch (line 77-85):
+1. **Line 18** - `getActionType` return type: Change to `"attack" | "move" | "heal" | "interrupt" | "charge"`
 
-```typescript
-} else {
-  // Move: compute destination (supports multi-step via distance)
-  const distance = skill.distance ?? 1;
-  if (distance > 1) {
-    targetCell = computeMultiStepDestination(
-      character, target, skill.behavior as "towards" | "away",
-      allCharacters, distance,
-    );
-  } else {
-    targetCell = computeMoveDestination(
-      character, target, skill.behavior as "towards" | "away",
-      allCharacters,
-    );
-  }
-  targetCharacter = null;
+2. **Line 76** - `createSkillAction` branching: Add `"interrupt"` to the attack/heal branch:
+   ```typescript
+   if (actionType === "attack" || actionType === "heal" || actionType === "interrupt") {
+   ```
+   Interrupt targeting is identical to attack: lock to target's cell position, store targetCharacter.
+
+**File:** `/home/bob/Projects/auto-battler/src/engine/game-decisions.ts`
+
+3. **Line 118** - `tryExecuteSkill` range check: Add `"interrupt"`:
+
+   ```typescript
+   if (actionType === "attack" || actionType === "heal" || actionType === "interrupt") {
+   ```
+
+4. **Line 252** - `evaluateSingleSkill` range check: Same change:
+   ```typescript
+   if (actionType === "attack" || actionType === "heal" || actionType === "interrupt") {
+   ```
+
+---
+
+### Step 6: Charge Resolution Module (Phase 8)
+
+**Create:** `/home/bob/Projects/auto-battler/src/engine/charge.ts`
+
+**Pattern**: Follow `healing.ts`/`combat.ts` structure but with RNG state threading like `movement.ts`.
+
+```
+ChargeResult {
+  updatedCharacters: Character[];
+  events: (ChargeEvent | DamageEvent | DeathEvent)[];
+  rngState: number;
 }
+
+resolveCharges(characters: Character[], tick: number, rngState: number): ChargeResult
 ```
 
-Add import for `computeMultiStepDestination` from `./game-movement`.
+**Logic:**
 
-### Step 5.9: Write Dash Registry Tests
+1. Create shallow copies: `characters.map(c => ({...c}))`
+2. Find resolving charges: `currentAction?.type === "charge" && resolvesAtTick === tick`, sorted by `slotPosition`
+3. For each charger:
+   a. **Record fromPosition**: `charger.position` (pre-move, for ChargeEvent)
+   b. **Move phase**: Recompute destination at resolution time using `computeMultiStepDestination()`:
+   - Create a synthetic target character at `action.targetCell` position (the locked cell from decision time)
+   - Call `computeMultiStepDestination(chargerCopy, syntheticTarget, "towards", updatedCharacters, distance)`
+   - Use `action.skill.distance ?? 1` for distance
+   - Update charger position in `updatedCharacters` to the computed destination
+     c. **Attack phase**: Check if any enemy is at distance 1 (hex distance) from charger's post-move position AND at the locked `action.targetCell`:
+   - Find character at `action.targetCell` in `updatedCharacters` with `hp > 0`
+   - Check `hexDistance(charger.position, target.position) <= 1`
+   - If both conditions met: apply `action.skill.damage ?? 0` to target
+   - Emit `DamageEvent` for the damage (for `useDamageNumbers` hook)
+     d. **Emit ChargeEvent**: Always emitted (movement + optional damage info)
+4. **Death detection**: After all charges processed, check for deaths like `combat.ts` (lines 92-101). Emit `DeathEvent` for any character with `hp <= 0`.
+5. Return `{ updatedCharacters, events, rngState }` (rngState passed through unchanged since `computeMultiStepDestination` is deterministic - no RNG usage)
 
-**File:** `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts`
+**Key detail on movement recomputation**: `computeMultiStepDestination` takes a target Character. For charge, create a minimal synthetic character object at `action.targetCell`:
 
-Add `describe("Dash")` block:
+```typescript
+const syntheticTarget: Character = {
+  ...charger, // copy required fields
+  id: "__charge-target__",
+  position: action.targetCell,
+};
+```
 
-1. **Registry count update** -- Update count from 5 (after Phase 4) to 6
-2. **Stats** -- `id: "dash"`, `actionType: "move"`, `tickCost: 0`, `range: 1`, `distance: 2`, `cooldown: 3`
-3. **Behaviors** -- `behaviors: ["towards", "away"]`, `defaultBehavior: "away"`
-4. **Non-innate** -- `innate: false`
-5. **Default targeting** -- `defaultTarget: "enemy"`, `defaultCriterion: "nearest"`
-6. **createSkillFromDefinition propagates distance** -- Verify `distance: 2` on created skill
+This gives the pathfinding a destination without depending on where the real target actually is now.
 
-### Step 5.10: Add Dash Registry Entry
+**Key detail on RNG**: After re-examination, `computeMultiStepDestination` does NOT use RNG. It is fully deterministic (pathfinding uses A\*, away-mode uses scoring). RNG is only used in `resolveMovement` for two-movers-same-cell collision. Since charge processes one charger at a time with sequential position updates, no collision randomness is needed. RNG state is passed through unchanged.
+
+---
+
+### Step 7: Charge Skill Registry Entry (Phase 8)
 
 **File:** `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts`
 
-Add to `SKILL_REGISTRY` array:
+**Add Charge entry after Kick:**
 
 ```typescript
 {
-  id: "dash",
-  name: "Dash",
-  actionType: "move",
-  tickCost: 0,
-  range: 1,
-  distance: 2,
-  behaviors: ["towards", "away"],
-  defaultBehavior: "away",
+  id: "charge",
+  name: "Charge",
+  actionType: "charge",
+  tickCost: 1,
+  range: 3,
+  damage: 20,
+  distance: 3,
+  behaviors: [],
+  defaultBehavior: "",
   innate: false,
   defaultTarget: "enemy",
   defaultCriterion: "nearest",
   targetingMode: "cell",
   cooldown: 3,
+  defaultTrigger: { scope: "enemy", condition: "in_range", conditionValue: 3 },
 }
 ```
 
-### Step 5.11: Write Integration Tests
+---
 
-**File:** `/home/bob/Projects/auto-battler/src/engine/game-actions.test.ts` (existing or new)
+### Step 8: processTick Integration for Charges (Phase 8)
 
-Integration tests for `createSkillAction` with distance:
+**File:** `/home/bob/Projects/auto-battler/src/engine/game-core.ts`
 
-1. **Move skill (distance 1) produces single-step destination** -- Backward compatible
-2. **Dash skill (distance 2) produces two-step destination** -- Uses `computeMultiStepDestination`
-3. **Dash with blocked second step produces partial destination** -- One step moved
-4. **Dash tickCost 0 resolves same tick** -- `resolvesAtTick === tick`
+**Import (after interrupt import):**
 
-### Step 5.12: Run Full Test Suite
+```typescript
+import { resolveCharges } from "./charge";
+```
 
-`npm run test && npm run type-check && npm run lint`
+**Insert after interrupt resolution, before movement:**
+
+```typescript
+// 4c. Charge resolution (charges resolve before regular movement)
+const chargeResult = resolveCharges(characters, state.tick, state.rngState);
+characters = chargeResult.updatedCharacters;
+events.push(...chargeResult.events);
+```
+
+**RNG state threading**: Even though charge doesn't currently use RNG, thread it for future-proofing. Update the `rngState` in newState (line 92):
+
+```typescript
+rngState: movementResult.rngState,  // Still use movement's rngState (charge passes through unchanged)
+```
+
+No change needed here since charge doesn't modify rngState. If it did in the future, chain: `chargeResult.rngState -> resolveMovement(... chargeResult.rngState ...)`.
+
+**Renumber comments**: 4c Movement becomes 4d, 4d Combat becomes 4e.
 
 ---
 
-## Summary of Files Modified
+### Step 9: Decision Phase Updates for Charge (Phase 8)
 
-### Phase 4 (2 files)
+**File:** `/home/bob/Projects/auto-battler/src/engine/game-actions.ts`
 
-| File                                | Change                                |
-| ----------------------------------- | ------------------------------------- |
-| `src/engine/skill-registry.ts`      | Add ranged-attack entry               |
-| `src/engine/skill-registry.test.ts` | Update count, add Ranged Attack tests |
+1. **Line 76** (already updated in Step 5): Add `"charge"` to the attack/heal/interrupt branch:
+   ```typescript
+   if (actionType === "attack" || actionType === "heal" || actionType === "interrupt" || actionType === "charge") {
+   ```
+   Charge targeting at decision time is identical to attack: lock to target's cell, store targetCharacter. The movement is computed at resolution time in `resolveCharges`, not at decision time.
 
-### Phase 6 (4-5 files)
+**File:** `/home/bob/Projects/auto-battler/src/engine/game-decisions.ts`
 
-| File                                            | Change                                     |
-| ----------------------------------------------- | ------------------------------------------ |
-| `src/engine/types.ts`                           | Add `"most_enemies_nearby"` to `Criterion` |
-| `src/engine/selectors.ts`                       | Add case in `evaluateTargetCriterion`      |
-| `src/engine/selectors-target-criterion.test.ts` | Add `most_enemies_nearby` tests            |
-| `src/components/CharacterPanel/SkillRow.tsx`    | Add dropdown option + update cast          |
-| `src/components/SkillsPanel/SkillsPanel.tsx`    | Update criterion cast (legacy)             |
+2. **Line 118** (already updated in Step 5): Add `"charge"`:
 
-### Phase 5 (7-8 files)
+   ```typescript
+   if (actionType === "attack" || actionType === "heal" || actionType === "interrupt" || actionType === "charge") {
+   ```
 
-| File                                         | Change                                                                                      |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `src/engine/types.ts`                        | Add `distance?: number` to `Skill`                                                          |
-| `src/engine/skill-registry.ts`               | Add `distance` to `SkillDefinition`, Move def, Dash entry, propagation in factory functions |
-| `src/engine/game-test-helpers.ts`            | Add `distance` to `createSkill()`                                                           |
-| `src/engine/game-movement.ts`                | Add `computeMultiStepDestination()`                                                         |
-| `src/engine/game-actions.ts`                 | Wire multi-step into `createSkillAction()`                                                  |
-| `src/engine/skill-registry.test.ts`          | Update count, add Dash tests, distance propagation tests                                    |
-| `src/engine/game-movement-multistep.test.ts` | NEW: Multi-step movement tests                                                              |
-| `src/engine/game-actions.test.ts`            | Integration tests for distance in actions                                                   |
+3. **Line 252** (already updated in Step 5): Same change.
 
-### Total: ~12 files modified, 1 new test file
+**Note**: Steps 5 and 9 can be combined during implementation. Listed separately for clarity of which phase each change serves.
 
 ---
 
-## Architectural Risks and Mitigations
+### Step 10: UI Updates (Both Phases)
 
-### Risk 1: Multi-step obstacle snapshot
+**File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentLine.tsx`
 
-**Risk:** `computeMultiStepDestination` uses the original `allCharacters` positions for obstacle checks at every step. A mover's intermediate positions are not added as obstacles for its own subsequent steps.
-**Mitigation:** This is correct -- the mover's own position is excluded by ID in `buildObstacleSet`. The mover logically moves through intermediate cells. Other characters remain at their decision-phase positions (snapshot model, consistent with existing architecture).
+1. **Line 12** - `IntentLineProps.type`: Change to `"attack" | "move" | "heal" | "interrupt" | "charge"`
 
-### Risk 2: Resolution-phase collision with multi-step
+2. **Lines 101-110** - `getActionColor`: Add cases:
 
-**Risk:** `resolveMovement()` only checks collisions at the final `targetCell`. Two dashers could cross paths without collision.
-**Mitigation:** This is acceptable. The decision phase handles intermediate blocking (obstacles prevent movement). Resolution-phase mover-vs-mover collision only happens at the destination cell, consistent with existing single-step behavior. The spec says "blocker-wins collision rule per step" which refers to obstacle blocking during the decision-phase computation, not mover-vs-mover crossing.
+   ```typescript
+   case "interrupt":
+     return "var(--action-attack)";
+   case "charge":
+     return "var(--action-attack)";
+   ```
 
-### Risk 3: `most_enemies_nearby` counting self
+3. **Lines 115-129** - `getMarkerEnd`: Add cases:
+   ```typescript
+   case "interrupt":
+     return "url(#arrowhead-attack)";
+   case "charge":
+     return "url(#arrowhead-attack)";
+   ```
 
-**Risk:** When targeting enemies, each enemy candidate could count itself as a nearby enemy, inflating all counts equally.
-**Mitigation:** Exclude the candidate from its own nearby count with `e.id !== candidate.id`. This ensures the criterion meaningfully differentiates between candidates.
+**File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay.tsx`
+
+4. **Line 226** - Type cast: Change to:
+
+   ```typescript
+   type={intent.action.type as "attack" | "move" | "heal" | "interrupt" | "charge"}
+   ```
+
+5. **Line 37** - `detectBidirectionalAttacks`: Consider adding `"charge"` to bidirectional detection. If a charger and an attacker target each other's cells, offset lines. Change:
+   ```typescript
+   if (intent.action.type !== "attack" && intent.action.type !== "charge")
+     continue;
+   ```
+   And the inner filter:
+   ```typescript
+   (other.action.type === "attack" || other.action.type === "charge") &&
+   ```
+
+**File:** `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-formatters.ts`
+
+6. **`formatActionSummary` (lines 11-30)**: Add interrupt and charge cases:
+
+   ```typescript
+   if (action.type === "interrupt") {
+     return action.skill.name;
+   }
+   if (action.type === "charge") {
+     return action.skill.name;
+   }
+   ```
+
+7. **`formatActionDisplay` (lines 118-150)**: Add interrupt and charge cases:
+   ```typescript
+   if (action.type === "interrupt") {
+     const targetName = action.targetCharacter
+       ? slotPositionToLetter(action.targetCharacter.slotPosition)
+       : "Unknown target";
+     return `Kick -> ${targetName}`;
+   }
+   if (action.type === "charge") {
+     const targetName = action.targetCharacter
+       ? slotPositionToLetter(action.targetCharacter.slotPosition)
+       : "Unknown target";
+     return `Charge -> ${targetName}`;
+   }
+   ```
+   Note: Using arrow text instead of emojis; existing code uses emojis for attack/heal/move, so follow that pattern with a suitable emoji or use the skill name directly.
 
 ---
 
-## New Decisions
+### Step 11: Test Helper Updates (Both Phases)
 
-### Decision: Wrap `computeMoveDestination` for multi-step (not modify it)
+**File:** `/home/bob/Projects/auto-battler/src/engine/game-test-helpers.ts`
 
-**Context:** Multi-step movement needs to iterate single-step logic. Options: (a) add `distance` parameter to `computeMoveDestination`, (b) create wrapper function.
-**Decision:** Create `computeMultiStepDestination()` as a separate function that calls `computeMoveDestination()` in a loop.
-**Consequences:** Existing callers of `computeMoveDestination()` are unaffected. The new function is explicitly used only when `distance > 1`. Slightly more code but zero risk to existing movement behavior.
+1. **Add `createInterruptAction` helper (after `createHealAction`, line 147):**
 
-### Decision: Hardcode 2-hex radius for `most_enemies_nearby`
+   ```typescript
+   export function createInterruptAction(
+     targetCell: { q: number; r: number },
+     resolveTick: number,
+   ): Action {
+     return {
+       type: "interrupt",
+       skill: createSkill({
+         id: "test-interrupt",
+         instanceId: "test-interrupt",
+         actionType: "interrupt",
+         tickCost: 0,
+         range: 1,
+       }),
+       targetCell,
+       targetCharacter: null,
+       startedAtTick: resolveTick,
+       resolvesAtTick: resolveTick,
+     };
+   }
+   ```
 
-**Context:** Requirements specify "enemies within 2 hexes" with no mention of configurability.
-**Decision:** Hardcode `NEARBY_RADIUS = 2` as a constant within the case block.
-**Consequences:** If configurability is needed later, extract to a criterion parameter. For now, keep it simple.
+2. **Add `createChargeAction` helper:**
+   ```typescript
+   export function createChargeAction(
+     targetCell: { q: number; r: number },
+     damage: number,
+     resolveTick: number,
+   ): Action {
+     return {
+       type: "charge",
+       skill: createSkill({
+         id: "test-charge",
+         instanceId: "test-charge",
+         actionType: "charge",
+         damage,
+         distance: 3,
+         tickCost: 1,
+         range: 3,
+       }),
+       targetCell,
+       targetCharacter: null,
+       startedAtTick: resolveTick - 1,
+       resolvesAtTick: resolveTick,
+     };
+   }
+   ```
 
-**Recommend adding both decisions to `.docs/decisions/index.md` after implementation.**
+**File:** `/home/bob/Projects/auto-battler/src/engine/game.ts`
+
+3. **Add barrel exports for new modules:**
+   ```typescript
+   export { resolveInterrupts } from "./interrupt";
+   export type { InterruptResult } from "./interrupt";
+   export { resolveCharges } from "./charge";
+   export type { ChargeResult } from "./charge";
+   ```
 
 ---
 
 ## Spec Alignment Checklist
 
-- [x] Plan aligns with `.docs/spec.md` requirements (skill registry pattern, targeting system, collision resolution)
-- [x] Approach consistent with `.docs/architecture.md` (pure engine logic, centralized registry, data-driven targeting)
-- [x] Patterns follow `.docs/patterns/index.md` (no new UI patterns needed beyond dropdown options)
-- [x] No conflicts with `.docs/decisions/index.md` (ADR-005 centralized registry, ADR-010 movement before combat, ADR-011 universal behavior)
-- [x] Exhaustive switch pattern in selectors.ts respected (new criterion case added before default guard)
-- [x] Test helper pattern followed (createSkill updated with new field)
+- [x] Plan aligns with `.docs/spec.md` requirements (interrupt and charge action types, resolution order)
+- [x] Approach consistent with `.docs/architecture.md` (pure engine, resolution module pattern, cell-based targeting)
+- [x] Patterns follow `.docs/patterns/index.md` (bidirectional line offset for charge, no new patterns needed)
+- [x] No conflicts with `.docs/decisions/index.md` (ADR-002 uniform intent filtering, ADR-005 centralized registry, ADR-010 movement before combat, ADR-017 multi-step movement)
+- [x] New decision documented: defaultTrigger/defaultFilter on SkillDefinition (recommend ADR-018)
+
+## Risk Areas
+
+1. **Charge movement recomputation at resolution time**: Using `computeMultiStepDestination` with a synthetic target character. Risk: the synthetic character must have all required Character fields. Mitigation: use `createCharacter` from test helpers pattern to build a minimal valid character, or spread from the charger.
+
+2. **Death detection timing for charge kills**: Charge emits DeathEvent during resolution. Characters killed by charge are still in `updatedCharacters` (with hp <= 0). The `characters.filter(c => c.hp > 0)` at line 80 of `game-core.ts` removes them before the next tick. Combat resolution (which runs after charge) will see dead characters. Risk: combat may try to apply damage to already-dead characters. Mitigation: combat finds targets via `positionsEqual` and does not check `hp > 0` (line 64-66 of combat.ts). A dead character could receive additional damage (hp goes more negative). This is acceptable -- DeathEvent is already emitted by charge, and combat.ts also checks deaths after all damage (lines 92-101). The duplicate DeathEvent is a concern. Mitigation: combat's death check should skip characters already at hp <= 0 before combat damage was applied, OR accept duplicate death events and deduplicate in the UI.
+
+   **Recommended approach**: In charge resolution, do NOT filter dead characters out of `updatedCharacters`. Let them flow to combat. Combat already handles death detection after all damage. The `characters.filter(c => c.hp > 0)` at line 80 handles final removal. For DeathEvent: charge resolution should emit DeathEvents for charge kills. Combat will also emit DeathEvents if combat further damages already-dead characters, but `processTick` line 80 will remove them regardless. The EventLog can deduplicate by characterId+tick if needed. This matches existing combat.ts behavior where a character hit by two attacks in the same tick gets one DeathEvent (death check runs after ALL damage).
+
+   **Refined approach**: Charge resolution should check deaths ONLY for characters killed by charge damage (hp dropped to <= 0 due to charge). Emit DeathEvent only for those. Combat's death check will not re-emit for characters already at hp <= 0 before combat started, since combat.ts checks deaths after ALL combat damage -- if character was already dead, combat won't change that. But combat.ts iterates ALL `updatedCharacters` looking for `hp <= 0` (line 93-94). So it WILL emit a duplicate DeathEvent. To avoid this, charge should NOT emit DeathEvents. Instead, let the death check at line 80 of processTick handle all deaths, and only combat.ts emits DeathEvents. But that means charge kills won't have DeathEvents in the event log until we add them.
+
+   **Final approach**: Emit DeathEvent from charge resolution. Accept that combat's death check (lines 92-101) may emit duplicates for charge-killed characters. The simplest fix: modify combat.ts death check to skip characters with `hp <= 0` who had `hp <= 0` BEFORE combat damage was applied. This requires tracking pre-combat HP. Alternatively, since charge kills happen before combat, the dead character is still at their position. An attacker targeting that cell would "hit" a dead target, dealing pointless extra damage. This is a minor edge case and acceptable for v1. Document it and address if it causes issues.
+
+3. **clearResolvedActions interaction with interrupt cancellation**: Interrupt sets target's `currentAction` to null during interrupt resolution. Later, `clearResolvedActions` checks `resolvesAtTick === tick`. Since the target's action was already nulled, `clearResolvedActions` does nothing for that character. The interrupter's own action (the kick) will be cleared by `clearResolvedActions` since kick's `resolvesAtTick === tick`. No conflict.
+
+4. **RNG state threading**: Charge resolution does not use RNG (movement via `computeMultiStepDestination` is deterministic). The `rngState` parameter is passed through unchanged. This is correct but should be documented in the function signature. If future charge mechanics need randomness, the threading is already in place.
+
+5. **Charge targeting at decision time vs resolution time**: At decision time, charge locks `targetCell` to the target's position and stores `targetCharacter`. At resolution time, charge recomputes movement toward `targetCell` (not the target's current position). The attack check then looks for any character at `targetCell` within 1 hex of the charger's post-move position. This means if the target moved away, the charge might hit a different character at the locked cell, or miss entirely. This matches the cell-based targeting pattern used by all other actions.
+
+## Test File Plan
+
+**New test files to create:**
+
+- `/home/bob/Projects/auto-battler/src/engine/interrupt.test.ts` - Phase 7 interrupt resolution tests
+- `/home/bob/Projects/auto-battler/src/engine/charge.test.ts` - Phase 8 charge resolution tests
+
+**Existing test files to update:**
+
+- `/home/bob/Projects/auto-battler/src/engine/game-actions.test.ts` - Test getActionType with new types
+- `/home/bob/Projects/auto-battler/src/engine/skill-registry-new-skills.test.ts` - Test Kick and Charge registry entries, defaultTrigger/defaultFilter on createSkillFromDefinition
+
+**Test counts (estimated):**
+
+- Interrupt resolution: ~10 tests (happy path, idle target miss, empty cell miss, multiple interrupts, interrupt then combat, cooldown preservation)
+- Charge resolution: ~12 tests (happy path, blocked movement, partial movement, adjacent already, miss after charge, multiple chargers, charge + combat same tick, interruptible)
+- Registry/decision: ~6 tests (getActionType, range checks, registry entries, defaultTrigger/defaultFilter)
+- Integration: ~5 tests (full tick with interrupt, full tick with charge, interrupt cancels charge, death from charge)
+- Total: ~33 tests (aligns with ~35 criteria estimate from requirements)

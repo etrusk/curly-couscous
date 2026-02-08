@@ -15,7 +15,9 @@ import {
  * @param skill - Skill to check
  * @returns Action type from skill.actionType field
  */
-export function getActionType(skill: Skill): "attack" | "move" | "heal" {
+export function getActionType(
+  skill: Skill,
+): "attack" | "move" | "heal" | "interrupt" | "charge" {
   return skill.actionType;
 }
 
@@ -73,8 +75,13 @@ export function createSkillAction(
   let targetCell: Position;
   let targetCharacter: Character | null;
 
-  if (actionType === "attack" || actionType === "heal") {
-    // Attack and Heal: lock to target's current position (cell-based targeting)
+  if (
+    actionType === "attack" ||
+    actionType === "heal" ||
+    actionType === "interrupt" ||
+    actionType === "charge"
+  ) {
+    // Attack, Heal, Interrupt, and Charge: lock to target's current position (cell-based targeting)
     targetCell = target.position;
     targetCharacter = target;
   } else {

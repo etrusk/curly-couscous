@@ -6,6 +6,8 @@
 import { GameState, Character, Action, GameEvent, BattleStatus } from "./types";
 import { resolveCombat } from "./combat";
 import { resolveHealing } from "./healing";
+import { resolveInterrupts } from "./interrupt";
+import { resolveCharges } from "./charge";
 import { resolveMovement } from "./movement";
 import { computeDecisions, Decision } from "./game-decisions";
 import { getSkillDefinition } from "./skill-registry";
@@ -54,16 +56,41 @@ export function processTick(state: GameState): TickResult {
   characters = healingResult.updatedCharacters;
   events.push(...healingResult.events);
 
-  // 4b. Movement resolution (movement before combat enables dodge)
+  // 4b. Interrupt resolution (interrupts resolve before charges, movement, and combat)
+  const interruptResult = resolveInterrupts(characters, state.tick);
+  characters = interruptResult.updatedCharacters;
+  events.push(...interruptResult.events);
+
+  // 4c. Charge resolution (charges resolve before regular movement)
+  const chargeResult = resolveCharges(characters, state.tick, state.rngState);
+  characters = chargeResult.updatedCharacters;
+  events.push(...chargeResult.events);
+
+  // 4d. Collect IDs of characters whose actions already resolved in earlier stages
+  // (interrupt, charge) so they don't block movement at their positions.
+  const resolvedCharacterIds = new Set<string>();
+  for (const character of characters) {
+    if (
+      character.currentAction &&
+      (character.currentAction.type === "interrupt" ||
+        character.currentAction.type === "charge") &&
+      character.currentAction.resolvesAtTick <= state.tick
+    ) {
+      resolvedCharacterIds.add(character.id);
+    }
+  }
+
+  // 4e. Movement resolution (movement before combat enables dodge)
   const movementResult = resolveMovement(
     characters,
     state.tick,
     state.rngState,
+    resolvedCharacterIds.size > 0 ? resolvedCharacterIds : undefined,
   );
   characters = movementResult.updatedCharacters;
   events.push(...movementResult.events);
 
-  // 4c. Combat resolution (attacks resolve after movement)
+  // 4f. Combat resolution (attacks resolve after movement)
   const combatResult = resolveCombat(characters, state.tick);
   characters = combatResult.updatedCharacters;
   events.push(...combatResult.events);

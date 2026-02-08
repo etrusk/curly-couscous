@@ -2,128 +2,141 @@
 
 ## Task Understanding
 
-Phase 3: New Trigger Conditions -- add trigger-context integration tests for `channeling`, `idle`, `targeting_me`, `targeting_ally` conditions with scope/qualifier variations, and update TriggerDropdown to expose those conditions in the UI. The shared condition evaluator (`evaluateConditionForCandidate()`) already handles all four conditions; this phase verifies trigger-context behavior and wires UI.
+Implement Skill Expansion Phases 4+5+6:
+
+- **Phase 4**: Add Ranged Attack to skill registry (zero engine changes, registry-only)
+- **Phase 5**: Add `distance` field to `SkillDefinition`/`Skill` types, implement multi-step movement, add Dash skill
+- **Phase 6**: Add `most_enemies_nearby` criterion to selector system
+
+~25 acceptance criteria across 3 phases. See `.tdd/requirements.md` for full criteria.
 
 ## Relevant Files
 
-### Engine -- Trigger System (source)
+### Phase 4: Ranged Attack (Registry Only)
 
-- `/home/bob/Projects/auto-battler/src/engine/triggers.ts` (152 lines) - Contains `evaluateTrigger()` and `evaluateConditionForCandidate()`. The shared condition evaluator already handles all 8 conditions including `channeling`, `idle`, `targeting_me`, `targeting_ally`. No source changes expected here.
-- `/home/bob/Projects/auto-battler/src/engine/types.ts` (355 lines) - Defines `Trigger`, `ConditionType`, `ConditionQualifier`, `TriggerScope`, `SkillFilter`, `Character`, `Action`. All types already include the new conditions. No source changes expected.
-- `/home/bob/Projects/auto-battler/src/engine/selector-filters.ts` (29 lines) - `evaluateFilterForCandidate()` wrapper. Uses shared evaluator. No changes expected.
-- `/home/bob/Projects/auto-battler/src/engine/game-decisions.ts` (323 lines) - Decision pipeline: disabled -> cooldown -> hold -> trigger -> filter -> criterion -> range -> heal-full-HP. Calls `evaluateTrigger()` at line 91. No changes expected.
+- `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts` - Where `SKILL_REGISTRY` array and `SkillDefinition` type live. Add ranged-attack entry. Also `createSkillFromDefinition()` and `getDefaultSkills()` which create `Skill` instances from definitions.
+- `/home/bob/Projects/auto-battler/src/engine/skill-registry.test.ts` - Existing registry tests. Currently checks `SKILL_REGISTRY.length === 4` and enumerates all skill IDs. Must update count and ID list. Add new describe block for Ranged Attack stats.
+- `/home/bob/Projects/auto-battler/src/engine/combat.ts` - Attack resolution. Uses `action.skill.damage ?? 0` -- already handles any attack skill generically. No changes needed.
+- `/home/bob/Projects/auto-battler/src/engine/game-decisions.ts` - Decision phase. Range check at line 118-119: `if (distance > skill.range)` -- already generic. No changes needed.
+- `/home/bob/Projects/auto-battler/src/engine/game-core.ts` - Cooldown applied via `getSkillDefinition(action.skill.id).cooldown` at line 156-157 -- already generic. No changes needed.
 
-### Engine -- Trigger Tests (existing, reference for patterns)
+### Phase 5: `distance` Field + Dash
 
-- `/home/bob/Projects/auto-battler/src/engine/triggers-cell-targeted.test.ts` (297 lines) - Tests `targeting_me` with `enemy` scope. Extensive coverage: basic detection, no actions, ally actions ignored, multi-enemy, multi-tick actions. This is the closest pattern reference for new tests.
-- `/home/bob/Projects/auto-battler/src/engine/triggers-always.test.ts` (67 lines) - Tests `always` condition.
-- `/home/bob/Projects/auto-battler/src/engine/triggers-not-modifier.test.ts` (237 lines) - Tests NOT modifier on various conditions. Already tests NOT + `targeting_me` (line 165-191). Need to add NOT + `channeling`, NOT + `idle`, NOT + `targeting_ally`.
-- `/home/bob/Projects/auto-battler/src/engine/triggers-edge-cases.test.ts` (250 lines) - Dead character handling, scope pool tests, edge cases. Already tests dead enemies with `targeting_me` (line 226-248).
-- `/home/bob/Projects/auto-battler/src/engine/triggers-hp-below.test.ts` - HP below tests (reference).
-- `/home/bob/Projects/auto-battler/src/engine/triggers-enemy-in-range.test.ts` - Enemy in_range tests (reference).
-- `/home/bob/Projects/auto-battler/src/engine/triggers-ally-hp-below.test.ts` - Ally hp_below tests (reference).
-- `/home/bob/Projects/auto-battler/src/engine/triggers-ally-in-range.test.ts` - Ally in_range tests (reference).
-- `/home/bob/Projects/auto-battler/src/engine/triggers-test-helpers.ts` (49 lines) - Test helpers: `createCharacter()`, `createSkill()`, `createAction()`. These are the helpers to use for new trigger tests.
-- `/home/bob/Projects/auto-battler/src/engine/game-test-helpers.ts` (150 lines) - Base test helpers used by triggers-test-helpers. Defines `createSkill()` with `filter` field support.
+- `/home/bob/Projects/auto-battler/src/engine/types.ts` - `Skill` interface (line 54-70). Add `distance?: number` field. `SkillDefinition` is in skill-registry.ts, not here.
+- `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts` - `SkillDefinition` interface (line 26-41). Add `distance?: number` field. Set `distance: 1` on existing Move definition. Add Dash definition.
+- `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts` - `createSkillFromDefinition()` (line 137-153) and `getDefaultSkills()` (line 115-131). Neither propagates `distance`. Must add `...(def.distance !== undefined ? { distance: def.distance } : {})` to both.
+- `/home/bob/Projects/auto-battler/src/engine/game-test-helpers.ts` - `createSkill()` helper (line 47-76). Does not include `distance` field. Must add it.
+- `/home/bob/Projects/auto-battler/src/engine/triggers-test-helpers.ts` - Wraps `createSkill()` from game-test-helpers. Should get `distance` support transitively.
+- `/home/bob/Projects/auto-battler/src/engine/game-movement.ts` - `computeMoveDestination()` (line 30-69). Currently returns a single Position (1 step). Must be extended to support multi-step movement: iterate single-step logic `distance` times. Key insight: this function is called in the DECISION phase (via `createSkillAction` in game-actions.ts). The resulting targetCell is what gets stored on the Action. For multi-step, we need to compute the final destination after N steps.
+- `/home/bob/Projects/auto-battler/src/engine/game-actions.ts` - `createSkillAction()` (line 61-96). Calls `computeMoveDestination()` for move actions. For multi-step, it needs to pass `skill.distance ?? 1` to computeMoveDestination or call it iteratively.
+- `/home/bob/Projects/auto-battler/src/engine/movement.ts` - `resolveMovement()` (line 98-252). Moves characters to their `action.targetCell`. Currently assumes targetCell is 1 hex away. For multi-step, the targetCell will already be the final destination (computed during decision phase), BUT collision resolution in movement.ts only checks blockers at the target cell, not intermediate steps. This is the key design question: should multi-step movement resolution use per-step collision, or just check the final destination? Per requirements: "per step" collision, meaning the decision phase must compute intermediate positions and movement resolution must handle multi-step with per-step blocking.
+- `/home/bob/Projects/auto-battler/src/engine/game-movement-basic.test.ts` - Tests for computeMoveDestination basic cases.
+- `/home/bob/Projects/auto-battler/src/engine/game-movement.test.ts` - Integration tests for computeMoveDestination with pathfinding.
+- `/home/bob/Projects/auto-battler/src/engine/game-movement-collision.test.ts` - Collision handling tests for computeMoveDestination.
+- `/home/bob/Projects/auto-battler/src/engine/game-movement-escape-routes.test.ts` - Escape route weighting tests.
+- `/home/bob/Projects/auto-battler/src/engine/game-movement-wall-boundary.test.ts` - Boundary fallback tests.
+- `/home/bob/Projects/auto-battler/src/engine/movement-basic.test.ts` - resolveMovement basic tests.
+- `/home/bob/Projects/auto-battler/src/engine/movement-blocker.test.ts` - Blocker-wins tests.
 
-### Engine -- Filter Tests (Phase 2 pattern reference)
+### Phase 6: `most_enemies_nearby` Criterion
 
-- `/home/bob/Projects/auto-battler/src/engine/selector-filters.test.ts` (459 lines) - Unit tests for `evaluateFilterForCandidate()`. Contains tests for `channeling`, `idle`, `targeting_me`, `targeting_ally` in filter context -- these are the behavioral mirror for the trigger tests we need to write.
-- `/home/bob/Projects/auto-battler/src/engine/selector-filter-integration.test.ts` (639 lines) - Integration tests through `evaluateSkillsForCharacter` pipeline. Contains filter-context tests with `channeling`, `idle`, `targeting_me`, `targeting_ally` and qualifiers.
+- `/home/bob/Projects/auto-battler/src/engine/types.ts` - `Criterion` type (line 129): `"nearest" | "furthest" | "lowest_hp" | "highest_hp"`. Add `"most_enemies_nearby"`.
+- `/home/bob/Projects/auto-battler/src/engine/selectors.ts` - `evaluateTargetCriterion()` (line 71-145). Has exhaustive switch on `Criterion` with `_exhaustive: never` guard (line 141). Must add case for `most_enemies_nearby`. Will need `hexDistance` for counting nearby enemies within 2 hexes.
+- `/home/bob/Projects/auto-battler/src/engine/hex.ts` - `hexDistance()` (line 52-56). Already exported and available. Used for counting enemies within radius.
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.tsx` - Criterion dropdown (lines 241-252). Hardcoded `<option>` values for the 4 criteria. Also `handleCriterionChange` (line 58-65) casts to union of 4 values. Both must be updated to include `most_enemies_nearby`.
+- `/home/bob/Projects/auto-battler/src/engine/selectors-target-criterion.test.ts` - Main selector tests.
+- `/home/bob/Projects/auto-battler/src/engine/selectors-tie-breaking.test.ts` - Tiebreaking tests.
+- `/home/bob/Projects/auto-battler/src/engine/selectors-edge-cases.test.ts` - Edge case tests.
+- `/home/bob/Projects/auto-battler/src/stores/gameStore.ts` - Store with `updateSkill` action (line 222). Accepts partial Skill updates. Should work with new criterion value without changes.
+- `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx` - Legacy panel also casts Criterion (line 128). May need update for completeness though marked legacy.
 
-### UI Components (need changes)
+### Shared / Cross-cutting
 
-- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.tsx` (134 lines) - Currently exposes 5 condition options: `always`, `in_range`, `hp_below`, `hp_above`, `targeting_me`. Missing: `channeling`, `idle`, `targeting_ally`. Need to add 3 new `<option>` elements.
-- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.test.tsx` (454 lines) - Tests for TriggerDropdown. Already at 454 lines (exceeds 400-line limit noted in current-task.md). Need to add tests for new condition options. May need to split or be careful about line count.
-- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.module.css` - CSS for TriggerDropdown. Likely no changes needed.
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-formatters.ts` (168 lines) - `formatTrigger()` function. Already handles all conditions generically (just outputs `condition` string and optional `conditionValue`). No changes needed.
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-formatters.test.ts` (209 lines) - Already tests `targeting_me` and `channeling` formatting. No changes needed.
-
-### Legacy (reference only)
-
-- `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.tsx` (line 246) - Legacy component that has `targeting_me` option as "Cell Targeted". Reference for display name convention.
+- `/home/bob/Projects/auto-battler/src/engine/game-test-helpers.ts` - `createSkill()` helper needs `distance` field support for Phase 5.
+- `/home/bob/Projects/auto-battler/src/engine/game-actions.ts` - `getActionType()` returns `"attack" | "move" | "heal"`. No changes needed for these phases.
+- `/home/bob/Projects/auto-battler/src/engine/game-core.ts` - `processTick()` resolution order: Healing -> Movement -> Combat. No changes for these phases.
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab-config.test.tsx` - Component test that renders SkillRow, may need criterion dropdown updates.
 
 ## Existing Patterns
 
-### Test file naming convention
+### Skill Registry Pattern (ADR-005)
 
-Trigger tests are split by condition type into separate files: `triggers-always.test.ts`, `triggers-cell-targeted.test.ts`, `triggers-enemy-in-range.test.ts`, `triggers-hp-below.test.ts`, `triggers-ally-hp-below.test.ts`, `triggers-ally-in-range.test.ts`, `triggers-not-modifier.test.ts`, `triggers-edge-cases.test.ts`. New tests should follow this pattern with new files like `triggers-channeling.test.ts`, `triggers-idle.test.ts`, `triggers-targeting-ally.test.ts`.
+Add skill to `SKILL_REGISTRY` array in `skill-registry.ts`. Each entry is a `SkillDefinition` with id, name, actionType, tickCost, range, damage/healing, behaviors, defaultBehavior, innate, defaultTarget, defaultCriterion, targetingMode, cooldown. Functions `createSkillFromDefinition()` and `getDefaultSkills()` create runtime `Skill` instances.
 
-### Test structure pattern
+### Exhaustive Switch Pattern
 
-Each trigger test file:
+`selectors.ts` uses `const _exhaustive: never = criterion` in default case to enforce exhaustive handling. Adding a new Criterion value will cause a compile error until handled -- this is intentional and desirable.
 
-1. Imports from `vitest`, `./triggers`, `./types`, `./triggers-test-helpers`
-2. Uses `createCharacter()`, `createAction()`, `createSkill()` from helpers
-3. Creates characters with explicit `faction`, `position`, `hp`, `maxHp`
-4. Creates trigger objects with explicit type annotation `const trigger: Trigger = { ... }`
-5. Calls `evaluateTrigger(trigger, evaluator, allCharacters)`
-6. Asserts boolean result with `expect(result).toBe(true/false)`
+### Test Helper Pattern
 
-### Action creation pattern for channeling/targeting tests
+`createSkill()` in `game-test-helpers.ts` uses `Partial<Skill> & { id: string }` pattern with sensible defaults. All optional fields use `??` fallback. New fields should follow this pattern with `undefined` default.
 
-From `triggers-cell-targeted.test.ts` (lines 26-31):
+### Movement Architecture
 
-```typescript
-currentAction: createAction({
-  type: "attack",
-  targetCell: { q: 3, r: 2 },
-  resolvesAtTick: 1,
-});
-```
+Movement is split across two phases:
 
-From `selector-filters.test.ts` (lines 18-38), a `createChannelingAction()` helper is defined locally in the filter test file. The trigger tests should follow a similar pattern.
+1. **Decision phase** (`game-actions.ts` -> `game-movement.ts`): `computeMoveDestination()` calculates WHERE to move. Returns a single Position stored as `action.targetCell`.
+2. **Resolution phase** (`movement.ts`): `resolveMovement()` moves characters to their `targetCell`, handling collisions between movers.
 
-### TriggerDropdown option display names
+For multi-step Dash: the decision phase computes the final destination by iterating `computeMoveDestination()` N times. Each step updates the mover's simulated position and rechecks obstacles. The resolution phase receives the final targetCell and handles collisions normally.
 
-Current mapping in `TriggerDropdown.tsx`:
+**Important design note**: The current resolution phase checks blockers at the TARGET cell only (snapshot-based). For multi-step movement, intermediate steps need collision checking during the decision phase simulation, but the resolution phase only needs the final destination. This means multi-step blocking is handled in `computeMoveDestination()`, not `resolveMovement()`.
 
-- `always` -> "Always"
-- `in_range` -> "In range"
-- `hp_below` -> "HP below"
-- `hp_above` -> "HP above"
-- `targeting_me` -> "Cell targeted"
+### Criterion Evaluation Pattern
 
-The legacy `SkillsPanel.tsx` uses "Cell Targeted" (capitalized) for `targeting_me`. The TriggerDropdown uses title case for multi-word options ("In range", "HP below", "HP above", "Cell targeted").
+All criteria follow the same structure in `evaluateTargetCriterion()`:
 
-### VALUE_CONDITIONS set
+1. Build candidate pool (filtered by target type: enemy/ally)
+2. Apply optional candidateFilter (pre-criterion pool narrowing)
+3. Use `findMinimum()` with a comparator function
+4. Comparator implements primary sort + `tieBreakCompare()` (lower R, then lower Q)
 
-`TriggerDropdown.tsx` line 19-23 defines `VALUE_CONDITIONS = new Set(["hp_below", "hp_above", "in_range"])`. The new conditions (`channeling`, `idle`, `targeting_ally`) are NOT value-based, so they do not need to be added to this set.
+### Cooldown Pattern
 
-### handleConditionChange behavior
-
-When switching conditions, the handler (lines 48-63) clears `conditionValue` for non-VALUE conditions and preserves `negated` if present. This already works correctly for the new conditions -- no changes to handler logic needed.
+Cooldown is set on the skill definition in registry (`cooldown: number`). Applied in `applyDecisions()` via `getSkillDefinition(action.skill.id).cooldown`. Decremented in `decrementCooldowns()` for idle characters.
 
 ## Dependencies
 
-- **evaluateConditionForCandidate() (triggers.ts)** - Already implements all 8 conditions. No engine changes required.
-- **evaluateTrigger() (triggers.ts)** - Already delegates to shared evaluator for all conditions. No engine changes required.
-- **ConditionType union (types.ts)** - Already includes `channeling`, `idle`, `targeting_me`, `targeting_ally`. No type changes required.
-- **ConditionQualifier (types.ts)** - Already defined with `type: "action" | "skill"` and `id: string`. Used by `channeling` condition. No changes required.
-- **triggers-test-helpers.ts** - `createAction()` helper exists and returns an `Action` object. Sufficient for creating `currentAction` on characters.
+- Phase 4 (Ranged Attack) has NO dependencies -- pure registry addition
+- Phase 5 (distance/Dash) depends on Phase 4 being complete (registry pattern established)
+- Phase 5 depends on understanding the Decision->Resolution movement pipeline
+- Phase 6 (most_enemies_nearby) has NO dependency on Phase 4 or 5 -- independent criterion addition
+- All phases depend on existing test infrastructure (`game-test-helpers.ts`, vitest)
 
 ## Constraints Discovered
 
-1. **TriggerDropdown test file is already at 454 lines** (exceeds 400-line limit per CLAUDE.md). Adding tests for 3 new conditions will push it further. Consider: (a) splitting into separate test file, (b) acknowledging pre-existing tech debt, or (c) being very concise with new tests.
+### Phase 4 Constraints
 
-2. **No qualifier UI in TriggerDropdown** - The `qualifier` field on `Trigger` exists in the type system and is supported by the engine, but TriggerDropdown has NO UI for setting qualifiers. The acceptance criteria include qualifier tests in trigger context (`channeling` + `skill:heal`, `channeling` + `action:attack`), but these are engine tests only -- TriggerDropdown does not need qualifier UI in this phase.
+1. `skill-registry.test.ts` line 18 hardcodes `SKILL_REGISTRY.length === 4` and line 20-25 lists all skill IDs. Both must be updated.
+2. The registry test validates all entries have required fields -- new entry must pass existing validation.
+3. Ranged Attack has `cooldown: 2` -- the cooldown system is already in place and generic.
 
-3. **Trigger tests are per-file by condition type** - Following this convention means creating 2-3 new test files rather than appending to existing ones. `targeting_me` already has `triggers-cell-targeted.test.ts` so it may only need supplementary tests in a new file or additions for scope variations (currently only `enemy` scope is tested).
+### Phase 5 Constraints
 
-4. **`targeting_me` with non-enemy scope** - The spec says `targeting_me` is for `enemy` scope. The `targeting_ally` is also `enemy` scope only. But the engine does not enforce scope restrictions -- `evaluateTrigger()` evaluates whatever scope is given. The acceptance criteria include `{ scope: "ally", condition: "targeting_ally" }` which tests ally scope, but this would check if any ally (same faction, not self) has an action targeting another ally's cell.
+1. **`distance` is NOT currently on `Skill` or `SkillDefinition`**. Move skill has implicit distance of 1 via `computeMoveDestination()` which always returns exactly 1 step.
+2. **`computeMoveDestination()` returns a single Position**. For multi-step, it needs to either: (a) accept a distance parameter and iterate internally, or (b) be called iteratively by the caller. Requirements say "iterative application of computeMoveDestination()" -- suggesting option (b), wrapping it in a loop.
+3. **Resolution phase (`resolveMovement`) assumes targetCell is the final destination**. It groups movers by target cell and checks blockers at that cell. For Dash, if the decision phase computes a 2-step destination, the resolution phase just moves to that cell (if no blocker exists at resolution time). The per-step blocking happens during the decision-phase computation.
+4. **Dash is instant (tickCost: 0)**: Like Light Punch, it resolves the same tick as decision. The decision-resolution flow handles tickCost 0 generically (`resolvesAtTick = tick + 0 = tick`).
+5. **`createSkill()` test helper must be updated** to support `distance` field, otherwise tests will fail on TypeScript type checking.
+6. Move skill in registry currently has NO `distance` field. Adding `distance: 1` makes the implicit explicit without changing behavior.
 
-5. **`idle` has no qualifier support** - The `idle` condition simply checks `candidate.currentAction === null`. No qualifier field is meaningful. Tests should not include qualifiers for `idle`.
+### Phase 6 Constraints
 
-6. **`channeling` with qualifier tests need specific skillId/actionType on actions** - The `createAction()` helper in `triggers-test-helpers.ts` creates actions with `skill: createSkill({ id: "test-skill" })` by default. For qualifier tests, need to specify `skill: createSkill({ id: "heal" })` or similar.
+1. **Exhaustive switch** in `selectors.ts` (line 141) will cause compile error when `Criterion` is extended. Must add new case.
+2. **SkillRow.tsx criterion dropdown** (lines 241-252) has hardcoded `<option>` elements. Must add new option.
+3. **SkillRow.tsx `handleCriterionChange`** (line 60-64) casts to a union of 4 values. Must add `"most_enemies_nearby"` to the cast.
+4. **`most_enemies_nearby` counts enemies within 2 hexes of each CANDIDATE** (not of the evaluator). This means for each candidate in the pool, we count how many characters from the opposing faction are within 2 hexes of that candidate's position.
+5. **Tiebreaking**: Uses existing position tiebreak (lower R, lower Q). Consistent with all other criteria.
+6. **"enemies"** in the criterion name refers to the evaluator's enemies (opposing faction), regardless of whether the target pool is enemy or ally. When used with `target: ally`, it still counts enemies (opposing faction to the evaluator) near each ally candidate.
 
 ## Open Questions
 
-1. **Display names for new conditions** - What should the dropdown option text be for `channeling`, `idle`, and `targeting_ally`? Following the existing pattern (title case, descriptive): "Channeling", "Idle", "Targeting ally"? Or different wording?
+1. **Phase 5 - Multi-step movement resolution**: Should `resolveMovement()` be modified to handle multi-step (per-step collision at resolution time), or should all per-step collision be handled in the decision phase and `resolveMovement()` just receives the final destination? The requirements say "iterate single-step logic `distance` times" and "blocker-wins collision rule per step" -- this suggests the decision phase does multi-step simulation. But what about other movers who collide at intermediate steps? Current architecture: collisions between movers are resolved in `resolveMovement()`, not in the decision phase. Recommendation: handle intermediate blocking in decision phase (which already handles obstacle avoidance), but final-destination mover-vs-mover collision stays in resolveMovement.
 
-2. **Should `targeting_me` tests be expanded?** - The acceptance criteria say `{ scope: "enemy", condition: "targeting_me" }` fires when enemy targets evaluator's cell. This is already covered by `triggers-cell-targeted.test.ts`. Should we skip re-testing this, or add scope variation tests (e.g., what happens with `ally` scope + `targeting_me`)?
+2. **Phase 5 - Away mode multi-step**: For "away" mode with distance 2, do we call the existing single-step away logic twice? Each step picks the best neighbor using the composite scoring. The mover's position updates after each step for the next evaluation. This seems straightforward but should be verified with tests.
 
-3. **TriggerDropdown test file splitting** - Given the 400-line limit and current 454 lines, should the test file be split as a prerequisite? Or should new tests be added as a separate file (e.g., `TriggerDropdown-conditions.test.tsx`)? The current-task.md already flags this as a known issue.
+3. **Phase 6 - "enemies" definition**: The criterion name is `most_enemies_nearby`. For an evaluator on the friendly faction targeting `enemy`, candidates are enemies -- we count how many OTHER enemies are near each enemy candidate. For `target: ally`, candidates are allies -- we count how many enemies are near each ally. The "enemies" always means the evaluator's opposing faction. Confirm this interpretation.
 
-4. **Integration test depth** - Should we write trigger-context tests ONLY at the `evaluateTrigger()` level, or also through the `evaluateSkillsForCharacter()` pipeline (like the filter integration tests in `selector-filter-integration.test.ts`)? The acceptance criteria focus on `evaluateTrigger()` behavior.
+4. **Phase 6 - Hardcoded 2-hex radius**: The requirements say "enemies within 2 hexes". This is hardcoded in the criterion logic, not configurable. Should it be a constant? The requirements don't mention configurability.
 
-5. **Scope validation** - Should tests verify invalid scope/condition combinations (e.g., `{ scope: "self", condition: "channeling" }` which would check if the evaluator themselves is channeling)? The engine doesn't restrict this but the spec only documents specific scope/condition pairings.
+5. **Phase 4 - Registry test update strategy**: The existing test at line 18 checks exact count (`toHaveLength(4)`). Adding Ranged Attack changes this to 5. Adding Dash (Phase 5) changes it to 6. Should tests be updated incrementally (Phase 4 sets to 5, Phase 5 sets to 6) or should we anticipate both? Recommend incremental -- each phase updates the count.

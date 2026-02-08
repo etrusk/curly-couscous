@@ -1,738 +1,521 @@
-# Test Designs -- Phase 3: New Trigger Conditions
-
-## Review Status
-
-**APPROVED** -- Reviewed 2026-02-08 by TEST_DESIGN_REVIEW agent.
-
-Findings:
-
-1. Fixed File 2 imports: added `createSkill` (needed by `idle-all-enemies-busy` test setup).
-2. Added `idle-multiple-enemies-one-idle` test -- plan Step 2.3 specified this but it was omitted from designs. Needed for existential `pool.some()` coverage parity with channeling tests.
-3. Added `idle-ally-scope-channeling-false` test -- negative case for ally scope idle, symmetric with channeling tests that have both positive and negative ally-scope cases.
-4. Updated test count summary (4 -> 6 for idle file, 36 -> 38 new, 42 -> 44 total).
-5. Verified all acceptance criteria are covered.
-6. Verified all test setups against source code in `triggers.ts` lines 39-91 and `evaluateTrigger()` lines 107-151. All assertions are correct.
-7. No redundant tests found. No correctness issues in existing designs.
+# Test Designs: Session B (Phases 4+5+6)
 
 ## Overview
 
-Tests for `channeling`, `idle`, and `targeting_ally` conditions in trigger context, NOT modifier extensions, and TriggerDropdown UI additions. All engine tests call `evaluateTrigger(trigger, evaluator, allCharacters)` and assert a boolean result. UI tests use Testing Library with `userEvent`.
-
-**Pattern reference:** `src/engine/triggers-cell-targeted.test.ts` (engine), `src/components/CharacterPanel/TriggerDropdown.test.tsx` (UI).
-
----
-
-## File 1: `src/engine/triggers-channeling.test.ts`
-
-**Imports:** `{ describe, it, expect }` from `vitest`, `{ evaluateTrigger }` from `./triggers`, `{ Trigger }` from `./types`, `{ createCharacter, createAction, createSkill }` from `./triggers-test-helpers`.
-
-**Top-level describe:** `evaluateTrigger - channeling condition`
+Test designs for Skill Expansion Phases 4, 6, and 5 (in implementation order).
+Total: 35 test cases across 4 test files.
 
 ---
 
-### Test: channeling-enemy-basic-true
+## Phase 4: Ranged Attack (Registry Only)
 
-- **File**: `src/engine/triggers-channeling.test.ts`
+### Test: registry-includes-ranged-attack
+
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: Enemy with a non-null `currentAction` satisfies `{ scope: "enemy", condition: "channeling" }`
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "enemy", condition: "channeling" }`
+- **Verifies**: The SKILL_REGISTRY exports all 5 skills including ranged-attack after Phase 4 addition
+- **Setup**: Import SKILL_REGISTRY. No mocks needed.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(true)`
-- **Justification**: Core happy path -- verifies that a channeling enemy is detected. Without this, the most basic channeling trigger would be untested in trigger context.
+  1. `SKILL_REGISTRY` has length 5
+  2. Mapped IDs equal `["light-punch", "heavy-punch", "move-towards", "heal", "ranged-attack"]`
+- **Justification**: The existing test at line 17 hardcodes the length and ID list. It must be updated to include the new skill, preventing silent regressions where the entry is removed or misordered. This is an update to the existing `"exports all skills"` test, not a new test.
 
 ---
 
-### Test: channeling-enemy-idle-false
+### Test: ranged-attack-stats
 
-- **File**: `src/engine/triggers-channeling.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: Enemy with `currentAction === null` does NOT satisfy channeling trigger
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: null`
-  - `trigger`: `{ scope: "enemy", condition: "channeling" }`
+- **Verifies**: Ranged Attack registry entry has the correct intrinsic stats per spec
+- **Setup**: Find `"ranged-attack"` in SKILL_REGISTRY. Add a new `describe("Ranged Attack")` block.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(false)`
-- **Justification**: Ensures idle enemies are not falsely detected as channeling. Guards against a default-true regression.
+  1. `actionType` is `"attack"`
+  2. `tickCost` is `1`
+  3. `range` is `4`
+  4. `damage` is `15`
+  5. `cooldown` is `2`
+- **Justification**: Ensures the ranged attack has correct combat stats. tickCost 1 makes it dodgeable, range 4 enables backline damage, damage 15 balances against Heavy Punch, cooldown 2 prevents spam. Any incorrect value would break game balance.
 
 ---
 
-### Test: channeling-enemy-scope-ignores-ally
+### Test: ranged-attack-non-innate
 
-- **File**: `src/engine/triggers-channeling.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: Channeling ally is ignored when scope is `"enemy"`
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `ally`: friendly faction, id `"ally"`, position `{q:4,r:2}`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "enemy", condition: "channeling" }`
+- **Verifies**: Ranged Attack is not innate (must be manually assigned)
+- **Setup**: Find `"ranged-attack"` in SKILL_REGISTRY.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, ally])).toBe(false)`
-- **Justification**: Validates scope filtering -- same-faction characters must be excluded from enemy pool. Prevents cross-faction pool contamination bugs.
+  1. `innate` is `false`
+- **Justification**: If innate were accidentally set to true, all characters would start with Ranged Attack, breaking the assignment system and game balance.
 
 ---
 
-### Test: channeling-ally-scope-true
+### Test: ranged-attack-no-behaviors
 
-- **File**: `src/engine/triggers-channeling.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: `{ scope: "ally", condition: "channeling" }` fires when an ally has a `currentAction`
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `ally`: friendly faction, id `"ally"`, position `{q:4,r:2}`, `currentAction: createAction({ type: "heal", targetCell: {q:3,r:2}, resolvesAtTick: 2 })`
-  - `trigger`: `{ scope: "ally", condition: "channeling" }`
+- **Verifies**: Ranged Attack has no behavior options (attack skills have no towards/away)
+- **Setup**: Find `"ranged-attack"` in SKILL_REGISTRY.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, ally])).toBe(true)`
-- **Justification**: Acceptance criterion requires `{ scope: "ally", condition: "channeling" }` to work. Validates that ally scope correctly includes same-faction, non-self characters.
+  1. `behaviors` equals `[]`
+  2. `defaultBehavior` equals `""`
+- **Justification**: Attack skills must not have behaviors. If behaviors were accidentally added, the UI would show a behavior dropdown and the engine would try to process movement logic for an attack.
 
 ---
 
-### Test: channeling-ally-scope-idle-false
+### Test: ranged-attack-default-targeting
 
-- **File**: `src/engine/triggers-channeling.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: Ally scope channeling returns false when ally is idle
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `ally`: friendly faction, id `"ally"`, position `{q:4,r:2}`, `currentAction: null`
-  - `trigger`: `{ scope: "ally", condition: "channeling" }`
+- **Verifies**: Ranged Attack defaults to targeting the nearest enemy with cell-based targeting
+- **Setup**: Find `"ranged-attack"` in SKILL_REGISTRY.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, ally])).toBe(false)`
-- **Justification**: Negative case for ally scope -- ensures idle allies are not detected as channeling.
+  1. `defaultTarget` is `"enemy"`
+  2. `defaultCriterion` is `"nearest"`
+  3. `targetingMode` is `"cell"`
+- **Justification**: Wrong defaults would cause the skill to target allies or use character-based tracking, fundamentally breaking its intended use.
 
 ---
 
-### Test: channeling-ally-scope-excludes-self
+### Test: ranged-attack-createSkillFromDefinition
 
-- **File**: `src/engine/triggers-channeling.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: Evaluator's own `currentAction` is NOT included in ally pool
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })`
-  - No other characters (allCharacters = `[evaluator]`)
-  - `trigger`: `{ scope: "ally", condition: "channeling" }`
+- **Verifies**: `createSkillFromDefinition` correctly propagates ranged-attack stats to a Skill instance
+- **Setup**: Find `"ranged-attack"` definition, call `createSkillFromDefinition()`.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator])).toBe(false)`
-- **Justification**: The ally pool must exclude the evaluator (`c.id !== evaluator.id`). Without this test, a bug that includes self in ally pool would go undetected.
+  1. Created skill has `damage` of `15`
+  2. Created skill has `range` of `4`
+  3. Created skill has `tickCost` of `1`
+  4. Created skill has `actionType` of `"attack"`
+  5. Created skill has `target` of `"enemy"`
+  6. Created skill has `criterion` of `"nearest"`
+- **Justification**: Factory function must correctly propagate intrinsic stats. A propagation bug would create skills with wrong damage, range, or action type, causing combat to behave incorrectly.
 
 ---
 
-### Test: channeling-qualifier-skill-match
+## Phase 6: `most_enemies_nearby` Criterion
 
-- **File**: `src/engine/triggers-channeling.test.ts`
+### Test: most-enemies-nearby-basic-selection
+
+- **File**: `src/engine/selectors-target-criterion.test.ts`
 - **Type**: unit
-- **Verifies**: `qualifier: { type: "skill", id: "heal" }` matches only when enemy is channeling Heal
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "heal", skill: createSkill({ id: "heal", healing: 25 }), targetCell: {q:3,r:2}, resolvesAtTick: 2 })`
-  - `trigger`: `{ scope: "enemy", condition: "channeling", qualifier: { type: "skill", id: "heal" } }`
+- **Verifies**: Criterion selects the enemy candidate with the most other enemies within 2 hexes
+- **Setup**: Create evaluator (friendly, at origin). Create 3 enemies: A at (4,0), B at (1,0), C at (-4,0). Place 2 additional enemies near B at (1,1) and (2,0). Counts (self-excluded): B has 2 nearby enemies ((1,1) at distance 1, (2,0) at distance 1). A has 1 nearby ((2,0) at distance 2; (1,1) is distance 3 from (4,0), (1,0) is distance 3). C has 0 nearby (all others are distance >= 4). All characters in array.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(true)`
-- **Justification**: Acceptance criterion: `channeling` with skill qualifier fires only for the specified skill. Tests the `matchesChannelingQualifier` path for `qualifier.type === "skill"`.
+  1. `evaluateTargetCriterion("enemy", "most_enemies_nearby", evaluator, allCharacters)` returns enemy B
+- **Justification**: Core behavior test for the criterion. If counting logic is wrong, AoE-optimal targeting selects suboptimal targets.
+- **Reviewer note**: Original setup used A at (3,0) which placed A within 2 hexes of both additional enemies AND B, giving A count=3 equal to B. Fixed by moving A to (4,0) and C to (-4,0) to create clear count differentiation.
 
 ---
 
-### Test: channeling-qualifier-skill-no-match
+### Test: most-enemies-nearby-tiebreak-by-position
 
-- **File**: `src/engine/triggers-channeling.test.ts`
+- **File**: `src/engine/selectors-target-criterion.test.ts`
 - **Type**: unit
-- **Verifies**: Skill qualifier rejects when enemy channels a different skill
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", skill: createSkill({ id: "heavy-punch", damage: 25 }), targetCell: {q:3,r:2}, resolvesAtTick: 2 })`
-  - `trigger`: `{ scope: "enemy", condition: "channeling", qualifier: { type: "skill", id: "heal" } }`
+- **Verifies**: When two candidates have equal nearby-enemy counts, tiebreak uses lower R then lower Q
+- **Setup**: Create evaluator (friendly, at origin). Create 2 enemies: A at (1, -1) (R=-1), B at (-1, 1) (R=1). Both are each other's only nearby enemy (distance 2 between them). So both have count 1. Create no other enemies to keep counts equal.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(false)`
-- **Justification**: Ensures skill qualifier is strictly matched. Without this, a qualifier that always returns true would not be caught.
+  1. `evaluateTargetCriterion("enemy", "most_enemies_nearby", evaluator, allCharacters)` returns enemy A (lower R wins: -1 < 1)
+- **Justification**: Tiebreaking must be deterministic for replay consistency. Without this test, ties could produce nondeterministic results.
 
 ---
 
-### Test: channeling-qualifier-action-type-match
+### Test: most-enemies-nearby-all-equal-counts
 
-- **File**: `src/engine/triggers-channeling.test.ts`
+- **File**: `src/engine/selectors-target-criterion.test.ts`
 - **Type**: unit
-- **Verifies**: `qualifier: { type: "action", id: "attack" }` matches when enemy channels an attack
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "enemy", condition: "channeling", qualifier: { type: "action", id: "attack" } }`
+- **Verifies**: When all candidates have the same nearby-enemy count, the first by tiebreak (lower R, then lower Q) wins
+- **Setup**: Create evaluator (friendly, at origin). Create 3 enemies far apart from each other (hex distance > 2 between all pairs): A at (0, -3), B at (3, 0), C at (-3, 3). Each has 0 nearby enemies.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(true)`
-- **Justification**: Acceptance criterion: `channeling` with action-type qualifier. Tests `qualifier.type === "action"` branch in `matchesChannelingQualifier`.
+  1. Result is enemy A (R=-3 is lowest)
+- **Justification**: Ensures graceful handling of the degenerate case where criterion provides no differentiation, falling back to deterministic tiebreak.
 
 ---
 
-### Test: channeling-qualifier-action-type-no-match
+### Test: most-enemies-nearby-with-filter
 
-- **File**: `src/engine/triggers-channeling.test.ts`
+- **File**: `src/engine/selectors-target-criterion.test.ts`
 - **Type**: unit
-- **Verifies**: Action-type qualifier rejects when enemy channels a heal instead of attack
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "heal", skill: createSkill({ id: "heal", healing: 25 }), targetCell: {q:0,r:0}, resolvesAtTick: 2 })`
-  - `trigger`: `{ scope: "enemy", condition: "channeling", qualifier: { type: "action", id: "attack" } }`
+- **Verifies**: Criterion operates on the pre-narrowed candidate pool from candidateFilter function, not the full pool
+- **Setup**: Create evaluator (friendly, at origin). Create 5 enemies: A at (1,0) hp=100, B at (-4,0) hp=30, C at (1,-1) hp=30, D at (2,0) hp=100, E at (1,1) hp=100. Pass `candidateFilter: (c) => c.hp < 50` which keeps only B and C as candidates. Nearby enemy counts (using ALL enemies, self-excluded): B at (-4,0) has 0 nearby (all others distance >= 4). C at (1,-1) has 3 nearby (A at distance 1, D at distance 2, E at distance 2). C wins with highest count among filtered candidates.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(false)`
-- **Justification**: Negative case for action-type qualifier. Ensures the qualifier compares `candidate.currentAction.type` against `qualifier.id`, not the skill id.
+  1. `evaluateTargetCriterion("enemy", "most_enemies_nearby", evaluator, allCharacters, candidateFilter)` returns enemy C (highest count in filtered pool)
+- **Justification**: Filter must narrow the candidate pool BEFORE criterion evaluation. The counting still considers ALL enemies (not just candidates) when tallying nearby enemies. If criterion ran on the unfiltered pool, A would be selected despite not matching the filter.
+- **Reviewer note**: Clarified that the 5th parameter is a `candidateFilter` function `(c: Character) => boolean`, matching the actual function signature. Added concrete positions with verifiable hex math. Clarified that counting considers all enemies, not just filtered candidates.
 
 ---
 
-### Test: channeling-multiple-enemies-one-channeling
+### Test: most-enemies-nearby-enemy-target-pool
 
-- **File**: `src/engine/triggers-channeling.test.ts`
+- **File**: `src/engine/selectors-target-criterion.test.ts`
 - **Type**: unit
-- **Verifies**: Trigger fires when at least one enemy is channeling (existential `pool.some()` semantics)
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemyA`: enemy faction, id `"enemyA"`, position `{q:2,r:3}`, `currentAction: null`
-  - `enemyB`: enemy faction, id `"enemyB"`, position `{q:1,r:4}`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "enemy", condition: "channeling" }`
+- **Verifies**: When targeting enemies, counts enemies (evaluator's opposing faction) near each enemy candidate, excluding the candidate itself from its own count
+- **Setup**: Create friendly evaluator. Create 3 enemies clustered together: A at (1,0), B at (2,0), C at (1,1). Enemy A has B (distance 1) and C (distance 1) nearby = 2. Enemy B has A (distance 1) and C (distance 1) nearby = 2. Enemy C has A (distance 1) and B (distance 1) nearby = 2. All have equal counts, so tiebreak applies.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemyA, enemyB])).toBe(true)`
-- **Justification**: Confirms existential semantics -- only one character in the pool needs to satisfy the condition. This is the core trigger pool evaluation model.
+  1. All 3 candidates have count 2 (self-exclusion works correctly)
+  2. Result is enemy A (tiebreak: A has R=0, B has R=0, C has R=1. Between A and B: both R=0, A has Q=1 vs B has Q=2. A wins with lowest Q.)
+- **Justification**: Critical self-exclusion test. Without `e.id !== candidate.id`, each enemy would count itself as nearby, inflating all counts by 1. This test verifies the self-exclusion works correctly.
 
 ---
 
-### Test: channeling-dead-enemy-excluded
+### Test: most-enemies-nearby-ally-target-pool
 
-- **File**: `src/engine/triggers-channeling.test.ts`
+- **File**: `src/engine/selectors-target-criterion.test.ts`
 - **Type**: unit
-- **Verifies**: Dead enemy with `currentAction` is excluded from pool (hp filter)
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `deadEnemy`: enemy faction, id `"dead"`, position `{q:2,r:3}`, `hp: 0`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "enemy", condition: "channeling" }`
+- **Verifies**: When targeting allies, counts enemies (opposing faction to evaluator) near each ally candidate
+- **Setup**: Create friendly evaluator at (0,0). Create 2 friendly allies: A at (2,0), B at (-2,0). Create 2 enemies: E1 at (3,0) (within 2 hexes of ally A), E2 at (2,1) (within 2 hexes of ally A). Ally A has 2 enemies nearby. Ally B has 0 enemies nearby.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, deadEnemy])).toBe(false)`
-- **Justification**: Dead characters must be excluded from scope pools (`c.hp > 0` filter in `evaluateTrigger`). Without this test, a regression removing the hp check would cause dead characters to trigger conditions.
+  1. `evaluateTargetCriterion("ally", "most_enemies_nearby", evaluator, allCharacters)` returns ally A
+- **Justification**: Verifies that "enemies" in the criterion means the evaluator's opposing faction, not the candidate's opposing faction. For ally targeting, this enables finding the ally in the most danger.
 
 ---
 
-## File 2: `src/engine/triggers-idle.test.ts`
+### Test: most-enemies-nearby-single-candidate
 
-**Imports:** `{ describe, it, expect }` from `vitest`, `{ evaluateTrigger }` from `./triggers`, `{ Trigger }` from `./types`, `{ createCharacter, createAction, createSkill }` from `./triggers-test-helpers`.
-
-**Top-level describe:** `evaluateTrigger - idle condition`
+- **File**: `src/engine/selectors-target-criterion.test.ts`
+- **Type**: unit
+- **Verifies**: Returns the only candidate when there is exactly one, regardless of nearby count
+- **Setup**: Create evaluator (friendly). Create 1 enemy at (3,0) with no other enemies nearby.
+- **Assertions**:
+  1. `evaluateTargetCriterion("enemy", "most_enemies_nearby", evaluator, allCharacters)` returns that single enemy
+- **Justification**: Edge case guard. Ensures the criterion does not return null when exactly one valid candidate exists, even with a nearby count of 0.
 
 ---
 
-### Test: idle-enemy-basic-true
+### Test: most-enemies-nearby-no-candidates
 
-- **File**: `src/engine/triggers-idle.test.ts`
+- **File**: `src/engine/selectors-target-criterion.test.ts`
 - **Type**: unit
-- **Verifies**: Enemy with `currentAction === null` satisfies `{ scope: "enemy", condition: "idle" }`
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: null`
-  - `trigger`: `{ scope: "enemy", condition: "idle" }`
+- **Verifies**: Returns null when no valid candidates exist
+- **Setup**: Create evaluator (friendly). No enemies in allCharacters.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(true)`
-- **Justification**: Core happy path for idle condition. Verifies the inverse of channeling detection works in trigger context.
+  1. `evaluateTargetCriterion("enemy", "most_enemies_nearby", evaluator, [evaluator])` returns `null`
+- **Justification**: Standard null guard. Ensures criterion gracefully handles empty candidate pools without throwing.
 
 ---
 
-### Test: idle-enemy-channeling-false
+## Phase 5: `distance` Field + Dash
 
-- **File**: `src/engine/triggers-idle.test.ts`
+### Subgroup: `distance` Field Propagation
+
+### Test: move-has-distance-1
+
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: Enemy with `currentAction !== null` does NOT satisfy idle trigger
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "enemy", condition: "idle" }`
+- **Verifies**: Move definition in the registry has explicit `distance: 1`
+- **Setup**: Find `"move-towards"` in SKILL_REGISTRY.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(false)`
-- **Justification**: Negative case -- a busy enemy must not satisfy idle. Guards against inversion bugs where `idle` and `channeling` produce the same result.
+  1. `distance` is `1`
+- **Justification**: Making the implicit distance explicit is a prerequisite for parameterized movement. If distance is missing from Move, the multi-step logic would not know Move should only go 1 step.
 
 ---
 
-### Test: idle-ally-scope-true
+### Test: getDefaultSkills-propagates-distance
 
-- **File**: `src/engine/triggers-idle.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: `{ scope: "ally", condition: "idle" }` fires when an ally has null `currentAction`
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `ally`: friendly faction, id `"ally"`, position `{q:4,r:2}`, `currentAction: null`
-  - `trigger`: `{ scope: "ally", condition: "idle" }`
+- **Verifies**: `getDefaultSkills()` propagates the distance field from registry definition to created Skill
+- **Setup**: Call `getDefaultSkills()`, find Move in the result.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, ally])).toBe(true)`
-- **Justification**: Validates ally scope works for idle condition. Could be used for "heal ally when they are idle" type rules.
+  1. Move skill has `distance` of `1`
+- **Justification**: If distance is not propagated by the factory function, runtime skills would have `undefined` distance, and the multi-step wrapper would default to 1 (correct by accident for Move, but broken for Dash). This test catches the propagation gap.
 
 ---
 
-### Test: idle-ally-scope-channeling-false
+### Test: createSkillFromDefinition-propagates-distance
 
-- **File**: `src/engine/triggers-idle.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: `{ scope: "ally", condition: "idle" }` returns false when ally is channeling
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `ally`: friendly faction, id `"ally"`, position `{q:4,r:2}`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "ally", condition: "idle" }`
+- **Verifies**: `createSkillFromDefinition()` propagates distance from definition to Skill
+- **Setup**: Find `"move-towards"` definition, call `createSkillFromDefinition()`.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, ally])).toBe(false)`
-- **Justification**: Negative case for ally scope idle. Symmetric with `channeling-ally-scope-idle-false` in the channeling file. Ensures the idle condition correctly rejects channeling allies and does not conflate with ally-scope channeling detection.
+  1. Created skill has `distance` of `1`
+- **Justification**: Same as above but for the assignment-path factory function. Both factory functions must propagate distance.
 
 ---
 
-### Test: idle-multiple-enemies-one-idle
+### Test: skills-without-distance-have-undefined
 
-- **File**: `src/engine/triggers-idle.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: Returns true when at least one enemy is idle among multiple enemies (existential `pool.some()` semantics)
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemyA`: enemy faction, id `"enemyA"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })`
-  - `enemyB`: enemy faction, id `"enemyB"`, position `{q:1,r:4}`, `currentAction: null`
-  - `trigger`: `{ scope: "enemy", condition: "idle" }`
+- **Verifies**: Skills that do not define distance (Light Punch, Heavy Punch, Heal) have `undefined` distance on their definitions
+- **Setup**: Find light-punch, heavy-punch, heal in SKILL_REGISTRY.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemyA, enemyB])).toBe(true)`
-- **Justification**: Confirms existential semantics for idle -- at least one idle enemy in the pool is sufficient. This was specified in the plan (Step 2, item 3) and provides parity with `channeling-multiple-enemies-one-channeling`. Without this, a bug that requires ALL enemies to be idle would go undetected.
+  1. Light Punch `distance` is `undefined`
+  2. Heavy Punch `distance` is `undefined`
+  3. Heal `distance` is `undefined`
+- **Justification**: Guard test ensuring non-movement skills do not accidentally gain a distance field, which could cause the engine to apply multi-step logic to attacks or heals.
 
 ---
 
-### Test: idle-all-enemies-busy
+### Subgroup: Multi-Step Movement (`computeMultiStepDestination`)
 
-- **File**: `src/engine/triggers-idle.test.ts`
+### Test: distance-1-same-as-single-step
+
+- **File**: `src/engine/game-movement-multistep.test.ts` (NEW FILE)
 - **Type**: unit
-- **Verifies**: Returns false when all enemies are channeling (no idle enemy exists)
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemyA`: enemy faction, id `"enemyA"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })`
-  - `enemyB`: enemy faction, id `"enemyB"`, position `{q:1,r:4}`, `currentAction: createAction({ type: "heal", skill: createSkill({ id: "heal", healing: 25 }), targetCell: {q:0,r:0}, resolvesAtTick: 2 })`
-  - `trigger`: `{ scope: "enemy", condition: "idle" }`
+- **Verifies**: `computeMultiStepDestination` with distance=1 returns the same result as `computeMoveDestination`
+- **Setup**: Create mover at (0,0), target at (3,0). No obstacles. Call both `computeMoveDestination` and `computeMultiStepDestination` with distance=1.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemyA, enemyB])).toBe(false)`
-- **Justification**: Validates that `pool.some()` correctly returns false when no candidate satisfies the condition. Important for "attack when enemy is idle" use case where all enemies are busy.
+  1. Both return `{q: 1, r: 0}`
+  2. Results are deeply equal
+- **Justification**: Backward compatibility test. Multi-step with distance 1 must produce identical results to single-step, ensuring no regression in existing movement behavior.
 
 ---
 
-## File 3: `src/engine/triggers-targeting-ally.test.ts`
+### Test: distance-2-towards-clear-path
 
-**Imports:** `{ describe, it, expect }` from `vitest`, `{ evaluateTrigger }` from `./triggers`, `{ Trigger }` from `./types`, `{ createCharacter, createAction }` from `./triggers-test-helpers`.
-
-**Top-level describe:** `evaluateTrigger - targeting_ally condition`
+- **File**: `src/engine/game-movement-multistep.test.ts`
+- **Type**: unit
+- **Verifies**: With clear path and distance=2, mover advances 2 hexes toward target
+- **Setup**: Create mover at (0,0), target at (3,0). No obstacles between them.
+- **Assertions**:
+  1. `computeMultiStepDestination(mover, target, "towards", allChars, 2)` returns `{q: 2, r: 0}`
+- **Justification**: Core multi-step behavior. If the iterative loop does not advance the simulated position, the mover would only move 1 hex.
 
 ---
 
-### Test: targeting-ally-enemy-targets-ally-true
+### Test: distance-2-towards-second-step-blocked
 
-- **File**: `src/engine/triggers-targeting-ally.test.ts`
+- **File**: `src/engine/game-movement-multistep.test.ts`
 - **Type**: unit
-- **Verifies**: `{ scope: "enemy", condition: "targeting_ally" }` fires when enemy action targets a living ally's cell
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `ally`: friendly faction, id `"ally"`, position `{q:4,r:2}`, `hp: 80`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", targetCell: {q:4,r:2}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "enemy", condition: "targeting_ally" }`
+- **Verifies**: When the second step is blocked, mover only advances 1 hex (partial movement)
+- **Setup**: Create mover at (0,0), target at (3,0). Place blocker at (2,0). Step 1 reaches (1,0). Step 2 tries to go to (2,0) but blocker is there; pathfinding routes around but the nearest unblocked cell is still 1 step away. The key is that the direct path is blocked.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, ally, enemy])).toBe(true)`
-- **Justification**: Core happy path for targeting_ally. Verifies the engine detects an enemy action aimed at a friendly ally's cell. This is the primary use case (e.g., "heal ally when enemy is attacking them").
+  1. Result is NOT `{q: 0, r: 0}` (moved at least 1 step)
+  2. Result is NOT `{q: 2, r: 0}` (blocker prevents direct second step)
+  3. `hexDistance(result, mover.position)` is between 1 and 2 (partial movement)
+- **Justification**: Tests per-step blocking during decision phase. If the wrapper does not check obstacles per step, the mover would teleport through blockers.
 
 ---
 
-### Test: targeting-ally-enemy-targets-evaluator-false
+### Test: distance-2-towards-first-step-blocked
 
-- **File**: `src/engine/triggers-targeting-ally.test.ts`
+- **File**: `src/engine/game-movement-multistep.test.ts`
 - **Type**: unit
-- **Verifies**: Enemy targeting the evaluator's cell does NOT satisfy `targeting_ally` (evaluator is not an "ally" of themselves)
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", targetCell: {q:3,r:2}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "enemy", condition: "targeting_ally" }`
+- **Verifies**: When the first step is completely blocked (all neighbors occupied), mover stays at origin
+- **Setup**: Create mover at (0,0), target at (3,0). Place blockers on ALL 6 hex neighbors of (0,0): (1,0), (-1,0), (0,1), (0,-1), (1,-1), (-1,1). No valid first step.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(false)`
-- **Justification**: The `targeting_ally` condition checks `ally.id !== evaluator.id`. If the evaluator is being targeted, that is `targeting_me`, not `targeting_ally`. This boundary is critical to prevent the two conditions from overlapping.
+  1. `computeMultiStepDestination(mover, target, "towards", allChars, 2)` returns `{q: 0, r: 0}` (stays in place)
+- **Justification**: Edge case where movement is entirely prevented. The wrapper must detect that step 1 returned the same position and stop iterating.
 
 ---
 
-### Test: targeting-ally-dead-ally-target-false
+### Test: distance-2-away-clear-path
 
-- **File**: `src/engine/triggers-targeting-ally.test.ts`
+- **File**: `src/engine/game-movement-multistep.test.ts`
 - **Type**: unit
-- **Verifies**: Enemy targeting a dead ally's cell does NOT satisfy `targeting_ally`
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `deadAlly`: friendly faction, id `"dead-ally"`, position `{q:4,r:2}`, `hp: 0`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", targetCell: {q:4,r:2}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "enemy", condition: "targeting_ally" }`
+- **Verifies**: Away mode with distance=2 moves 2 hexes away from target
+- **Setup**: Create mover at (0,0), target at (2,0). No obstacles.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, deadAlly, enemy])).toBe(false)`
-- **Justification**: The condition requires `ally.hp > 0` (from `evaluateConditionForCandidate` source). Dead allies at the target cell must not trigger a protective response. This prevents wasted actions healing/protecting corpses.
+  1. Result position has `hexDistance(result, target.position)` greater than `hexDistance(mover.position, target.position)` (moved further away)
+  2. `hexDistance(result, mover.position)` equals 2 (moved exactly 2 steps)
+- **Justification**: Multi-step away mode must iterate the composite-scoring single-step logic twice. If only one step is taken, the character would not escape far enough.
 
 ---
 
-### Test: targeting-ally-multiple-enemies-one-targets-ally
+### Test: distance-2-away-second-step-blocked
 
-- **File**: `src/engine/triggers-targeting-ally.test.ts`
+- **File**: `src/engine/game-movement-multistep.test.ts`
 - **Type**: unit
-- **Verifies**: Returns true when at least one of multiple enemies targets an ally (existential check)
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `ally`: friendly faction, id `"ally"`, position `{q:4,r:2}`, `hp: 80`
-  - `enemyA`: enemy faction, id `"enemyA"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })` (targets empty cell)
-  - `enemyB`: enemy faction, id `"enemyB"`, position `{q:1,r:4}`, `currentAction: createAction({ type: "attack", targetCell: {q:4,r:2}, resolvesAtTick: 1 })` (targets ally)
-  - `trigger`: `{ scope: "enemy", condition: "targeting_ally" }`
+- **Verifies**: Away mode with distance=2, when second step is blocked, results in partial movement (1 step away)
+- **Setup**: Create mover at (0,0), target at (2,0). Surround the best first-step-away position's neighbors with blockers so the second step from that position has limited or no options further away. Simpler setup: place enough blockers to constrain second step.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, ally, enemyA, enemyB])).toBe(true)`
-- **Justification**: Validates `pool.some()` existential semantics -- one match in the pool is sufficient. Important for multi-enemy scenarios.
+  1. Result is NOT `{q: 0, r: 0}` (at least first step succeeded)
+  2. `hexDistance(result, mover.position)` is at least 1
+- **Justification**: Partial movement for away mode must work the same as towards mode -- stop advancing when stuck.
 
 ---
 
-### Test: targeting-ally-no-enemy-actions-false
+### Test: distance-2-away-first-step-blocked
 
-- **File**: `src/engine/triggers-targeting-ally.test.ts`
+- **File**: `src/engine/game-movement-multistep.test.ts`
 - **Type**: unit
-- **Verifies**: Returns false when all enemies are idle (no actions)
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `ally`: friendly faction, id `"ally"`, position `{q:4,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: null`
-  - `trigger`: `{ scope: "enemy", condition: "targeting_ally" }`
+- **Verifies**: Away mode with distance=2, when all neighbors are blocked, mover stays at origin
+- **Setup**: Create mover at (0,0), target at (2,0). Place blockers on ALL 6 hex neighbors of (0,0): (1,0), (-1,0), (0,1), (0,-1), (1,-1), (-1,1). No valid first step in any direction.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, ally, enemy])).toBe(false)`
-- **Justification**: Baseline negative case. No actions means no targeting. Ensures the condition checks `candidate.currentAction !== null` before position comparison.
+  1. `computeMultiStepDestination(mover, target, "away", allChars, 2)` returns `{q: 0, r: 0}` (stays in place)
+- **Justification**: Edge case from plan Step 5.6 item 7. Although the towards fully-blocked test covers the same `generateValidCandidates` code path, away mode includes the current position as a candidate. This test verifies that staying in place is correctly returned when all movement options are blocked.
+- **Reviewer note**: Added to match plan Step 5.6 which lists this as a separate test case. Away mode handles candidates differently (includes current position), so this is not fully redundant with the towards case.
 
 ---
 
-### Test: targeting-ally-ally-scope-combination
+### Test: distance-undefined-defaults-to-1
 
-- **File**: `src/engine/triggers-targeting-ally.test.ts`
+- **File**: `src/engine/game-movement-multistep.test.ts`
 - **Type**: unit
-- **Verifies**: `{ scope: "ally", condition: "targeting_ally" }` checks if any ally has an action targeting another ally's cell
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `allyA`: friendly faction, id `"allyA"`, position `{q:4,r:2}`, `hp: 80`
-  - `allyB`: friendly faction, id `"allyB"`, position `{q:5,r:2}`, `currentAction: createAction({ type: "heal", skill: createSkill({ id: "heal", healing: 25 }), targetCell: {q:4,r:2}, resolvesAtTick: 2 })`
-  - `trigger`: `{ scope: "ally", condition: "targeting_ally" }`
+- **Verifies**: When distance parameter is omitted (undefined), function defaults to 1 step
+- **Setup**: Create mover at (0,0), target at (3,0). Call `computeMultiStepDestination` without the distance parameter.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, allyA, allyB])).toBe(true)`
-- **Justification**: Acceptance criterion requires testing `{ scope: "ally", condition: "targeting_ally" }`. This unusual combination checks if a same-faction character is acting toward another ally's cell (e.g., ally healing another ally). The engine does not restrict scope/condition pairings, and the condition evaluator uses `evaluator.faction` to find allies, which is the same faction when scope is ally.
+  1. Result equals `{q: 1, r: 0}` (single step, same as distance=1)
+- **Justification**: The function signature uses `distance: number = 1` as default. This test ensures the default is correct and existing callers that omit the parameter get backward-compatible behavior.
 
 ---
 
-## File 4: `src/engine/triggers-not-modifier.test.ts` (append to existing)
+### Test: distance-1-away-backward-compat
 
-**Pattern:** Append a new `describe` block to the existing file. Same imports already present at file top. Will need to add `createAction` and `createSkill` to the existing import from `./triggers-test-helpers`.
-
-**New describe block:** `describe("evaluateTrigger - NOT modifier for new conditions", () => { ... })`
+- **File**: `src/engine/game-movement-multistep.test.ts`
+- **Type**: unit
+- **Verifies**: Away mode with distance=1 produces identical result to single-step `computeMoveDestination`
+- **Setup**: Create mover at (0,0), target at (2,0). Call both `computeMoveDestination(mover, target, "away", allChars)` and `computeMultiStepDestination(mover, target, "away", allChars, 1)`.
+- **Assertions**:
+  1. Both return the same position
+- **Justification**: Backward compatibility guard for away mode. Multi-step wrapper with distance=1 must not alter single-step away behavior.
 
 ---
 
-### Test: not-channeling-no-enemy-channeling-true
+### Subgroup: Dash Registry Entry
 
-- **File**: `src/engine/triggers-not-modifier.test.ts`
+### Test: registry-includes-dash
+
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: `negated: true` with `channeling` returns true when no enemy is channeling
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: null`
-  - `trigger`: `{ scope: "enemy", condition: "channeling", negated: true }`
+- **Verifies**: The SKILL_REGISTRY exports all 6 skills including dash after Phase 5 addition
+- **Setup**: Import SKILL_REGISTRY. No mocks needed.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(true)`
-- **Justification**: Acceptance criterion: NOT channeling works correctly. This is the tactical use case "act when no enemy is channeling" -- a safe window to commit to a slow skill.
+  1. `SKILL_REGISTRY` has length 6
+  2. Mapped IDs include `"dash"`
+- **Justification**: Update to the existing count/ID test to include Dash. Note: this test combines with the Phase 4 update -- the final state after both phases is length 6 with both ranged-attack and dash.
 
 ---
 
-### Test: not-channeling-enemy-channeling-false
+### Test: dash-stats
 
-- **File**: `src/engine/triggers-not-modifier.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: `negated: true` with `channeling` returns false when an enemy IS channeling
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "enemy", condition: "channeling", negated: true }`
+- **Verifies**: Dash registry entry has the correct stats per spec
+- **Setup**: Find `"dash"` in SKILL_REGISTRY. Add a new `describe("Dash")` block.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(false)`
-- **Justification**: Negative case for NOT channeling. Base condition is true (enemy is channeling), negation inverts to false. Ensures `trigger.negated ? !result : result` works for channeling.
+  1. `id` is `"dash"`
+  2. `actionType` is `"move"`
+  3. `tickCost` is `0`
+  4. `range` is `1`
+  5. `distance` is `2`
+  6. `cooldown` is `3`
+- **Justification**: tickCost 0 makes Dash instant (resolves same tick). distance 2 enables 2-step movement. cooldown 3 prevents overuse. Any incorrect stat breaks Dash's intended game role.
 
 ---
 
-### Test: not-idle-all-enemies-busy-true
+### Test: dash-behaviors
 
-- **File**: `src/engine/triggers-not-modifier.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: `negated: true` with `idle` returns true when all enemies are channeling (none idle)
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", targetCell: {q:0,r:0}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "enemy", condition: "idle", negated: true }`
+- **Verifies**: Dash has both towards and away behaviors with away as default
+- **Setup**: Find `"dash"` in SKILL_REGISTRY.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(true)`
-- **Justification**: "NOT idle" means "all enemies are busy" -- a reasonable tactical trigger for committing when all enemies are locked into actions.
+  1. `behaviors` equals `["towards", "away"]`
+  2. `defaultBehavior` is `"away"`
+  3. `innate` is `false`
+- **Justification**: Dash default is "away" (escape skill), unlike Move which defaults to "towards". If behaviors are missing, the UI would not show direction options. If defaultBehavior were wrong, newly assigned Dash would charge toward enemies instead of fleeing.
 
 ---
 
-### Test: not-idle-enemy-idle-false
+### Test: dash-default-targeting
 
-- **File**: `src/engine/triggers-not-modifier.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: `negated: true` with `idle` returns false when an enemy IS idle
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: null`
-  - `trigger`: `{ scope: "enemy", condition: "idle", negated: true }`
+- **Verifies**: Dash defaults to targeting nearest enemy
+- **Setup**: Find `"dash"` in SKILL_REGISTRY.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, enemy])).toBe(false)`
-- **Justification**: Negative case for NOT idle. Base condition is true (enemy is idle), negation inverts to false.
+  1. `defaultTarget` is `"enemy"`
+  2. `defaultCriterion` is `"nearest"`
+- **Justification**: Dash targets the nearest enemy to determine movement direction (towards or away from them). Wrong defaults would cause Dash to flee from allies or target the wrong reference point.
 
 ---
 
-### Test: not-targeting-ally-no-enemy-targets-ally-true
+### Test: dash-createSkillFromDefinition-propagates-distance
 
-- **File**: `src/engine/triggers-not-modifier.test.ts`
+- **File**: `src/engine/skill-registry.test.ts`
 - **Type**: unit
-- **Verifies**: `negated: true` with `targeting_ally` returns true when no enemy targets an ally
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `ally`: friendly faction, id `"ally"`, position `{q:4,r:2}`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: null`
-  - `trigger`: `{ scope: "enemy", condition: "targeting_ally", negated: true }`
+- **Verifies**: `createSkillFromDefinition` propagates distance=2 from Dash definition to created Skill
+- **Setup**: Find `"dash"` definition, call `createSkillFromDefinition()`.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, ally, enemy])).toBe(true)`
-- **Justification**: "NOT targeting_ally" fires when allies are safe. Use case: "move aggressively when allies are not under threat."
+  1. Created skill has `distance` of `2`
+  2. Created skill has `tickCost` of `0`
+  3. Created skill has `actionType` of `"move"`
+- **Justification**: If distance is not propagated, the created Dash skill would have `undefined` distance, defaulting to 1-step movement and making Dash functionally identical to Move.
 
 ---
 
-### Test: not-targeting-ally-enemy-targets-ally-false
+### Subgroup: Integration (createSkillAction with distance)
 
-- **File**: `src/engine/triggers-not-modifier.test.ts`
-- **Type**: unit
-- **Verifies**: `negated: true` with `targeting_ally` returns false when an enemy IS targeting an ally
-- **Setup**:
-  - `evaluator`: friendly, id `"eval"`, position `{q:3,r:2}`
-  - `ally`: friendly faction, id `"ally"`, position `{q:4,r:2}`, `hp: 80`
-  - `enemy`: enemy faction, id `"enemy"`, position `{q:2,r:3}`, `currentAction: createAction({ type: "attack", targetCell: {q:4,r:2}, resolvesAtTick: 1 })`
-  - `trigger`: `{ scope: "enemy", condition: "targeting_ally", negated: true }`
+### Test: move-skill-single-step-destination
+
+- **File**: `src/engine/game-actions.test.ts` (NEW FILE)
+- **Type**: integration
+- **Verifies**: `createSkillAction` with a Move skill (distance 1) produces a single-step destination, backward compatible with existing behavior
+- **Setup**: Create a mover character at (0,0) with a Move skill (distance: 1, behavior: "towards"). Create target at (3,0). Call `createSkillAction(moveSkill, mover, target, tick, allCharacters)`.
 - **Assertions**:
-  1. `expect(evaluateTrigger(trigger, evaluator, [evaluator, ally, enemy])).toBe(false)`
-- **Justification**: Negative case for NOT targeting_ally. Base condition is true, negation inverts to false. Ensures the `targeting_ally` negation pathway works end-to-end.
+  1. `action.targetCell` equals `{q: 1, r: 0}`
+  2. `action.type` is `"move"`
+- **Justification**: Backward compatibility test ensuring that adding distance support does not alter existing Move behavior. If the branching logic for `distance > 1` has an off-by-one, regular Move could break.
 
 ---
 
-## File 5: `src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx` (extracted from existing)
+### Test: dash-skill-two-step-destination
 
-**Action:** Move the entire `describe("Gap 3: NOT Toggle Modifier", ...)` block (lines 315-453 of the current `TriggerDropdown.test.tsx`) to this new file.
-
-**Imports:** `{ describe, it, expect, vi }` from `vitest`, `{ render, screen }` from `@testing-library/react`, `userEvent` from `@testing-library/user-event`, `{ TriggerDropdown }` from `./TriggerDropdown`.
-
-**Setup constant:**
-
-```
-const defaultProps = {
-  skillName: "Light Punch",
-  triggerIndex: 0,
-  onTriggerChange: vi.fn(),
-};
-```
-
-**Tests to extract (no modifications, pure move):**
-
-### Test: NOT toggle visible for non-always triggers (existing, moved)
-
-- **File**: `src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx`
-- **Type**: unit
-- **Verifies**: NOT toggle button renders for non-always trigger conditions
-- **Setup**: Render TriggerDropdown with `hp_below` trigger
+- **File**: `src/engine/game-actions.test.ts`
+- **Type**: integration
+- **Verifies**: `createSkillAction` with a Dash skill (distance 2) produces a two-step destination via `computeMultiStepDestination`
+- **Setup**: Create a mover at (0,0) with a Dash skill (distance: 2, behavior: "towards"). Create target at (4,0). No obstacles. Call `createSkillAction`.
 - **Assertions**:
-  1. Button with aria-label matching `/toggle not.*light punch/i` is present
-  2. Button text content is `"NOT"`
-- **Justification**: Pre-existing test, moved for file size compliance. Validates NOT toggle visibility.
-
-### Test: NOT toggle hidden for always trigger (existing, moved)
-
-- **File**: `src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx`
-- **Type**: unit
-- **Verifies**: NOT toggle button is NOT rendered for `always` condition
-- **Setup**: Render TriggerDropdown with `always` trigger
-- **Assertions**:
-  1. No button matching `/toggle not/i` exists
-- **Justification**: Pre-existing test, moved. Always condition cannot be negated.
-
-### Test: NOT toggle sets negated to true when clicked (existing, moved)
-
-- **File**: `src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx`
-- **Type**: unit
-- **Verifies**: Clicking NOT toggle calls `onTriggerChange` with `negated: true`
-- **Setup**: Render with non-negated `hp_below` trigger, click NOT button
-- **Assertions**:
-  1. Callback called with `negated: true` in trigger object
-- **Justification**: Pre-existing test, moved. Core NOT toggle interaction.
-
-### Test: NOT toggle sets negated to false when clicked on negated trigger (existing, moved)
-
-- **File**: `src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx`
-- **Type**: unit
-- **Verifies**: Clicking NOT toggle on already-negated trigger removes negation
-- **Setup**: Render with `negated: true` trigger, click NOT button
-- **Assertions**:
-  1. Callback called with `negated: false` in trigger object
-- **Justification**: Pre-existing test, moved. Toggle-off behavior.
-
-### Test: NOT toggle aria-pressed reflects negated state (existing, moved)
-
-- **File**: `src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx`
-- **Type**: unit
-- **Verifies**: `aria-pressed` attribute accurately reflects the `negated` state
-- **Setup**: Render with `negated: true`, assert `aria-pressed="true"`. Unmount, render with non-negated, assert `aria-pressed="false"`.
-- **Assertions**:
-  1. `aria-pressed="true"` when negated
-  2. `aria-pressed="false"` when not negated
-- **Justification**: Pre-existing test, moved. Accessibility compliance.
-
-### Test: switching to always clears negated from callback (existing, moved)
-
-- **File**: `src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx`
-- **Type**: unit
-- **Verifies**: Changing condition to `always` strips the `negated` field from the callback trigger
-- **Setup**: Render with negated `hp_below` trigger, select `always` condition
-- **Assertions**:
-  1. Callback trigger has `condition: "always"` and no `negated` field
-- **Justification**: Pre-existing test, moved. Always condition clears negation.
+  1. `action.targetCell` equals `{q: 2, r: 0}` (2 steps toward target)
+  2. `action.type` is `"move"`
+- **Justification**: End-to-end integration test ensuring the wiring in `createSkillAction` correctly delegates to multi-step computation when distance > 1.
 
 ---
 
-## File 6: `src/components/CharacterPanel/TriggerDropdown.test.tsx` (modifications after split)
+### Test: dash-skill-blocked-second-step
 
-**Action:** After extracting the NOT toggle tests (File 5), the remaining file will be approximately 315 lines. Add the following new tests.
-
-**New describe block:** `describe("TriggerDropdown - new condition options", () => { ... })`
-
----
-
-### Test: renders-all-8-condition-options
-
-- **File**: `src/components/CharacterPanel/TriggerDropdown.test.tsx`
-- **Type**: unit
-- **Verifies**: The condition dropdown renders all 8 condition options including the 3 new ones
-- **Setup**: Render TriggerDropdown with `{ scope: "self", condition: "hp_below", conditionValue: 50 }` trigger (same as existing "renders trigger type dropdown" test)
+- **File**: `src/engine/game-actions.test.ts`
+- **Type**: integration
+- **Verifies**: `createSkillAction` with Dash produces partial movement when second step is blocked
+- **Setup**: Create mover at (0,0) with Dash skill (distance: 2, behavior: "towards"). Create target at (4,0). Place blocker at (2,0). Call `createSkillAction`.
 - **Assertions**:
-  1. `screen.getByRole("option", { name: "Always" })` exists
-  2. `screen.getByRole("option", { name: "In range" })` exists
-  3. `screen.getByRole("option", { name: "HP below" })` exists
-  4. `screen.getByRole("option", { name: "HP above" })` exists
-  5. `screen.getByRole("option", { name: "Cell targeted" })` exists
-  6. `screen.getByRole("option", { name: "Channeling" })` exists
-  7. `screen.getByRole("option", { name: "Idle" })` exists
-  8. `screen.getByRole("option", { name: "Targeting ally" })` exists
-- **Justification**: Acceptance criterion: TriggerDropdown exposes all 8 conditions. This test is an UPDATE to the existing "renders trigger type dropdown with correct value" test -- the comment "All 5 condition type options present" should become "All 8 condition type options present" and 3 new assertions added.
+  1. `action.targetCell` is NOT `{q: 0, r: 0}` (at least 1 step moved)
+  2. `action.targetCell` is NOT `{q: 2, r: 0}` (blocked)
+- **Justification**: Integration-level verification that partial movement propagates through the action creation pipeline. Catches wiring bugs where the multi-step function is called but its result is ignored.
 
 ---
 
-### Test: no-value-input-for-channeling
+### Test: dash-tickCost-0-resolves-same-tick
 
-- **File**: `src/components/CharacterPanel/TriggerDropdown.test.tsx`
-- **Type**: unit
-- **Verifies**: `channeling` condition does not render a numeric value input
-- **Setup**: Render TriggerDropdown with `{ scope: "enemy", condition: "channeling" }` trigger
+- **File**: `src/engine/game-actions.test.ts`
+- **Type**: integration
+- **Verifies**: Dash with tickCost 0 creates an action that resolves at the same tick it started
+- **Setup**: Create mover with Dash skill (tickCost: 0, distance: 2). Create target. Call `createSkillAction` at tick 5.
 - **Assertions**:
-  1. `screen.queryByRole("spinbutton")` returns null (no number input)
-- **Justification**: Channeling is not in `VALUE_CONDITIONS`. Ensures no value input is spuriously rendered, which could confuse users.
+  1. `action.startedAtTick` equals `5`
+  2. `action.resolvesAtTick` equals `5` (tick + tickCost 0)
+- **Justification**: Instant resolution is critical for Dash's gameplay role as an escape skill. If resolvesAtTick were tick+1, the character would have a 1-tick vulnerability window, defeating the purpose of instant movement.
 
 ---
 
-### Test: no-value-input-for-idle
+## Summary
 
-- **File**: `src/components/CharacterPanel/TriggerDropdown.test.tsx`
-- **Type**: unit
-- **Verifies**: `idle` condition does not render a numeric value input
-- **Setup**: Render TriggerDropdown with `{ scope: "enemy", condition: "idle" }` trigger
-- **Assertions**:
-  1. `screen.queryByRole("spinbutton")` returns null
-- **Justification**: Same rationale as channeling. Idle has no numeric parameter.
+| Phase     | File                                               | Test Count           |
+| --------- | -------------------------------------------------- | -------------------- |
+| Phase 4   | `src/engine/skill-registry.test.ts`                | 6 (1 update + 5 new) |
+| Phase 6   | `src/engine/selectors-target-criterion.test.ts`    | 8                    |
+| Phase 5   | `src/engine/skill-registry.test.ts`                | 8 (1 update + 7 new) |
+| Phase 5   | `src/engine/game-movement-multistep.test.ts` (NEW) | 9                    |
+| Phase 5   | `src/engine/game-actions.test.ts` (NEW)            | 4                    |
+| **Total** |                                                    | **35**               |
 
----
+## Implementation Order for Tests
 
-### Test: no-value-input-for-targeting-ally
+1. **Phase 4 tests first** (skill-registry.test.ts): Update registry count to 5, add Ranged Attack describe block
+2. **Phase 6 tests second** (selectors-target-criterion.test.ts): Add `most_enemies_nearby` describe block
+3. **Phase 5 tests last** (skill-registry.test.ts + 2 new files): Update registry count to 6, add distance propagation tests, add Dash describe block, create game-movement-multistep.test.ts, create game-actions.test.ts
 
-- **File**: `src/components/CharacterPanel/TriggerDropdown.test.tsx`
-- **Type**: unit
-- **Verifies**: `targeting_ally` condition does not render a numeric value input
-- **Setup**: Render TriggerDropdown with `{ scope: "enemy", condition: "targeting_ally" }` trigger
-- **Assertions**:
-  1. `screen.queryByRole("spinbutton")` returns null
-- **Justification**: Same rationale. Targeting_ally has no numeric parameter.
+## Notes on Conventions
 
----
-
-### Test: condition-change-to-channeling
-
-- **File**: `src/components/CharacterPanel/TriggerDropdown.test.tsx`
-- **Type**: unit
-- **Verifies**: Selecting `channeling` from the condition dropdown calls `onTriggerChange` with correct shape (no `conditionValue`)
-- **Setup**: Render TriggerDropdown with `{ scope: "enemy", condition: "always" }`, use `userEvent.selectOptions` to select `"channeling"`
-- **Assertions**:
-  1. `onTriggerChange` called once
-  2. Called with `{ scope: "enemy", condition: "channeling" }` (no `conditionValue` key)
-- **Justification**: Validates the `handleConditionChange` logic correctly strips `conditionValue` for non-VALUE conditions. This is the primary interaction flow for the new conditions.
-
----
-
-### Test: condition-change-to-idle
-
-- **File**: `src/components/CharacterPanel/TriggerDropdown.test.tsx`
-- **Type**: unit
-- **Verifies**: Selecting `idle` from the condition dropdown calls `onTriggerChange` with correct shape
-- **Setup**: Render TriggerDropdown with `{ scope: "enemy", condition: "always" }`, use `userEvent.selectOptions` to select `"idle"`
-- **Assertions**:
-  1. `onTriggerChange` called with `{ scope: "enemy", condition: "idle" }`
-- **Justification**: Parallel to channeling test. Ensures each new condition value is correctly handled.
-
----
-
-### Test: condition-change-to-targeting-ally
-
-- **File**: `src/components/CharacterPanel/TriggerDropdown.test.tsx`
-- **Type**: unit
-- **Verifies**: Selecting `targeting_ally` from the condition dropdown calls `onTriggerChange` with correct shape
-- **Setup**: Render TriggerDropdown with `{ scope: "enemy", condition: "always" }`, use `userEvent.selectOptions` to select `"targeting_ally"`
-- **Assertions**:
-  1. `onTriggerChange` called with `{ scope: "enemy", condition: "targeting_ally" }`
-- **Justification**: Parallel to channeling/idle. Ensures `targeting_ally` value is correctly propagated.
-
----
-
-### Test: condition-change-preserves-negated-for-new-conditions
-
-- **File**: `src/components/CharacterPanel/TriggerDropdown.test.tsx`
-- **Type**: unit
-- **Verifies**: Switching from a negated condition to a new condition preserves the `negated` field
-- **Setup**: Render TriggerDropdown with `{ scope: "enemy", condition: "hp_below", conditionValue: 50, negated: true }`, select `"channeling"`
-- **Assertions**:
-  1. `onTriggerChange` called with `{ scope: "enemy", condition: "channeling", negated: true }` (negated preserved, conditionValue stripped)
-- **Justification**: The existing `handleConditionChange` preserves `negated` when switching to non-always conditions. This test confirms that behavior extends to the new conditions and that `conditionValue` is correctly stripped simultaneously.
-
----
-
-## Test Count Summary
-
-| File                                  | New Tests | Moved Tests | Total         |
-| ------------------------------------- | --------- | ----------- | ------------- |
-| `triggers-channeling.test.ts`         | 12        | 0           | 12            |
-| `triggers-idle.test.ts`               | 6         | 0           | 6             |
-| `triggers-targeting-ally.test.ts`     | 6         | 0           | 6             |
-| `triggers-not-modifier.test.ts`       | 6         | 0           | 6 (appended)  |
-| `TriggerDropdown-not-toggle.test.tsx` | 0         | 6           | 6 (extracted) |
-| `TriggerDropdown.test.tsx`            | 8         | 0           | 8 (added)     |
-| **Total**                             | **38**    | **6**       | **44**        |
-
-## Notes for Implementor
-
-1. **Import update for `triggers-not-modifier.test.ts`:** The existing file only imports `createCharacter`. The new NOT tests need `createAction` and (for the idle all-busy test) `createSkill`. Update the import line from `import { createCharacter } from "./triggers-test-helpers"` to `import { createCharacter, createAction, createSkill } from "./triggers-test-helpers"`.
-
-2. **Existing test update in `TriggerDropdown.test.tsx`:** The "renders trigger type dropdown with correct value" test (line 15-42) currently asserts "All 5 condition type options present". Update the comment to "All 8 condition type options present" and add the 3 new option assertions. Alternatively, the new `renders-all-8-condition-options` test can replace this assertion block entirely.
-
-3. **File line counts after changes:**
-   - `triggers-channeling.test.ts`: ~200 lines (new)
-   - `triggers-idle.test.ts`: ~130 lines (new)
-   - `triggers-targeting-ally.test.ts`: ~140 lines (new)
-   - `triggers-not-modifier.test.ts`: ~300 lines (237 existing + ~63 new)
-   - `TriggerDropdown-not-toggle.test.tsx`: ~155 lines (extracted)
-   - `TriggerDropdown.test.tsx`: ~380 lines (315 after split + ~65 new)
-
-4. **All estimates within the 400-line file limit.**
+- All tests use `describe/it/expect` from vitest (no `test()`)
+- Character creation uses `createCharacter` from `./game-test-helpers` (movement tests) or `./selectors-test-helpers` (selector tests)
+- Skill creation uses `createSkill` from `./game-test-helpers`
+- Registry tests follow the pattern: find skill by ID, assert individual fields
+- Selector tests follow the pattern: create evaluator + candidates, call `evaluateTargetCriterion`, assert return value
+- Movement tests follow the pattern: create mover + target + optional blockers, call computation function, assert Position result
+- Hex positions use `{q, r}` axial coordinates
+- Tiebreak assertions reference lower R then lower Q ordering

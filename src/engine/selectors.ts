@@ -137,6 +137,31 @@ export function evaluateTargetCriterion(
       return highest;
     }
 
+    case "most_enemies_nearby": {
+      // Count enemies (evaluator's opposing faction) within 2 hexes of each candidate
+      const enemies = allCharacters.filter(
+        (c) => c.faction !== evaluator.faction && c.hp > 0,
+      );
+      const NEARBY_RADIUS = 2;
+      const result = findMinimum(candidates, (a, b) => {
+        const countA = enemies.filter(
+          (e) =>
+            e.id !== a.id &&
+            hexDistance(e.position, a.position) <= NEARBY_RADIUS,
+        ).length;
+        const countB = enemies.filter(
+          (e) =>
+            e.id !== b.id &&
+            hexDistance(e.position, b.position) <= NEARBY_RADIUS,
+        ).length;
+        if (countA !== countB) {
+          return countB - countA; // Higher count wins (reverse sort)
+        }
+        return tieBreakCompare(a, b);
+      });
+      return result;
+    }
+
     default: {
       const _exhaustive: never = criterion;
       return _exhaustive;

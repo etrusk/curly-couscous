@@ -107,9 +107,9 @@ describe("InventoryPanel", () => {
 
       render(<InventoryPanel />);
 
-      // One skill has tick cost 0 (Light Punch)
+      // Two skills have tick cost 0 (Light Punch, Dash)
       const tickCost0Elements = screen.getAllByText(/tick cost: 0/i);
-      expect(tickCost0Elements.length).toBe(1);
+      expect(tickCost0Elements.length).toBe(2);
 
       // Two skills have tick cost 2 (Heavy Punch and Heal)
       const tickCost2Elements = screen.getAllByText(/tick cost: 2/i);
@@ -123,8 +123,9 @@ describe("InventoryPanel", () => {
 
       render(<InventoryPanel />);
 
-      // One skill has range 1 (Light Punch)
-      expect(screen.getByText(/range: 1/i)).toBeInTheDocument();
+      // Two skills have range 1 (Light Punch, Dash)
+      const range1Elements = screen.getAllByText(/range: 1/i);
+      expect(range1Elements.length).toBe(2);
 
       // One skill has range 2 (Heavy Punch)
       expect(screen.getByText(/range: 2/i)).toBeInTheDocument();

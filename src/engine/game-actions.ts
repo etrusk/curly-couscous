@@ -4,7 +4,10 @@
  */
 
 import { Skill, Character, Action, Position } from "./types";
-import { computeMoveDestination } from "./game-movement";
+import {
+  computeMoveDestination,
+  computeMultiStepDestination,
+} from "./game-movement";
 
 /**
  * Get action type from skill.
@@ -75,13 +78,24 @@ export function createSkillAction(
     targetCell = target.position;
     targetCharacter = target;
   } else {
-    // Move: compute destination
-    targetCell = computeMoveDestination(
-      character,
-      target,
-      skill.behavior as "towards" | "away",
-      allCharacters,
-    );
+    // Move: compute destination (supports multi-step via distance)
+    const distance = skill.distance ?? 1;
+    if (distance > 1) {
+      targetCell = computeMultiStepDestination(
+        character,
+        target,
+        skill.behavior as "towards" | "away",
+        allCharacters,
+        distance,
+      );
+    } else {
+      targetCell = computeMoveDestination(
+        character,
+        target,
+        skill.behavior as "towards" | "away",
+        allCharacters,
+      );
+    }
     targetCharacter = null;
   }
 

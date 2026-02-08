@@ -60,6 +60,7 @@ export interface Skill {
   range: number;
   damage?: number;
   healing?: number;
+  distance?: number;
   behavior: string; // Universal behavior value
   enabled: boolean;
   trigger: Trigger;
@@ -126,7 +127,12 @@ export type Target = "enemy" | "ally" | "self";
 /**
  * Criterion specifies how to select within the target group.
  */
-export type Criterion = "nearest" | "furthest" | "lowest_hp" | "highest_hp";
+export type Criterion =
+  | "nearest"
+  | "furthest"
+  | "lowest_hp"
+  | "highest_hp"
+  | "most_enemies_nearby";
 
 // ============================================================================
 // Action Types

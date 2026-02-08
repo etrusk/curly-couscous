@@ -1,48 +1,52 @@
-# Review Findings - Phase 3: New Trigger Conditions
+# Review Findings: Skill Expansion Phases 4+5+6
 
-**Reviewer:** tdd-reviewer | **Date:** 2026-02-08 | **Cycle:** 1
+**Reviewer:** review agent | **Date:** 2026-02-08 | **Verdict:** PASS
 
-## Verdict: PASS
+## Summary
 
-All acceptance criteria are met. No CRITICAL issues found. Implementation is clean, well-structured, and consistent with existing patterns.
+Implementation of Ranged Attack, distance/Dash, and most_enemies_nearby is clean, well-structured, and spec-compliant. No CRITICAL issues found. Two MINOR observations documented below.
 
-## Files Reviewed
+## Checklist Results
 
-- `src/engine/triggers-channeling.test.ts` (311 lines, 12 tests)
-- `src/engine/triggers-idle.test.ts` (170 lines, 6 tests)
-- `src/engine/triggers-targeting-ally.test.ts` (210 lines, 6 tests)
-- `src/engine/triggers-not-modifier.test.ts` (291 lines, +6 NOT tests appended)
-- `src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx` (156 lines, 6 extracted)
-- `src/components/CharacterPanel/TriggerDropdown.test.tsx` (268 lines, +8 new condition tests)
-- `src/components/CharacterPanel/TriggerDropdown.tsx` (137 lines, +3 option elements)
+| Check              | Status | Notes                                                            |
+| ------------------ | ------ | ---------------------------------------------------------------- |
+| Spec compliance    | PASS   | All 25 acceptance criteria satisfied                             |
+| Pattern compliance | PASS   | Exhaustive switch, registry pattern, test helpers                |
+| Type safety        | PASS   | Exhaustive switch guard in selectors.ts, proper union extensions |
+| Edge cases         | PASS   | Null/empty handled, partial movement, blocked movement           |
+| Test quality       | PASS   | 35 tests with meaningful assertions, proper isolation            |
+| File limits        | PASS   | All files under 400 lines (max: SkillsPanel.tsx at 369)          |
+| No regressions     | PASS   | Existing callers unaffected; distance defaults to 1              |
+| Security           | PASS   | No injection risks, all inputs validated by type system          |
 
-## Acceptance Criteria Verification
+## MINOR Issues
 
-- [x] `{ scope: "enemy", condition: "channeling" }` fires when enemy has non-null currentAction
-- [x] `{ scope: "enemy", condition: "channeling", qualifier: { type: "skill", id: "heal" } }` fires only when enemy channels Heal
-- [x] `{ scope: "enemy", condition: "channeling", qualifier: { type: "action", id: "attack" } }` fires only when enemy channels attack
-- [x] `{ scope: "enemy", condition: "targeting_me" }` -- pre-existing coverage in triggers-cell-targeted.test.ts
-- [x] `{ scope: "ally", condition: "targeting_ally" }` -- tested (ally scope + targeting_ally)
-- [x] `{ scope: "ally", condition: "channeling" }` fires when ally has currentAction
-- [x] NOT channeling / NOT idle / NOT targeting_ally all tested
-- [x] TriggerDropdown exposes channeling, idle, targeting_ally as selectable conditions
-- [x] All 1434 tests pass
+### M1: Performance -- enemy count recalculated per comparison in most_enemies_nearby
 
-## Issues
+**File:** `/home/bob/Projects/auto-battler/src/engine/selectors.ts` (lines 140-159)
 
-### MINOR-1: Invalid hex coordinates in tests
+The `findMinimum` comparator recalculates enemy-nearby counts for both `a` and `b` on every comparison. With N candidates and E enemies, this is O(N _ E) per `reduce` pass, giving O(N^2 _ E) worst case. With small battle sizes (typically <10 characters) this is negligible, but if battles scale up, pre-computing counts in a Map would be more efficient.
 
-Several tests use `{q: 4, r: 2}` (max=6) and `{q: 5, r: 2}` (max=7), which violate the architecture constraint `max(|q|, |r|, |q+r|) <= 5`. This is a pre-existing pattern (already present in triggers-not-modifier.test.ts lines 60, 148, 176, 222) so it is not a regression. The trigger evaluator does not validate coordinates, so tests pass correctly. However, new instances in `triggers-targeting-ally.test.ts` (line 192: `{q: 5, r: 2}`) extend the pre-existing violation.
+**Recommendation:** Consider fixing only if battles grow beyond ~20 characters. Current implementation is correct and clear.
 
-**Files:** `triggers-channeling.test.ts`, `triggers-idle.test.ts`, `triggers-targeting-ally.test.ts`, `triggers-not-modifier.test.ts` (new section)
+### M2: Redundant cast of `MOST_ENEMIES_NEARBY` in test file
 
-**Impact:** None functionally. Tests verify correct behavior regardless of coordinate validity.
+**File:** `/home/bob/Projects/auto-battler/src/engine/selectors-most-enemies-nearby.test.ts` (line 14)
+
+```typescript
+const MOST_ENEMIES_NEARBY = "most_enemies_nearby" as Criterion;
+```
+
+This cast was needed during the red-phase before the type was extended. Now that `most_enemies_nearby` is in the `Criterion` union, the cast is unnecessary. Purely cosmetic -- no functional impact.
 
 ## Positive Observations
 
-1. **Test structure** follows existing patterns (triggers-cell-targeted.test.ts) precisely: same imports, same helper usage, same describe/it naming conventions.
-2. **Edge cases** well covered: dead characters excluded, evaluator excluded from ally pool, existential semantics (pool.some), qualifier matching (both skill and action type).
-3. **TriggerDropdown source change** is minimal and correct -- 3 option elements added in the right place, VALUE_CONDITIONS correctly excludes new conditions, handleConditionChange correctly strips conditionValue for non-value conditions.
-4. **File splitting** of TriggerDropdown tests resolves pre-existing 454-line tech debt. All files now under 400-line limit.
-5. **renderDropdown helper** in TriggerDropdown.test.tsx is a good abstraction that reduces boilerplate.
-6. **No duplication** -- channeling/idle/targeting_ally tests each cover distinct condition behavior without overlapping with filter tests in selector-filters.test.ts.
+1. **Multi-step wrapping pattern** is well-designed: `computeMultiStepDestination` wraps `computeMoveDestination` iteratively without modifying the original function, preserving backward compatibility.
+
+2. **Self-exclusion in most_enemies_nearby** (`e.id !== a.id`) correctly prevents enemy candidates from counting themselves, which would inflate all counts equally and make the criterion meaningless.
+
+3. **distance propagation** uses conditional spread (`...(def.distance !== undefined ? { distance: def.distance } : {})`) consistent with the existing `damage` and `healing` patterns.
+
+4. **Test coverage** includes both boundary conditions (fully blocked, partially blocked, single candidate, no candidates) and integration tests through `createSkillAction`.
+
+5. **UI dropdowns** updated in both `SkillRow.tsx` (active) and `SkillsPanel.tsx` (legacy) for completeness.

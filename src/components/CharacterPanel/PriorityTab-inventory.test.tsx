@@ -186,6 +186,15 @@ describe("PriorityTab - Inventory Section", () => {
       id: "heal",
       name: "Heal",
     });
+    const rangedAttack = createSkill({
+      id: "ranged-attack",
+      name: "Ranged Attack",
+    });
+    const dash = createSkill({
+      id: "dash",
+      name: "Dash",
+      behavior: "away",
+    });
     const friendly1 = createCharacter({
       id: "friendly1",
       faction: "friendly",
@@ -199,18 +208,29 @@ describe("PriorityTab - Inventory Section", () => {
     const friendly3 = createCharacter({
       id: "friendly3",
       faction: "friendly",
-      skills: [heal],
+      skills: [heal, rangedAttack],
     });
     const friendly4 = createCharacter({
       id: "friendly4",
+      faction: "friendly",
+      skills: [dash],
+    });
+    const friendly5 = createCharacter({
+      id: "friendly5",
       faction: "friendly",
       skills: [],
     });
 
     useGameStore
       .getState()
-      .actions.initBattle([friendly1, friendly2, friendly3, friendly4]);
-    useGameStore.getState().actions.selectCharacter("friendly4");
+      .actions.initBattle([
+        friendly1,
+        friendly2,
+        friendly3,
+        friendly4,
+        friendly5,
+      ]);
+    useGameStore.getState().actions.selectCharacter("friendly5");
 
     render(<PriorityTab />);
 

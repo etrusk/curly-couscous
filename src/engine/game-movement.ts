@@ -69,6 +69,48 @@ export function computeMoveDestination(
 }
 
 /**
+ * Compute multi-step move destination by iterating single-step logic.
+ * Each step uses the current simulated position. Obstacles remain at their
+ * original positions (snapshot-based, consistent with decision phase).
+ *
+ * @param mover - Character that is moving
+ * @param target - Target character to move towards/away from
+ * @param mode - Movement mode ('towards' or 'away')
+ * @param allCharacters - All characters on the battlefield
+ * @param distance - Number of steps to take (defaults to 1)
+ * @returns Final destination position after all steps
+ */
+export function computeMultiStepDestination(
+  mover: Character,
+  target: Character,
+  mode: "towards" | "away",
+  allCharacters: Character[],
+  distance: number = 1,
+): Position {
+  let currentPosition = mover.position;
+
+  for (let step = 0; step < distance; step++) {
+    // Create a virtual mover at the current simulated position
+    const virtualMover = { ...mover, position: currentPosition };
+    const nextPosition = computeMoveDestination(
+      virtualMover,
+      target,
+      mode,
+      allCharacters,
+    );
+
+    // If stuck (returned same position), stop
+    if (positionsEqual(nextPosition, currentPosition)) {
+      break;
+    }
+
+    currentPosition = nextPosition;
+  }
+
+  return currentPosition;
+}
+
+/**
  * Build set of obstacle positions from characters, excluding specified IDs.
  * Typically excludes mover and target to allow pathfinding to reach the target.
  */

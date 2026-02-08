@@ -61,7 +61,8 @@ export function SkillRow({
         | "nearest"
         | "furthest"
         | "lowest_hp"
-        | "highest_hp",
+        | "highest_hp"
+        | "most_enemies_nearby",
     });
   };
 
@@ -249,6 +250,7 @@ export function SkillRow({
         <option value="furthest">Furthest</option>
         <option value="lowest_hp">Lowest HP</option>
         <option value="highest_hp">Highest HP</option>
+        <option value="most_enemies_nearby">Most Enemies Nearby</option>
       </select>
 
       {skill.filter ? (

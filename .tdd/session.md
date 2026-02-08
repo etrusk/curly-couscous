@@ -2,121 +2,113 @@
 
 ## Task
 
-Phase 3: New Trigger Conditions — Verify channeling-aware and targeting-aware triggers work end-to-end via the unified condition system. Add trigger-context integration tests and update TriggerDropdown UI component.
+Skill Expansion Session B -- Phases 4+5+6: Ranged Attack + distance/Dash + most_enemies_nearby
 
 ## Confirmed Scope
 
-Add trigger-context integration tests for `channeling`, `idle`, `targeting_me`, `targeting_ally` with scope variations and qualifier tests. Update TriggerDropdown component to expose new condition options. Verify existing `evaluateTrigger()` handles all new conditions correctly. Non-UI task with UI component changes (TriggerDropdown).
+Add Ranged Attack skill to registry (Phase 4, zero engine changes). Add `distance` field to skill types and implement multi-step movement for Dash skill (Phase 5, engine changes). Add `most_enemies_nearby` criterion to selector system (Phase 6, engine changes). ~25 acceptance criteria across 3 phases.
 
 ## Acceptance Criteria
 
-- `{ scope: "enemy", condition: "channeling" }` fires when any enemy has non-null currentAction
-- `{ scope: "enemy", condition: "channeling", qualifier: { type: "skill", id: "heal" } }` fires only when enemy is channeling Heal
-- `{ scope: "enemy", condition: "channeling", qualifier: { type: "action", id: "attack" } }` fires only when enemy is channeling an attack
-- `{ scope: "enemy", condition: "targeting_me" }` fires when enemy action targets evaluator's cell
-- `{ scope: "ally", condition: "targeting_ally" }` — verify scope/condition combinations
-- `{ scope: "ally", condition: "channeling" }` fires when any ally has currentAction
-- `NOT channeling` works correctly (fires when no character in scope is channeling)
-- All existing triggers still pass
-- TriggerDropdown exposes channeling, idle, targeting_me, targeting_ally as selectable conditions
+### Phase 4: Ranged Attack (Registry Only)
+
+- Ranged Attack appears in skill registry with correct stats (range 4, damage 15, tickCost 1, cooldown 2)
+- Can be assigned to characters via existing assignment system
+- Fires and resolves using existing attack resolution
+- Dodgeable (tickCost 1, creates 1-tick intent line)
+- Cooldown 2 applied after use
+- Hits targets at range 4
+
+### Phase 5: `distance` Field + Dash
+
+- Move still moves 1 hex (explicit distance: 1, backward compatible)
+- Dash moves 2 hexes when path is clear
+- Dash moves 1 hex if second step is blocked (partial movement)
+- Dash moves 0 hexes if first step is blocked (blocked entirely)
+- Dash respects blocker-wins collision rule per step
+- Dash instant (tickCost 0) resolves same tick as decision
+- Cooldown 3 applied after use
+- Multi-step towards uses A\* pathfinding per step
+- Multi-step away uses iterative best-hex selection per step
+
+### Phase 6: `most_enemies_nearby` Criterion
+
+- Selects the target with the most enemies within 2 hexes of them
+- Ties broken by position (lower R then lower Q)
+- Works with filter (filtered candidates only)
+- Returns first valid target if all have equal counts
+- Works for both enemy and ally target pools
 
 ## Current Phase
 
-COMMIT
+EXPLORE (COMPLETE) -> PLAN (COMPLETE) -> DESIGN_TESTS (COMPLETE) -> TEST_DESIGN_REVIEW (COMPLETE) -> WRITE_TESTS (COMPLETE) -> IMPLEMENT (COMPLETE) -> REVIEW (COMPLETE) -> SYNC_DOCS (COMPLETE)
 
 ## Phase History
 
 - 2026-02-08 INIT -> EXPLORE
-- 2026-02-08 EXPLORE COMPLETE (agent: 6 exchanges, ~25K tokens, 20 files read)
-- 2026-02-08 PLAN COMPLETE (agent: 5 exchanges, ~35K tokens, 14 files read)
-- 2026-02-08 DESIGN_TESTS COMPLETE (agent: 4 exchanges, ~38K tokens, 14 files read)
-- 2026-02-08 TEST_DESIGN_REVIEW COMPLETE (agent: 5 exchanges, ~18K tokens, 12 files read)
-- 2026-02-08 WRITE_TESTS COMPLETE (agent: 14 exchanges, ~50K tokens, 8 files read)
-- 2026-02-08 IMPLEMENT COMPLETE (agent: 5 exchanges, ~30K tokens, 4 files read)
-- 2026-02-08 SYNC_DOCS COMPLETE (agent: 3 exchanges, ~15K tokens, 5 files read)
+- 2026-02-08 EXPLORE COMPLETE (agent: explore, 7 exchanges, ~25K tokens)
+- 2026-02-08 PLAN COMPLETE (agent: plan, 5 exchanges, ~35K tokens)
+- 2026-02-08 DESIGN_TESTS COMPLETE (agent: test-designer, 5 exchanges, ~40K tokens)
+- 2026-02-08 TEST_DESIGN_REVIEW COMPLETE (agent: test-reviewer, 5 exchanges, ~18K tokens)
+- 2026-02-08 WRITE_TESTS COMPLETE (agent: coder, 14 exchanges, ~50K tokens)
+- 2026-02-08 IMPLEMENT COMPLETE (agent: coder, 11 exchanges, ~80K tokens)
+- 2026-02-08 REVIEW COMPLETE (agent: reviewer, 5 exchanges, ~25K tokens)
+- 2026-02-08 SYNC_DOCS COMPLETE (agent: doc-syncer, 3 exchanges, ~20K tokens)
 
 ## Context Metrics
 
-Orchestrator: ~30K/300K (~10%)
-Cumulative agent tokens: ~242K
+Orchestrator: ~10K/300K (3%)
+Cumulative agent tokens: ~291K
 Agent invocations: 8
-Compactions: 0
 
 ### Agent History
 
-| #   | Agent             | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                                               |
-| --- | ----------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | --------------------------------------------------------------------------------------------------- |
-| 1   | tdd-explorer      | EXPLORE            | 6         | ~28K   | 20    | 155s     | COMPLETE | Zero trigger-context tests for channeling/idle/targeting_ally; TriggerDropdown missing 3 conditions |
-| 2   | tdd-planner       | PLAN               | 5         | ~35K   | 14    | 108s     | COMPLETE | 8-step plan, 3 new test files, TriggerDropdown split + 3-line source change                         |
-| 3   | tdd-test-designer | DESIGN_TESTS       | 4         | ~38K   | 14    | 198s     | COMPLETE | 42 test cases across 6 files (36 new + 6 extracted)                                                 |
-| 4   | tdd-test-reviewer | TEST_DESIGN_REVIEW | 5         | ~18K   | 12    | -        | COMPLETE | Added 2 missing idle tests, fixed imports, approved designs (44 total tests)                        |
-| 5   | tdd-coder         | WRITE_TESTS        | 14        | ~50K   | 30    | -        | COMPLETE | 44 tests written (38 new + 6 extracted); 1429 pass, 5 expected failures                             |
-| 6   | tdd-coder         | IMPLEMENT          | 5         | ~30K   | 10    | -        | COMPLETE | Added 3 option elements to TriggerDropdown; 1434/1434 tests pass                                    |
+| #   | Agent         | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                                                                        |
+| --- | ------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 1   | explore       | EXPLORE            | 7         | ~25K   | 32    | -        | COMPLETE | Mapped all 3 phases: registry, types, movement, selectors, UI                                                                |
+| 2   | plan          | PLAN               | 5         | ~35K   | 12    | -        | COMPLETE | Ordered steps for all 3 phases, identified 12 files + 1 new, 2 new decisions                                                 |
+| 3   | test-designer | DESIGN_TESTS       | 5         | ~40K   | 18    | -        | COMPLETE | 34 test cases across 4 files (2 existing, 2 new). Phases 4, 6, 5 in order.                                                   |
+| 4   | test-reviewer | TEST_DESIGN_REVIEW | 5         | ~18K   | 14    | -        | COMPLETE | Fixed 3 hex math issues, added 1 missing test, total now 35 tests.                                                           |
+| 5   | coder         | WRITE_TESTS        | 14        | ~50K   | 30    | -        | COMPLETE | 35 tests written across 5 files (1 modified, 4 new). 30 failing, 5 passing (expected).                                       |
+| 6   | coder         | IMPLEMENT          | 11        | ~80K   | 35    | -        | COMPLETE | All 35 new tests + 1433 existing tests pass. Fixed 1 test setup bug (hex math), updated 2 pre-existing tests for new skills. |
 
 ### Action Log
 
-#### #1 tdd-explorer (EXPLORE)
-
-- Confirmed zero trigger-context tests for channeling, idle, targeting_ally conditions
-- TriggerDropdown.tsx only exposes 5 of 8 conditions — missing channeling, idle, targeting_ally
-- TriggerDropdown.test.tsx already at 454 lines (exceeds 400-line limit)
-- No engine source changes required — shared evaluator already handles all conditions
-
-#### #2 tdd-planner (PLAN)
-
-- Clean run
-
-#### #3 tdd-test-designer (DESIGN_TESTS)
-
-- Clean run
-
-#### #4 tdd-test-reviewer (TEST_DESIGN_REVIEW)
-
-- Fixed File 2 imports: added `createSkill` (used by `idle-all-enemies-busy` setup)
-- Added `idle-ally-scope-channeling-false` test (negative case for ally scope idle)
-- Added `idle-multiple-enemies-one-idle` test (existential semantics, was in plan but omitted)
-- Updated test count: 38 new + 6 extracted = 44 total
-- All acceptance criteria verified covered
-- All test setups traced against source code and confirmed correct
+- EXPLORE: Read 15+ source files, identified all touch points for Phase 4 (registry only), Phase 5 (types + movement pipeline + test helpers), Phase 6 (types + selectors + UI). Key findings: exhaustive switch guards, hardcoded criterion options in SkillRow, movement architecture split (decision vs resolution). Wrote exploration.md.
+- PLAN: Designed 12-step implementation plan across 3 phases. Order: Phase 4 -> Phase 6 -> Phase 5. Key decisions: wrap computeMoveDestination for multi-step (not modify), hardcode 2-hex radius for most_enemies_nearby. ~12 files modified, 1 new test file. Wrote plan.md.
+- DESIGN_TESTS: Designed 34 test cases: 6 for Phase 4 (Ranged Attack registry), 8 for Phase 6 (most_enemies_nearby criterion), 20 for Phase 5 (distance propagation + multi-step movement + Dash registry + integration). Tests in 4 files: skill-registry.test.ts (14), selectors-target-criterion.test.ts (8), game-movement-multistep.test.ts (8, NEW), game-actions.test.ts (4, NEW). Wrote test-designs.md.
+- WRITE_TESTS: Implemented 35 test cases. Split skill-registry.test.ts (was 526 lines) into skill-registry.test.ts (400 lines, updated exports count) + skill-registry-new-skills.test.ts (141 lines, Phase 4+5 registry tests). Split selectors tests: selectors-most-enemies-nearby.test.ts (316 lines, Phase 6 criterion tests). Created game-movement-multistep.test.ts (356 lines, 9 multi-step tests) and game-actions.test.ts (130 lines, 4 integration tests). Red phase confirmed: 30 tests failing, 5 passing coincidentally.
+- IMPLEMENT: Implemented all 3 phases. Phase 4: added ranged-attack to SKILL_REGISTRY. Phase 6: added most_enemies_nearby to Criterion type, implemented case in evaluateTargetCriterion with self-exclusion and 2-hex radius, updated UI dropdowns in SkillRow.tsx and SkillsPanel.tsx. Phase 5: added distance field to Skill and SkillDefinition types, set distance:1 on Move, added Dash entry, propagated distance in factory functions, updated createSkill test helper, implemented computeMultiStepDestination in game-movement.ts, wired into createSkillAction. Fixed 1 test setup bug (most_enemies_nearby basic test had incorrect enemy positions that made enemyD win instead of enemyB). Updated 2 pre-existing tests (InventoryPanel stats counts, PriorityTab empty-inventory) to account for new skills.
 
 ## Files Touched
 
-- `src/engine/triggers-channeling.test.ts` (CREATE, 311 lines, 12 tests)
-- `src/engine/triggers-idle.test.ts` (CREATE, 170 lines, 6 tests)
-- `src/engine/triggers-targeting-ally.test.ts` (CREATE, 210 lines, 6 tests)
-- `src/engine/triggers-not-modifier.test.ts` (MODIFY, 291 lines, +6 tests appended)
-- `src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx` (CREATE, 156 lines, 6 extracted tests)
-- `src/components/CharacterPanel/TriggerDropdown.test.tsx` (MODIFY, 268 lines, -6 extracted + 8 new tests)
-- `src/components/CharacterPanel/TriggerDropdown.tsx` (MODIFY, 137 lines, +3 option elements)
+- `.tdd/exploration.md` (created)
+- `.tdd/plan.md` (created)
+- `.tdd/session.md` (updated)
+- `.tdd/test-designs.md` (created)
+- `src/engine/skill-registry.test.ts` (modified -- updated exports count to 6, added ranged-attack and dash to ID list)
+- `src/engine/skill-registry-new-skills.test.ts` (created -- Phase 4+5 Ranged Attack, distance, Dash registry tests)
+- `src/engine/selectors-most-enemies-nearby.test.ts` (created, then fixed setup bug -- Phase 6 most_enemies_nearby criterion tests)
+- `src/engine/game-movement-multistep.test.ts` (created -- Phase 5 multi-step movement tests)
+- `src/engine/game-actions.test.ts` (created -- Phase 5 integration tests)
+- `src/engine/skill-registry.ts` (modified -- added ranged-attack + dash entries, distance field on SkillDefinition and Move def, distance propagation in factory functions)
+- `src/engine/types.ts` (modified -- added distance to Skill, most_enemies_nearby to Criterion)
+- `src/engine/selectors.ts` (modified -- added most_enemies_nearby case in evaluateTargetCriterion)
+- `src/engine/game-movement.ts` (modified -- added computeMultiStepDestination function)
+- `src/engine/game-actions.ts` (modified -- wired multi-step into createSkillAction)
+- `src/engine/game-test-helpers.ts` (modified -- added distance to createSkill helper)
+- `src/components/CharacterPanel/SkillRow.tsx` (modified -- added most_enemies_nearby to criterion dropdown and cast)
+- `src/components/SkillsPanel/SkillsPanel.tsx` (modified -- added most_enemies_nearby to TargetStrategy type and dropdown)
+- `src/components/InventoryPanel/InventoryPanel.test.tsx` (modified -- updated counts for new skills)
+- `src/components/CharacterPanel/PriorityTab-inventory.test.tsx` (modified -- added new skills to empty-inventory test)
 
 ## Browser Verification
 
-Status: N/A (UI component change — TriggerDropdown — but primarily testing/logic task)
+Status: N/A (no UI-only changes requiring browser verification)
 
 ## Human Approval
 
 Status: N/A
-
-#### #5 tdd-coder (WRITE_TESTS)
-
-- Created 3 new engine test files: channeling (12 tests), idle (6 tests), targeting_ally (6 tests)
-- Appended 6 NOT modifier tests for new conditions to existing file
-- Extracted 6 NOT toggle tests from TriggerDropdown.test.tsx to new file (split for 400-line limit)
-- Added 8 new condition option tests to TriggerDropdown.test.tsx
-- Introduced `renderDropdown` helper to condense TriggerDropdown tests within line limit
-- Fixed unused `createSkill` import in NOT modifier file (test design note was for wrong file)
-- All engine tests (30 new) pass immediately (evaluator already handles conditions)
-- 5 TriggerDropdown tests fail as expected (component not yet updated)
-- 6 extracted NOT toggle tests pass in new file
-- TypeScript passes, ESLint clean (only pre-existing selector-filter-integration.test.ts issue)
-
-#### #6 tdd-coder (IMPLEMENT)
-
-- Added 3 `<option>` elements to TriggerDropdown.tsx condition `<select>`: channeling, idle, targeting_ally
-- All 5 previously failing tests now pass
-- Full suite: 1434/1434 passing, 0 failing, 0 skipped
-- TypeScript: PASS
-- ESLint: pre-existing selector-filter-integration.test.ts issue only (unrelated)
 
 ## Blockers
 
@@ -125,11 +117,8 @@ Status: N/A
 ## Review Cycles
 
 Count: 1
+Verdict: PASS (0 CRITICAL, 0 IMPORTANT, 2 MINOR)
 
-### Cycle 1 (2026-02-08)
+## Unrelated Issues
 
-**Verdict: PASS** -- 0 CRITICAL, 0 IMPORTANT, 1 MINOR
-
-All acceptance criteria met. Implementation is clean and follows established patterns. One MINOR issue noted (pre-existing invalid hex coordinates extended to new test files). No blockers to commit.
-
-See `.tdd/review-findings.md` for full details.
+- `src/engine/selector-filter-integration.test.ts` exceeds 400-line limit (610 lines) -- pre-existing, not touched by this session.

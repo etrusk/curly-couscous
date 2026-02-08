@@ -26,6 +26,7 @@ LLM-optimized index of significant architectural and design decisions.
 | ADR-014 | Dev-Only Window API for Smoke Test State Verification             | 2026-02-06 | Removed (smoke tests archived) | [archived](.archive/smoke-testing/docs/decisions/adr-014-dev-only-test-harness.md)     |
 | ADR-015 | Per-Instance Skill Filters                                        | 2026-02-06 | Accepted (updated Phase 2)     | [adr-015-per-instance-selector-filters.md](./adr-015-per-instance-selector-filters.md) |
 | ADR-016 | Pre-Criterion Pool Narrowing for Skill Filters                    | 2026-02-08 | Accepted                       | [adr-016-pre-criterion-pool-narrowing.md](./adr-016-pre-criterion-pool-narrowing.md)   |
+| ADR-017 | Wrapper Function for Multi-Step Movement                          | 2026-02-08 | Accepted                       | [adr-017-multi-step-movement-wrapper.md](./adr-017-multi-step-movement-wrapper.md)     |
 
 ## Adding New ADRs
 

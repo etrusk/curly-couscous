@@ -31,6 +31,7 @@ export interface SkillDefinition {
   range: number;
   damage?: number;
   healing?: number;
+  distance?: number;
   behaviors: string[]; // Available behaviors for this skill
   defaultBehavior: string; // Default behavior value
   innate: boolean;
@@ -80,6 +81,7 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     actionType: "move",
     tickCost: 1,
     range: 1,
+    distance: 1,
     behaviors: ["towards", "away"],
     defaultBehavior: "towards",
     innate: true,
@@ -102,6 +104,36 @@ export const SKILL_REGISTRY: readonly SkillDefinition[] = [
     defaultCriterion: "lowest_hp",
     targetingMode: "character",
   },
+  {
+    id: "ranged-attack",
+    name: "Ranged Attack",
+    actionType: "attack",
+    tickCost: 1,
+    range: 4,
+    damage: 15,
+    behaviors: [],
+    defaultBehavior: "",
+    innate: false,
+    defaultTarget: "enemy",
+    defaultCriterion: "nearest",
+    targetingMode: "cell",
+    cooldown: 2,
+  },
+  {
+    id: "dash",
+    name: "Dash",
+    actionType: "move",
+    tickCost: 0,
+    range: 1,
+    distance: 2,
+    behaviors: ["towards", "away"],
+    defaultBehavior: "away",
+    innate: false,
+    defaultTarget: "enemy",
+    defaultCriterion: "nearest",
+    targetingMode: "cell",
+    cooldown: 3,
+  },
 ];
 
 /**
@@ -122,6 +154,7 @@ export function getDefaultSkills(): Skill[] {
     range: def.range,
     ...(def.damage !== undefined ? { damage: def.damage } : {}),
     ...(def.healing !== undefined ? { healing: def.healing } : {}),
+    ...(def.distance !== undefined ? { distance: def.distance } : {}),
     behavior: def.defaultBehavior,
     enabled: true,
     trigger: { scope: "enemy" as const, condition: "always" as const },
@@ -144,6 +177,7 @@ export function createSkillFromDefinition(def: SkillDefinition): Skill {
     range: def.range,
     ...(def.damage !== undefined ? { damage: def.damage } : {}),
     ...(def.healing !== undefined ? { healing: def.healing } : {}),
+    ...(def.distance !== undefined ? { distance: def.distance } : {}),
     behavior: def.defaultBehavior,
     enabled: true,
     trigger: { scope: "enemy" as const, condition: "always" as const },

@@ -62,6 +62,7 @@ export function createSkill(overrides: Partial<Skill> & { id: string }): Skill {
     range: overrides.range ?? 1,
     damage: overrides.damage,
     healing: overrides.healing,
+    distance: overrides.distance,
     behavior: overrides.behavior ?? "",
     enabled: overrides.enabled ?? true,
     trigger: overrides.trigger ?? {

@@ -113,13 +113,33 @@ Each skill in the registry declares:
 - Healing resolves before combat in the Resolution Phase (ADR-006), making last-moment saves possible.
 - **Assignable** (not innate)
 
+### Ranged Attack
+
+- Tick cost: 1, Range: 4, Damage: 15, Cooldown: 2
+- Default target: enemy, Default criterion: nearest
+- Wind-up ranged attack. 1-tick wind-up creates dodge window.
+- Range 4 enables backline damage at the cost of lower damage (15 vs Heavy Punch's 25).
+- Dodgeable (tickCost 1, creates 1-tick intent line).
+- **Assignable** (not innate)
+
+### Dash
+
+- Tick cost: 0, Range: 1, Distance: 2, Cooldown: 3
+- Default target: enemy, Default criterion: nearest
+- Behaviors: **towards** (closer), **away** (farther, default)
+- Instant multi-step movement. Moves up to 2 hexes using iterative single-step pathfinding.
+- If the second step is blocked, moves only 1 hex (partial movement). If the first step is blocked, stays in place.
+- Each step respects blocker-wins collision rules independently.
+- Default trigger: `{ scope: "enemy", condition: "in_range", conditionValue: 1 }` (dash away when enemy is adjacent).
+- **Assignable** (not innate)
+
 ### Skill Categories
 
 Skills fall into three action categories:
 
-- **Attack** (damage): Deal damage to enemies. Light Punch, Heavy Punch.
+- **Attack** (damage): Deal damage to enemies. Light Punch, Heavy Punch, Ranged Attack.
 - **Heal** (healing): Restore HP to allies. Heal.
-- **Move** (movement): Reposition on the grid. Move.
+- **Move** (movement): Reposition on the grid. Move, Dash.
 
 Skills fall into two timing categories:
 
@@ -128,8 +148,8 @@ Skills fall into two timing categories:
 
 **Tactical rationale:** Instant attacks exist as an anti-kiting mechanic. Without them, characters with escape-route-weighted movement could indefinitely flee melee attackers, since every attack required at least 1 tick of wind-up during which the target could move away. Instant attacks guarantee hits on contact, forcing tactical tradeoffs: kiting is still viable against wind-up attacks, but closing to melee range carries real risk from instant attacks.
 
-**Current instant skills:** Light Punch (tickCost: 0)
-**Current wind-up skills:** Heavy Punch (tickCost: 2), Heal (tickCost: 2), Move (tickCost: 1)
+**Current instant skills:** Light Punch (tickCost: 0), Dash (tickCost: 0)
+**Current wind-up skills:** Heavy Punch (tickCost: 2), Heal (tickCost: 2), Move (tickCost: 1), Ranged Attack (tickCost: 1)
 
 ### Move
 
@@ -178,14 +198,17 @@ Each skill specifies a **target** (which group to select from) and a **criterion
 
 **Criteria:**
 
-| Criterion    | Description              |
-| ------------ | ------------------------ |
-| `nearest`    | Closest by hex distance  |
-| `furthest`   | Farthest by hex distance |
-| `lowest_hp`  | Lowest current HP        |
-| `highest_hp` | Highest current HP       |
+| Criterion             | Description                                            |
+| --------------------- | ------------------------------------------------------ |
+| `nearest`             | Closest by hex distance                                |
+| `furthest`            | Farthest by hex distance                               |
+| `lowest_hp`           | Lowest current HP                                      |
+| `highest_hp`          | Highest current HP                                     |
+| `most_enemies_nearby` | Most enemies within 2 hexes of candidate (AoE-optimal) |
 
-3 targets x 4 criteria = 12 combinations, but `self` target always returns the evaluator regardless of criterion.
+3 targets x 5 criteria = 15 combinations, but `self` target always returns the evaluator regardless of criterion.
+
+**`most_enemies_nearby` details:** Counts enemies (evaluator's opposing faction) within a hardcoded 2-hex radius of each candidate. The candidate itself is excluded from its own nearby count (prevents self-counting when targeting enemies). Ties broken by position (lower R, then lower Q). Works with both enemy and ally target pools.
 
 **Tiebreaking:** Lower R coordinate, then lower Q coordinate (consistent across all target+criterion combinations).
 
@@ -281,6 +304,10 @@ Hexagonal grid using axial coordinates {q, r} with pointy-top hex orientation cr
 Hex distance: `max(|dq|, |dr|, |dq+dr|)` (equivalent to `(|dq| + |dr| + |dq+dr|) / 2`). All neighbors are equidistant (distance 1). Uniform movement cost across all 6 directions.
 
 ### Movement System
+
+Skills with a `distance` field specify how many hexes to move per use. Move has `distance: 1` (single-step), Dash has `distance: 2` (multi-step). Skills without a `distance` field default to 1.
+
+**Multi-step movement:** Skills with `distance > 1` use `computeMultiStepDestination()`, which wraps the single-step `computeMoveDestination()` in an iterative loop. Each step independently applies pathfinding (towards) or best-hex selection (away) using the original character positions as obstacles (decision-phase snapshot model). If any step is blocked, the character stops at the last reachable position (partial movement).
 
 **Towards mode:** Uses A\* pathfinding on the hex grid to find the optimal path around obstacles (other characters). All hex moves cost 1.0, producing natural paths without diagonal bias. When no path exists, the character stays in place.
 

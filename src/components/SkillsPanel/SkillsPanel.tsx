@@ -14,7 +14,12 @@ const DEFAULT_TRIGGER: Trigger = { scope: "enemy", condition: "always" };
 
 // Type definitions for target and criterion selection
 type TargetCategory = "enemy" | "ally" | "self";
-type TargetStrategy = "nearest" | "furthest" | "lowest_hp" | "highest_hp";
+type TargetStrategy =
+  | "nearest"
+  | "furthest"
+  | "lowest_hp"
+  | "highest_hp"
+  | "most_enemies_nearby";
 
 export function SkillsPanel() {
   const selectedCharacter = useGameStore(selectSelectedCharacter);
@@ -317,6 +322,9 @@ export function SkillsPanel() {
                       <option value="furthest">Furthest</option>
                       <option value="lowest_hp">Lowest HP</option>
                       <option value="highest_hp">Highest HP</option>
+                      <option value="most_enemies_nearby">
+                        Most Enemies Nearby
+                      </option>
                     </select>
                   </label>
 

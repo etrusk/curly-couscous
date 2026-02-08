@@ -14,7 +14,7 @@ import {
 describe("Skill Registry", () => {
   describe("SKILL_REGISTRY", () => {
     it("exports all skills", () => {
-      expect(SKILL_REGISTRY).toHaveLength(4);
+      expect(SKILL_REGISTRY).toHaveLength(6);
 
       const skillIds = SKILL_REGISTRY.map((skill) => skill.id);
       expect(skillIds).toEqual([
@@ -22,6 +22,8 @@ describe("Skill Registry", () => {
         "heavy-punch",
         "move-towards",
         "heal",
+        "ranged-attack",
+        "dash",
       ]);
     });
 

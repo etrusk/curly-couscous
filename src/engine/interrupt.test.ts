@@ -119,7 +119,7 @@ describe("resolveInterrupts", () => {
     const updatedChanneler = result.updatedCharacters.find(
       (c) => c.id === "channeler",
     );
-    expect(updatedChanneler?.skills[0].cooldownRemaining).toBe(3);
+    expect(updatedChanneler?.skills[0]!.cooldownRemaining).toBe(3);
   });
 
   it("interrupt-miss-target-idle", () => {

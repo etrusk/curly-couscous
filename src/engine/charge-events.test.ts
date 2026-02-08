@@ -140,7 +140,7 @@ describe("resolveCharges - events and edge cases", () => {
 
     const chargeEvents = result.events.filter((e) => e.type === "charge");
     expect(chargeEvents.length).toBeGreaterThanOrEqual(1);
-    const chargeEvent = chargeEvents[0];
+    const chargeEvent = chargeEvents[0]!;
     expect(chargeEvent).toMatchObject({ type: "charge" });
     expect(
       "targetId" in chargeEvent ? chargeEvent.targetId : undefined,

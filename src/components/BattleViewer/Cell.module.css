@@ -17,7 +17,7 @@
 
 .clickableOverlay {
   fill: transparent;
-  stroke: var(--focus-ring);
+  stroke: var(--accent);
   stroke-width: 2;
   pointer-events: none;
 }

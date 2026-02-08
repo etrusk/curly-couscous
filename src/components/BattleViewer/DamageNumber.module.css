@@ -10,7 +10,7 @@
 
 .damageText {
   /* Damage amount text */
-  font-family: "Courier New", monospace;
+  font-family: var(--font-mono);
   font-size: 14px;
   font-weight: bold;
   fill: #333;

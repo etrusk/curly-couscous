@@ -1,377 +1,189 @@
-# Implementation Plan: Phase 1 (Token Foundation) + Phase 2 (Global Styles)
+# Implementation Plan: Fix Undefined Tokens + Terminal Overlay Token Migration
 
-Created: 2026-02-08
+## Summary
 
-## Decisions
+Replace all undefined CSS custom properties (`--border-primary`, `--surface-tertiary`, `--text-on-accent`, `--focus-ring`, `--border-emphasis`) with defined terminal overlay or legacy tokens. Migrate border-radius hardcodes to token equivalents where exact matches exist. Fix one inline TSX reference in Cell.tsx.
 
-### D1: No `light-dark()` for new tokens
+## Testing Decision
 
-**Decision**: Continue with existing three-block pattern (`:root`, `:root[data-theme="light"]`, `:root[data-theme="high-contrast"]`).
+**No new tests needed.** Rationale:
 
-**Context**: Requirements say "use `light-dark()` where trivially possible," but `light-dark()` is not used anywhere in the codebase. Introducing it for 15+ new tokens while the existing ~50 tokens use the three-block pattern creates inconsistency. `light-dark()` only covers dark+light; high-contrast still needs a separate override block regardless.
+- All changes are CSS custom property name replacements (token swaps) or TSX inline attribute value changes
+- No logic, DOM structure, or behavior changes
+- Existing tests will catch any breakage from misapplied class names
+- Visual verification by running the app in all 3 themes is the appropriate validation method
+- Run `npm run build` and `npm run test` to confirm no regressions
 
-**Consequences**: Consistent with existing patterns. Slightly more repetition but zero risk of browser compat issues. `light-dark()` adoption can be done in a future unified migration of ALL tokens.
+## Scope
 
-**Recommendation**: Add to `.docs/decisions/index.md` as ADR-019 after implementation.
+### In Scope (this task)
 
-### D2: `--border-subtle` value unchanged
+1. **Critical fix**: Replace 18x undefined `--border-primary` with `--border`
+2. **Undefined token fixes**: `--surface-tertiary` (12x), `--text-on-accent` (1x), `--focus-ring` (2x + 1 TSX), `--border-emphasis` (1x)
+3. **Border-radius tokenization**: Replace `4px` with `var(--radius-md)` where used
+4. **Font-family tokenization**: Replace `monospace` / `"Courier New", monospace` with `var(--font-mono)`
+5. **`color: white` hardcodes**: Replace with `var(--text-on-faction)` in hover states on colored backgrounds
+6. **Cell.tsx inline fix**: Change `stroke="var(--focus-ring)"` to `stroke="var(--accent)"`
 
-**Decision**: Keep `--border-subtle: #444` (dark), `#ddd` (light), `#666666` (high-contrast) as-is.
+### Out of Scope (deferred)
 
-**Context**: Token already exists with the exact name required. Changing its value would be a modification, not an addition, and could affect existing consumers.
+- **Legacy components** (SkillsPanel.module.css, InventoryPanel.module.css): Marked for deletion in architecture.md. Their undefined tokens have CSS fallbacks and render correctly. Not worth migration effort.
+- **`rem` to `px` conversion** in component CSS: Phase 1+2 only converted App.css. Component-level rem conversion is a separate task with broader impact.
+- **`3px` border-radius values**: No exact token match (`--radius-sm` is 2px, `--radius-md` is 4px). Changing 3px to 2px is a visible regression. Leave as hardcoded `3px`.
+- **DamageNumber `fill` values**: `fill: white` and `fill: #333` are SVG-specific and serve a fixed purpose (white background rect, dark text on white). Not theme-responsive by design.
+- **CharacterTooltip.module.css border-radius/box-shadow tokenization**: Already uses defined tokens for colors. Radius tokenization is cosmetic polish, not a bug fix.
+- **Token.module.css font-family**: Uses `system-ui` intentionally for readability at small sizes.
 
-### D3: Focus ring outlines remain 2px
+## Token Mapping Reference
 
-**Decision**: `outline: 2px solid` focus indicators are OUT OF SCOPE. They are accessibility features, not border styling. Requirements say "ARIA attributes, focus indicators, shape redundancy unchanged."
+| Undefined Token      | Replacement         | Rationale                                                 |
+| -------------------- | ------------------- | --------------------------------------------------------- |
+| `--border-primary`   | `--border`          | Terminal overlay border token, defined in all 3 themes    |
+| `--surface-tertiary` | `--surface-hover`   | Terminal overlay hover surface, semantically equivalent   |
+| `--text-on-accent`   | `--text-on-faction` | White text on colored background, already defined         |
+| `--focus-ring`       | `--accent`          | Terminal overlay accent, matches selection/focus semantic |
+| `--border-emphasis`  | `--accent`          | Used for hover emphasis on assign button, accent fits     |
 
-### D4: `--font-mono` value
+## Implementation Steps
 
-**Decision**: `'Fira Code', 'Cascadia Code', 'JetBrains Mono', ui-monospace, monospace`
+### Step 1: SkillRow.module.css (16 changes)
 
-**Context**: Modern developer font stack. `ui-monospace` provides system-native monospace on macOS (SF Mono) and Windows (Cascadia Mono). Named fonts first for users who have them installed. No external font loading required -- all are fallback-safe.
+File: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css`
 
-### D5: `--border-primary` undefined bug
+| Line | Current                   | New                               |
+| ---- | ------------------------- | --------------------------------- |
+| 7    | `var(--border-primary)`   | `var(--border)`                   |
+| 8    | `border-radius: 4px`      | `border-radius: var(--radius-md)` |
+| 75   | `var(--border-primary)`   | `var(--border)`                   |
+| 76   | `var(--surface-tertiary)` | `var(--surface-hover)`            |
+| 94   | `var(--border-primary)`   | `var(--border)`                   |
+| 104  | `var(--border-primary)`   | `var(--border)`                   |
+| 129  | `var(--border-primary)`   | `var(--border)`                   |
+| 137  | `var(--surface-tertiary)` | `var(--surface-hover)`            |
+| 144  | `var(--border-primary)`   | `var(--border)`                   |
+| 145  | `var(--surface-tertiary)` | `var(--surface-hover)`            |
+| 154  | `var(--border-primary)`   | `var(--border)`                   |
+| 155  | `var(--surface-tertiary)` | `var(--surface-hover)`            |
+| 163  | `color: white`            | `color: var(--text-on-faction)`   |
+| 169  | `var(--border-primary)`   | `var(--border)`                   |
+| 170  | `var(--surface-tertiary)` | `var(--surface-hover)`            |
+| 207  | `var(--border-primary)`   | `var(--border)`                   |
+| 215  | `var(--surface-tertiary)` | `var(--surface-hover)`            |
+| 222  | `var(--border-primary)`   | `var(--border)`                   |
+| 232  | `color: white`            | `color: var(--text-on-faction)`   |
 
-**Decision**: OUT OF SCOPE. Already logged to `.docs/current-task.md` Priority Next Tasks. Will be addressed in Phase 3 component migration.
+Summary: 10x `--border-primary` -> `--border`, 6x `--surface-tertiary` -> `--surface-hover`, 1x `border-radius: 4px` -> `var(--radius-md)`, 2x `color: white` -> `var(--text-on-faction)`
 
-### D6: New tokens use independent values (not aliases)
+### Step 2: CharacterPanel.module.css (3 changes)
 
-**Decision**: New tokens (e.g., `--ground`, `--surface`, `--accent`) use independent color values, NOT `var()` references to existing tokens.
+File: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/CharacterPanel.module.css`
 
-**Context**: The new token taxonomy represents the terminal-overlay aesthetic and may diverge from legacy tokens. Using aliases creates coupling. Independent values allow both systems to coexist during incremental migration and diverge as needed.
+| Line | Current                 | New                               |
+| ---- | ----------------------- | --------------------------------- |
+| 10   | `var(--border-primary)` | `var(--border)`                   |
+| 11   | `border-radius: 4px`    | `border-radius: var(--radius-md)` |
+| 28   | `var(--border-primary)` | `var(--border)`                   |
 
-**Consequences**: Slightly more maintenance, but cleaner migration path. Legacy tokens can be removed once all consumers are migrated.
+Summary: 2x `--border-primary` -> `--border`, 1x `border-radius: 4px` -> `var(--radius-md)`
 
----
+### Step 3: PriorityTab.module.css (4 changes)
 
-## Phase 1: Token Foundation
+File: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab.module.css`
 
-### File: `/home/bob/Projects/auto-battler/src/styles/theme.css`
+| Line | Current                 | New                               |
+| ---- | ----------------------- | --------------------------------- |
+| 45   | `var(--border-primary)` | `var(--border)`                   |
+| 46   | `border-radius: 4px`    | `border-radius: var(--radius-md)` |
+| 58   | `var(--border-primary)` | `var(--border)`                   |
+| 63   | `var(--text-on-accent)` | `var(--text-on-faction)`          |
 
-Current: 274 lines. Adding ~60 lines (19 tokens x 3 theme blocks + comments). Result: ~334 lines. Under 400-line limit.
+Summary: 2x `--border-primary` -> `--border`, 1x `border-radius: 4px` -> `var(--radius-md)`, 1x `--text-on-accent` -> `--text-on-faction`
 
-#### Insertion Point
+### Step 4: TriggerDropdown.module.css (6 changes)
 
-Add a new `/* === TERMINAL OVERLAY TOKENS === */` section AFTER the existing token groups and BEFORE the closing `}` of each theme block. This keeps new tokens visually separated and preserves all existing tokens.
+File: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.module.css`
 
-#### Dark Theme (`:root` block -- insert after scrollbar group, before closing `}`)
+| Line | Current                   | New                             |
+| ---- | ------------------------- | ------------------------------- |
+| 9    | `var(--border-primary)`   | `var(--border)`                 |
+| 19   | `var(--border-primary)`   | `var(--border)`                 |
+| 29   | `var(--border-primary)`   | `var(--border)`                 |
+| 39   | `color: white`            | `color: var(--text-on-faction)` |
+| 46   | `var(--border-primary)`   | `var(--border)`                 |
+| 55   | `var(--surface-tertiary)` | `var(--surface-hover)`          |
+| 60   | `color: white`            | `color: var(--text-on-faction)` |
 
-```css
-/* === TERMINAL OVERLAY TOKENS (new semantic layer) === */
+Summary: 4x `--border-primary` -> `--border`, 1x `--surface-tertiary` -> `--surface-hover`, 2x `color: white` -> `var(--text-on-faction)`
 
-/* Surfaces */
---ground: #1a1a2e;
---surface: rgba(255, 255, 255, 0.03);
---surface-hover: rgba(255, 255, 255, 0.06);
+### Step 5: RuleEvaluations.module.css (4 changes)
 
-/* Borders & dividers */
---border: rgba(255, 255, 255, 0.12);
-/* --border-subtle already defined above */
---divider: rgba(255, 255, 255, 0.06);
+File: `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.module.css`
 
-/* Text */
---text-primary: rgba(255, 255, 255, 0.87);
---text-secondary: rgba(255, 255, 255, 0.6);
---text-muted: rgba(255, 255, 255, 0.38);
---text-ghost: rgba(255, 255, 255, 0.15);
+| Line | Current                   | New                             |
+| ---- | ------------------------- | ------------------------------- |
+| 122  | `font-family: monospace`  | `font-family: var(--font-mono)` |
+| 149  | `var(--surface-tertiary)` | `var(--surface-hover)`          |
+| 180  | `var(--surface-tertiary)` | `var(--surface-hover)`          |
+| 199  | `color: white`            | `color: var(--text-on-faction)` |
 
-/* Accent */
---accent: #00a8ff;
---accent-subtle: rgba(0, 168, 255, 0.15);
---accent-muted: rgba(0, 168, 255, 0.08);
+Summary: 2x `--surface-tertiary` -> `--surface-hover`, 1x `font-family: monospace` -> `var(--font-mono)`, 1x `color: white` -> `var(--text-on-faction)`
 
-/* Status */
---danger: #d55e00;
---danger-subtle: rgba(213, 94, 0, 0.15);
---success: #009e73;
+### Step 6: Cell.module.css + Cell.tsx (3 changes)
 
-/* Radii */
---radius-sm: 2px;
---radius-md: 4px;
---radius-lg: 6px;
+File: `/home/bob/Projects/auto-battler/src/components/BattleViewer/Cell.module.css`
 
-/* Typography */
---font-mono:
-  "Fira Code", "Cascadia Code", "JetBrains Mono", ui-monospace, monospace;
-```
+| Line | Current                     | New                     |
+| ---- | --------------------------- | ----------------------- |
+| 20   | `stroke: var(--focus-ring)` | `stroke: var(--accent)` |
 
-**Dark theme value rationale**:
+File: `/home/bob/Projects/auto-battler/src/components/BattleViewer/Cell.tsx`
 
-- `--ground: #1a1a2e` -- slightly blue-tinted dark for terminal aesthetic. Intentionally differs from `--surface-ground: #242424`.
-- `--surface: rgba(255,255,255,0.03)` -- translucent panel surface instead of opaque `#2a2a2a`. Creates depth layering.
-- `--surface-hover: rgba(255,255,255,0.06)` -- double surface opacity for hover feedback.
-- `--border: rgba(255,255,255,0.12)` -- translucent border instead of opaque `#555`. Blends with any surface.
-- `--divider: rgba(255,255,255,0.06)` -- very subtle separator.
-- `--text-*` tokens reuse existing `--content-*` values (same rgba values).
-- `--accent: #00a8ff` same as existing `--accent-primary`.
-- `--danger: #d55e00` same as existing `--status-error`.
-- `--success: #009e73` same as existing `--status-success`.
-- Radii are small (2/4/6px) for dense terminal aesthetic.
-
-#### Light Theme (`:root[data-theme="light"]` block -- insert before closing `}`)
-
-```css
-/* === TERMINAL OVERLAY TOKENS (new semantic layer) === */
-
-/* Surfaces */
---ground: #f0f0f5;
---surface: rgba(0, 0, 0, 0.02);
---surface-hover: rgba(0, 0, 0, 0.05);
-
-/* Borders & dividers */
---border: rgba(0, 0, 0, 0.12);
-/* --border-subtle already defined above */
---divider: rgba(0, 0, 0, 0.06);
-
-/* Text */
---text-primary: #333;
---text-secondary: #666;
---text-muted: #999;
---text-ghost: rgba(0, 0, 0, 0.15);
-
-/* Accent */
---accent: #0072b2;
---accent-subtle: rgba(0, 114, 178, 0.12);
---accent-muted: rgba(0, 114, 178, 0.06);
-
-/* Status */
---danger: #d55e00;
---danger-subtle: rgba(213, 94, 0, 0.12);
---success: #009e73;
-
-/* Radii */
---radius-sm: 2px;
---radius-md: 4px;
---radius-lg: 6px;
-
-/* Typography */
---font-mono:
-  "Fira Code", "Cascadia Code", "JetBrains Mono", ui-monospace, monospace;
-```
-
-#### High Contrast Theme (`:root[data-theme="high-contrast"]` block -- insert before closing `}`)
-
-```css
-/* === TERMINAL OVERLAY TOKENS (new semantic layer) === */
-
-/* Surfaces */
---ground: #000000;
---surface: rgba(255, 255, 255, 0.05);
---surface-hover: rgba(255, 255, 255, 0.1);
-
-/* Borders & dividers */
---border: #ffffff;
-/* --border-subtle already defined above */
---divider: rgba(255, 255, 255, 0.15);
-
-/* Text */
---text-primary: #ffffff;
---text-secondary: #cccccc;
---text-muted: #999999;
---text-ghost: rgba(255, 255, 255, 0.3);
-
-/* Accent */
---accent: #00ff00;
---accent-subtle: rgba(0, 255, 0, 0.2);
---accent-muted: rgba(0, 255, 0, 0.1);
-
-/* Status */
---danger: #ff6633;
---danger-subtle: rgba(255, 102, 51, 0.2);
---success: #00ff88;
-
-/* Radii */
---radius-sm: 2px;
---radius-md: 4px;
---radius-lg: 6px;
-
-/* Typography */
---font-mono:
-  "Fira Code", "Cascadia Code", "JetBrains Mono", ui-monospace, monospace;
-```
-
-**High contrast rationale**: Brighter/purer colors matching existing high-contrast patterns. `--border: #ffffff` matches existing `--border-default: #ffffff`. `--accent: #00ff00` matches existing `--accent-primary: #00ff00`. `--text-ghost` at 0.30 (higher than dark's 0.15) for minimum visibility on black.
-
-#### Token Count Verification
-
-19 new tokens added per block:
-
-| #   | Token              | Dark                     | Light                  | High Contrast            |
-| --- | ------------------ | ------------------------ | ---------------------- | ------------------------ |
-| 1   | `--ground`         | `#1a1a2e`                | `#f0f0f5`              | `#000000`                |
-| 2   | `--surface`        | `rgba(255,255,255,0.03)` | `rgba(0,0,0,0.02)`     | `rgba(255,255,255,0.05)` |
-| 3   | `--surface-hover`  | `rgba(255,255,255,0.06)` | `rgba(0,0,0,0.05)`     | `rgba(255,255,255,0.10)` |
-| 4   | `--border`         | `rgba(255,255,255,0.12)` | `rgba(0,0,0,0.12)`     | `#ffffff`                |
-| 5   | `--divider`        | `rgba(255,255,255,0.06)` | `rgba(0,0,0,0.06)`     | `rgba(255,255,255,0.15)` |
-| 6   | `--text-primary`   | `rgba(255,255,255,0.87)` | `#333`                 | `#ffffff`                |
-| 7   | `--text-secondary` | `rgba(255,255,255,0.6)`  | `#666`                 | `#cccccc`                |
-| 8   | `--text-muted`     | `rgba(255,255,255,0.38)` | `#999`                 | `#999999`                |
-| 9   | `--text-ghost`     | `rgba(255,255,255,0.15)` | `rgba(0,0,0,0.15)`     | `rgba(255,255,255,0.30)` |
-| 10  | `--accent`         | `#00a8ff`                | `#0072b2`              | `#00ff00`                |
-| 11  | `--accent-subtle`  | `rgba(0,168,255,0.15)`   | `rgba(0,114,178,0.12)` | `rgba(0,255,0,0.20)`     |
-| 12  | `--accent-muted`   | `rgba(0,168,255,0.08)`   | `rgba(0,114,178,0.06)` | `rgba(0,255,0,0.10)`     |
-| 13  | `--danger`         | `#d55e00`                | `#d55e00`              | `#ff6633`                |
-| 14  | `--danger-subtle`  | `rgba(213,94,0,0.15)`    | `rgba(213,94,0,0.12)`  | `rgba(255,102,51,0.20)`  |
-| 15  | `--success`        | `#009e73`                | `#009e73`              | `#00ff88`                |
-| 16  | `--radius-sm`      | `2px`                    | `2px`                  | `2px`                    |
-| 17  | `--radius-md`      | `4px`                    | `4px`                  | `4px`                    |
-| 18  | `--radius-lg`      | `6px`                    | `6px`                  | `6px`                    |
-| 19  | `--font-mono`      | (same stack)             | (same stack)           | (same stack)             |
+| Line | Current                      | New                      |
+| ---- | ---------------------------- | ------------------------ |
+| 73   | `stroke="var(--focus-ring)"` | `stroke="var(--accent)"` |
 
-Plus existing `--border-subtle` (already present in all 3 blocks). Total required: 20. Existing: 1. New: 19. Confirmed.
+Summary: 2x `--focus-ring` -> `--accent` (1 CSS, 1 TSX inline attribute)
 
----
+### Step 7: DamageNumber.module.css (1 change)
 
-## Phase 2: Global Styles
+File: `/home/bob/Projects/auto-battler/src/components/BattleViewer/DamageNumber.module.css`
 
-### File: `/home/bob/Projects/auto-battler/src/index.css`
+| Line | Current                                 | New                             |
+| ---- | --------------------------------------- | ------------------------------- |
+| 13   | `font-family: "Courier New", monospace` | `font-family: var(--font-mono)` |
 
-Two changes:
+Summary: 1x font-family tokenization
 
-**Change 1 -- Font family (line 5)**:
+Note: `fill: white` (line 7) and `fill: #333` (line 16) are intentionally left as hardcoded values. The damage number background is always white with dark text, independent of theme. This is consistent with `--surface-elevated: #ffffff` being the same in all 3 themes.
 
-```
-BEFORE: font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-AFTER:  font-family: var(--font-mono);
-```
+### Step 8: Validation
 
-**Change 2 -- Background color (line 11)**:
+1. `npm run build` -- confirm no TypeScript or build errors
+2. `npm run test` -- confirm all existing tests pass
+3. `npm run lint` -- confirm no ESLint errors introduced
+4. Visual check in browser: dark, light, and high-contrast themes
 
-```
-BEFORE: background-color: var(--surface-ground);
-AFTER:  background-color: var(--ground);
-```
+## Files Modified (8 total)
 
-### File: `/home/bob/Projects/auto-battler/src/App.css`
-
-Six changes (7 rem values across 6 locations):
-
-**Change 1 -- `.app` padding (line 5)**:
-
-```
-BEFORE: padding: 0.5rem;
-AFTER:  padding: 8px;
-```
-
-**Change 2 -- `.header` margin-bottom (line 13)**:
-
-```
-BEFORE: margin-bottom: 1rem;
-AFTER:  margin-bottom: 12px;
-```
-
-**Change 3 -- `.header h1` (lines 17-19)**:
-
-```
-BEFORE:
-  font-size: 2.5rem;
-  line-height: 1.1;
-  margin: 0;
-
-AFTER:
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.1;
-  margin: 0;
-```
-
-Note: `font-weight: 700` is added (not present before). `line-height: 1.1` is unitless ratio, stays. `margin: 0` unchanged.
-
-**Change 4 -- `.headerControls` gap (line 24)**:
-
-```
-BEFORE: gap: 1rem;
-AFTER:  gap: 8px;
-```
-
-**Change 5 -- `.gridContainer` gap (line 32)**:
-
-```
-BEFORE: gap: 1rem;
-AFTER:  gap: 12px;
-```
-
-12px for main grid gap (more breathing room between battle viewer and character panel than between header controls).
-
-**Change 6 -- `.gridContainer` margin-bottom (line 33)**:
-
-```
-BEFORE: margin-bottom: 1rem;
-AFTER:  margin-bottom: 12px;
-```
-
----
-
-## Test Strategy
-
-### Phase 1 (Token Foundation): No Tests
-
-All changes are CSS custom property declarations. No structural, semantic, or behavioral change. CSS custom property values cannot be meaningfully tested with Testing Library (JSDOM does not compute styles).
-
-**Verification**: Manual review of CSS file confirming 19 tokens present in all 3 blocks. Run `npm run lint`.
-
-### Phase 2 (Global Styles): No Tests
-
-All changes are CSS value substitutions (font-family swap, rem-to-px, h1 resize, token swap). None change DOM structure, ARIA attributes, or semantic elements.
-
-**Verification**: `npm run build` to confirm no syntax errors. Visual verification deferred to post-component-phase browser inspection.
-
-### Cross-cutting Verification
-
-After both phases:
-
-1. `npm run test` -- all existing tests must pass (zero behavioral changes)
-2. `npm run lint` -- no regressions
-3. `npm run type-check` -- no type errors
-4. `npm run build` -- clean compilation
-
----
-
-## Implementation Order
-
-1. Add 19 tokens to dark block in `theme.css`
-2. Add 19 tokens to light block in `theme.css`
-3. Add 19 tokens to high-contrast block in `theme.css`
-4. Verify `theme.css` is under 400 lines (~334 expected)
-5. Update `index.css` (2 changes)
-6. Update `App.css` (6 changes)
-7. Run `npm run test && npm run lint && npm run type-check && npm run build`
-8. Commit: `style(tokens): add terminal overlay design tokens and update global styles`
-
----
-
-## Files Modified
-
-| File                   | Phase | Changes                                                  |
-| ---------------------- | ----- | -------------------------------------------------------- |
-| `src/styles/theme.css` | 1     | Add 19 new tokens to each of 3 theme blocks              |
-| `src/index.css`        | 2     | Font-family to `var(--font-mono)`, bg to `var(--ground)` |
-| `src/App.css`          | 2     | 6 rem-to-px conversions, h1 resize + weight              |
-
-Total: 3 files modified. 0 new files. 0 deleted files.
-
----
+1. `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css`
+2. `/home/bob/Projects/auto-battler/src/components/CharacterPanel/CharacterPanel.module.css`
+3. `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab.module.css`
+4. `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.module.css`
+5. `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.module.css`
+6. `/home/bob/Projects/auto-battler/src/components/BattleViewer/Cell.module.css`
+7. `/home/bob/Projects/auto-battler/src/components/BattleViewer/Cell.tsx`
+8. `/home/bob/Projects/auto-battler/src/components/BattleViewer/DamageNumber.module.css`
 
 ## Risks
 
-1. **`--ground: #1a1a2e` blue tint**: Intentional for terminal aesthetic but may look off. Can adjust to `#1a1a1a` (neutral) during browser verification. Low risk -- easily tweaked.
+1. **Visual regression with `--surface-hover` replacing `--surface-tertiary`**: The `--surface-hover` token uses semi-transparent rgba values which may render differently than what the undefined `--surface-tertiary` was falling back to (likely transparent/inherited). This is actually a fix -- undefined tokens resolve to `initial`, meaning these hover states currently have no background. The migration will give them proper themed backgrounds.
 
-2. **Translucent `--surface` stacking**: `rgba(255,255,255,0.03)` assumes dark parent background. Nested translucent surfaces stack opacity. This is desired for depth but could wash out if nested too deep. Phase 3 will account for this.
+2. **`--border` opacity in dark mode**: The terminal overlay `--border` uses `rgba(255,255,255,0.12)` which is subtler than the legacy `--border-default: #555`. This is intentional per the terminal overlay design aesthetic. CharacterPanel borders will become more subtle, consistent with the design direction.
 
-3. **Font availability**: `ui-monospace` supported in all modern browsers. Worst case falls back to browser default `monospace` (Courier New / Menlo). No external font dependencies.
+3. **`color: white` -> `var(--text-on-faction)`**: The `--text-on-faction` token is `#ffffff` in all 3 themes, so this is a no-op visually. It just makes the intent explicit and theme-aware.
 
----
+## Architectural Notes
 
-## Spec Alignment Check
-
-- [x] Plan aligns with `.docs/spec.md` (styling-only, no game logic changes)
-- [x] Approach consistent with `.docs/architecture.md` (CSS Custom Properties theming pattern)
-- [x] Patterns follow `.docs/patterns/index.md` (CSS Modules + custom properties)
-- [x] No conflicts with `.docs/decisions/index.md` (no ADR contradictions)
-- [x] Okabe-Ito faction colors unchanged
-- [x] ARIA attributes, focus indicators, shape redundancy unchanged
-- [x] No game logic, store logic, or engine code modified
-
-## New Decision to Record
-
-Recommend adding ADR-019: "Independent Terminal Overlay Token Layer" to `.docs/decisions/index.md` after implementation. Documents D1 (no `light-dark()`, consistency with existing three-block pattern) and D6 (independent values, not aliases, for migration flexibility).
+- No new decisions introduced. This work follows ADR-019 (Independent Terminal Overlay Token Layer).
+- The incremental migration approach (CharacterPanel components use terminal overlay tokens while some other components still use legacy tokens) is the intended coexistence strategy from ADR-019.
+- Legacy components (SkillsPanel, InventoryPanel) are explicitly excluded per their "to be deleted" status in architecture.md.

@@ -70,7 +70,7 @@ export function Cell({
           points={pointsString}
           className={styles.clickableOverlay}
           fill="transparent"
-          stroke="var(--focus-ring)"
+          stroke="var(--accent)"
           strokeWidth="2"
           style={{ pointerEvents: "none" }}
         />

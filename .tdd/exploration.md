@@ -2,198 +2,291 @@
 
 ## Task Understanding
 
-Replace web-app styling patterns with a terminal-overlay aesthetic across the project. This exploration covers Phase 1 (Token Foundation in `theme.css`) and Phase 2 (Global Styles in `index.css` and `App.css`). The sweep is styling-only -- no game logic, store logic, or engine code may change.
+Fix the undefined `--border-primary` CSS custom property (referenced 18 times in CharacterPanel components but never defined in theme.css) and migrate component CSS files to use the terminal overlay design tokens established in Phase 1+2. This is a CSS-only task -- no logic or DOM changes.
 
-Phase 1 adds new semantic design tokens to `theme.css` that coexist with existing tokens.
-Phase 2 updates `index.css` (root font-family to monospace) and `App.css` (rem to px, smaller h1, ground color token).
+## `--border-primary` Usage Locations (18 references)
 
-## Relevant Files
+### SkillRow.module.css (10 references)
 
-### Phase 1: Token Foundation
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css:7` - `.skillRow` border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css:75` - `.priorityControls button` border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css:94` - `.select` border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css:104` - `.input` border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css:129` - `.addTriggerBtn` dashed border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css:144` - `.duplicateBtn` border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css:154` - `.removeBtn` border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css:169` - `.unassignBtn` border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css:207` - `.addFilterBtn` dashed border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css:222` - `.removeFilterBtn` border
 
-- `/home/bob/Projects/auto-battler/src/styles/theme.css` - Contains all existing CSS custom properties (274 lines, 3 theme blocks: dark, light, high-contrast). New tokens must be added here, coexisting with existing tokens (no removals).
+### CharacterPanel.module.css (2 references)
 
-### Phase 2: Global Styles
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/CharacterPanel.module.css:10` - `.panel` border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/CharacterPanel.module.css:28` - `.header` border-bottom
 
-- `/home/bob/Projects/auto-battler/src/index.css` - Root font-family declaration (currently `Inter, system-ui, Avenir, Helvetica, Arial, sans-serif`). Must change to `var(--font-mono)`. Also has `background-color: var(--surface-ground)` which should become `var(--ground)`.
-- `/home/bob/Projects/auto-battler/src/App.css` - Layout styles with rem-based spacing (7 violations) and oversized h1 (`2.5rem`). Must convert to px units and reduce h1 to `16px font-weight: 700`.
+### PriorityTab.module.css (2 references)
 
-### Files that consume existing tokens (relevant for compatibility -- Phase 3+ scope)
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab.module.css:45` - `.inventoryRow` border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab.module.css:58` - `.assignBtn` border
 
-- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css` - Uses `var(--surface-primary)` (2x), `var(--border-primary)` (10x, undefined token!)
-- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/CharacterPanel.module.css` - Uses `var(--surface-primary)` (1x), `var(--border-primary)` (2x)
-- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.module.css` - Uses `var(--surface-primary)` (2x), `var(--border-primary)` (4x)
-- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab.module.css` - Uses `var(--border-primary)` (2x)
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.module.css` - Uses `var(--surface-primary)` (2x), `var(--font-mono, monospace)` (already has forward-reference!)
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.module.css` - Uses `var(--surface-primary)` (1x)
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.module.css` - Has `system-ui` sans-serif font stack for `.letter` class
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/DamageNumber.module.css` - Has `"Courier New", monospace` font-family
-- `/home/bob/Projects/auto-battler/src/components/PlayControls/PlayControls.module.css` - Uses `var(--surface-primary)` (1x)
-- `/home/bob/Projects/auto-battler/src/components/CharacterControls/CharacterControls.module.css` - Uses `var(--surface-primary)` (1x)
-- `/home/bob/Projects/auto-battler/src/components/ThemeToggle/ThemeToggle.module.css` - Uses `var(--surface-primary)` (1x)
-- `/home/bob/Projects/auto-battler/src/components/SkillsPanel/SkillsPanel.module.css` - Uses `var(--surface-primary)` (3x)
-- `/home/bob/Projects/auto-battler/src/components/InventoryPanel/InventoryPanel.module.css` - Uses `var(--surface-primary)` (1x)
-- `/home/bob/Projects/auto-battler/src/components/BattleStatus/BattleStatusBadge.module.css` - Uses rem units
+### TriggerDropdown.module.css (4 references)
+
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.module.css:9` - `.select` border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.module.css:19` - `.input` border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.module.css:29` - `.removeBtn` border
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.module.css:46` - `.notToggle` border
+
+## `--border-primary` Resolution Strategy
+
+`--border-primary` is NOT defined in any theme block in theme.css. The defined border tokens are:
+
+**Legacy layer:**
+
+- `--border-default` (dark: `#555`, light: `#999`, high-contrast: `#ffffff`) - panel borders
+- `--border-subtle` (dark: `#444`, light: `#ddd`, high-contrast: `#666666`) - dividers, internal borders
+
+**Terminal overlay layer (new):**
+
+- `--border` (dark: `rgba(255,255,255,0.12)`, light: `rgba(0,0,0,0.12)`, high-contrast: `#ffffff`) - general borders
+- `--divider` (dark: `rgba(255,255,255,0.06)`, light: `rgba(0,0,0,0.06)`, high-contrast: `rgba(255,255,255,0.15)`) - subtle dividers
+
+**Recommended approach:** Replace all 18 `--border-primary` references with `--border` (the terminal overlay token). This aligns with the ADR-019 direction of migrating to terminal overlay tokens. The `--border` token serves the same semantic purpose (general element borders) and is defined in all 3 theme blocks.
+
+## Additional Undefined Tokens Found
+
+Besides `--border-primary`, several other undefined tokens are referenced in component CSS:
+
+### `--surface-tertiary` (12 references, NOT in theme.css)
+
+Used in: SkillRow.module.css (6x), TriggerDropdown.module.css (1x), RuleEvaluations.module.css (2x), SkillsPanel.module.css (2x), InventoryPanel.module.css (1x)
+**Recommendation:** Replace with `--surface-hover` (terminal overlay) or `--interactive-hover` (legacy).
+
+### `--text-on-accent` (1 reference, NOT in theme.css)
+
+Used in: PriorityTab.module.css:63 (`.assignBtn` color)
+**Recommendation:** Replace with `--text-primary` or use the existing `--text-on-faction` if on a colored background.
+
+### `--focus-ring` (2 references, NOT in theme.css)
+
+Used in: Cell.module.css:20 (stroke) and Cell.tsx:73 (inline SVG attribute)
+**Recommendation:** Replace with `--interactive-focus` (legacy) or `--accent` (terminal overlay).
+
+### `--border-emphasis` (1 reference, NOT in theme.css)
+
+Used in: InventoryPanel.module.css:88 (`.assignButton:hover` border-color)
+**Recommendation:** Replace with `--accent` or `--border-default`.
+
+### `--content-error` / `--surface-error` / `--border-error` / `--surface-error-hover` (in SkillsPanel only)
+
+Used in: SkillsPanel.module.css:93-95,101,124-126,132 (all with fallback values)
+**Note:** These have CSS fallback values (`#ef4444`, etc.) so they render correctly. SkillsPanel is also marked as legacy (to be deleted), so migration is low priority.
+
+## All Defined Tokens in theme.css (Grouped)
+
+### Legacy Tokens
+
+| Category        | Token                     | Dark                   | Light   | HC                    |
+| --------------- | ------------------------- | ---------------------- | ------- | --------------------- |
+| **Surfaces**    | `--surface-ground`        | #242424                | #fafafa | #000000               |
+|                 | `--surface-primary`       | #2a2a2a                | #ffffff | #000000               |
+|                 | `--surface-secondary`     | #1e1e1e                | #f5f5f5 | #1a1a1a               |
+|                 | `--surface-elevated`      | #ffffff                | #ffffff | #ffffff               |
+| **Content**     | `--content-primary`       | rgba(255,255,255,0.87) | #333    | #ffffff               |
+|                 | `--content-secondary`     | rgba(255,255,255,0.6)  | #666    | #cccccc               |
+|                 | `--content-muted`         | rgba(255,255,255,0.38) | #999    | #999999               |
+| **Borders**     | `--border-default`        | #555                   | #999    | #ffffff               |
+|                 | `--border-subtle`         | #444                   | #ddd    | #666666               |
+| **Interactive** | `--interactive-hover`     | #3a3a3a                | #e8e8e8 | #1a1a1a               |
+|                 | `--interactive-focus`     | #0072b2                | #0072b2 | #00a8ff               |
+| **Faction**     | `--faction-friendly`      | #0072b2                | #0072b2 | #0099ff               |
+|                 | `--faction-enemy`         | #e69f00                | #e69f00 | #ff9900               |
+|                 | `--faction-friendly-bg`   | rgba(0,114,178,0.15)   | #e6f2ff | rgba(0,153,255,0.2)   |
+|                 | `--faction-enemy-bg`      | rgba(230,159,0,0.15)   | #fff4e6 | rgba(255,153,0,0.2)   |
+|                 | `--faction-friendly-text` | #4da6ff                | #004d7a | #66ccff               |
+|                 | `--faction-enemy-text`    | #ffb84d                | #8f5a00 | #ffb84d               |
+| **Action**      | `--action-attack`         | #d55e00                | #d55e00 | #ff6633               |
+|                 | `--action-heal`           | #009e73                | #009e73 | #00ff88               |
+|                 | `--action-move`           | #0072b2                | #0072b2 | #0099ff               |
+| **Token**       | `--text-on-faction`       | #ffffff                | #ffffff | #ffffff               |
+|                 | `--accent-primary`        | #00a8ff                | #0072b2 | #00ff00               |
+| **Status**      | `--status-success`        | #009e73                | #009e73 | #00ff88               |
+|                 | `--status-success-bg`     | rgba(0,158,115,0.15)   | #e6ffe6 | rgba(0,255,136,0.2)   |
+|                 | `--status-success-text`   | #00c48c                | #006b4d | #00ff88               |
+|                 | `--status-error`          | #d55e00                | #d55e00 | #ff6633               |
+|                 | `--status-error-bg`       | rgba(213,94,0,0.15)    | #ffe6e6 | rgba(255,102,51,0.2)  |
+|                 | `--status-error-text`     | #ff7f3d                | #8f3e00 | #ff6633               |
+|                 | `--status-warning`        | #cc9a06                | #cc9a06 | #ffcc00               |
+|                 | `--status-warning-bg`     | rgba(204,154,6,0.15)   | #fff3cd | rgba(255,204,0,0.2)   |
+|                 | `--status-warning-text`   | #e6b800                | #664d03 | #ffcc00               |
+|                 | `--status-neutral`        | #999                   | #999    | #cccccc               |
+|                 | `--status-neutral-bg`     | rgba(153,153,153,0.15) | #f0f0f0 | rgba(204,204,204,0.2) |
+|                 | `--status-neutral-text`   | #bbb                   | #666    | #cccccc               |
+| **Health**      | `--health-high`           | #4caf50                | #4caf50 | #00ff00               |
+|                 | `--health-low`            | #f44336                | #f44336 | #ff0000               |
+| **Contrast**    | `--contrast-line`         | #ffffff                | #ffffff | #ffffff               |
+| **Targeting**   | `--targeting-line-color`  | #888888                | #666666 | #aaaaaa               |
+| **Grid**        | `--grid-bg`               | #1e1e1e                | #f5f5f5 | #000000               |
+|                 | `--grid-border`           | #666                   | #333    | #ffffff               |
+|                 | `--cell-bg`               | #2a2a2a                | #ffffff | #000000               |
+|                 | `--cell-border`           | #444                   | #ddd    | #666666               |
+|                 | `--cell-hover-bg`         | #3a3a3a                | #e8e8e8 | #1a1a1a               |
+| **Scrollbar**   | `--scrollbar-track`       | #2a2a2a                | #f1f1f1 | #000000               |
+|                 | `--scrollbar-thumb`       | #555                   | #999    | #666666               |
+|                 | `--scrollbar-thumb-hover` | #666                   | #666    | #999999               |
+
+### Terminal Overlay Tokens (New Layer - ADR-019)
+
+| Category       | Token              | Dark                                                              | Light                | HC                     |
+| -------------- | ------------------ | ----------------------------------------------------------------- | -------------------- | ---------------------- |
+| **Surfaces**   | `--ground`         | #1a1a2e                                                           | #f0f0f5              | #000000                |
+|                | `--surface`        | rgba(255,255,255,0.03)                                            | rgba(0,0,0,0.02)     | rgba(255,255,255,0.05) |
+|                | `--surface-hover`  | rgba(255,255,255,0.06)                                            | rgba(0,0,0,0.05)     | rgba(255,255,255,0.1)  |
+| **Borders**    | `--border`         | rgba(255,255,255,0.12)                                            | rgba(0,0,0,0.12)     | #ffffff                |
+|                | `--divider`        | rgba(255,255,255,0.06)                                            | rgba(0,0,0,0.06)     | rgba(255,255,255,0.15) |
+| **Text**       | `--text-primary`   | rgba(255,255,255,0.87)                                            | #333                 | #ffffff                |
+|                | `--text-secondary` | rgba(255,255,255,0.6)                                             | #666                 | #cccccc                |
+|                | `--text-muted`     | rgba(255,255,255,0.38)                                            | #999                 | #999999                |
+|                | `--text-ghost`     | rgba(255,255,255,0.15)                                            | rgba(0,0,0,0.15)     | rgba(255,255,255,0.3)  |
+| **Accent**     | `--accent`         | #00a8ff                                                           | #0072b2              | #00ff00                |
+|                | `--accent-subtle`  | rgba(0,168,255,0.15)                                              | rgba(0,114,178,0.12) | rgba(0,255,0,0.2)      |
+|                | `--accent-muted`   | rgba(0,168,255,0.08)                                              | rgba(0,114,178,0.06) | rgba(0,255,0,0.1)      |
+| **Status**     | `--danger`         | #d55e00                                                           | #d55e00              | #ff6633                |
+|                | `--danger-subtle`  | rgba(213,94,0,0.15)                                               | rgba(213,94,0,0.12)  | rgba(255,102,51,0.2)   |
+|                | `--success`        | #009e73                                                           | #009e73              | #00ff88                |
+| **Radii**      | `--radius-sm`      | 2px                                                               | 2px                  | 2px                    |
+|                | `--radius-md`      | 4px                                                               | 4px                  | 4px                    |
+|                | `--radius-lg`      | 6px                                                               | 6px                  | 6px                    |
+| **Typography** | `--font-mono`      | Fira Code, Cascadia Code, JetBrains Mono, ui-monospace, monospace | (same)               | (same)                 |
+
+## Per-Component CSS Audit
+
+### CharacterPanel Components (PRIMARY migration targets)
+
+#### SkillRow.module.css (NEEDS MIGRATION - highest change count)
+
+- 10x `--border-primary` -> `--border`
+- 6x `--surface-tertiary` -> `--surface-hover`
+- 5x `border-radius: 3px` -> `var(--radius-sm)` or keep as-is (3px is close to 2px `--radius-sm`)
+- 1x `border-radius: 4px` -> `var(--radius-md)`
+- 2x `color: white` (lines 163, 232) -> `var(--text-on-faction)` (used on hover states with colored bg)
+- Multiple `rem` font-sizes that may need px conversion per Phase 1+2 pattern
+- References `--surface-primary`, `--surface-secondary`, `--text-primary`, `--text-secondary`, `--text-muted`, `--health-high`, `--health-low`, `--accent-primary` (all defined)
+
+#### CharacterPanel.module.css (NEEDS MIGRATION)
+
+- 2x `--border-primary` -> `--border`
+- 1x `border-radius: 4px` -> `var(--radius-md)`
+- References `--surface-primary`, `--surface-secondary`, `--text-primary`, `--text-secondary` (all defined)
+
+#### PriorityTab.module.css (NEEDS MIGRATION)
+
+- 2x `--border-primary` -> `--border`
+- 1x `--text-on-accent` (undefined) -> needs resolution
+- 1x `border-radius: 4px` -> `var(--radius-md)`
+- 1x `border-radius: 3px` -> keep or `var(--radius-sm)`
+- 1x `--accent-primary` used for `.assignBtn` background (defined)
+
+#### TriggerDropdown.module.css (NEEDS MIGRATION)
+
+- 4x `--border-primary` -> `--border`
+- 1x `--surface-tertiary` -> `--surface-hover`
+- 2x `color: white` (lines 39, 60) -> `var(--text-on-faction)`
+- 3x `border-radius: 3px` -> `var(--radius-sm)` or keep
+
+### BattleViewer Components
+
+#### DamageNumber.module.css (NEEDS MIGRATION)
+
+- `fill: white` (line 7) -> hardcoded, could use `var(--surface-elevated)` since it's always white
+- `font-family: "Courier New", monospace` (line 13) -> `var(--font-mono)`
+- `fill: #333` (line 16) -> hardcoded dark text, could use a token but this is SVG fill on a white bg
+
+#### Cell.module.css (MINOR)
+
+- `--focus-ring` (undefined) -> `--interactive-focus` or `--accent`
+- Note: Also in Cell.tsx line 73 as inline attribute `stroke="var(--focus-ring)"` (needs TSX change too)
+
+#### Token.module.css (MINOR)
+
+- `font-family: system-ui, ...` (line 65-71) -> potentially `var(--font-mono)` but this is for letter labels inside tokens; system-ui may be intentional for readability at small sizes
+
+#### CharacterTooltip.module.css (OK - already uses legacy tokens well)
+
+- Uses `--surface-primary`, `--border-default`, `--border-subtle`, `--content-*` tokens
+- `border-radius: 6px` -> `var(--radius-lg)`
+- `border-radius: 4px` -> `var(--radius-md)`
+- `box-shadow: 0 4px 12px rgba(0,0,0,0.3)` -> hardcoded, no shadow token exists
+
+#### BattleViewer.module.css (OK - minimal)
+
+- `padding: 20px` -> hardcoded but this is structural spacing
+
+### Other Components
+
+#### RuleEvaluations.module.css (NEEDS MIGRATION)
+
+- 2x `--surface-tertiary` -> `--surface-hover`
+- `font-family: monospace` (line 122) -> `var(--font-mono)`
+- `color: white` (line 199) -> `var(--text-on-faction)`
+- Uses legacy `--content-*` and `--border-*` tokens (all defined)
+
+#### InventoryPanel.module.css (LEGACY - low priority)
+
+- 1x `--surface-tertiary` -> `--surface-hover`
+- 1x `--border-emphasis` (undefined) -> `--accent` or `--border-default`
+- Marked as legacy (to be deleted per architecture.md)
+
+#### SkillsPanel.module.css (LEGACY - low priority)
+
+- 2x `--surface-tertiary` -> `--surface-hover`
+- Multiple undefined error tokens with fallbacks (`--content-error`, `--surface-error`, etc.)
+- Marked as legacy (to be deleted per architecture.md)
+
+#### PlayControls.module.css (OK - uses legacy tokens properly)
+
+#### CharacterControls.module.css (OK - uses legacy tokens properly)
+
+#### ThemeToggle.module.css (OK - uses legacy tokens properly)
+
+#### BattleStatusBadge.module.css (OK - uses legacy tokens properly)
+
+### Global Files (Already Migrated in Phase 1+2)
+
+- `index.css` - already uses `--font-mono`, `--ground`
+- `App.css` - already converted to px values
 
 ## Existing Patterns
 
-### Current Token Taxonomy in `theme.css`
-
-Existing tokens (dark theme `:root`, mirrored in light and high-contrast themes):
-
-**Surfaces:**
-
-- `--surface-ground: #242424` (page background)
-- `--surface-primary: #2a2a2a` (main content panels)
-- `--surface-secondary: #1e1e1e` (nested/scroll containers)
-- `--surface-elevated: #ffffff` (tooltips/overlays)
-
-**Content (text):**
-
-- `--content-primary: rgba(255, 255, 255, 0.87)` (main text)
-- `--content-secondary: rgba(255, 255, 255, 0.6)` (muted text)
-- `--content-muted: rgba(255, 255, 255, 0.38)` (disabled/hints)
-
-**Borders:**
-
-- `--border-default: #555` (panel borders)
-- `--border-subtle: #444` (dividers)
-
-**Interactive:**
-
-- `--interactive-hover: #3a3a3a`
-- `--interactive-focus: #0072b2`
-
-**Also present:** Faction, Action, Token, Status, Health, Contrast, Targeting, Grid, Scrollbar token groups (all well-structured, not changing in Phase 1-2).
-
-### Token Gap Analysis: Required vs Existing
-
-| Required Token     | Exists? | Closest Existing                                                         | Notes                                        |
-| ------------------ | ------- | ------------------------------------------------------------------------ | -------------------------------------------- |
-| `--ground`         | NO      | `--surface-ground` (#242424)                                             | New alias needed                             |
-| `--surface`        | NO      | `--surface-primary` (#2a2a2a)                                            | New alias needed                             |
-| `--surface-hover`  | NO      | `--interactive-hover` (#3a3a3a)                                          | New alias needed                             |
-| `--border`         | NO      | `--border-default` (#555)                                                | New token; should use translucent rgba value |
-| `--border-subtle`  | EXISTS  | `--border-subtle` (#444)                                                 | Name collision -- see Open Questions         |
-| `--divider`        | NO      | none                                                                     | New token (e.g., rgba(255,255,255,0.06))     |
-| `--text-primary`   | NO      | `--content-primary`                                                      | New alias needed                             |
-| `--text-secondary` | NO      | `--content-secondary`                                                    | New alias needed                             |
-| `--text-muted`     | NO      | `--content-muted`                                                        | New alias needed                             |
-| `--text-ghost`     | NO      | none                                                                     | New token (very faint text)                  |
-| `--accent`         | NO      | `--accent-primary` (#00a8ff)                                             | New alias needed                             |
-| `--accent-subtle`  | NO      | none                                                                     | New token                                    |
-| `--accent-muted`   | NO      | none                                                                     | New token                                    |
-| `--danger`         | NO      | `--status-error` (#d55e00)                                               | New alias needed                             |
-| `--danger-subtle`  | NO      | `--status-error-bg`                                                      | New token                                    |
-| `--success`        | NO      | `--status-success` (#009e73)                                             | New alias needed                             |
-| `--radius-sm`      | NO      | none                                                                     | New token (e.g., 2px)                        |
-| `--radius-md`      | NO      | none                                                                     | New token (e.g., 4px)                        |
-| `--radius-lg`      | NO      | none                                                                     | New token (e.g., 6px)                        |
-| `--font-mono`      | NO      | none (RuleEvaluations uses `var(--font-mono, monospace)` as forward-ref) | New token needed                             |
-
-**Summary:** 1 of 20 required tokens already exists (`--border-subtle`). 19 need to be added. The existing `--border-subtle` may need its value adjusted.
-
-### Theming Strategy
-
-- Three themes already exist: dark (default), light (`data-theme="light"`), high-contrast (`data-theme="high-contrast"`)
-- `light-dark()` is NOT used anywhere in the codebase currently
-- `color-scheme: light dark` declaration already exists in `index.css` line 9 (required for `light-dark()` to work)
-
-### CSS Modules Pattern
-
-- All component styles use `.module.css` files (23 module CSS files found)
-- Architecture doc confirms: "Styling: CSS Modules + CSS Custom Properties (for accessibility theming)"
+- **Three-block theming**: All custom properties defined in `:root`, `[data-theme="light"]`, and `[data-theme="high-contrast"]`
+- **Dual token layers**: Legacy tokens (e.g., `--surface-primary`) coexist with terminal overlay tokens (e.g., `--surface`) per ADR-019
+- **CSS Modules**: All component styles use `*.module.css` convention
+- **No shadow tokens**: Box shadows are hardcoded (only one instance in CharacterTooltip)
+- **Fallback pattern**: Some SkillsPanel tokens use CSS fallback syntax `var(--token, fallback)` for undefined tokens
 
 ## Dependencies
 
-- Phase 2 depends on Phase 1 (global styles reference new tokens like `--ground` and `--font-mono`)
-- Component phases (3+) depend on both Phase 1 and Phase 2 tokens being in place
-- `--border-primary` is referenced 18 times across CharacterPanel components but is NEVER defined in `theme.css` -- this is a pre-existing bug that will need addressing in Phase 3
+- ADR-019 establishes the terminal overlay token design pattern and coexistence strategy
+- Phase 1+2 already completed: theme.css tokens, index.css, App.css
+- Cell.tsx has an inline `stroke="var(--focus-ring)"` that needs TSX change alongside CSS fix (scope expansion beyond CSS-only)
 
 ## Constraints Discovered
 
-### Pre-existing Issues
-
-1. **Undefined `--border-primary` token**: Used 18 times in CharacterPanel/ files (SkillRow 10x, CharacterPanel 2x, TriggerDropdown 4x, PriorityTab 2x) but never defined in `theme.css`. CSS custom properties without fallbacks resolve to `initial` (which for `border-color` means `currentColor`). This is a pre-existing bug, not introduced by this sweep. Will need to be mapped to `--border` during Phase 3 component migration.
-
-2. **Three theme variants**: New tokens must be added to all three theme blocks (dark, light, high-contrast) to maintain parity. `light-dark()` can only cover the dark+light pair; high-contrast still needs its own override block.
-
-3. **`color-scheme: light dark` already declared**: Required for `light-dark()` to function. Already present in `index.css` line 9.
-
-### Phase 2: `App.css` Violations (7 rem values to convert)
-
-| Line | Current               | Target                                     |
-| ---- | --------------------- | ------------------------------------------ |
-| 5    | `padding: 0.5rem`     | `padding: 8px`                             |
-| 13   | `margin-bottom: 1rem` | `margin-bottom: 12px`                      |
-| 17   | `font-size: 2.5rem`   | `font-size: 16px` + add `font-weight: 700` |
-| 24   | `gap: 1rem`           | `gap: 8px`                                 |
-| 32   | `gap: 1rem`           | `gap: 8px` or `12px`                       |
-| 33   | `margin-bottom: 1rem` | `margin-bottom: 12px`                      |
-
-### Phase 2: `index.css` Violations (2 changes)
-
-1. Line 5: `font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif` -> `font-family: var(--font-mono)`
-2. Line 10: `background-color: var(--surface-ground)` -> `background-color: var(--ground)`
-
-### Codebase-wide Violation Inventory (Phase 3+ reference)
-
-**Font-family violations (4 files outside index.css):**
-
-- `Token.module.css`: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif
-- `DamageNumber.module.css`: "Courier New", monospace
-- `RuleEvaluations.module.css`: `monospace` (line 122), `var(--font-mono, monospace)` (line 274 -- already prepared)
-- `index.css`: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif (Phase 2 target)
-
-**rem/em violations (150+ occurrences in 14 component CSS files):**
-
-- SkillRow.module.css: 44 occurrences (heaviest user)
-- RuleEvaluations.module.css: 42 occurrences
-- CharacterTooltip.module.css: 28 occurrences
-- CharacterPanel.module.css: 6 occurrences
-- PriorityTab.module.css: 10 occurrences
-- TriggerDropdown.module.css: 10 occurrences
-- InventoryPanel.module.css: 16 occurrences
-- SkillsPanel.module.css: 24 occurrences
-- PlayControls.module.css: 4 occurrences
-- CharacterControls.module.css: 4 occurrences
-- BattleStatusBadge.module.css: 6 occurrences
-- ThemeToggle.module.css: 4 occurrences
-- BattleViewer.module.css: 1 occurrence
-- App.css: 7 occurrences (Phase 2 target)
-
-**`2px solid` border violations (14 occurrences in 8 files):**
-
-- SkillsPanel.module.css: border (1x) + outlines (2x)
-- InventoryPanel.module.css: border (1x)
-- PlayControls.module.css: outline (1x)
-- BattleStatusBadge.module.css: border (1x)
-- ThemeToggle.module.css: border (1x) + outlines (2x)
-- CharacterControls.module.css: outline (1x) + border (1x)
-- RuleEvaluations.module.css: border (1x)
-- CharacterTooltip.module.css: border (1x)
-
-NOTE: `outline: 2px solid` for focus indicators (PlayControls, ThemeToggle, CharacterControls) are accessibility features and may need to remain 2px.
-
-**`var(--surface-primary)` usage (17 occurrences in 10 files):**
-All will need migration to `var(--surface)` in Phase 3+.
-
-**`#242424`/`#2a2a2a` hardcoded in components:** None found. These values only appear in `theme.css` token definitions, not in component CSS. Good -- components already use tokens.
+1. **Cell.tsx inline SVG attribute**: `--focus-ring` is used both in CSS (`Cell.module.css:20`) and inline in TSX (`Cell.tsx:73`). Fixing the CSS-only part won't fully resolve this -- the TSX file also needs updating. This is the ONLY TSX change needed.
+2. **Legacy components**: SkillsPanel and InventoryPanel are marked "Legacy - to be deleted" in architecture.md. Full migration effort there is questionable -- recommend minimal fix (just undefined token resolution) or skip entirely.
+3. **Token naming collision**: The terminal overlay `--surface` token collides with the legacy `--surface-primary`/`--surface-secondary` names conceptually but not literally. The `--text-primary`/`--text-secondary` tokens exist in BOTH layers with identical values, which is safe but worth noting.
+4. **Border radius values**: Components use 3px and 4px. Terminal overlay tokens provide `--radius-sm: 2px` and `--radius-md: 4px`. The 3px values have no exact match -- either round to 2px (`--radius-sm`) or keep as-is.
+5. **`rem` vs `px` sizing**: Phase 1+2 converted App.css to px. Component CSS files still use `rem` for font-sizes. Decision needed: convert component rem to px too, or only convert structural layout values?
 
 ## Open Questions
 
-1. **`light-dark()` strategy**: The requirements say "use `light-dark()` where trivially possible." Since there are three themes (dark, light, high-contrast), `light-dark()` only covers two. Should new tokens use `light-dark()` in `:root` and then override in the high-contrast block? Or should all three theme blocks define values independently as existing tokens do? Recommendation: Use `light-dark()` for dark/light pairs in `:root`, override in high-contrast block.
+1. **Should `--border-primary` be replaced with `--border` (terminal overlay) or `--border-default` (legacy)?** The terminal overlay direction per ADR-019 suggests `--border`, but this means CharacterPanel components would use terminal overlay tokens while other components (PlayControls, CharacterControls, ThemeToggle) continue using legacy `--border-default`. Is this intentional incremental migration or inconsistency?
 
-2. **`--border-subtle` naming collision**: The existing `--border-subtle: #444` has the same name as a required new token. Since the requirement says "new tokens coexist with existing tokens (no removals)," this token effectively already exists. The planner needs to decide whether to adjust its value (e.g., from `#444` to a translucent rgba) or keep it as-is.
+2. **Should legacy components (SkillsPanel, InventoryPanel) be migrated?** They are marked for deletion. Minimal undefined-token fixes vs full migration.
 
-3. **Focus ring outlines**: Several `outline: 2px solid` declarations exist for focus indicators. These are accessibility features. The requirements say "All borders use 1px solid" but outlines serve a different purpose. Planner should clarify whether outlines are in scope.
+3. **Should Cell.tsx inline `var(--focus-ring)` be fixed as part of this task?** It's a TSX change, not pure CSS. The task description says "CSS-only task -- no logic or DOM changes expected" but this is a simple attribute value change (no logic change).
 
-4. **`--ground` vs `--surface-ground` aliasing**: Should `--ground` reference `--surface-ground` (e.g., `--ground: var(--surface-ground)`) or have an independent value? Same question for `--surface` vs `--surface-primary`, `--accent` vs `--accent-primary`, `--danger` vs `--status-error`, `--success` vs `--status-success`. Using aliases creates a dependency chain; independent values are more resilient but harder to maintain. Recommendation: Independent values, since the new tokens represent the terminal-overlay aesthetic and may diverge from the old tokens over time.
+4. **What to do with `3px` border-radius values?** Round down to `--radius-sm` (2px), round up to `--radius-md` (4px), or leave as hardcoded `3px`?
 
-5. **Font token value**: What monospace font stack should `--font-mono` use? Options:
-   - `"Courier New", monospace` (matches existing DamageNumber)
-   - `"JetBrains Mono", "Fira Code", "Cascadia Code", "Source Code Pro", monospace` (modern dev fonts)
-   - Simply `monospace` (minimalist)
-     Recommendation: Let the planner decide, but `monospace` is safest (no external font dependencies).
+5. **Should `rem` font-sizes in component CSS be converted to `px`?** Phase 1+2 converted App.css from rem to px. SkillRow.module.css has many rem-based font-sizes (0.75rem, 0.8rem, 0.85rem, etc.).
 
-6. **`--border-primary` pre-existing bug**: Should Phase 1 add `--border-primary` as an alias for `--border` to fix the 18 CharacterPanel references proactively, or leave this for Phase 3 component migration? The requirements do not list `--border-primary` as a required token. Recommendation: Leave for Phase 3 (out of scope for token foundation).
+6. **How to handle `color: white` hardcodes?** Some are hover states on colored backgrounds (e.g., remove button hover turns red with white text). `--text-on-faction` is the closest token but semantically different.

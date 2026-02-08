@@ -6,7 +6,7 @@
 
 .select {
   padding: 0.25rem 0.5rem;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border);
   border-radius: 3px;
   background: var(--surface-primary);
   color: var(--text-primary);
@@ -16,7 +16,7 @@
 .input {
   width: 60px;
   padding: 0.25rem 0.5rem;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border);
   border-radius: 3px;
   background: var(--surface-primary);
   color: var(--text-primary);
@@ -26,7 +26,7 @@
 .removeBtn {
   padding: 0.15rem 0.35rem;
   font-size: 0.75rem;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -36,14 +36,14 @@
 
 .removeBtn:hover {
   background: var(--health-low);
-  color: white;
+  color: var(--text-on-faction);
 }
 
 .notToggle {
   padding: 0.15rem 0.35rem;
   font-size: 0.7rem;
   font-weight: 600;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -52,11 +52,11 @@
 }
 
 .notToggle:hover {
-  background: var(--surface-tertiary);
+  background: var(--surface-hover);
 }
 
 .notToggleActive {
   background: var(--health-low);
-  color: white;
+  color: var(--text-on-faction);
   border-color: var(--health-low);
 }

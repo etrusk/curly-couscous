@@ -1,61 +1,59 @@
-# Review Findings: Phase 1 (Token Foundation) + Phase 2 (Global Styles)
+# Review Findings: CSS Token Migration
 
-**Reviewer:** tdd-reviewer | **Date:** 2026-02-08 | **Cycle:** 1
-
-## Verdict: PASS
-
-No CRITICAL or IMPORTANT issues found. Implementation matches plan exactly.
-
-## Phase 1: Token Foundation
-
-- [x] 19 new tokens present in all 3 theme blocks (dark, light, high-contrast)
-- [x] Plus existing `--border-subtle` = 20 total required tokens accounted for
-- [x] All token values match `plan.md` exactly (verified per-value)
-- [x] No existing tokens removed or modified (diff is pure additions)
-- [x] `theme.css` at 381 lines -- under 400-line limit
-- [x] Okabe-Ito faction colors unchanged
-- [x] Insertion point consistent (after scrollbar group, before closing `}`)
-
-## Phase 2: Global Styles
-
-- [x] `index.css` font-family changed to `var(--font-mono)` (no Inter/system-ui/sans-serif remaining)
-- [x] `index.css` background-color changed to `var(--ground)` (was `var(--surface-ground)`)
-- [x] `App.css` all 6 rem-to-px conversions applied correctly
-- [x] `App.css` h1 font-size 16px, font-weight 700 added
-- [x] `App.css` gap values: 8px (headerControls), 12px (gridContainer)
-- [x] Zero rem/em remaining in `App.css` (grep confirmed)
-- [x] `line-height: 1.1` retained as unitless ratio (correct -- not a spacing unit)
-
-## Cross-cutting
-
-- [x] No engine, store, or hook files modified (git diff confirmed empty)
-- [x] All 1510 tests passing
-- [x] Lint clean (zero warnings)
-- [x] Type-check clean
-- [x] Only 3 source files modified: `theme.css`, `index.css`, `App.css`
-
-## Duplication Check
-
-No duplication concerns. New tokens are independent values (not aliases to existing tokens), as specified in plan decision D6. This is intentional for migration flexibility.
-
-## MINOR Issues
-
-### M1: `light-dark()` requirement not met (accepted deviation)
-
-Requirements state "New color tokens use `light-dark()` where trivially possible." Plan explicitly decided against this (D1 in plan.md) with sound rationale (consistency with existing three-block pattern, high-contrast needs separate block regardless). Documented deviation, not oversight.
-
-### M2: `--surface-ground` still referenced elsewhere (expected)
-
-After changing `index.css` to use `var(--ground)`, the old `--surface-ground` token remains defined in `theme.css` and may be consumed by components not yet migrated. Expected for incremental migration. No action needed.
-
-## Security
-
-No security concerns. All changes are CSS custom property declarations and value substitutions. No external I/O, no user input handling.
+**Reviewer verdict: PASS**
 
 ## Summary
 
-| Category  | Count                          |
-| --------- | ------------------------------ |
-| CRITICAL  | 0                              |
-| IMPORTANT | 0                              |
-| MINOR     | 2 (both acknowledged/expected) |
+40 token replacements across 8 files. All replacements match the approved plan exactly. All quality gates pass (1510 tests, lint clean, type-check clean). No critical or important issues found.
+
+## Verification Results
+
+### Plan Compliance (PASS)
+
+Every replacement in every file matches the plan's token mapping table:
+
+| File                       | Planned | Actual | Match |
+| -------------------------- | ------- | ------ | ----- |
+| SkillRow.module.css        | 19      | 19     | Yes   |
+| CharacterPanel.module.css  | 3       | 3      | Yes   |
+| PriorityTab.module.css     | 4       | 4      | Yes   |
+| TriggerDropdown.module.css | 7       | 7      | Yes   |
+| RuleEvaluations.module.css | 4       | 4      | Yes   |
+| Cell.module.css            | 1       | 1      | Yes   |
+| Cell.tsx                   | 1       | 1      | Yes   |
+| DamageNumber.module.css    | 1       | 1      | Yes   |
+
+### Token Definition Check (PASS)
+
+All 6 replacement tokens verified in all 3 theme blocks (`:root`, `[data-theme="light"]`, `[data-theme="high-contrast"]`):
+`--border`, `--surface-hover`, `--text-on-faction`, `--accent`, `--radius-md`, `--font-mono`.
+
+### Undefined Token Elimination (PASS)
+
+- `--border-primary`: 0 remaining in-scope references (was 18)
+- `--surface-tertiary`: 3 remaining in legacy-only files (SkillsPanel, InventoryPanel) -- out of scope per plan
+- `--text-on-accent`: 0 remaining
+- `--focus-ring`: 0 remaining
+- `--border-emphasis`: 1 remaining in legacy-only file (InventoryPanel) -- out of scope per plan
+
+### Scope Boundaries (PASS)
+
+- Legacy components (SkillsPanel, InventoryPanel): not modified
+- `3px` border-radius values: preserved as hardcoded (no exact token match)
+- DamageNumber `fill: white` / `fill: #333`: preserved as hardcoded (intentional)
+
+### Quality Gates (PASS)
+
+- Tests: 1510 passed, 0 failed
+- ESLint: clean
+- TypeScript: clean
+
+## Minor Observations (non-blocking)
+
+1. MINOR: `RuleEvaluations.module.css` line 274 uses `var(--font-mono, monospace)` with a CSS fallback. The two font-family instances migrated in this task (`monospace` and `"Courier New", monospace`) were correctly changed to `var(--font-mono)` without fallbacks, consistent with all other token usage in migrated files. The remaining fallback instance is in a different class (`.evaluationItem`) and predates this task.
+
+2. MINOR: The Cell.tsx inline `stroke="var(--accent)"` duplicates the CSS class `.clickableOverlay { stroke: var(--accent) }`. Both are applied to the same polygon element (line 69-76). The inline attribute takes priority, making the CSS declaration redundant. This duplication predates this task -- both previously used `--focus-ring`. No action needed, but a future cleanup could remove the inline attribute.
+
+## Issues
+
+**CRITICAL: 0** | **IMPORTANT: 0** | **MINOR: 2** (non-blocking, both pre-existing)

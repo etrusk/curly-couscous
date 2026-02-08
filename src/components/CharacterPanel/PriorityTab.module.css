@@ -42,8 +42,8 @@
   gap: 0.5rem;
   padding: 0.5rem;
   background: var(--surface-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 
 .skillName {
@@ -55,12 +55,12 @@
 .assignBtn {
   padding: 0.25rem 0.75rem;
   font-size: 0.85rem;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border);
   border-radius: 3px;
   cursor: pointer;
   transition: all 0.2s ease;
   background: var(--accent-primary);
-  color: var(--text-on-accent);
+  color: var(--text-on-faction);
 }
 
 .assignBtn:disabled {

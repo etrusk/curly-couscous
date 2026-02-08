@@ -4,8 +4,8 @@
   gap: 0.5rem;
   padding: 0.5rem;
   background: var(--surface-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 
 .skillRow.battleMode {
@@ -72,8 +72,8 @@
 .priorityControls button {
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
-  border: 1px solid var(--border-primary);
-  background: var(--surface-tertiary);
+  border: 1px solid var(--border);
+  background: var(--surface-hover);
   cursor: pointer;
   border-radius: 3px;
 }
@@ -91,7 +91,7 @@
 
 .select {
   padding: 0.25rem 0.5rem;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border);
   border-radius: 3px;
   background: var(--surface-primary);
   color: var(--text-primary);
@@ -101,7 +101,7 @@
 .input {
   width: 60px;
   padding: 0.25rem 0.5rem;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border);
   border-radius: 3px;
   background: var(--surface-primary);
   color: var(--text-primary);
@@ -126,7 +126,7 @@
 .addTriggerBtn {
   padding: 0.15rem 0.5rem;
   font-size: 0.75rem;
-  border: 1px dashed var(--border-primary);
+  border: 1px dashed var(--border);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -134,15 +134,15 @@
 }
 
 .addTriggerBtn:hover {
-  background: var(--surface-tertiary);
+  background: var(--surface-hover);
   color: var(--text-primary);
 }
 
 .duplicateBtn {
   padding: 0.25rem 0.75rem;
   font-size: 0.85rem;
-  border: 1px solid var(--border-primary);
-  background: var(--surface-tertiary);
+  border: 1px solid var(--border);
+  background: var(--surface-hover);
   color: var(--text-primary);
   cursor: pointer;
   border-radius: 3px;
@@ -151,8 +151,8 @@
 .removeBtn {
   padding: 0.25rem 0.75rem;
   font-size: 0.85rem;
-  border: 1px solid var(--border-primary);
-  background: var(--surface-tertiary);
+  border: 1px solid var(--border);
+  background: var(--surface-hover);
   color: var(--text-primary);
   cursor: pointer;
   border-radius: 3px;
@@ -160,14 +160,14 @@
 
 .removeBtn:hover {
   background: var(--health-low);
-  color: white;
+  color: var(--text-on-faction);
 }
 
 .unassignBtn {
   padding: 0.25rem 0.75rem;
   font-size: 0.85rem;
-  border: 1px solid var(--border-primary);
-  background: var(--surface-tertiary);
+  border: 1px solid var(--border);
+  background: var(--surface-hover);
   color: var(--text-primary);
   cursor: pointer;
   border-radius: 3px;
@@ -204,7 +204,7 @@
 .addFilterBtn {
   padding: 0.15rem 0.5rem;
   font-size: 0.75rem;
-  border: 1px dashed var(--border-primary);
+  border: 1px dashed var(--border);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -212,14 +212,14 @@
 }
 
 .addFilterBtn:hover {
-  background: var(--surface-tertiary);
+  background: var(--surface-hover);
   color: var(--text-primary);
 }
 
 .removeFilterBtn {
   padding: 0.15rem 0.35rem;
   font-size: 0.75rem;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--border);
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
@@ -229,7 +229,7 @@
 
 .removeFilterBtn:hover {
   background: var(--health-low);
-  color: white;
+  color: var(--text-on-faction);
 }
 
 .cooldownBadge {

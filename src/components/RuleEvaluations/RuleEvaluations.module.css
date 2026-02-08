@@ -119,7 +119,7 @@
 .skillTrigger {
   font-size: 0.75rem;
   color: var(--content-secondary);
-  font-family: monospace;
+  font-family: var(--font-mono);
 }
 
 .disabled {
@@ -146,7 +146,7 @@
 }
 
 .collapsedSummary:hover {
-  background-color: var(--surface-tertiary);
+  background-color: var(--surface-hover);
   color: var(--content-primary);
 }
 
@@ -177,7 +177,7 @@
 }
 
 .characterHeader:hover {
-  background-color: var(--surface-tertiary);
+  background-color: var(--surface-hover);
 }
 
 .characterHeaderContent {
@@ -196,7 +196,7 @@
   border-radius: 50%;
   font-weight: 600;
   font-size: 0.75rem;
-  color: white;
+  color: var(--text-on-faction);
 }
 
 .characterLetter.friendly {

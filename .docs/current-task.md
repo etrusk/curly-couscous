@@ -13,12 +13,20 @@ None -- ready for next task.
 
 ## Recent Completions
 
-- 2026-02-07: Skill Expansion Phase 1 -- Unified Trigger System (COMPLETE, TDD/Claude Code) - Refactored trigger type system: old `{ type, value?, negated? }` replaced with unified `{ scope: TriggerScope, condition: ConditionType, conditionValue?, qualifier?, negated? }`. `Skill.triggers[]` (plural, AND logic) replaced with `Skill.trigger` (singular). New types: TriggerScope, ConditionType, ConditionQualifier. New condition: hp_above. AND trigger logic removed. formatTriggers() removed, formatTrigger() rewritten. TriggerDropdown refactored to scope+condition dropdowns. 10 source files modified, 50+ test files migrated. 1361/1361 tests passing. spec.md, architecture.md updated.
+- 2026-02-08: Skill Expansion Phase 2 -- Unified Filter System (COMPLETE, TDD/Claude Code) - Replaced `SelectorFilter`/`SelectorFilterType` with `SkillFilter` using shared condition evaluator. `Skill.selectorFilter` renamed to `Skill.filter`. Filter evaluation changed from post-criterion single-target validation to pre-criterion pool narrowing with `filter_failed` rejection. Shared `evaluateConditionForCandidate()` extracted in triggers.ts, used by both triggers and filters. New filter conditions: `channeling`, `idle`, `targeting_me`, `targeting_ally`. Qualifier support for channeling. 15 source files modified, 79 tests across 5 files. 1396/1396 tests passing. ADR-016 added.
 
-- 2026-02-07: Battle UI Visual Polish (COMPLETE, TDD/Claude Code) - Four visual improvements: (1) SkillRow cooldown badge ("CD: N") + dimming when cooldownRemaining > 0, (2) WhiffOverlay with faded hex fills for missed cell-targeted attacks/heals via new WhiffEvent type, (3) TargetingLine white contrast outline matching IntentLine pattern, (4) two-pass Grid SVG rendering for token z-ordering + empty cell/background click deselection. 3 new files, 11 modified source files, 40 new tests + 6 updates. 1357/1357 tests passing. spec.md, architecture.md updated.
+- 2026-02-07: Skill Expansion Phase 1 -- Unified Trigger System (COMPLETE, TDD/Claude Code) - Refactored trigger type system: old `{ type, value?, negated? }` replaced with unified `{ scope, condition, conditionValue?, qualifier?, negated? }`. `Skill.triggers[]` replaced with `Skill.trigger`. New types: TriggerScope, ConditionType, ConditionQualifier. 10 source files modified, 50+ test files migrated. 1361/1361 tests passing.
 
-- 2026-02-07: Remove Phase Switching and Toggles (COMPLETE, TDD/Claude Code) - Removed battle/config phase layout switching (data-phase), auto-focus pill toggle, targeting lines checkbox. Layout fixed at 2fr 3fr. Deleted calculatePreBattleStatus; callers use calculateBattleStatus. TargetingLineOverlay always renders. Single-faction battleStatus changed from "draw" to "victory"/"defeat". 15 tests deleted, 8 new tests added, 4 modified. 1317/1317 tests passing. spec.md, architecture.md updated.
+- 2026-02-07: Battle UI Visual Polish (COMPLETE, TDD/Claude Code) - Four visual improvements: cooldown badges, whiff overlays, targeting line outlines, token z-ordering. 3 new files, 11 modified. 1357/1357 tests passing.
 
-- 2026-02-07: Prototype Mode Simplification (COMPLETE, TDD/Claude Code) - Inventory visibility now based on faction presence (both factions on board = hidden) instead of battle mode. Removed `mode` prop from PriorityTab; reads `battleStatus` from store directly. Auto-focus checkbox replaced with pill/switch toggle (`role="switch"`, `aria-checked`). 8 new tests, ~22 existing test modifications. 1327/1327 tests passing. spec.md, architecture.md updated.
+## Priority Next Tasks (from TDD session)
+
+- [ ] TriggerDropdown.test.tsx exceeds 400-line limit (454 lines, pre-existing) (found during: Phase 2 Unified Filter System, date: 2026-02-08)
 
 ## Next Steps
+
+Skill Expansion Phases 3-8 (see `.tdd/requirements.md` for acceptance criteria):
+
+- [ ] **Session A remainder -- Phase 3**: New Trigger Conditions
+- [ ] **Session B -- Phases 4+5+6**: Ranged Attack + distance/Dash + most_enemies_nearby (~25 criteria)
+- [ ] **Session C -- Phases 7+8**: Kick (Interrupt) + Charge (~35 criteria)

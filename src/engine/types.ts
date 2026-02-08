@@ -66,21 +66,18 @@ export interface Skill {
   target: Target;
   criterion: Criterion;
   cooldownRemaining?: number; // Ticks remaining until skill is ready
-  selectorFilter?: SelectorFilter; // Optional post-selector target filter
+  filter?: SkillFilter; // Optional pre-criterion candidate filter
 }
 
 /**
- * Filter type for selector filters.
+ * Skill filter narrows the candidate pool before criterion selection.
+ * Uses the unified condition model shared with triggers.
  */
-export type SelectorFilterType = "hp_below" | "hp_above";
-
-/**
- * Selector filter validates the selected target after selector picks it,
- * but before the range check.
- */
-export interface SelectorFilter {
-  type: SelectorFilterType;
-  value: number; // Percentage threshold (0-100)
+export interface SkillFilter {
+  condition: ConditionType;
+  conditionValue?: number;
+  qualifier?: ConditionQualifier;
+  negated?: boolean;
 }
 
 /**
@@ -96,8 +93,10 @@ export type ConditionType =
   | "in_range"
   | "hp_below"
   | "hp_above"
-  | "targeting_me";
-// Phase 3 will add: "channeling" | "idle" | "targeting_ally"
+  | "targeting_me"
+  | "channeling"
+  | "idle"
+  | "targeting_ally";
 
 /**
  * Qualifier narrows condition matching (e.g., channeling a specific skill).
@@ -340,7 +339,7 @@ export interface SkillEvaluationResult {
   target?: Character; // The selected/attempted target
   distance?: number; // Distance to target (for out_of_range context)
   failedTrigger?: Trigger; // Which trigger failed (for trigger_failed)
-  failedFilter?: SelectorFilter; // Which filter failed (for filter_failed)
+  failedFilter?: SkillFilter; // Which filter failed (for filter_failed)
 }
 
 /**

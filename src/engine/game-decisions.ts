@@ -14,8 +14,8 @@ import {
   hexDistance,
 } from "./types";
 import { evaluateTrigger } from "./triggers";
-import { evaluateTargetCriterion } from "./selectors";
-import { evaluateSelectorFilter } from "./selector-filters";
+import { evaluateTargetCriterion, hasCandidates } from "./selectors";
+import { evaluateFilterForCandidate } from "./selector-filters";
 import {
   getActionType,
   createSkillAction,
@@ -92,22 +92,23 @@ function tryExecuteSkill(
     return null;
   }
 
-  // Use target/criterion to find target
+  // Build candidate filter if skill has a filter and is not self-targeting
+  const candidateFilter =
+    skill.filter && skill.target !== "self"
+      ? (c: Character) =>
+          evaluateFilterForCandidate(skill.filter!, c, character, allCharacters)
+      : undefined;
+
+  // Use target/criterion to find target (with optional pre-criterion filter)
   const target = evaluateTargetCriterion(
     skill.target,
     skill.criterion,
     character,
     allCharacters,
+    candidateFilter,
   );
   if (!target) {
     return null;
-  }
-
-  // Check selector filter (post-selector, pre-range)
-  if (skill.selectorFilter) {
-    if (!evaluateSelectorFilter(skill.selectorFilter, target)) {
-      return null;
-    }
   }
 
   // Validate action-specific conditions
@@ -185,6 +186,7 @@ export function computeDecisions(state: Readonly<GameState>): Decision[] {
 /**
  * Evaluate a single skill and return a detailed result for UI display.
  */
+// eslint-disable-next-line complexity -- sequential pipeline of rejection checks
 function evaluateSingleSkill(
   skill: Skill,
   character: Character,
@@ -215,27 +217,35 @@ function evaluateSingleSkill(
     };
   }
 
+  // Build candidate filter if skill has a filter and is not self-targeting
+  const candidateFilter =
+    skill.filter && skill.target !== "self"
+      ? (c: Character) =>
+          evaluateFilterForCandidate(skill.filter!, c, character, allCharacters)
+      : undefined;
+
   const target = evaluateTargetCriterion(
     skill.target,
     skill.criterion,
     character,
     allCharacters,
+    candidateFilter,
   );
   if (!target) {
-    return { skill, status: "rejected", rejectionReason: "no_target" };
-  }
-
-  // Check selector filter (post-selector, pre-range)
-  if (skill.selectorFilter) {
-    if (!evaluateSelectorFilter(skill.selectorFilter, target)) {
+    // Distinguish filter_failed from no_target
+    if (
+      skill.filter &&
+      skill.target !== "self" &&
+      hasCandidates(skill.target, character, allCharacters)
+    ) {
       return {
         skill,
         status: "rejected",
         rejectionReason: "filter_failed",
-        target,
-        failedFilter: skill.selectorFilter,
+        failedFilter: skill.filter,
       };
     }
+    return { skill, status: "rejected", rejectionReason: "no_target" };
   }
 
   const actionType = getActionType(skill);

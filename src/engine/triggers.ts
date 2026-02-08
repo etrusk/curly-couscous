@@ -3,7 +3,92 @@
  * Pure TypeScript - no React dependencies.
  */
 
-import { Trigger, Character, hexDistance, positionsEqual } from "./types";
+import {
+  Trigger,
+  Character,
+  ConditionType,
+  ConditionQualifier,
+  hexDistance,
+  positionsEqual,
+} from "./types";
+
+/**
+ * Check if a channeling candidate matches an optional qualifier.
+ * Extracted to reduce complexity of the main condition evaluator.
+ */
+function matchesChannelingQualifier(
+  candidate: Character,
+  qualifier: ConditionQualifier | undefined,
+): boolean {
+  if (candidate.currentAction === null) return false;
+  if (!qualifier) return true;
+  if (qualifier.type === "skill") {
+    return candidate.currentAction.skill.id === qualifier.id;
+  }
+  if (qualifier.type === "action") {
+    return candidate.currentAction.type === qualifier.id;
+  }
+  return true;
+}
+
+/**
+ * Evaluates a single condition against a single candidate character.
+ * This is the shared primitive used by both trigger evaluation (pool.some)
+ * and filter evaluation (pool.filter).
+ */
+export function evaluateConditionForCandidate(
+  condition: ConditionType,
+  conditionValue: number | undefined,
+  qualifier: ConditionQualifier | undefined,
+  candidate: Character,
+  evaluator: Character,
+  allCharacters: Character[],
+): boolean {
+  const cv = conditionValue ?? 0;
+
+  switch (condition) {
+    case "always":
+      return true;
+
+    case "in_range":
+      return hexDistance(candidate.position, evaluator.position) <= cv;
+
+    case "hp_below":
+      return candidate.maxHp > 0 && (candidate.hp / candidate.maxHp) * 100 < cv;
+
+    case "hp_above":
+      return candidate.maxHp > 0 && (candidate.hp / candidate.maxHp) * 100 > cv;
+
+    case "targeting_me":
+      return (
+        candidate.currentAction !== null &&
+        positionsEqual(candidate.currentAction.targetCell, evaluator.position)
+      );
+
+    case "targeting_ally":
+      return (
+        candidate.currentAction !== null &&
+        allCharacters.some(
+          (ally) =>
+            ally.faction === evaluator.faction &&
+            ally.id !== evaluator.id &&
+            ally.hp > 0 &&
+            positionsEqual(candidate.currentAction!.targetCell, ally.position),
+        )
+      );
+
+    case "channeling":
+      return matchesChannelingQualifier(candidate, qualifier);
+
+    case "idle":
+      return candidate.currentAction === null;
+
+    default: {
+      const _exhaustive: never = condition;
+      return _exhaustive;
+    }
+  }
+}
 
 /**
  * Evaluates whether a single trigger condition is satisfied.
@@ -43,62 +128,22 @@ export function evaluateTrigger(
       break;
   }
 
-  // 2. Evaluate condition against pool
+  // 2. Evaluate condition against pool using shared evaluator
   let result: boolean;
-  const conditionValue = trigger.conditionValue ?? 0;
 
-  switch (trigger.condition) {
-    case "always":
-      result = true;
-      break;
-
-    case "in_range":
-      result = pool.some(
-        (c) => hexDistance(c.position, evaluator.position) <= conditionValue,
-      );
-      break;
-
-    case "hp_below":
-      if (trigger.scope === "self") {
-        // Guard against division by zero
-        if (evaluator.maxHp <= 0) {
-          result = false;
-          break;
-        }
-        result = (evaluator.hp / evaluator.maxHp) * 100 < conditionValue;
-      } else {
-        result = pool.some(
-          (c) => c.maxHp > 0 && (c.hp / c.maxHp) * 100 < conditionValue,
-        );
-      }
-      break;
-
-    case "hp_above":
-      if (trigger.scope === "self") {
-        if (evaluator.maxHp <= 0) {
-          result = false;
-          break;
-        }
-        result = (evaluator.hp / evaluator.maxHp) * 100 > conditionValue;
-      } else {
-        result = pool.some(
-          (c) => c.maxHp > 0 && (c.hp / c.maxHp) * 100 > conditionValue,
-        );
-      }
-      break;
-
-    case "targeting_me":
-      result = pool.some(
-        (c) =>
-          c.currentAction !== null &&
-          positionsEqual(c.currentAction.targetCell, evaluator.position),
-      );
-      break;
-
-    default: {
-      const _exhaustive: never = trigger.condition;
-      return _exhaustive; // Compile-time error if case missing
-    }
+  if (trigger.condition === "always") {
+    result = true;
+  } else {
+    result = pool.some((c) =>
+      evaluateConditionForCandidate(
+        trigger.condition,
+        trigger.conditionValue,
+        trigger.qualifier,
+        c,
+        evaluator,
+        allCharacters,
+      ),
+    );
   }
 
   // Apply negation if specified

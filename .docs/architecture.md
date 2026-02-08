@@ -14,7 +14,8 @@
 - **Pure Game Engine**: Core game logic in `/src/engine/` with no React dependencies
 - **Centralized Skill Registry**: All skill definitions in `src/engine/skill-registry.ts` (ADR-005)
 - **Hexagonal Grid System**: Axial coordinates {q, r}, pointy-top hex orientation (flat-top board shape), radius 5 (ADR-007)
-- **Data-Driven Targeting**: Target + criterion pairs, trigger (unified scope + condition), and selector filters as declarative data interfaces (not functions)
+- **Data-Driven Targeting**: Target + criterion pairs, trigger (unified scope + condition), and skill filters as declarative data interfaces (not functions)
+- **Shared Condition Evaluator**: `evaluateConditionForCandidate()` in `triggers.ts` used by both trigger evaluation (existential: `pool.some()`) and filter evaluation (per-element: `pool.filter()`)
 - **Command Pattern**: State mutations via named actions for history/undo support
 - **CSS Custom Property Theming**: Theme switching via `:root` data attributes (Phase 5 - planned)
 - **Functional Components with Hooks**: Custom hooks for shared logic
@@ -27,7 +28,7 @@
 ```
 src/
 ├── engine/           # Pure TypeScript game logic (no React)
-│   ├── types.ts      # Character, Skill, Trigger (scope+condition), TriggerScope, ConditionType, ConditionQualifier, Target, Criterion, Action, Position {q,r}, GameEvent (DamageEvent, DeathEvent, HealEvent, WhiffEvent)
+│   ├── types.ts      # Character, Skill, SkillFilter, Trigger (scope+condition), TriggerScope, ConditionType, ConditionQualifier, Target, Criterion, Action, Position {q,r}, GameEvent (DamageEvent, DeathEvent, HealEvent, WhiffEvent)
 │   ├── hex.ts        # Hex grid utilities: distance, neighbors, validation, pixel conversion
 │   ├── game.ts       # Core tick processing (barrel exports)
 │   ├── game-core.ts  # Tick processing: healing → movement → combat (ADR-010)
@@ -37,8 +38,8 @@ src/
 │   ├── movement.ts   # Movement, collision resolution
 │   ├── pathfinding.ts # A* pathfinding on hex grid with binary heap
 │   ├── selectors.ts  # Target selection strategies (hex distance, R/Q tiebreaking)
-│   ├── selector-filters.ts # Post-selector target validation (hp_below, hp_above)
-│   ├── triggers.ts   # Trigger condition evaluation (unified scope + condition model)
+│   ├── selector-filters.ts # Pre-criterion candidate pool filtering (shared condition evaluator)
+│   ├── triggers.ts   # Trigger condition evaluation + shared evaluateConditionForCandidate()
 │   └── skill-registry.ts # Centralized skill definitions (ADR-005)
 ├── stores/           # Zustand stores
 │   └── gameStore.ts  # Game state + selectors (BattleViewer selectors included, e.g., selectRecentWhiffEvents)

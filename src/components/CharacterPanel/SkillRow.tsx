@@ -6,7 +6,7 @@ import type {
   Character,
   Skill,
   Trigger,
-  SelectorFilterType,
+  ConditionType,
 } from "../../engine/types";
 import { useGameStore, selectActions } from "../../stores/gameStore";
 import { MAX_SKILL_SLOTS } from "../../stores/gameStore-constants";
@@ -73,16 +73,16 @@ export function SkillRow({
 
   const handleAddFilter = () => {
     updateSkill(character.id, skill.instanceId, {
-      selectorFilter: { type: "hp_below", value: 50 },
+      filter: { condition: "hp_below", conditionValue: 50 },
     });
   };
 
   const handleFilterTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const filterType = e.target.value as SelectorFilterType;
+    const filterType = e.target.value as ConditionType;
     updateSkill(character.id, skill.instanceId, {
-      selectorFilter: {
-        type: filterType,
-        value: skill.selectorFilter?.value ?? 50,
+      filter: {
+        condition: filterType,
+        conditionValue: skill.filter?.conditionValue ?? 50,
       },
     });
   };
@@ -91,13 +91,13 @@ export function SkillRow({
     const parsed = parseInt(e.target.value, 10);
     if (isNaN(parsed)) return;
     updateSkill(character.id, skill.instanceId, {
-      selectorFilter: { type: skill.selectorFilter!.type, value: parsed },
+      filter: { condition: skill.filter!.condition, conditionValue: parsed },
     });
   };
 
   const handleRemoveFilter = () => {
     updateSkill(character.id, skill.instanceId, {
-      selectorFilter: undefined,
+      filter: undefined,
     });
   };
 
@@ -251,10 +251,10 @@ export function SkillRow({
         <option value="highest_hp">Highest HP</option>
       </select>
 
-      {skill.selectorFilter ? (
+      {skill.filter ? (
         <span className={styles.filterGroup}>
           <select
-            value={skill.selectorFilter.type}
+            value={skill.filter.condition}
             onChange={handleFilterTypeChange}
             className={styles.select}
             aria-label={`Filter type for ${skill.name}`}
@@ -264,7 +264,7 @@ export function SkillRow({
           </select>
           <input
             type="number"
-            defaultValue={skill.selectorFilter.value}
+            defaultValue={skill.filter.conditionValue}
             onChange={handleFilterValueChange}
             className={styles.input}
             aria-label={`Filter value for ${skill.name}`}
@@ -321,7 +321,7 @@ function formatRejectionReason(reason: string): string {
     no_target: "No valid target",
     out_of_range: "Target out of range",
     on_cooldown: "On cooldown",
-    filter_failed: "Filter: target HP mismatch",
+    filter_failed: "Filter condition not met",
   };
   return map[reason] || reason;
 }

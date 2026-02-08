@@ -71,7 +71,7 @@ export function createSkill(overrides: Partial<Skill> & { id: string }): Skill {
     target: overrides.target ?? "enemy",
     criterion: overrides.criterion ?? "nearest",
     cooldownRemaining: overrides.cooldownRemaining,
-    selectorFilter: overrides.selectorFilter,
+    filter: overrides.filter,
   };
 }
 

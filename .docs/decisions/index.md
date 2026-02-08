@@ -24,7 +24,8 @@ LLM-optimized index of significant architectural and design decisions.
 | ADR-012 | Tasks DAG for Pipeline Orchestration (Experimental)               | 2026-02-06 | Proposed                       | [adr-012-tasks-dag-pipeline.md](./adr-012-tasks-dag-pipeline.md)                       |
 | ADR-013 | Agent Teams for Parallelized EXPLORE (Experimental)               | 2026-02-06 | Proposed                       | [adr-013-agent-teams-parallel-explore.md](./adr-013-agent-teams-parallel-explore.md)   |
 | ADR-014 | Dev-Only Window API for Smoke Test State Verification             | 2026-02-06 | Removed (smoke tests archived) | [archived](.archive/smoke-testing/docs/decisions/adr-014-dev-only-test-harness.md)     |
-| ADR-015 | Per-Instance Selector Filters                                     | 2026-02-06 | Accepted                       | [adr-015-per-instance-selector-filters.md](./adr-015-per-instance-selector-filters.md) |
+| ADR-015 | Per-Instance Skill Filters                                        | 2026-02-06 | Accepted (updated Phase 2)     | [adr-015-per-instance-selector-filters.md](./adr-015-per-instance-selector-filters.md) |
+| ADR-016 | Pre-Criterion Pool Narrowing for Skill Filters                    | 2026-02-08 | Accepted                       | [adr-016-pre-criterion-pool-narrowing.md](./adr-016-pre-criterion-pool-narrowing.md)   |
 
 ## Adding New ADRs
 

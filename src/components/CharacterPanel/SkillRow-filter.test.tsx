@@ -1,5 +1,7 @@
 /**
- * Tests for SkillRow component - Selector filter UI controls and display.
+ * Tests for SkillRow component - Filter UI controls and display.
+ * Updated for Phase 2: uses `filter` field (not `selectorFilter`)
+ * and new SkillFilter type `{ condition, conditionValue }`.
  * Split from SkillRow.test.tsx to stay under 400-line limit.
  */
 
@@ -8,9 +10,9 @@ import { render, screen, within } from "@testing-library/react";
 import { SkillRow } from "./SkillRow";
 import { createSkill, createCharacter } from "../../engine/game-test-helpers";
 
-describe("SkillRow - Selector Filter", () => {
+describe("SkillRow - Filter", () => {
   describe("Config Mode - Filter Controls", () => {
-    it("shows 'Add filter' button when skill has no selectorFilter", () => {
+    it("shows 'Add filter' button when skill has no filter", () => {
       const skill = createSkill({ id: "light-punch", name: "Light Punch" });
       const character = createCharacter({ id: "char1", skills: [skill] });
 
@@ -30,11 +32,11 @@ describe("SkillRow - Selector Filter", () => {
       expect(screen.queryByLabelText(/filter type/i)).not.toBeInTheDocument();
     });
 
-    it("shows filter controls when selectorFilter is set", () => {
+    it("shows filter controls when filter is set", () => {
       const skill = createSkill({
         id: "light-punch",
         name: "Light Punch",
-        selectorFilter: { type: "hp_below", value: 50 },
+        filter: { condition: "hp_below", conditionValue: 50 },
       });
       const character = createCharacter({ id: "char1", skills: [skill] });
 
@@ -64,7 +66,7 @@ describe("SkillRow - Selector Filter", () => {
       const skill = createSkill({
         id: "light-punch",
         name: "Light Punch",
-        selectorFilter: { type: "hp_below", value: 50 },
+        filter: { condition: "hp_below", conditionValue: 50 },
       });
       const character = createCharacter({ id: "char1", skills: [skill] });
 
@@ -94,7 +96,7 @@ describe("SkillRow - Selector Filter", () => {
       const skill = createSkill({
         id: "light-punch",
         name: "Light Punch",
-        selectorFilter: { type: "hp_below", value: 75 },
+        filter: { condition: "hp_below", conditionValue: 75 },
       });
       const character = createCharacter({ id: "char1", skills: [skill] });
 
@@ -112,7 +114,7 @@ describe("SkillRow - Selector Filter", () => {
       expect(input).toHaveValue(75);
     });
 
-    it("no filter controls rendered when skill has no selectorFilter", () => {
+    it("no filter controls rendered when skill has no filter", () => {
       const skill = createSkill({ id: "light-punch", name: "Light Punch" });
       const character = createCharacter({ id: "char1", skills: [skill] });
 
@@ -139,7 +141,7 @@ describe("SkillRow - Selector Filter", () => {
   });
 
   describe("Battle Mode - Filter Rejection Display", () => {
-    it("shows formatted rejection reason for filter_failed", () => {
+    it("shows generic rejection message for filter_failed", () => {
       const skill = createSkill({ id: "light-punch", name: "Light Punch" });
       const character = createCharacter({ id: "char1", skills: [skill] });
 
@@ -159,10 +161,8 @@ describe("SkillRow - Selector Filter", () => {
 
       // X mark visible for rejected status
       expect(screen.getByLabelText(/rejected/i)).toBeInTheDocument();
-      // Rejection reason text shows formatted filter failure message
-      expect(
-        screen.getByText(/filter: target hp mismatch/i),
-      ).toBeInTheDocument();
+      // Rejection reason text shows generic filter failure message
+      expect(screen.getByText(/filter condition not met/i)).toBeInTheDocument();
     });
   });
 });

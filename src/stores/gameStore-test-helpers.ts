@@ -51,4 +51,5 @@ export const createSkill = (
   },
   target: overrides.target ?? "enemy",
   criterion: overrides.criterion ?? "nearest",
+  filter: overrides.filter,
 });

@@ -196,20 +196,23 @@ Each skill has exactly one trigger that must pass for the skill to activate. Tri
 **Trigger structure:** `{ scope, condition, conditionValue?, qualifier?, negated? }`
 
 - **scope** (`TriggerScope`): Determines which characters to evaluate against -- `"enemy"` (opposing faction), `"ally"` (same faction, excluding self), or `"self"` (evaluator only)
-- **condition** (`ConditionType`): The check to perform -- `"always"`, `"in_range"`, `"hp_below"`, `"hp_above"`, `"targeting_me"`
+- **condition** (`ConditionType`): The check to perform -- `"always"`, `"in_range"`, `"hp_below"`, `"hp_above"`, `"targeting_me"`, `"channeling"`, `"idle"`, `"targeting_ally"`
 - **conditionValue** (optional number): Threshold for conditions that need one (range distance, HP percentage)
 - **qualifier** (`ConditionQualifier`, optional): Narrows condition matching (e.g., channeling a specific skill). Structure: `{ type: "action" | "skill", id: string }`
 - **negated** (optional boolean): When true, inverts the condition result
 
 **Condition types:**
 
-| Condition      | Scope      | Description                                                       | Example                                                        |
-| -------------- | ---------- | ----------------------------------------------------------------- | -------------------------------------------------------------- |
-| `always`       | any        | Always passes                                                     | `{ scope: "enemy", condition: "always" }`                      |
-| `in_range`     | enemy/ally | True if any character in pool within `conditionValue` hexes       | `{ scope: "enemy", condition: "in_range", conditionValue: 2 }` |
-| `hp_below`     | self/ally  | True if character HP below `conditionValue`% of maxHp             | `{ scope: "self", condition: "hp_below", conditionValue: 50 }` |
-| `hp_above`     | self/ally  | True if character HP above `conditionValue`% of maxHp             | `{ scope: "self", condition: "hp_above", conditionValue: 75 }` |
-| `targeting_me` | enemy      | True if any enemy has locked-in action targeting evaluator's cell | `{ scope: "enemy", condition: "targeting_me" }`                |
+| Condition        | Scope      | Description                                                       | Example                                                        |
+| ---------------- | ---------- | ----------------------------------------------------------------- | -------------------------------------------------------------- |
+| `always`         | any        | Always passes                                                     | `{ scope: "enemy", condition: "always" }`                      |
+| `in_range`       | enemy/ally | True if any character in pool within `conditionValue` hexes       | `{ scope: "enemy", condition: "in_range", conditionValue: 2 }` |
+| `hp_below`       | self/ally  | True if character HP below `conditionValue`% of maxHp             | `{ scope: "self", condition: "hp_below", conditionValue: 50 }` |
+| `hp_above`       | self/ally  | True if character HP above `conditionValue`% of maxHp             | `{ scope: "self", condition: "hp_above", conditionValue: 75 }` |
+| `targeting_me`   | enemy      | True if any enemy has locked-in action targeting evaluator's cell | `{ scope: "enemy", condition: "targeting_me" }`                |
+| `channeling`     | enemy/ally | True if any character in pool has a pending action                | `{ scope: "enemy", condition: "channeling" }`                  |
+| `idle`           | enemy/ally | True if any character in pool has no pending action               | `{ scope: "enemy", condition: "idle" }`                        |
+| `targeting_ally` | enemy      | True if any enemy has action targeting any living ally's cell     | `{ scope: "enemy", condition: "targeting_ally" }`              |
 
 **Negation modifier:**
 
@@ -217,18 +220,28 @@ Any trigger can be inverted with `negated: true`. The condition result is flippe
 
 **Note:** `targeting_me` detects any pending action targeting the cell. Wind-up actions (tickCost >= 1) have at least 1 tick of visibility before resolution. Instant actions (tickCost: 0) resolve the same tick they are chosen, so they cannot be dodged via this trigger.
 
-### Selector Filters
+### Skill Filters
 
-Skills can optionally have a selector filter that validates the selected target after the selector picks it, but before the range check. If the filter fails, the skill is rejected and evaluation falls through to the next priority slot.
+Skills can optionally have a filter that narrows the candidate pool before criterion selection (pre-criterion pool narrowing, ADR-016). The filter removes non-matching candidates from the target pool; the criterion then selects from the narrowed set. If the filtered pool is empty (but the base pool was not), the skill is rejected with `filter_failed`. Self-targeting skills bypass filter evaluation entirely (there is no pool to narrow).
 
-**Filter types:**
+**Filter structure:** `{ condition: ConditionType, conditionValue?, qualifier?, negated? }`
 
-- `hp_below X%`: Passes when target's current HP is below X% of their maxHp (strict less-than)
-- `hp_above X%`: Passes when target's current HP is above X% of their maxHp (strict greater-than)
+Filters use the same `ConditionType` and shared condition evaluator as triggers, applied per-candidate rather than existentially.
 
-**Evaluation order:** disabled -> cooldown -> hold -> triggers -> selector -> **filter** -> range check -> heal-full-HP check
+**Available filter conditions:**
 
-Filters are per-instance configuration. Skills without a filter behave exactly as before.
+| Condition        | Description                                                                |
+| ---------------- | -------------------------------------------------------------------------- |
+| `hp_below`       | Target's current HP below `conditionValue`% of maxHp (strict less-than)    |
+| `hp_above`       | Target's current HP above `conditionValue`% of maxHp (strict greater-than) |
+| `channeling`     | Target has a pending action (optional qualifier narrows to specific skill) |
+| `idle`           | Target has no pending action                                               |
+| `targeting_me`   | Target's action targets the evaluator's cell                               |
+| `targeting_ally` | Target's action targets any living ally's cell                             |
+
+**Evaluation order:** disabled -> cooldown -> hold -> triggers -> **filter (narrows pool)** -> criterion (selects from narrowed pool) -> range check -> heal-full-HP check
+
+Filters are per-instance configuration (ADR-015). Skills without a filter behave exactly as before.
 
 ## Core Game Mechanics
 

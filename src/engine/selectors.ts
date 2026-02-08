@@ -73,6 +73,7 @@ export function evaluateTargetCriterion(
   criterion: Criterion,
   evaluator: Character,
   allCharacters: Character[],
+  candidateFilter?: (c: Character) => boolean,
 ): Character | null {
   // Self target always returns evaluator, ignoring criterion
   if (target === "self") {
@@ -91,6 +92,11 @@ export function evaluateTargetCriterion(
       (c) =>
         c.faction === evaluator.faction && c.id !== evaluator.id && c.hp > 0,
     );
+  }
+
+  // Apply candidate filter (pre-criterion pool narrowing)
+  if (candidateFilter) {
+    candidates = candidates.filter(candidateFilter);
   }
 
   if (candidates.length === 0) return null;
@@ -136,4 +142,27 @@ export function evaluateTargetCriterion(
       return _exhaustive;
     }
   }
+}
+
+/**
+ * Check if the base candidate pool (before any filter) has at least one candidate.
+ * Used to distinguish filter_failed (pool existed but was filtered) from no_target (pool empty).
+ */
+export function hasCandidates(
+  target: Target,
+  evaluator: Character,
+  allCharacters: Character[],
+): boolean {
+  if (target === "self") return true;
+
+  if (target === "enemy") {
+    return allCharacters.some(
+      (c) => c.faction !== evaluator.faction && c.hp > 0,
+    );
+  }
+
+  // ally
+  return allCharacters.some(
+    (c) => c.faction === evaluator.faction && c.id !== evaluator.id && c.hp > 0,
+  );
 }

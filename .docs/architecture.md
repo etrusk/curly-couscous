@@ -7,7 +7,7 @@
 - State Management: Zustand + Immer middleware
 - Build Tool: Vite 7 + React Compiler (babel-plugin-react-compiler for automatic memoization, ADR-020)
 - Testing: Vitest + React Testing Library + @testing-library/user-event
-- Styling: CSS Modules + CSS Custom Properties (terminal overlay tokens + legacy tokens, three-block theming)
+- Styling: CSS Modules + CSS Custom Properties (terminal overlay tokens + legacy tokens, `light-dark()` + `color-mix()` theming, ADR-021)
 
 ## Key Patterns
 
@@ -17,7 +17,7 @@
 - **Data-Driven Targeting**: Target + criterion pairs, trigger (unified scope + condition), and skill filters as declarative data interfaces (not functions)
 - **Shared Condition Evaluator**: `evaluateConditionForCandidate()` in `triggers.ts` used by both trigger evaluation (existential: `pool.some()`) and filter evaluation (per-element: `pool.filter()`)
 - **Command Pattern**: State mutations via named actions for history/undo support
-- **CSS Custom Property Theming**: Theme switching via `:root` data attributes with three-block pattern (`:root`, `[data-theme="light"]`, `[data-theme="high-contrast"]`). Terminal overlay semantic tokens (`--ground`, `--surface`, `--border`, `--text-*`, `--accent`, `--danger`, `--success`, `--radius-*`, `--font-mono`) coexist with legacy tokens as an independent layer (ADR-019).
+- **CSS Custom Property Theming**: Theme switching via `:root` data attributes with two-block + high-contrast pattern (ADR-021). `:root` uses `light-dark()` for ~43 theme-dependent variables and `color-mix()` for derived alpha tokens; `[data-theme="light"]` sets only `color-scheme: light`; `[data-theme="high-contrast"]` retains full overrides with `color-mix()` for bg tokens. Terminal overlay semantic tokens (`--ground`, `--surface`, `--border`, `--text-*`, `--accent`, `--danger`, `--success`, `--radius-*`, `--font-mono`) coexist with legacy tokens as an independent layer (ADR-019).
 - **Functional Components with Hooks**: Custom hooks for shared logic
 - **Selector-based Subscriptions**: Zustand selectors for fine-grained re-renders
 - **Local State for UI Concerns**: Transient UI state (hover, tooltips) uses local React state, not Zustand (ADR-004)

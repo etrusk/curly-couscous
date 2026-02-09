@@ -2,147 +2,174 @@
 
 ## Task Understanding
 
-Remove all manual `useMemo` and `useCallback` calls that are now redundant with React Compiler (babel-plugin-react-compiler 1.0.0, adopted in ADR-020). The compiler automatically memoizes component renders and hook results during the build step. Manual memoization is harmless but adds unnecessary code complexity. Replace with direct computations / inline functions.
+Modernize CSS theming in `src/styles/theme.css` and related files by:
 
-## Summary of Findings
+1. Adopting CSS `light-dark()` to unify dark/light theme variable declarations (eliminating the duplicated `:root` / `:root[data-theme="light"]` blocks)
+2. Adopting CSS `color-mix()` for opacity/alpha variants (replacing hardcoded `rgba()` values for faction backgrounds, status backgrounds, surfaces, and game-state visuals like whiff and cooldown)
 
-**Total occurrences: 8** (5 useMemo, 2 useCallback, 1 useCallback -- confirmed by ADR-020 which states "8 manual useMemo/useCallback sites")
+This is a behavior-preserving CSS refactor. Visual output must remain identical.
 
-All 8 are **redundant and safe to remove**. None involve external API subscriptions, imperative handles, or patterns the React Compiler cannot optimize. Every call is either a simple computation, a data transformation from Zustand selectors, or an event handler closure.
+## Current Theming Architecture
 
-## Detailed Occurrence Analysis
+### Three-Block Pattern
 
-### 1. Token.tsx -- useMemo (line 109)
+`src/styles/theme.css` uses a "three-block" approach documented in architecture.md:
 
-- **File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.tsx`
-- **Line:** 109-112
-- **What it memoizes:** `slotPositionToLetter(slotPosition)` -- a trivial string computation (while loop with modular arithmetic, ~3 iterations max for slot positions < 702)
-- **Deps:** `[slotPosition]`
-- **Redundant:** YES. Pure function of a primitive prop. React Compiler will cache this automatically. Other callers of `slotPositionToLetter` in the codebase (CharacterPanel.tsx:30, RuleEvaluations.tsx:236, RuleEvaluations.tsx:286, CharacterTooltip.tsx:267) already call it directly without useMemo.
-- **Change:** Replace `const letter = useMemo(() => slotPositionToLetter(slotPosition), [slotPosition])` with `const letter = slotPositionToLetter(slotPosition)`. Remove `useMemo` from import.
+- `:root { ... }` -- Dark theme (default, ~130 lines of custom properties)
+- `:root[data-theme="light"] { ... }` -- Light theme overrides (~115 lines)
+- `:root[data-theme="high-contrast"] { ... }` -- High contrast overrides (~115 lines)
 
-### 2. Cell.tsx -- useCallback (line 39)
+Theme switching is managed by `src/stores/accessibilityStore.ts`, which sets `data-theme` attribute on `document.documentElement`. Three themes: `"light"`, `"dark"`, `"high-contrast"`.
 
-- **File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/Cell.tsx`
-- **Line:** 39-41
-- **What it memoizes:** `handleClick` -- a simple event handler calling `onClick?.(q, r)`
-- **Deps:** `[onClick, q, r]`
-- **Redundant:** YES. Simple closure over props. React Compiler memoizes this automatically. No external subscription or imperative API involved.
-- **Change:** Replace `const handleClick = useCallback(() => { onClick?.(q, r); }, [onClick, q, r])` with `const handleClick = () => { onClick?.(q, r); }`. Remove `useCallback` from import.
+### Important Constraint: Three themes, not two
 
-### 3. RuleEvaluations.tsx -- useMemo (line 347)
+`light-dark()` is a CSS function that takes two values: `light-dark(light-value, dark-value)`. It respects the `color-scheme` property. However, this project has **three** themes: dark, light, and high-contrast. `light-dark()` cannot directly encode all three themes -- it only handles the light/dark axis. The high-contrast theme will still need its own override block. This is a critical architectural constraint.
 
-- **File:** `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx`
-- **Line:** 347-351
-- **What it memoizes:** `characterMap` -- builds a `Map<string, Character>` from `allCharacters` array for O(1) lookup
-- **Deps:** `[allCharacters]`
-- **Redundant:** YES. Data transformation of Zustand selector output. React Compiler handles this. The map is only used within the same render.
-- **Change:** Replace `const characterMap = useMemo(() => { ... }, [allCharacters])` with direct `const characterMap = new Map<string, Character>(); allCharacters.forEach((c: Character) => map.set(c.id, c));` or inline equivalent. Remove `useMemo` from import (keep `useState`).
+### How `color-scheme` interacts
 
-### 4. Grid.tsx -- useMemo (line 38)
+`src/index.css` already declares `color-scheme: light dark` on `:root`. For `light-dark()` to work correctly, the `color-scheme` property must be set to `light` or `dark` based on the active theme. Currently it is hardcoded to `light dark` (both). The accessibilityStore would need to also set `color-scheme` or the CSS would need `color-scheme` overrides per theme.
 
-- **File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/Grid.tsx`
-- **Line:** 38
-- **What it memoizes:** `computeHexViewBox(hexSize)` -- iterates 91 hexes, computes 6 vertices each (546 vertex computations + bounding box)
-- **Deps:** `[hexSize]`
-- **Redundant:** YES. Pure function of a prop. React Compiler caches this automatically. Other callers (IntentOverlay.tsx:103, WhiffOverlay.tsx:19, DamageOverlay.tsx:18, TargetingLineOverlay.tsx:90) already call `computeHexViewBox(hexSize)` directly without useMemo.
-- **Change:** Replace with `const viewBox = computeHexViewBox(hexSize)`. Remove `useMemo` from import.
+### Terminal Overlay Tokens (ADR-019)
 
-### 5. Grid.tsx -- useMemo (line 41)
+There are **two token layers** in theme.css:
 
-- **File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/Grid.tsx`
-- **Line:** 41
-- **What it memoizes:** `generateAllHexes()` -- generates 91 hex coordinates with sorting
-- **Deps:** `[]` (empty, effectively a constant)
-- **Redundant:** YES. No dependencies means the compiler will treat it as a constant. React Compiler memoizes values with stable deps.
-- **Change:** Replace with `const allHexes = generateAllHexes()`. Remove `useMemo` from import (already removed in change above).
+1. **Legacy tokens**: `--surface-ground`, `--content-primary`, `--faction-*`, `--action-*`, etc.
+2. **Terminal overlay tokens**: `--ground`, `--surface`, `--text-primary`, `--accent`, `--danger`, etc.
 
-### 6. BattleViewer.tsx -- useCallback (line 99)
-
-- **File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.tsx`
-- **Line:** 99-111
-- **What it memoizes:** `handleBackgroundClick` -- event handler checking selectionMode and calling `actions.selectCharacter(null)`
-- **Deps:** `[selectionMode, actions]`
-- **Redundant:** YES. Standard event handler closure over local state/store values. React Compiler handles this. No external imperative API.
-- **Change:** Replace with inline function definition. Remove `useCallback` from import (keep `useState, useRef`).
-
-### 7. useWhiffIndicators.ts -- useMemo (line 30)
-
-- **File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/hooks/useWhiffIndicators.ts`
-- **Line:** 30-41
-- **What it memoizes:** Data transformation -- deduplicates whiff events by cell key into `WhiffIndicatorData[]`
-- **Deps:** `[whiffEvents]`
-- **Redundant:** YES. Pure data transformation of Zustand selector output. React Compiler handles this. No external subscription.
-- **Change:** Replace with direct computation. Remove `useMemo` from import.
-
-### 8. useDamageNumbers.ts -- useMemo (line 37)
-
-- **File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/hooks/useDamageNumbers.ts`
-- **Line:** 37-68
-- **What it memoizes:** Data transformation -- groups damage events by target, enriches with positions and factions
-- **Deps:** `[damageEvents, tokenData]`
-- **Redundant:** YES. Pure data transformation of Zustand selector outputs. React Compiler handles this. No external subscription.
-- **Change:** Replace with direct computation. Remove `useMemo` from import.
+Both layers are redefined across all three theme blocks. Both are candidates for `light-dark()` consolidation (for the dark/light axis).
 
 ## Relevant Files
 
-### Files to modify (8 files with useMemo/useCallback to remove)
+### Primary change targets
 
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.tsx` - Remove useMemo on line 109 (slotPositionToLetter)
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Cell.tsx` - Remove useCallback on line 39 (handleClick)
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx` - Remove useMemo on line 347 (characterMap)
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Grid.tsx` - Remove 2x useMemo on lines 38, 41 (viewBox, allHexes)
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.tsx` - Remove useCallback on line 99 (handleBackgroundClick)
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/hooks/useWhiffIndicators.ts` - Remove useMemo on line 30 (whiff data transform)
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/hooks/useDamageNumbers.ts` - Remove useMemo on line 37 (damage data transform)
+- `/home/bob/Projects/auto-battler/src/styles/theme.css` - Main theme file. 385 lines. Contains ALL custom property definitions across 3 theme blocks + high-contrast data attribute. This is the primary file for `light-dark()` adoption. Contains ~50 `rgba()` declarations that are candidates for `color-mix()`.
+- `/home/bob/Projects/auto-battler/src/index.css` - Imports theme.css, sets `color-scheme: light dark`. Will need `color-scheme` coordination for `light-dark()` to work.
+- `/home/bob/Projects/auto-battler/src/stores/accessibilityStore.ts` - Theme switching logic. May need to set `color-scheme` property on root element alongside `data-theme`.
 
-### Test files (should pass without modification)
+### CSS files using opacity (candidates for `color-mix()` in component CSS)
 
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/token-lettering.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/token-interaction.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/token-visual.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/token-hover.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/token-accessibility.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Cell.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/battle-viewer-tooltip.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/WhiffOverlay.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/DamageOverlay.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-basic.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-next-action.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-skill-priority.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-action-summary.test.tsx`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/hooks/useWhiffIndicators.test.ts`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/hooks/useDamageNumbers.test.ts`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css` - `.statusSkipped { opacity: 0.6 }`, `.onCooldown { opacity: 0.6 }`, `.priorityControls button:disabled { opacity: 0.5 }` -- The cooldown opacity is specifically called out in the task.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.module.css` - `.hpBarBackground { opacity: 0.8 }`, `.token:hover .shape { opacity: 0.9 }`
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.module.css` - `box-shadow: ... rgba(0, 0, 0, 0.3)`, fade-in animation (opacity 0 to 1)
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/DamageNumber.module.css` - `.damageRect { opacity: 0.95 }`
+- `/home/bob/Projects/auto-battler/src/components/PlayControls/PlayControls.module.css` - `button:disabled { opacity: 0.5 }`
+- `/home/bob/Projects/auto-battler/src/components/CharacterControls/CharacterControls.module.css` - `button:disabled { opacity: 0.5 }`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab.module.css` - `.assignBtn:disabled { opacity: 0.5 }`
+- `/home/bob/Projects/auto-battler/src/components/BattleStatus/BattleStatusBadge.module.css` - `.tickDisplay { opacity: 0.8 }`
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/TargetingLine.module.css` - `transition: opacity 0.2s ease`
 
-### Reference files (confirm pattern consistency)
+### TSX files using inline opacity (candidates for `color-mix()` in component code)
 
-- `/home/bob/Projects/auto-battler/vite.config.ts` - Confirms React Compiler is configured (line 9)
-- `/home/bob/Projects/auto-battler/.docs/decisions/adr-020-react-compiler-adoption.md` - ADR documenting the decision
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay.tsx` - Calls computeHexViewBox directly (no useMemo) -- confirms pattern
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/WhiffOverlay.tsx` - Calls computeHexViewBox directly (no useMemo) -- confirms pattern
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/DamageOverlay.tsx` - Calls computeHexViewBox directly (no useMemo) -- confirms pattern
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/WhiffOverlay.tsx` - `WHIFF_FILL_OPACITY = 0.2`, applied as SVG attribute `opacity={0.2}`. Uses `var(--action-attack)` and `var(--action-heal)` as fill colors. This is explicitly called out in the task -- could use `color-mix(in srgb, var(--action-attack) 20%, transparent)` instead of a separate opacity attribute.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/TargetingLine.tsx` - `opacity="0.4"` on SVG `<g>` element.
+
+### Test files that will need updating
+
+- `/home/bob/Projects/auto-battler/src/styles/theme-variables.test.ts` - Static file analysis tests that parse theme.css with regex looking for `:root { }` and `:root[data-theme="light"] { }` blocks. These regex patterns will break if theme.css structure changes significantly. **Critical: these tests must be updated to match new file structure.**
+- `/home/bob/Projects/auto-battler/src/styles/theme.integration.test.tsx` - Tests `data-theme` attribute mechanism. These should mostly pass unchanged since the attribute mechanism stays the same, but may need updates if `color-scheme` is also set.
+- `/home/bob/Projects/auto-battler/src/stores/accessibilityStore.test.ts` - Tests theme switching via `data-theme`. May need updates if `color-scheme` property setting is added.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/WhiffOverlay.test.tsx` - Tests `opacity="0.2"` attribute on polygons (line 119). Will need updating if whiff moves to `color-mix()` approach.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/TargetingLine.test.tsx` - Tests `opacity="0.4"` (line 126). Will need updating if targeting line moves to `color-mix()`.
+
+### CSS files with NO theming/opacity concerns (no changes needed)
+
+- `/home/bob/Projects/auto-battler/src/App.css` - Layout only, no color tokens
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.module.css` - Layout only
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay.module.css` - Positioning only
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/DamageOverlay.module.css` - Positioning only
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentLine.module.css` - Empty (comment only)
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/TargetingLineOverlay.module.css` - Positioning only
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Grid.module.css` - Minimal, high-contrast only
+
+### CSS files using theme tokens but not opacity (reference only)
+
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Cell.module.css` - Uses `var(--cell-hover-bg)`, high-contrast override
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/CharacterPanel.module.css` - Uses terminal overlay tokens
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.module.css` - Uses terminal overlay tokens
+- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.module.css` - Uses legacy tokens
+- `/home/bob/Projects/auto-battler/src/components/ThemeToggle/ThemeToggle.module.css` - Uses legacy tokens
 
 ## Existing Patterns
 
-- **Direct function calls without memoization** - Already used in 4 overlay components (IntentOverlay, WhiffOverlay, DamageOverlay, TargetingLineOverlay) that call `computeHexViewBox()` directly. Grid.tsx is the outlier with useMemo.
-- **Direct slotPositionToLetter calls** - Already used in CharacterPanel.tsx, CharacterTooltip.tsx, and RuleEvaluations.tsx (lines 236, 286) without useMemo. Token.tsx is the outlier.
-- **Inline event handlers** - Already used throughout Token.tsx (handleClick, handleKeyDown, handleMouseEnter, handleMouseLeaveLocal all without useCallback). Cell.tsx and BattleViewer.tsx are the outliers.
-- **No React.memo** - Zero instances of React.memo in the codebase. React Compiler handles component memoization.
-- **No test memoization assertions** - No test files reference useMemo or useCallback. Tests are behavior-focused, not implementation-focused. Changes are safe.
+- **Three-block theming** - `:root` (dark default), `[data-theme="light"]`, `[data-theme="high-contrast"]`. Documented in architecture.md as "CSS Custom Property Theming."
+- **Terminal overlay semantic tokens (ADR-019)** - Independent token layer coexisting with legacy tokens. Both layers follow the three-block pattern.
+- **CSS Modules** - All component styles use `.module.css` files with `camelCase` locals convention via Vite config.
+- **Zustand-driven theme switching** - `accessibilityStore.ts` manages theme state and applies `data-theme` attribute to document root.
+- **Static CSS file analysis tests** - `theme-variables.test.ts` reads theme.css as text and uses regex to verify variable presence in each theme block.
+- **Inline SVG opacity** - WhiffOverlay and TargetingLine use SVG `opacity` attribute for visual effects rather than CSS.
+- **`rgba()` for alpha variants** - theme.css uses raw `rgba()` values throughout for semi-transparent backgrounds (`--faction-friendly-bg: rgba(0, 114, 178, 0.15)`). These are defined per-theme, not derived from base colors.
 
 ## Dependencies
 
-- React Compiler (babel-plugin-react-compiler 1.0.0) must remain enabled in vite.config.ts
-- eslint-plugin-react-compiler validates that code is compiler-compatible
+- `color-scheme` CSS property must be coordinated with `data-theme` attribute for `light-dark()` to function correctly
+- `accessibilityStore.ts` may need to set `color-scheme` on the root element when switching themes
+- Vite 7.3's CSS processing must support `light-dark()` and `color-mix()` (should pass through as native CSS, no transform needed)
+- No browserslist or explicit build target configured in `vite.config.ts` -- Vite defaults apply
 
 ## Constraints Discovered
 
-- **No React.memo usage** - The codebase has zero React.memo calls, so there are no memo wrappers that might depend on referential stability of callbacks from useCallback. This makes all useCallback removals safe.
-- **Zustand selectors provide referential stability** - Store selectors already handle reference equality. The useMemo/useCallback calls are not providing stability that the store doesn't already guarantee.
-- **All useMemo/useCallback are internal** - None pass memoized values to external libraries or imperative APIs that require referential stability (e.g., no useEffect dependencies on memoized values that would cause cascading re-runs).
-- **This is a pure cleanup** - No behavioral changes. No new tests needed. Existing 1434 tests should pass as-is.
+1. **Three themes vs. two-value function**: `light-dark()` only handles light/dark. High-contrast theme needs its own override block regardless. This means theme.css will have: unified `:root` block with `light-dark()` values, plus a `:root[data-theme="high-contrast"]` override block. This is still a significant reduction (from 3 blocks to 2).
+
+2. **`color-scheme` must be dynamic**: Currently `color-scheme: light dark` is hardcoded in `index.css`. For `light-dark()` to resolve correctly, `color-scheme` must be set to `light` or `dark` based on the active theme. This means either:
+   - CSS: `:root { color-scheme: dark }` / `:root[data-theme="light"] { color-scheme: light }` / `:root[data-theme="high-contrast"] { color-scheme: dark }`
+   - Or JS: `accessibilityStore` sets `document.documentElement.style.colorScheme`
+
+3. **Browser support**: `light-dark()` is supported in Chrome 123+, Firefox 120+, Safari 17.5+. `color-mix()` is supported in Chrome 111+, Firefox 113+, Safari 16.2+. Both are well-supported in modern browsers (2024+). No polyfill needed for a modern web app.
+
+4. **`rgba()` values are theme-dependent**: Many `rgba()` values in theme.css differ between dark/light themes (e.g., dark uses `rgba(255,255,255,0.87)` for text, light uses `#333`). These cannot simply be converted to `color-mix()` -- they need `light-dark()` wrapping first, or the base color needs to be extracted and `color-mix()` applied.
+
+5. **Some variables are identical across dark/light**: Variables like `--action-attack: #d55e00`, `--faction-friendly: #0072b2` are the same in dark and light themes. These don't benefit from `light-dark()` and can remain simple values. Only the high-contrast theme changes them.
+
+6. **Opacity on SVG elements vs. color-mix()**: WhiffOverlay uses SVG `opacity` attribute on `<polygon>` elements with CSS variable fills. Converting to `color-mix()` would mean putting the mixed color directly in the `fill` attribute. This changes the DOM structure (no more separate `opacity` attribute) and tests will need updating.
+
+7. **Disabled button opacity is UI pattern, not theming**: `opacity: 0.5` on disabled buttons across PlayControls, CharacterControls, PriorityTab is a standard UI disabled pattern, not a theming concern. These should likely remain as `opacity` declarations, not `color-mix()`.
+
+8. **Static analysis tests use regex**: `theme-variables.test.ts` parses theme.css with regex like `/:root\s*\{([^}]+)\}/s`. If the file structure changes (e.g., merging dark/light blocks), these regexes will need updating or rewriting.
+
+## Quantitative Analysis
+
+### Variables in theme.css by category
+
+**Variables that differ between dark and light (candidates for `light-dark()`)**:
+
+- Surfaces: `--surface-ground`, `--surface-primary`, `--surface-secondary` (3)
+- Content: `--content-primary`, `--content-secondary`, `--content-muted` (3)
+- Borders: `--border-default`, `--border-subtle` (2)
+- Interactive: `--interactive-hover` (1)
+- Faction backgrounds/text: `--faction-friendly-bg`, `--faction-enemy-bg`, `--faction-friendly-text`, `--faction-enemy-text` (4)
+- Token/accent: `--accent-primary` (1)
+- Status backgrounds/text: 8 variables (success/error/warning/neutral bg + text)
+- Contrast: `--contrast-line` same in both, `--targeting-line-color` differs (1)
+- Grid: `--grid-bg`, `--grid-border`, `--cell-bg`, `--cell-border`, `--cell-hover-bg` (5)
+- Scrollbar: `--scrollbar-track`, `--scrollbar-thumb`, `--scrollbar-thumb-hover` (3)
+- Terminal overlay: `--ground`, `--surface`, `--surface-hover`, `--border`, `--divider`, `--text-primary` through `--text-ghost`, `--accent`, `--accent-subtle`, `--accent-muted`, `--danger-subtle` (12+)
+
+**Total ~43 variables differ between dark and light** -- all candidates for `light-dark()`.
+
+**Variables identical in dark and light (no `light-dark()` needed)**:
+
+- `--faction-friendly`, `--faction-enemy`, `--action-attack`, `--action-heal`, `--action-move`, `--text-on-faction`, `--interactive-focus`, `--status-success`, `--status-error`, `--status-warning`, `--status-neutral`, `--health-high`, `--health-low`, `--contrast-line`, plus all radius and font tokens (~20)
+
+### `rgba()` values that could use `color-mix()`
+
+In theme.css dark block alone: ~25 `rgba()` values. Examples:
+
+- `--content-primary: rgba(255, 255, 255, 0.87)` -- `color-mix(in srgb, white 87%, transparent)`
+- `--faction-friendly-bg: rgba(0, 114, 178, 0.15)` -- `color-mix(in srgb, var(--faction-friendly) 15%, transparent)`
+- `--status-success-bg: rgba(0, 158, 115, 0.15)` -- derived from base status color
+
+The `color-mix()` approach would allow deriving alpha variants from base colors rather than hardcoding RGB values.
 
 ## Open Questions
 
-- None. All 8 occurrences are straightforward redundant memoization. No edge cases requiring judgment calls.
+1. **Scope of `light-dark()` adoption**: Should we merge dark and light blocks entirely using `light-dark()` for every differing variable, or only for a subset? Merging fully would eliminate the `[data-theme="light"]` block but requires `color-scheme` coordination.
+
+2. **High-contrast theme handling**: Should high-contrast remain a full override block, or could it be partially merged? Since high-contrast uses significantly different values (brighter colors, pure black/white), a separate block seems necessary.
+
+3. **`color-mix()` scope**: Should `color-mix()` only target whiff/cooldown (as explicitly stated in the task), or also the many `rgba()` declarations in theme.css? Converting all `rgba()` to `color-mix()` derived from base colors is a larger but cleaner change.
+
+4. **SVG opacity vs color-mix**: For WhiffOverlay and TargetingLine, is it preferable to keep SVG `opacity` attributes (simpler, well-tested) or convert to `color-mix()` in the fill value (more aligned with the CSS modernization goal)?
+
+5. **Disabled button opacity**: Should `opacity: 0.5` on disabled buttons be left as-is (it's a UI pattern, not a color theming concern), or converted to a CSS custom property / `color-mix()` approach?
+
+6. **`color-scheme` coordination strategy**: CSS-based (`color-scheme` set per data-theme selector) vs. JS-based (`accessibilityStore` sets it on the element). CSS-based is simpler and doesn't require store changes.

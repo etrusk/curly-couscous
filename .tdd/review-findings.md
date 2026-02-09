@@ -1,39 +1,61 @@
-# Review Findings: Remove Redundant Manual Memoization
+# Review Findings: CSS `light-dark()` and `color-mix()` Adoption
 
-**Review cycle:** 1
-**Verdict:** PASS
-**Date:** 2026-02-09
+## Verdict: PASS
+
+All 5 modified files reviewed. Implementation matches plan. No critical issues found.
+
+## Acceptance Criteria Check
+
+- [x] All theme-dependent color declarations use `light-dark()` -- confirmed ~43 variables in `:root` block
+- [x] Opacity variants use `color-mix()` where appropriate -- 9 derived tokens in `:root`, 9 in high-contrast, WhiffOverlay fill
+- [x] Visual appearance unchanged (behavior-preserving) -- `color-mix(... 20%, transparent)` equivalent to `opacity: 0.2`; browser verified per session.md
+- [x] All 1448 tests pass, 0 failing, 0 skipped
+- [x] All quality gates pass (TypeScript, ESLint, build)
+
+## Spec Compliance
+
+Spec defines whiff opacity as "Opacity: 0.2" (spec.md line 406). Implementation uses `color-mix(in srgb, ${fillColor} 20%, transparent)` which produces visually identical 20% alpha. Acceptable behavior-preserving equivalent.
+
+## Plan Compliance
+
+All planned changes implemented correctly:
+
+- Phase 1: `color-scheme` declarations in all 3 blocks, `light-dark()` unification, `index.css` removal -- DONE
+- Phase 2: WhiffOverlay `WHIFF_FILL_OPACITY` removed, opacity attribute removed, fill uses `color-mix()` -- DONE
+- Phase 3: Tests updated (2 removed, 15 added in theme-variables; 3 replaced + 1 added in WhiffOverlay) -- DONE
+- Phase 4: Quality gates all pass -- DONE
+
+## CSS Correctness
+
+- `light-dark()` argument order verified: light value first, dark value second (e.g., `light-dark(#fafafa, #242424)`)
+- `color-mix()` syntax correct: `color-mix(in srgb, <color> <percentage>, transparent)`
+- Nesting valid: `light-dark(#e6f2ff, color-mix(in srgb, var(--faction-friendly) 15%, transparent))`
+- `rgba()` values without named base tokens correctly kept as `rgba()` per plan decision
+
+## Issues Found
+
+### IMPORTANT: Architecture doc outdated (1)
+
+`/home/bob/Projects/auto-battler/.docs/architecture.md` lines 10 and 20 reference "three-block theming" which is now a "two-block + high-contrast override" pattern. This should be updated to reflect the new structure in a follow-up task or as part of the commit for this change.
+
+### MINOR: Duplicate token definitions (1)
+
+`:root` block defines both `--content-primary` (line 31) and `--text-primary` (line 112) with identical values (`light-dark(#333, rgba(255, 255, 255, 0.87))`). Same for `--content-secondary`/`--text-secondary` and `--content-muted`/`--text-muted`. This is a pre-existing concern (terminal overlay tokens coexisting with legacy tokens per ADR-019), not introduced by this change.
+
+### MINOR: Test file reads CSS multiple times (1)
+
+`theme-variables.test.ts` calls `getThemeCssContent()` and extract helpers in every single test case. A `beforeAll` with shared content would reduce I/O. Pre-existing pattern, not introduced by this change.
+
+## Duplication Check
+
+No new duplication introduced. `light-dark()` and `color-mix()` usage confined to `theme.css`. WhiffOverlay `color-mix()` usage is in JSX (inline SVG attribute), architecturally distinct from CSS token definitions.
+
+## File Hygiene
+
+- `theme.css`: 280 lines (under 300-line flag threshold)
+- `theme-variables.test.ts`: 294 lines (under threshold)
+- `WhiffOverlay.test.tsx`: 167 lines (fine)
 
 ## Summary
 
-All 8 `useMemo`/`useCallback` removals across 7 files are correct. Each transformation preserves identical behavior. Import cleanup is complete -- no unused imports remain. No `useMemo`, `useCallback`, or `React.memo` references exist anywhere in `src/`.
-
-## Checklist Results
-
-| Check                 | Result                                                           |
-| --------------------- | ---------------------------------------------------------------- |
-| Duplication           | PASS -- no copy-pasted patterns                                  |
-| Spec compliance       | PASS -- pure internal refactor, no spec-level changes            |
-| Merge/move regression | N/A -- no functionality moved                                    |
-| Pattern compliance    | PASS -- aligns with existing direct-call pattern in overlays     |
-| Logic errors          | PASS -- all transformations are mechanical unwrapping            |
-| Edge cases            | PASS -- no logic changes                                         |
-| Security              | PASS -- no security surface                                      |
-| Test quality          | N/A -- no test changes (correctly: behavior-preserving refactor) |
-| File hygiene          | NOTE -- see pre-existing issue below                             |
-| Scope creep           | PASS -- diffs match plan exactly, no extraneous changes          |
-
-## Issues
-
-None. Zero CRITICAL, zero IMPORTANT, zero MINOR issues introduced by this change.
-
-## Pre-existing Notes (not blocking)
-
-- MINOR: `RuleEvaluations.tsx` is 413 lines (project limit: 400). This predates this refactor -- the change actually reduced it by 6 lines. Extraction should be considered in a future task.
-
-## Verification
-
-- No `useMemo`/`useCallback`/`React.memo` references remain in `src/` (grep confirmed)
-- Two "Memoized" comments in `gameStore-selectors.ts` refer to Zustand selector memoization, not React hooks -- correctly out of scope
-- All 7 diffs match the plan step-for-step with no extraneous changes
-- Quality gates confirmed by coder: 1434 tests pass, 0 ESLint errors, 0 TypeScript errors
+0 CRITICAL, 1 IMPORTANT (architecture doc outdated), 2 MINOR (pre-existing). Implementation is clean, well-tested, and follows the plan precisely. The IMPORTANT issue is a documentation sync task and does not block approval.

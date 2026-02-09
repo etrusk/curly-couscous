@@ -30,6 +30,7 @@ LLM-optimized index of significant architectural and design decisions.
 | ADR-018 | Default Trigger and Filter on SkillDefinition                     | 2026-02-08 | Accepted                       | (inline, no detail file)                                                               |
 | ADR-019 | Independent Terminal Overlay Token Layer                          | 2026-02-09 | Accepted                       | (inline, no detail file)                                                               |
 | ADR-020 | React Compiler Adoption (manual memoization cleanup complete)     | 2026-02-09 | Accepted                       | [adr-020-react-compiler-adoption.md](./adr-020-react-compiler-adoption.md)             |
+| ADR-021 | CSS `light-dark()` and `color-mix()` Theme Consolidation          | 2026-02-09 | Accepted                       | [adr-021-css-light-dark-color-mix.md](./adr-021-css-light-dark-color-mix.md)           |
 
 ## Adding New ADRs
 

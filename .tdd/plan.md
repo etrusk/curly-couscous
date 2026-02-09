@@ -1,326 +1,176 @@
-# Implementation Plan: Remove Redundant Manual Memoization
+# Implementation Plan: CSS `light-dark()` and `color-mix()` Adoption
 
-## Overview
+## Summary
 
-Remove 8 redundant `useMemo`/`useCallback` calls across 7 files. React Compiler (ADR-020) handles all memoization automatically. This is a pure refactor with no behavioral changes.
+Consolidate the 3-block theming in `theme.css` (`:root` dark, `[data-theme="light"]`, `[data-theme="high-contrast"]`) into a 2-block structure using CSS `light-dark()` for the dark/light axis. Replace `rgba()` alpha variants in theme tokens with `color-mix()` where they derive from a base color. Convert WhiffOverlay SVG opacity to `color-mix()` fill. Leave TargetingLine, cooldown, and disabled-button opacity as-is.
 
-## Spec Alignment
+## Architectural Decisions
 
-- [x] Aligns with `.docs/spec.md` -- no spec-level changes (pure internal refactor)
-- [x] Consistent with `.docs/architecture.md` -- architecture lists React Compiler as memoization strategy
-- [x] Follows `.docs/patterns/index.md` -- no pattern conflicts
-- [x] No conflicts with `.docs/decisions/index.md` -- ADR-020 explicitly defers this cleanup as a follow-up task
+### Decision: CSS-based `color-scheme` coordination (not JS-based)
 
-## New Tests Needed
+**Decision**: Set `color-scheme` per selector in CSS (`color-scheme: dark` on `:root`, `color-scheme: light` on `[data-theme="light"]`, `color-scheme: dark` on `[data-theme="high-contrast"]`) rather than having `accessibilityStore.ts` set `document.documentElement.style.colorScheme` via JavaScript.
 
-**NO.** This is a behavior-preserving refactor. The exploration confirmed:
+**Context**: `light-dark()` resolves based on the inherited `color-scheme` property. Two strategies exist: (a) CSS selectors set it alongside `data-theme`, (b) JS store sets it alongside the attribute. CSS-based is simpler, keeps the color-scheme concern in the stylesheet, and does not require store changes.
 
-- No test files reference `useMemo` or `useCallback`
-- All tests are behavior-focused (user-centric queries, DOM assertions)
-- Existing 16 related test files will validate correctness
+**Consequences**: The `index.css` line `color-scheme: light dark` (which tells the UA to support both) must be removed from `:root` and replaced with theme-specific values in `theme.css`. No JS store changes needed. The `accessibilityStore.ts` and its tests remain untouched.
 
-## Implementation Steps
+### Decision: WhiffOverlay converts to `color-mix()`, TargetingLine stays as-is
 
-Execute in order. Each step is one file edit (except Grid.tsx which has two sites in one file).
+**Decision**: WhiffOverlay's `opacity={0.2}` on polygons will be replaced with `color-mix()` in the `fill` attribute (e.g., `color-mix(in srgb, var(--action-attack) 20%, transparent)`). TargetingLine's `opacity="0.4"` on the `<g>` element stays as-is.
 
-### Step 1: Token.tsx -- useMemo to direct call
+**Context**: WhiffOverlay applies opacity to tint a hex cell with an action color -- a natural fit for `color-mix()` since the intent is "20% of this color." TargetingLine applies opacity to an entire `<g>` group containing two `<line>` elements with different strokes (contrast outline + main color). Converting the group opacity to individual `color-mix()` fills on each line would complicate the rendering and break the outline/main layering. The group opacity approach is the correct pattern for "fade the whole group."
 
-**File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.tsx`
+**Consequences**: WhiffOverlay.tsx changes: remove `WHIFF_FILL_OPACITY` constant, remove `opacity` attribute, use `color-mix()` in fill. WhiffOverlay.test.tsx: update opacity test to assert `fill` contains `color-mix` instead of asserting `opacity="0.2"`. TargetingLine.tsx and TargetingLine.test.tsx: no changes.
 
-**Remove import:**
+### Decision: Leave cooldown/disabled/skipped `opacity` as-is
 
-```diff
--import { useMemo } from "react";
-```
+**Decision**: CSS `opacity` declarations on `.onCooldown`, `.statusSkipped`, `.priorityControls button:disabled` (and similar disabled-button patterns in other components) remain unchanged.
 
-**Transform (lines 108-112):**
+**Context**: These are whole-element opacity fades, not color alpha. `color-mix()` is for deriving alpha-variant colors, not for dimming entire DOM subtrees. Converting these would require replacing every color property in the subtree with a mixed variant -- impractical and wrong in intent. CSS `opacity` is the correct tool for "dim this element."
 
-```diff
--  // Get letter for slot position (memoized to avoid recomputation on re-renders)
--  const letter = useMemo(
--    () => slotPositionToLetter(slotPosition),
--    [slotPosition],
--  );
-+  const letter = slotPositionToLetter(slotPosition);
-```
+**Consequences**: No changes to any `.module.css` file for opacity-based dimming patterns.
 
-**Rationale:** Trivial pure function of a primitive prop. 4 other callsites already use it without memoization.
+### Decision: `rgba()` tokens in `theme.css` where base color is reused get `color-mix()`
 
-### Step 2: Cell.tsx -- useCallback to inline function
+**Decision**: Replace `rgba()` declarations in theme.css that are provably alpha variants of an existing base token with `color-mix()` referencing that token. Example: `--faction-friendly-bg: rgba(0, 114, 178, 0.15)` becomes `--faction-friendly-bg: color-mix(in srgb, var(--faction-friendly) 15%, transparent)` since `--faction-friendly: #0072b2` is `rgb(0, 114, 178)`.
 
-**File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/Cell.tsx`
+For `rgba()` values that use white/black with alpha (e.g., `--content-primary: rgba(255, 255, 255, 0.87)`), these will be wrapped in `light-dark()` with the appropriate dark/light values. They will NOT be converted to `color-mix()` because they don't derive from a named base token in the system.
 
-**Remove import:**
+**Context**: `color-mix()` is most valuable when it references a CSS variable, creating a dependency. Hardcoding `color-mix(in srgb, white 87%, transparent)` is no better than `rgba(255, 255, 255, 0.87)`. But `color-mix(in srgb, var(--faction-friendly) 15%, transparent)` is better because changing `--faction-friendly` automatically updates the bg.
 
-```diff
--import { useCallback } from "react";
-```
+**Consequences**: Faction bg tokens, status bg tokens, accent-subtle/muted tokens, and danger-subtle tokens in the `:root` block gain `color-mix()`. Light-theme equivalents that use opaque hex colors (e.g., `--faction-friendly-bg: #e6f2ff`) cannot use `color-mix()` since they aren't simple alpha variants -- they stay as opaque values inside `light-dark()`.
 
-**Transform (lines 39-41):**
+## Implementation Steps (Ordered)
 
-```diff
--  const handleClick = useCallback(() => {
--    onClick?.(q, r);
--  }, [onClick, q, r]);
-+  const handleClick = () => {
-+    onClick?.(q, r);
-+  };
-```
+### Phase 1: `color-scheme` + `light-dark()` in theme.css
 
-**Rationale:** Simple event handler closure over props. Other handlers in the codebase (e.g., Token.tsx's handleClick, handleKeyDown) already use inline functions.
+**Files modified**: `src/styles/theme.css`, `src/index.css`
 
-### Step 3: Grid.tsx -- two useMemo calls to direct calls
+1. **Remove `color-scheme: light dark` from `src/index.css`** -- delete line 9.
 
-**File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/Grid.tsx`
+2. **Restructure `src/styles/theme.css`** into 2 blocks:
 
-**Remove import:**
+   **Block 1: `:root`** -- Unified dark+light declarations:
+   - Add `color-scheme: dark;` at top of `:root` block.
+   - For ~43 variables that differ between dark and light: use `light-dark(light-value, dark-value)`.
+     - Example: `--surface-ground: light-dark(#fafafa, #242424);`
+   - For ~20 variables identical in dark and light: keep simple values (no `light-dark()` needed).
+   - For variables that can use `color-mix()` in dark but not light (e.g., faction bg): use `light-dark(#e6f2ff, color-mix(in srgb, var(--faction-friendly) 15%, transparent))`.
+   - Terminal overlay tokens follow the same pattern.
+   - Keep radii and font-mono as simple values (identical across themes).
 
-```diff
--import { useMemo } from "react";
-```
+   **Block 2: `:root[data-theme="light"]`** -- Only sets `color-scheme: light;`. All variable values are handled by `light-dark()` in `:root`. This block is 1-2 lines.
 
-**Transform site 1 (line 38):**
+   **Block 3: `:root[data-theme="high-contrast"]`** -- Unchanged (full override block). Add `color-scheme: dark;` at top.
 
-```diff
--  // Compute viewBox for SVG (memoized)
--  const viewBox = useMemo(() => computeHexViewBox(hexSize), [hexSize]);
-+  const viewBox = computeHexViewBox(hexSize);
-```
+   **Block 4: `:root[data-high-contrast="true"]`** -- Unchanged.
 
-**Transform site 2 (line 41):**
+3. **`color-mix()` for derived tokens in `:root` block**:
 
-```diff
--  // Generate all hex coordinates (memoized)
--  const allHexes = useMemo(() => generateAllHexes(), []);
-+  const allHexes = generateAllHexes();
-```
+   Apply `color-mix()` to these tokens (dark-theme value only, inside `light-dark()`):
+   - `--faction-friendly-bg`: `color-mix(in srgb, var(--faction-friendly) 15%, transparent)` (dark)
+   - `--faction-enemy-bg`: `color-mix(in srgb, var(--faction-enemy) 15%, transparent)` (dark)
+   - `--status-success-bg`: `color-mix(in srgb, var(--status-success) 15%, transparent)` (dark)
+   - `--status-error-bg`: `color-mix(in srgb, var(--status-error) 15%, transparent)` (dark)
+   - `--status-warning-bg`: `color-mix(in srgb, var(--status-warning) 15%, transparent)` (dark)
+   - `--status-neutral-bg`: `color-mix(in srgb, var(--status-neutral) 15%, transparent)` (dark)
+   - `--accent-subtle`: `color-mix(in srgb, var(--accent) 15%, transparent)` (dark)
+   - `--accent-muted`: `color-mix(in srgb, var(--accent) 8%, transparent)` (dark)
+   - `--danger-subtle`: `color-mix(in srgb, var(--danger) 15%, transparent)` (dark)
 
-**Rationale:** 4 overlay components (IntentOverlay, WhiffOverlay, DamageOverlay, TargetingLineOverlay) already call `computeHexViewBox` directly without memoization. `generateAllHexes()` has empty deps (constant), which the compiler handles as a constant.
+   For these, the light-theme values are opaque hex colors, so use `light-dark(#e6f2ff, color-mix(...))`.
 
-### Step 4: BattleViewer.tsx -- useCallback to inline function
+   High-contrast block also uses `rgba()` for bg tokens -- convert those to `color-mix()` referencing the high-contrast base colors (e.g., `color-mix(in srgb, var(--faction-friendly) 20%, transparent)` where `--faction-friendly` in high-contrast is `#0099ff`).
 
-**File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.tsx`
+   **Note on terminal overlay tokens with `rgba()` in dark block**: `--surface: rgba(255,255,255,0.03)`, `--surface-hover: rgba(255,255,255,0.06)`, `--border: rgba(255,255,255,0.12)`, `--divider: rgba(255,255,255,0.06)`, `--text-*`, `--text-ghost`, `--accent-subtle`, `--accent-muted`, `--danger-subtle`. The white/black-with-alpha terminal tokens do NOT have a named base token to reference (there is no `--white` variable). These stay as `rgba()` values wrapped in `light-dark()`. Only tokens derived from a named variable (accent, danger, faction, status) get `color-mix()`.
 
-**Update import (remove useCallback, keep useState and useRef):**
+### Phase 2: WhiffOverlay `color-mix()` adoption
 
-```diff
--import { useState, useRef, useCallback } from "react";
-+import { useState, useRef } from "react";
-```
+**Files modified**: `src/components/BattleViewer/WhiffOverlay.tsx`
 
-**Transform (lines 99-111):**
+1. Remove the `WHIFF_FILL_OPACITY` constant.
+2. Remove the `opacity={WHIFF_FILL_OPACITY}` attribute from `<polygon>`.
+3. Change `fill={fillColor}` to use `color-mix()`:
+   ```
+   fill={`color-mix(in srgb, ${fillColor} 20%, transparent)`}
+   ```
 
-```diff
--  // Handle background click to deselect in idle mode
--  const handleBackgroundClick = useCallback(
--    (e: React.MouseEvent) => {
--      if (selectionMode !== "idle") return;
--      // Only deselect when clicking the container itself, not children
--      if (
--        e.target === e.currentTarget ||
--        e.target === gridContainerRef.current
--      ) {
--        actions.selectCharacter(null);
--      }
--    },
--    [selectionMode, actions],
--  );
-+  // Handle background click to deselect in idle mode
-+  const handleBackgroundClick = (e: React.MouseEvent) => {
-+    if (selectionMode !== "idle") return;
-+    // Only deselect when clicking the container itself, not children
-+    if (
-+      e.target === e.currentTarget ||
-+      e.target === gridContainerRef.current
-+    ) {
-+      actions.selectCharacter(null);
-+    }
-+  };
-```
+### Phase 3: Update tests
 
-**Rationale:** Standard event handler closure. React Compiler auto-memoizes this.
+**Files modified**: `src/styles/theme-variables.test.ts`, `src/components/BattleViewer/WhiffOverlay.test.tsx`
 
-### Step 5: RuleEvaluations.tsx -- useMemo to direct computation
+1. **`theme-variables.test.ts`**: The existing regex `/:root\s*\{([^}]+)\}/s` will still match the `:root` block (it's still `:root { ... }`). The light-theme tests that look for `:root[data-theme="light"]` block will fail because that block now only contains `color-scheme: light` and no variable definitions.
 
-**File:** `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/RuleEvaluations.tsx`
+   **Strategy**:
+   - Keep dark-theme tests (`:root` block assertions). They still work because variables are still defined in `:root`.
+   - Modify light-theme tests: instead of asserting variables exist in the `[data-theme="light"]` block, assert that variables in `:root` use `light-dark()`. This verifies light-theme coverage.
+   - Keep high-contrast tests unchanged (block still exists with full overrides).
+   - Specifically:
+     - `--text-on-faction` dark test: passes as-is (still in `:root` block).
+     - `--text-on-faction` light test: change to verify the variable in `:root` uses `light-dark()` OR is a plain value (meaning it's the same across both themes, which covers light). Since `--text-on-faction` is `#ffffff` in both themes, it will be a plain value -- test should verify it exists in `:root`.
+     - `--accent-primary` light test: same approach -- `--accent-primary` differs between dark/light, so it will use `light-dark()`. Test should verify `light-dark()` is used for this variable.
+     - High-contrast tests: unchanged.
 
-**Update import (remove useMemo, keep useState):**
+2. **`WhiffOverlay.test.tsx`**: The test at line 119 (`expect(polygon).toHaveAttribute("opacity", "0.2")`) must change:
+   - Remove opacity assertion.
+   - Assert fill attribute contains `color-mix`.
+   - Example: `expect(polygon?.getAttribute("fill")).toMatch(/color-mix/)`.
+   - Also update the fill assertions in the action-type tests (lines 83, 101) since fill now wraps the CSS variable in `color-mix()`.
 
-```diff
--import { useState, useMemo } from "react";
-+import { useState } from "react";
-```
+3. **`theme.integration.test.tsx`**: No changes needed. Tests verify `data-theme` attribute mechanism which is unchanged.
 
-**Transform (lines 346-351):**
+4. **`accessibilityStore.test.ts`**: No changes needed. Store behavior is unchanged.
 
-```diff
--  // Create a map from character ID to character for O(1) lookup
--  const characterMap = useMemo(() => {
--    const map = new Map<string, Character>();
--    allCharacters.forEach((c: Character) => map.set(c.id, c));
--    return map;
--  }, [allCharacters]);
-+  const characterMap = new Map<string, Character>();
-+  allCharacters.forEach((c: Character) => characterMap.set(c.id, c));
-```
+5. **`TargetingLine.test.tsx`**: No changes needed. Opacity stays as-is.
 
-**Rationale:** Data transformation of Zustand selector output. React Compiler handles this. The map is consumed within the same render only.
+### Phase 4: Quality gates
 
-### Step 6: useWhiffIndicators.ts -- useMemo to direct computation
+1. Run `npm run type-check` -- WhiffOverlay changes are TypeScript (template string in fill).
+2. Run `npm run lint` -- verify no new lint issues.
+3. Run `npm run test` -- all tests must pass.
+4. Run `npm run build` -- verify Vite builds successfully with `light-dark()` and `color-mix()` in CSS.
 
-**File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/hooks/useWhiffIndicators.ts`
+## Spec Alignment Check
 
-**Remove import:**
-
-```diff
--import { useMemo } from "react";
-```
-
-**Transform (lines 30-41):**
-
-```diff
--  return useMemo(() => {
--    const cellMap = new Map<string, WhiffIndicatorData>();
--    for (const event of whiffEvents) {
--      const key = positionKey(event.targetCell);
--      cellMap.set(key, {
--        cellKey: key,
--        position: event.targetCell,
--        actionType: event.actionType,
--      });
--    }
--    return Array.from(cellMap.values());
--  }, [whiffEvents]);
-+  const cellMap = new Map<string, WhiffIndicatorData>();
-+  for (const event of whiffEvents) {
-+    const key = positionKey(event.targetCell);
-+    cellMap.set(key, {
-+      cellKey: key,
-+      position: event.targetCell,
-+      actionType: event.actionType,
-+    });
-+  }
-+  return Array.from(cellMap.values());
-```
-
-**Rationale:** Pure data transformation of Zustand selector output. React Compiler handles memoization.
-
-### Step 7: useDamageNumbers.ts -- useMemo to direct computation
-
-**File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/hooks/useDamageNumbers.ts`
-
-**Remove import:**
-
-```diff
--import { useMemo } from "react";
-```
-
-**Transform (lines 37-68):**
-
-```diff
--  return useMemo(() => {
--    // Build lookup maps
--    const tokenMap = new Map(tokenData.map((t) => [t.id, t]));
--
--    // Group by target
--    const grouped = new Map<string, DamageNumberData>();
--
--    for (const event of damageEvents) {
--      const target = tokenMap.get(event.targetId);
--      const source = tokenMap.get(event.sourceId);
--      if (!target || !source) continue;
--
--      if (!grouped.has(event.targetId)) {
--        grouped.set(event.targetId, {
--          targetId: event.targetId,
--          targetPosition: target.position,
--          damages: [],
--          totalDamage: 0,
--        });
--      }
--
--      const data = grouped.get(event.targetId)!;
--      data.damages.push({
--        attackerId: event.sourceId,
--        attackerFaction: source.faction,
--        amount: event.damage,
--      });
--      data.totalDamage += event.damage;
--    }
--
--    return Array.from(grouped.values());
--  }, [damageEvents, tokenData]);
-+  // Build lookup maps
-+  const tokenMap = new Map(tokenData.map((t) => [t.id, t]));
-+
-+  // Group by target
-+  const grouped = new Map<string, DamageNumberData>();
-+
-+  for (const event of damageEvents) {
-+    const target = tokenMap.get(event.targetId);
-+    const source = tokenMap.get(event.sourceId);
-+    if (!target || !source) continue;
-+
-+    if (!grouped.has(event.targetId)) {
-+      grouped.set(event.targetId, {
-+        targetId: event.targetId,
-+        targetPosition: target.position,
-+        damages: [],
-+        totalDamage: 0,
-+      });
-+    }
-+
-+    const data = grouped.get(event.targetId)!;
-+    data.damages.push({
-+      attackerId: event.sourceId,
-+      attackerFaction: source.faction,
-+      amount: event.damage,
-+    });
-+    data.totalDamage += event.damage;
-+  }
-+
-+  return Array.from(grouped.values());
-```
-
-**Rationale:** Pure data transformation of two Zustand selector outputs. React Compiler handles memoization.
-
-## Verification
-
-After all 7 steps:
-
-1. `npm run type-check` -- Confirms no TypeScript errors (unused imports would cause errors with strict mode)
-2. `npm run lint` -- Confirms no ESLint violations (react-compiler plugin validates compatibility)
-3. `npm run test` -- Confirms all ~1434 tests pass (behavioral equivalence)
-4. `npm run build` -- Confirms production build succeeds
+- [x] Plan aligns with `.docs/spec.md` -- behavior-preserving refactor, no functional changes.
+- [x] Approach consistent with `.docs/architecture.md` -- CSS Custom Property Theming pattern preserved, three theme support maintained (via 2-block + high-contrast).
+- [x] Patterns follow `.docs/patterns/index.md` -- no new patterns needed, CSS Modules pattern unchanged.
+- [x] No conflicts with `.docs/decisions/index.md` -- ADR-019 terminal overlay tokens maintained as independent layer.
 
 ## Risk Assessment
 
-**Risk: LOW**
+**Low risk:**
 
-- All 8 removals are straightforward substitutions
-- No `React.memo` wrappers in the codebase that depend on referential stability
-- No `useEffect` dependencies on any of these memoized values
-- No external library subscriptions requiring stable references
-- 16 test files cover the affected components with behavior-focused assertions
-- The existing codebase already has the direct-call pattern in 4+ overlay components and 4+ utility callsites, so this change aligns with the dominant pattern
-- React Compiler's `eslint-plugin-react-compiler` will validate that all transformed code remains compiler-compatible
+- `light-dark()` and `color-mix()` have broad browser support (Chrome 111+/123+, Firefox 113+/120+, Safari 16.2+/17.5+). No polyfill needed.
+- Vite 7.3 passes CSS through without transformation by default (no browserslist or build target configured).
+- Behavior-preserving refactor with no game logic changes.
 
-**Rollback:** If any test fails, each step is independently revertible since files are independent.
+**Medium risk:**
 
-## Import Cleanup Summary
+- `color-mix()` with CSS variables in `light-dark()` creates nested function calls: `--faction-friendly-bg: light-dark(#e6f2ff, color-mix(in srgb, var(--faction-friendly) 15%, transparent))`. This is valid CSS but complex to read. If any browser has issues with nested `light-dark()` + `color-mix()` + `var()`, it would fail silently (custom property becomes invalid). Mitigation: test in browser after changes.
+- `theme-variables.test.ts` regex changes require careful construction. The existing regex `/:root\s*\{([^}]+)\}/s` uses `[^}]+` which will NOT match if the `:root` block contains nested braces (it shouldn't, but `light-dark()` has parentheses, not braces, so this is fine).
 
-| File                  | Hook Removed  | Import Before                                           | Import After                               |
-| --------------------- | ------------- | ------------------------------------------------------- | ------------------------------------------ |
-| Token.tsx             | `useMemo`     | `import { useMemo } from "react"`                       | (line deleted)                             |
-| Cell.tsx              | `useCallback` | `import { useCallback } from "react"`                   | (line deleted)                             |
-| Grid.tsx              | `useMemo`     | `import { useMemo } from "react"`                       | (line deleted)                             |
-| BattleViewer.tsx      | `useCallback` | `import { useState, useRef, useCallback } from "react"` | `import { useState, useRef } from "react"` |
-| RuleEvaluations.tsx   | `useMemo`     | `import { useState, useMemo } from "react"`             | `import { useState } from "react"`         |
-| useWhiffIndicators.ts | `useMemo`     | `import { useMemo } from "react"`                       | (line deleted)                             |
-| useDamageNumbers.ts   | `useMemo`     | `import { useMemo } from "react"`                       | (line deleted)                             |
+**Excluded from scope (per decisions above):**
 
-## Commit Convention
+- TargetingLine SVG opacity -- stays as group opacity.
+- Cooldown/disabled/skipped CSS opacity -- stays as `opacity` property.
+- `rgba()` values not derived from named tokens -- stay as `rgba()` inside `light-dark()`.
+- `accessibilityStore.ts` -- no JS changes needed.
 
-Single commit: `refactor(ui): remove manual memoization redundant with React Compiler`
+## Files Modified (Expected)
 
-This completes the cleanup deferred by ADR-020.
+| File                                                | Change                                                                                           |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `src/styles/theme.css`                              | Restructure to 2-block + high-contrast, add `light-dark()`, add `color-mix()` for derived tokens |
+| `src/index.css`                                     | Remove `color-scheme: light dark`                                                                |
+| `src/components/BattleViewer/WhiffOverlay.tsx`      | Replace opacity attribute with `color-mix()` fill                                                |
+| `src/styles/theme-variables.test.ts`                | Update regex tests for new file structure                                                        |
+| `src/components/BattleViewer/WhiffOverlay.test.tsx` | Update fill/opacity assertions                                                                   |
+
+## New ADR Recommendation
+
+Recommend adding **ADR-021: CSS light-dark() and color-mix() Theme Consolidation** to `.docs/decisions/index.md`:
+
+- **Decision**: Use CSS `light-dark()` to unify dark/light theme declarations; high-contrast retains full override block. Use `color-mix()` for alpha variants derived from named tokens. `color-scheme` set via CSS selectors.
+- **Context**: Three-block theming duplicated ~43 variables between dark and light. `light-dark()` eliminates the duplication.
+- **Consequences**: Light theme block reduced to just `color-scheme: light`. High-contrast block unchanged. Browser support requires Chrome 123+ / Firefox 120+ / Safari 17.5+ for `light-dark()`.

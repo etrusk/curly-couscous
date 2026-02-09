@@ -1,47 +1,73 @@
 /**
  * Theme System - Semantic CSS Custom Properties
- * 
+ *
  * Theming strategy:
- * - Default (no data-theme or data-theme="dark"): Dark mode
- * - data-theme="light": Light mode
- * - data-theme="high-contrast": High contrast mode (7:1 ratio target)
- * 
+ * - Default (no data-theme or data-theme="dark"): Dark mode via color-scheme: dark
+ * - data-theme="light": Flips color-scheme to light, light-dark() resolves to light values
+ * - data-theme="high-contrast": Full override block with color-scheme: dark
+ *
+ * light-dark() argument order: light-dark(light-value, dark-value)
+ * color-mix() used for derived alpha tokens referencing named base variables
+ *
  * Okabe-Ito colorblind-safe palette preserved across all themes:
  * - Friendly: #0072B2 (blue)
  * - Enemy: #E69F00 (orange)
  */
 
 /* ============================================
-   DARK THEME (DEFAULT)
+   UNIFIED THEME (dark default, light via color-scheme)
    ============================================ */
 
 :root {
+  color-scheme: dark;
+
   /* === SURFACES (backgrounds) === */
-  --surface-ground: #242424; /* page background */
-  --surface-primary: #2a2a2a; /* main content areas (panels) */
-  --surface-secondary: #1e1e1e; /* nested elements (scroll containers) */
+  --surface-ground: light-dark(#fafafa, #242424); /* page background */
+  --surface-primary: light-dark(
+    #ffffff,
+    #2a2a2a
+  ); /* main content areas (panels) */
+  --surface-secondary: light-dark(
+    #f5f5f5,
+    #1e1e1e
+  ); /* nested elements (scroll containers) */
   --surface-elevated: #ffffff; /* tooltips, overlays, damage numbers */
 
   /* === CONTENT (text, icons) === */
-  --content-primary: rgba(255, 255, 255, 0.87); /* main text */
-  --content-secondary: rgba(255, 255, 255, 0.6); /* muted text, placeholders */
-  --content-muted: rgba(255, 255, 255, 0.38); /* disabled, hints */
+  --content-primary: light-dark(
+    #333,
+    rgba(255, 255, 255, 0.87)
+  ); /* main text */
+  --content-secondary: light-dark(
+    #666,
+    rgba(255, 255, 255, 0.6)
+  ); /* muted text, placeholders */
+  --content-muted: light-dark(
+    #999,
+    rgba(255, 255, 255, 0.38)
+  ); /* disabled, hints */
 
   /* === BORDERS === */
-  --border-default: #555; /* panel borders */
-  --border-subtle: #444; /* dividers, internal borders */
+  --border-default: light-dark(#999, #555); /* panel borders */
+  --border-subtle: light-dark(#ddd, #444); /* dividers, internal borders */
 
   /* === INTERACTIVE === */
-  --interactive-hover: #3a3a3a; /* hover backgrounds */
+  --interactive-hover: light-dark(#e8e8e8, #3a3a3a); /* hover backgrounds */
   --interactive-focus: #0072b2; /* focus ring color (matches friendly) */
 
   /* === FACTION (Okabe-Ito - preserved across all themes) === */
   --faction-friendly: #0072b2; /* friendly blue */
   --faction-enemy: #e69f00; /* enemy orange */
-  --faction-friendly-bg: rgba(0, 114, 178, 0.15); /* tinted background */
-  --faction-enemy-bg: rgba(230, 159, 0, 0.15); /* tinted background */
-  --faction-friendly-text: #4da6ff; /* text on tinted bg (lighter for dark) */
-  --faction-enemy-text: #ffb84d; /* text on tinted bg (lighter for dark) */
+  --faction-friendly-bg: light-dark(
+    #e6f2ff,
+    color-mix(in srgb, var(--faction-friendly) 15%, transparent)
+  ); /* tinted background */
+  --faction-enemy-bg: light-dark(
+    #fff4e6,
+    color-mix(in srgb, var(--faction-enemy) 15%, transparent)
+  ); /* tinted background */
+  --faction-friendly-text: light-dark(#004d7a, #4da6ff); /* text on tinted bg */
+  --faction-enemy-text: light-dark(#8f5a00, #ffb84d); /* text on tinted bg */
 
   /* === ACTION (intent line colors) === */
   --action-attack: #d55e00; /* red-orange (Okabe-Ito vermillion) */
@@ -50,73 +76,100 @@
 
   /* === TOKEN (character icons) === */
   --text-on-faction: #ffffff; /* white text on colored faction backgrounds */
-  --accent-primary: #00a8ff; /* selection glow, accent highlights */
+  --accent-primary: light-dark(
+    #0072b2,
+    #00a8ff
+  ); /* selection glow, accent highlights */
 
   /* === STATUS === */
   --status-success: #009e73; /* victory (green) */
-  --status-success-bg: rgba(0, 158, 115, 0.15);
-  --status-success-text: #00c48c;
+  --status-success-bg: light-dark(
+    #e6ffe6,
+    color-mix(in srgb, var(--status-success) 15%, transparent)
+  );
+  --status-success-text: light-dark(#006b4d, #00c48c);
 
   --status-error: #d55e00; /* defeat (red-orange) */
-  --status-error-bg: rgba(213, 94, 0, 0.15);
-  --status-error-text: #ff7f3d;
+  --status-error-bg: light-dark(
+    #ffe6e6,
+    color-mix(in srgb, var(--status-error) 15%, transparent)
+  );
+  --status-error-text: light-dark(#8f3e00, #ff7f3d);
 
   --status-warning: #cc9a06; /* unknown (yellow) */
-  --status-warning-bg: rgba(204, 154, 6, 0.15);
-  --status-warning-text: #e6b800;
+  --status-warning-bg: light-dark(
+    #fff3cd,
+    color-mix(in srgb, var(--status-warning) 15%, transparent)
+  );
+  --status-warning-text: light-dark(#664d03, #e6b800);
 
   --status-neutral: #999; /* draw (gray) */
-  --status-neutral-bg: rgba(153, 153, 153, 0.15);
-  --status-neutral-text: #bbb;
+  --status-neutral-bg: light-dark(
+    #f0f0f0,
+    color-mix(in srgb, var(--status-neutral) 15%, transparent)
+  );
+  --status-neutral-text: light-dark(#666, #bbb);
 
   /* === HEALTH === */
   --health-high: #4caf50; /* > 30% HP (green) */
-  --health-low: #f44336; /* ≤ 30% HP (red) */
+  --health-low: #f44336; /* <= 30% HP (red) */
 
   /* === CONTRAST (outlines, accessibility) === */
   --contrast-line: #ffffff; /* intent line outlines */
 
   /* === TARGETING (movement target lines) === */
-  --targeting-line-color: #888888; /* neutral gray for targeting lines */
+  --targeting-line-color: light-dark(
+    #666666,
+    #888888
+  ); /* neutral gray for targeting lines */
 
   /* === GRID (Battle Viewer) === */
-  --grid-bg: #1e1e1e;
-  --grid-border: #666;
-  --cell-bg: #2a2a2a;
-  --cell-border: #444;
-  --cell-hover-bg: #3a3a3a;
+  --grid-bg: light-dark(#f5f5f5, #1e1e1e);
+  --grid-border: light-dark(#333, #666);
+  --cell-bg: light-dark(#ffffff, #2a2a2a);
+  --cell-border: light-dark(#ddd, #444);
+  --cell-hover-bg: light-dark(#e8e8e8, #3a3a3a);
 
   /* === SCROLLBAR === */
-  --scrollbar-track: #2a2a2a;
-  --scrollbar-thumb: #555;
+  --scrollbar-track: light-dark(#f1f1f1, #2a2a2a);
+  --scrollbar-thumb: light-dark(#999, #555);
   --scrollbar-thumb-hover: #666;
 
   /* === TERMINAL OVERLAY TOKENS (new semantic layer) === */
 
   /* Surfaces */
-  --ground: #1a1a2e;
-  --surface: rgba(255, 255, 255, 0.03);
-  --surface-hover: rgba(255, 255, 255, 0.06);
+  --ground: light-dark(#f0f0f5, #1a1a2e);
+  --surface: light-dark(rgba(0, 0, 0, 0.02), rgba(255, 255, 255, 0.03));
+  --surface-hover: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.06));
 
   /* Borders & dividers */
-  --border: rgba(255, 255, 255, 0.12);
+  --border: light-dark(rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0.12));
   /* --border-subtle already defined above */
-  --divider: rgba(255, 255, 255, 0.06);
+  --divider: light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.06));
 
   /* Text */
-  --text-primary: rgba(255, 255, 255, 0.87);
-  --text-secondary: rgba(255, 255, 255, 0.6);
-  --text-muted: rgba(255, 255, 255, 0.38);
-  --text-ghost: rgba(255, 255, 255, 0.15);
+  --text-primary: light-dark(#333, rgba(255, 255, 255, 0.87));
+  --text-secondary: light-dark(#666, rgba(255, 255, 255, 0.6));
+  --text-muted: light-dark(#999, rgba(255, 255, 255, 0.38));
+  --text-ghost: light-dark(rgba(0, 0, 0, 0.15), rgba(255, 255, 255, 0.15));
 
   /* Accent */
-  --accent: #00a8ff;
-  --accent-subtle: rgba(0, 168, 255, 0.15);
-  --accent-muted: rgba(0, 168, 255, 0.08);
+  --accent: light-dark(#0072b2, #00a8ff);
+  --accent-subtle: light-dark(
+    rgba(0, 114, 178, 0.12),
+    color-mix(in srgb, var(--accent) 15%, transparent)
+  );
+  --accent-muted: light-dark(
+    rgba(0, 114, 178, 0.06),
+    color-mix(in srgb, var(--accent) 8%, transparent)
+  );
 
   /* Status */
   --danger: #d55e00;
-  --danger-subtle: rgba(213, 94, 0, 0.15);
+  --danger-subtle: light-dark(
+    rgba(213, 94, 0, 0.12),
+    color-mix(in srgb, var(--danger) 15%, transparent)
+  );
   --success: #009e73;
 
   /* Radii */
@@ -134,118 +187,7 @@
    ============================================ */
 
 :root[data-theme="light"] {
-  /* === SURFACES (backgrounds) === */
-  --surface-ground: #fafafa; /* page background */
-  --surface-primary: #ffffff; /* main content areas (panels) */
-  --surface-secondary: #f5f5f5; /* nested elements (scroll containers) */
-  --surface-elevated: #ffffff; /* tooltips, overlays, damage numbers */
-
-  /* === CONTENT (text, icons) === */
-  --content-primary: #333; /* main text */
-  --content-secondary: #666; /* muted text, placeholders */
-  --content-muted: #999; /* disabled, hints */
-
-  /* === BORDERS === */
-  --border-default: #999; /* panel borders */
-  --border-subtle: #ddd; /* dividers, internal borders */
-
-  /* === INTERACTIVE === */
-  --interactive-hover: #e8e8e8; /* hover backgrounds */
-  --interactive-focus: #0072b2; /* focus ring color (matches friendly) */
-
-  /* === FACTION (Okabe-Ito - preserved) === */
-  /* Base colors unchanged */
-  --faction-friendly: #0072b2;
-  --faction-enemy: #e69f00;
-  --faction-friendly-bg: #e6f2ff; /* tinted background (lighter for light) */
-  --faction-enemy-bg: #fff4e6; /* tinted background (lighter for light) */
-  --faction-friendly-text: #004d7a; /* text on tinted bg (darker for light) */
-  --faction-enemy-text: #8f5a00; /* text on tinted bg (darker for light) */
-
-  /* === ACTION (intent line colors) === */
-  --action-attack: #d55e00;
-  --action-heal: #009e73;
-  --action-move: #0072b2;
-
-  /* === TOKEN (character icons) === */
-  --text-on-faction: #ffffff; /* white text on colored faction backgrounds */
-  --accent-primary: #0072b2; /* matches friendly blue for consistency */
-
-  /* === STATUS === */
-  --status-success: #009e73;
-  --status-success-bg: #e6ffe6;
-  --status-success-text: #006b4d;
-
-  --status-error: #d55e00;
-  --status-error-bg: #ffe6e6;
-  --status-error-text: #8f3e00;
-
-  --status-warning: #cc9a06;
-  --status-warning-bg: #fff3cd;
-  --status-warning-text: #664d03;
-
-  --status-neutral: #999;
-  --status-neutral-bg: #f0f0f0;
-  --status-neutral-text: #666;
-
-  /* === HEALTH === */
-  --health-high: #4caf50;
-  --health-low: #f44336;
-
-  /* === CONTRAST (outlines, accessibility) === */
-  --contrast-line: #ffffff; /* intent line outlines */
-
-  /* === TARGETING (movement target lines) === */
-  --targeting-line-color: #666666; /* slightly darker for light bg */
-
-  /* === GRID (Battle Viewer) === */
-  --grid-bg: #f5f5f5;
-  --grid-border: #333;
-  --cell-bg: #ffffff;
-  --cell-border: #ddd;
-  --cell-hover-bg: #e8e8e8;
-
-  /* === SCROLLBAR === */
-  --scrollbar-track: #f1f1f1;
-  --scrollbar-thumb: #999;
-  --scrollbar-thumb-hover: #666;
-
-  /* === TERMINAL OVERLAY TOKENS (new semantic layer) === */
-
-  /* Surfaces */
-  --ground: #f0f0f5;
-  --surface: rgba(0, 0, 0, 0.02);
-  --surface-hover: rgba(0, 0, 0, 0.05);
-
-  /* Borders & dividers */
-  --border: rgba(0, 0, 0, 0.12);
-  /* --border-subtle already defined above */
-  --divider: rgba(0, 0, 0, 0.06);
-
-  /* Text */
-  --text-primary: #333;
-  --text-secondary: #666;
-  --text-muted: #999;
-  --text-ghost: rgba(0, 0, 0, 0.15);
-
-  /* Accent */
-  --accent: #0072b2;
-  --accent-subtle: rgba(0, 114, 178, 0.12);
-  --accent-muted: rgba(0, 114, 178, 0.06);
-
-  /* Status */
-  --danger: #d55e00;
-  --danger-subtle: rgba(213, 94, 0, 0.12);
-  --success: #009e73;
-
-  /* Radii */
-  --radius-sm: 2px;
-  --radius-md: 4px;
-  --radius-lg: 6px;
-
-  /* Typography */
-  --font-mono:
-    "Fira Code", "Cascadia Code", "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: light;
 }
 
 /* ============================================
@@ -253,6 +195,8 @@
    ============================================ */
 
 :root[data-theme="high-contrast"] {
+  color-scheme: dark;
+
   /* === SURFACES (backgrounds) === */
   --surface-ground: #000000; /* page background (pure black) */
   --surface-primary: #000000; /* main content areas */
@@ -276,8 +220,12 @@
   /* Base colors slightly brightened for better contrast on black */
   --faction-friendly: #0099ff; /* brighter blue */
   --faction-enemy: #ff9900; /* brighter orange */
-  --faction-friendly-bg: rgba(0, 153, 255, 0.2);
-  --faction-enemy-bg: rgba(255, 153, 0, 0.2);
+  --faction-friendly-bg: color-mix(
+    in srgb,
+    var(--faction-friendly) 20%,
+    transparent
+  );
+  --faction-enemy-bg: color-mix(in srgb, var(--faction-enemy) 20%, transparent);
   --faction-friendly-text: #66ccff;
   --faction-enemy-text: #ffb84d;
 
@@ -292,19 +240,31 @@
 
   /* === STATUS === */
   --status-success: #00ff88;
-  --status-success-bg: rgba(0, 255, 136, 0.2);
+  --status-success-bg: color-mix(
+    in srgb,
+    var(--status-success) 20%,
+    transparent
+  );
   --status-success-text: #00ff88;
 
   --status-error: #ff6633;
-  --status-error-bg: rgba(255, 102, 51, 0.2);
+  --status-error-bg: color-mix(in srgb, var(--status-error) 20%, transparent);
   --status-error-text: #ff6633;
 
   --status-warning: #ffcc00;
-  --status-warning-bg: rgba(255, 204, 0, 0.2);
+  --status-warning-bg: color-mix(
+    in srgb,
+    var(--status-warning) 20%,
+    transparent
+  );
   --status-warning-text: #ffcc00;
 
   --status-neutral: #cccccc;
-  --status-neutral-bg: rgba(204, 204, 204, 0.2);
+  --status-neutral-bg: color-mix(
+    in srgb,
+    var(--status-neutral) 20%,
+    transparent
+  );
   --status-neutral-text: #cccccc;
 
   /* === HEALTH === */
@@ -349,12 +309,12 @@
 
   /* Accent */
   --accent: #00ff00;
-  --accent-subtle: rgba(0, 255, 0, 0.2);
-  --accent-muted: rgba(0, 255, 0, 0.1);
+  --accent-subtle: color-mix(in srgb, var(--accent) 20%, transparent);
+  --accent-muted: color-mix(in srgb, var(--accent) 10%, transparent);
 
   /* Status */
   --danger: #ff6633;
-  --danger-subtle: rgba(255, 102, 51, 0.2);
+  --danger-subtle: color-mix(in srgb, var(--danger) 20%, transparent);
   --success: #00ff88;
 
   /* Radii */

@@ -8,6 +8,10 @@ import { render } from "@testing-library/react";
 import { useGameStore } from "../../stores/gameStore";
 import { WhiffOverlay } from "./WhiffOverlay";
 import { computeHexViewBox } from "../../engine/hex";
+// @ts-expect-error - fs and path are available in vitest Node environment
+import { readFileSync } from "fs";
+// @ts-expect-error - fs and path are available in vitest Node environment
+import { join } from "path";
 import type { Character } from "../../engine/types";
 
 describe("WhiffOverlay", () => {
@@ -65,7 +69,7 @@ describe("WhiffOverlay", () => {
     expect(polygons[0]).toHaveAttribute("points");
   });
 
-  it("attack whiff uses action-attack color fill", () => {
+  it("attack whiff fill uses color-mix with action-attack color", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     useGameStore.getState().actions.initBattle([char1]);
 
@@ -80,10 +84,14 @@ describe("WhiffOverlay", () => {
     const { container } = render(<WhiffOverlay hexSize={40} />);
 
     const polygon = container.querySelector("polygon");
-    expect(polygon).toHaveAttribute("fill", "var(--action-attack)");
+    const fill = polygon?.getAttribute("fill");
+    expect(fill).toMatch(/color-mix\(/);
+    expect(fill).toMatch(/var\(--action-attack\)/);
+    expect(fill).toMatch(/20%/);
+    expect(fill).toMatch(/transparent/);
   });
 
-  it("heal whiff uses action-heal color fill", () => {
+  it("heal whiff fill uses color-mix with action-heal color", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     useGameStore.getState().actions.initBattle([char1]);
 
@@ -98,10 +106,14 @@ describe("WhiffOverlay", () => {
     const { container } = render(<WhiffOverlay hexSize={40} />);
 
     const polygon = container.querySelector("polygon");
-    expect(polygon).toHaveAttribute("fill", "var(--action-heal)");
+    const fill = polygon?.getAttribute("fill");
+    expect(fill).toMatch(/color-mix\(/);
+    expect(fill).toMatch(/var\(--action-heal\)/);
+    expect(fill).toMatch(/20%/);
+    expect(fill).toMatch(/transparent/);
   });
 
-  it("whiff polygons have low opacity (0.2)", () => {
+  it("whiff polygons have no opacity attribute", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     useGameStore.getState().actions.initBattle([char1]);
 
@@ -116,7 +128,17 @@ describe("WhiffOverlay", () => {
     const { container } = render(<WhiffOverlay hexSize={40} />);
 
     const polygon = container.querySelector("polygon");
-    expect(polygon).toHaveAttribute("opacity", "0.2");
+    expect(polygon).not.toHaveAttribute("opacity");
+  });
+
+  it("whiff overlay source has no WHIFF_FILL_OPACITY constant", () => {
+    // @ts-expect-error - __dirname is available in vitest Node environment
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+    const sourcePath = join(__dirname, "WhiffOverlay.tsx");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment, security/detect-non-literal-fs-filename
+    const sourceContent: string = readFileSync(sourcePath, "utf-8");
+
+    expect(sourceContent).not.toMatch(/WHIFF_FILL_OPACITY/);
   });
 
   it("whiff overlay has no pointer events CSS class", () => {

@@ -8,8 +8,6 @@ import { useWhiffIndicators } from "./hooks/useWhiffIndicators";
 import { hexToPixel, hexVertices, computeHexViewBox } from "../../engine/hex";
 import styles from "./WhiffOverlay.module.css";
 
-const WHIFF_FILL_OPACITY = 0.2;
-
 export interface WhiffOverlayProps {
   hexSize: number;
 }
@@ -38,8 +36,7 @@ export function WhiffOverlay({ hexSize }: WhiffOverlayProps) {
           <polygon
             key={data.cellKey}
             points={points}
-            fill={fillColor}
-            opacity={WHIFF_FILL_OPACITY}
+            fill={`color-mix(in srgb, ${fillColor} 20%, transparent)`}
           />
         );
       })}

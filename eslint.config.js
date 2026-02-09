@@ -3,6 +3,7 @@ import tseslint from 'typescript-eslint';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import reactCompiler from 'eslint-plugin-react-compiler';
 import security from 'eslint-plugin-security';
 import noSecrets from 'eslint-plugin-no-secrets';
 
@@ -22,12 +23,13 @@ export default tseslint.config(
     },
     settings: {
       react: {
-        version: '18.2',
+        version: 'detect',
       },
     },
     plugins: {
       react,
       'react-hooks': reactHooks,
+      'react-compiler': reactCompiler,
       'react-refresh': reactRefresh,
       security,
       'no-secrets': noSecrets,
@@ -62,6 +64,9 @@ export default tseslint.config(
       
       // React Hooks
       ...reactHooks.configs.recommended.rules,
+
+      // React Compiler
+      'react-compiler/react-compiler': 'error',
       
       // React Refresh
       'react-refresh/only-export-components': [

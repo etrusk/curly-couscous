@@ -14,10 +14,12 @@ describe("PlayControls", () => {
   let user: ReturnType<typeof userEvent.setup>;
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
 
-    // Setup userEvent with fake timers (no delay)
-    user = userEvent.setup({ delay: null });
+    // Setup userEvent with advanceTimers for fake timer compatibility
+    user = userEvent.setup({
+      advanceTimers: vi.advanceTimersByTime.bind(vi),
+    });
 
     // Reset store before each test
     const actions = useGameStore.getState().actions;
@@ -290,7 +292,9 @@ describe("PlayControls", () => {
       await user.click(playButton);
 
       // Advance time to get some ticks
-      vi.advanceTimersByTime(1000);
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
       expect(useGameStore.getState().gameState.tick).toBeGreaterThan(0);
 
       // Click Reset
@@ -306,7 +310,9 @@ describe("PlayControls", () => {
 
       // Verify ticks don't continue
       const currentTick = useGameStore.getState().gameState.tick;
-      vi.advanceTimersByTime(2000);
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
       expect(useGameStore.getState().gameState.tick).toBe(currentTick);
     });
   });
@@ -349,7 +355,7 @@ describe("PlayControls", () => {
     });
 
     it("should stop auto-advancing when paused", async () => {
-      // Initialize with active battle
+      // Initialize with active battle (need both factions to keep battle active)
       const actions = useGameStore.getState().actions;
       const testCharacters: Character[] = [
         {
@@ -363,6 +369,17 @@ describe("PlayControls", () => {
           skills: [],
           currentAction: null,
         },
+        {
+          id: "char-2",
+          name: "Enemy Character",
+          faction: "enemy",
+          slotPosition: 2,
+          hp: 100,
+          maxHp: 100,
+          position: { q: 5, r: 0 },
+          skills: [],
+          currentAction: null,
+        },
       ];
       actions.initBattle(testCharacters);
 
@@ -373,7 +390,9 @@ describe("PlayControls", () => {
       await user.click(playButton);
 
       // Advance one tick
-      vi.advanceTimersByTime(1000);
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
       expect(useGameStore.getState().gameState.tick).toBe(1);
 
       // Click Pause
@@ -382,7 +401,9 @@ describe("PlayControls", () => {
 
       // Advance timers - tick should not change
       const currentTick = useGameStore.getState().gameState.tick;
-      vi.advanceTimersByTime(5000);
+      act(() => {
+        vi.advanceTimersByTime(5000);
+      });
       expect(useGameStore.getState().gameState.tick).toBe(currentTick);
     });
 

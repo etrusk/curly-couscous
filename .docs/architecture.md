@@ -3,9 +3,9 @@
 ## Tech Stack
 
 - Language: TypeScript 5.x (strict mode)
-- Framework: React 18+
+- Framework: React 19+
 - State Management: Zustand + Immer middleware
-- Build Tool: Vite 5
+- Build Tool: Vite 7 + React Compiler (babel-plugin-react-compiler for automatic memoization, ADR-020)
 - Testing: Vitest + React Testing Library + @testing-library/user-event
 - Styling: CSS Modules + CSS Custom Properties (terminal overlay tokens + legacy tokens, three-block theming)
 

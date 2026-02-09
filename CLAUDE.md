@@ -6,17 +6,17 @@
 
 A turn-based auto-battler game built with React and TypeScript. Features AI-controlled characters with configurable behavior rules, visual battle simulation, and comprehensive rule evaluation transparency.
 
-**Version:** 0.19.0 (follows SemVer: MAJOR.MINOR.PATCH)
+**Version:** 0.20.0 (follows SemVer: MAJOR.MINOR.PATCH)
 
 ## Tech Stack
 
-- Language: TypeScript 5.3
+- Language: TypeScript 5.9
 - Runtime: Node.js (latest LTS)
-- Framework: React 18.2 with Vite 7.3
-- State Management: Zustand 4.4 with Immer
+- Framework: React 19.2 with Vite 7.3
+- State Management: Zustand 4.5 with Immer
 - Testing: Vitest 4.0 with Testing Library
 - Linting: ESLint 9.39 with TypeScript ESLint
-- Formatting: Prettier 3.1
+- Formatting: Prettier 3.8
 
 ## Key Commands
 

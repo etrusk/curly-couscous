@@ -2,55 +2,54 @@
 
 ## Task
 
-CSS theming functions: adopt `light-dark()` for unified theme switching and `color-mix()` for opacity variants (whiff, cooldown effects).
+Set up Vitest Browser Mode config for SVG/component test subset
 
 ## Confirmed Scope
 
-Modernize CSS theming by replacing manual light/dark theme color declarations with CSS `light-dark()` function and replacing opacity/alpha hacks with `color-mix()`. Target existing `.module.css` files that use theme-dependent colors or opacity variants for game states like whiff and cooldown.
+Configure Vitest Browser Mode to run a subset of tests that require real DOM/SVG rendering (e.g., SVG element tests, component tests that need actual browser APIs). Set up workspace/project configuration to run browser-mode tests alongside existing jsdom tests. Identify which existing tests should migrate to browser mode.
 
 ## Acceptance Criteria
 
-- All theme-dependent color declarations use `light-dark()` instead of separate light/dark rule sets
-- Opacity variants (whiff, cooldown) use `color-mix()` instead of rgba/opacity hacks
-- Visual appearance unchanged (behavior-preserving refactor)
-- All existing tests pass
-- All quality gates pass (TypeScript, ESLint, tests)
+- Vitest Browser Mode configured and working alongside existing jsdom test setup
+- SVG/component test subset identified and running in browser mode
+- All existing tests continue to pass
+- Documentation updated with browser mode patterns
 
 ## Current Phase
 
-EXPLORE (COMPLETE) -> PLAN (COMPLETE) -> DESIGN_TESTS (COMPLETE) -> TEST_DESIGN_REVIEW (COMPLETE) -> CODE_TESTS (COMPLETE) -> IMPLEMENT (COMPLETE) -> REVIEW (COMPLETE) -> SYNC_DOCS (COMPLETE)
+COMMIT
 
 ## Phase History
 
 - 2026-02-09 INIT → EXPLORE
-- 2026-02-09 EXPLORE COMPLETE
-- 2026-02-09 PLAN COMPLETE
-- 2026-02-09 DESIGN_TESTS COMPLETE
-- 2026-02-09 TEST_DESIGN_REVIEW COMPLETE
-- 2026-02-09 CODE_TESTS COMPLETE (WRITE_TESTS phase)
-- 2026-02-09 IMPLEMENT COMPLETE (GREEN phase)
-- 2026-02-09 REVIEW COMPLETE (PASS: 0 critical, 1 important, 2 minor)
-- 2026-02-09 SYNC_DOCS COMPLETE (architecture.md updated, ADR-021 created, current-task.md updated)
+- 2026-02-09 EXPLORE → PLAN [7 exchanges, ~25K tokens]
+- 2026-02-09 PLAN → DESIGN_TESTS [4 exchanges, ~35K tokens]
+- 2026-02-09 DESIGN_TESTS → TEST_DESIGN_REVIEW [4 exchanges, ~35K tokens]
+- 2026-02-09 TEST_DESIGN_REVIEW → WRITE_TESTS [3 exchanges, ~20K tokens]
+- 2026-02-09 WRITE_TESTS → IMPLEMENT [17 exchanges, ~55K tokens]
+- 2026-02-09 IMPLEMENT → REVIEW [5 exchanges, ~40K tokens]
+- 2026-02-09 REVIEW → SYNC_DOCS [5 exchanges, ~25K tokens]
+- 2026-02-09 SYNC_DOCS → COMMIT [4 exchanges, ~18K tokens]
 
 ## Context Metrics
 
-Orchestrator: ~45K/300K (15%)
-Cumulative agent tokens: ~240K
+Orchestrator: ~15K/300K (5%)
+Cumulative agent tokens: ~253K
 Agent invocations: 8
 Compactions: 0
 
 ### Agent History
 
-| #   | Agent             | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                              |
-| --- | ----------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | ---------------------------------------------------------------------------------- |
-| 1   | tdd-explorer      | EXPLORE            | 7         | ~25K   | 40    | ~178s    | COMPLETE | 3-theme constraint, ~43 vars for light-dark(), ~25 rgba() for color-mix()          |
-| 2   | tdd-planner       | PLAN               | 5         | ~35K   | 16    | ~155s    | COMPLETE | CSS color-scheme via selectors, WhiffOverlay converts, ADR-021 recommended         |
-| 3   | tdd-test-designer | DESIGN_TESTS       | 4         | ~35K   | 12    | ~161s    | COMPLETE | 19 tests: 15 theme-variables, 4 WhiffOverlay. 2 existing tests removed, 3 replaced |
-| 4   | tdd-test-reviewer | TEST_DESIGN_REVIEW | 4         | ~18K   | 13    | ~184s    | COMPLETE | -1 redundant, -2 pseudo-tests, +2 new (arg order, nesting). Net: 18 real tests     |
-| 5   | tdd-coder         | WRITE_TESTS        | 10        | ~40K   | 18    | ~262s    | COMPLETE | 17 failing, 10 passing (27 total). Red phase confirmed.                            |
-| 6   | tdd-coder         | IMPLEMENT          | 8         | ~50K   | 22    | ~224s    | COMPLETE | All 1448 tests pass. 3 source files modified. All quality gates pass.              |
-| 7   | tdd-reviewer      | REVIEW             | 5         | ~25K   | 18    | ~90s     | COMPLETE | PASS: 0 critical, 1 important (arch.md outdated), 2 minor (pre-existing)           |
-| 8   | tdd-doc-syncer    | SYNC_DOCS          | 4         | ~12K   | 14    | ~105s    | COMPLETE | arch.md updated, ADR-021 created, current-task.md updated                          |
+| #   | Agent             | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                                                                   |
+| --- | ----------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 1   | tdd-explorer      | EXPLORE            | 7         | ~25K   | 30    | ~21s     | COMPLETE | Found 3 tooltip tests for browser mode, 2 must stay jsdom                                                               |
+| 2   | tdd-planner       | PLAN               | 4         | ~35K   | 12    | ~30s     | COMPLETE | 10-step plan, Phase 1 = infra + 2-3 browser tests, Phase 2 = follow-up                                                  |
+| 3   | tdd-test-designer | DESIGN_TESTS       | 4         | ~35K   | 13    | -        | COMPLETE | 4 tests: 1 smoke + 3 positioning, all target jsdom gaps                                                                 |
+| 4   | tdd-test-reviewer | TEST_DESIGN_REVIEW | 3         | ~20K   | 11    | -        | COMPLETE | Approved with 3 minor adjustments: relational assertions, removed fragile negative assertion, added waitFor timing note |
+| 5   | tdd-coder         | WRITE_TESTS        | ~17       | ~50K   | ~30   | -        | COMPLETE | Infrastructure set up, 4 browser tests written, 2 pass 2 fail (red phase)                                               |
+| 6   | tdd-coder         | IMPLEMENT          | 5         | ~40K   | ~25   | -        | COMPLETE | Fixed 2 failing browser tests: viewport sizing + anchor positioning                                                     |
+| 7   | tdd-reviewer      | REVIEW             | 5         | ~25K   | 18    | -        | COMPLETE | APPROVED: 0 critical, 1 important (Chromium path), 2 minor                                                              |
+| 8   | tdd-doc-syncer    | SYNC_DOCS          | 4         | ~18K   | 18    | -        | COMPLETE | Fixed Chromium path, added gitignore, created ADR-022, updated arch/patterns/decisions                                  |
 
 ### Action Log
 
@@ -60,88 +59,95 @@ Compactions: 0
 
 #### #2 tdd-planner (PLAN)
 
-- Decided CSS-based color-scheme coordination over JS-based -- eliminates accessibilityStore changes
-- WhiffOverlay converts to color-mix(); TargetingLine and cooldown/disabled opacity stay as-is
-- Only rgba() tokens derived from named base variables get color-mix(); white/black alpha stays rgba()
-- Light-theme block shrinks to 1 line (color-scheme: light) -- all values handled by light-dark() in :root
-- Recommend ADR-021 for CSS light-dark()/color-mix() adoption
+- Read exploration findings and all required docs
+- Decided: create new .browser.test.tsx files alongside existing jsdom tests (not migrate)
+- Decided: keep CharacterTooltip.tsx zero-rect workaround until browser tests prove it removable
+- Recommended ADR-022 for Vitest Browser Mode decision
+- Plan covers: deps, workspace config, browser setup, proof-of-concept test, npm scripts, docs
 
 #### #3 tdd-test-designer (DESIGN_TESTS)
 
-- 2 existing light-theme tests must be removed (light block will have no variables)
-- 3 existing WhiffOverlay tests must be replaced (fill and opacity assertions change)
-- index.css color-scheme removal gets its own cross-file static analysis test
+- Read plan, exploration, existing tests, component source, CSS module, tooltip helpers, patterns, spec
+- Designed 4 tests: 1 environment smoke test + 3 positioning tests targeting jsdom gaps
+- Smoke test validates workspace config produces real browser (not jsdom)
+- Positioning tests validate: real getBoundingClientRect dimensions, positioning with real dimensions, viewport flip with real constraints
+- Intentionally excluded content/ARIA/callback/portal tests (already covered by jsdom)
+- Noted implementation details: DOMRect constructor, viewport control via Playwright, waitFor timing, CSS processing validation
 
 #### #4 tdd-test-reviewer (TEST_DESIGN_REVIEW)
 
-- Removed redundant `text-on-faction-defined-in-root` (duplicate of existing KEEP test)
-- Reclassified 2 pseudo-tests as documentation (existing-dark/high-contrast-still-pass)
-- Added `light-dark-argument-order-light-first` to catch swapped arguments
-- Added `faction-bg-color-mix-nested-in-light-dark` to verify light-dark() wrapping of color-mix()
-- Net result: 18 real test designs (14 theme-variables + 4 WhiffOverlay)
+- Approved 4 tests with 3 minor adjustments
+- Changed test 3 assertion 1 from exact equality to relational (tolerance of 2px) to reduce brittleness
+- Replaced test 3 assertion 3 from fragile negative assertion (height !== 150) to positive assertion (width > 0)
+- Added explicit timing note: coder MUST use waitFor() for positioning assertions due to useLayoutEffect + setState re-render cycle
+- Confirmed no overlap with existing jsdom tests
+- Confirmed spec alignment for tooltip positioning requirements
 
 #### #5 tdd-coder (WRITE_TESTS)
 
-- Removed 2 obsolete tests: `--text-on-faction > light theme`, `--accent-primary > light theme`
-- Added 15 new tests to theme-variables.test.ts (14 from designs + index.css test)
-- Replaced 3 WhiffOverlay tests (attack fill, heal fill, opacity) with color-mix() assertions
-- Added 1 new WhiffOverlay test (WHIFF_FILL_OPACITY constant removal)
-- Extracted 3 helper functions (extractRootBlock, extractLightBlock, extractHighContrastBlock) and getIndexCssContent
-- Added eslint-disable for non-null assertions and security/detect-non-literal-fs-filename
-- Red phase confirmed: 17 failing (new tests), 10 passing (KEEP + 2 negative-condition ADD tests)
-- Quality gates: TypeScript PASS, ESLint PASS, 148/150 test files pass (only 2 modified files fail as expected)
+- Installed @vitest/browser, @vitest/browser-playwright, playwright
+- Playwright chromium download failed (SOCKS proxy issue); used system Chromium at /usr/bin/chromium via launchOptions.executablePath
+- Discovered vitest.workspace.ts is removed in Vitest 4; migrated to test.projects in vite.config.ts
+- Discovered @vitest/browser/providers/playwright types don't exist in Vitest 4; reverted tsconfig change
+- Fixed deprecation: changed import from @vitest/browser/context to vitest/browser
+- All 1448 unit tests pass, 2/4 browser tests pass (tests 1+2), 2/4 fail (tests 3+4) -- red phase achieved
+- Failing tests fail at assertion level (not infrastructure) -- positioning with real dimensions differs from expected values
+- Test 3 fails: left=200 (fallback path) instead of expected ~252 (right-side positioning) -- real tooltip width (~280px+) is too wide for right-side placement with DOMRect(200,200,40,40) in default viewport
+- Test 4 fails: left=300 (fallback path) instead of < 300 -- page.viewport() may not affect the component's window.innerWidth reading, or the tooltip calculation uses fallback when neither side fits
 
-#### #6 tdd-coder (IMPLEMENT)
+#### #6 tdd-coder (IMPLEMENT - green phase)
 
-- Merged theme.css from 3-block to 2-block structure using light-dark() for ~43 differing variables
-- Added color-scheme: dark to :root, color-scheme: light to [data-theme="light"], color-scheme: dark to [data-theme="high-contrast"]
-- Light theme block reduced from ~115 lines to 1 declaration (color-scheme: light)
-- Converted 9 derived tokens in :root to color-mix() nested in light-dark()
-- Converted 9 high-contrast bg tokens from rgba() to color-mix() referencing base variables
-- Removed color-scheme: light dark from index.css
-- WhiffOverlay: removed WHIFF_FILL_OPACITY constant, removed opacity attribute, fill uses color-mix()
-- All 1448 tests pass, all quality gates pass (TypeScript, ESLint, build)
+- Root cause: default Vitest browser iframe viewport is ~335px wide (not 1280px as assumed)
+- Test 3 fix: added `await page.viewport(1280, 720)` to set explicit wide viewport before rendering
+- Test 4 fix: increased viewport to 620x600 and moved anchor to x=350 so left-side check passes (strict inequality `> MARGIN` requires `anchorLeft - OFFSET - tooltipWidth > 8`)
+- All 4 browser tests now pass, all 1448 unit tests still pass
+- Quality gates: TypeScript PASS, ESLint PASS, tests PASS
 
 #### #7 tdd-reviewer (REVIEW)
 
-- Clean run
+- APPROVED with 0 critical, 1 important, 2 minor issues
+- All quality gates pass
 
 #### #8 tdd-doc-syncer (SYNC_DOCS)
 
-- Clean run
+- Fixed hardcoded Chromium path to use `process.env.CHROMIUM_PATH || undefined`
+- Added `__screenshots__/` to .gitignore
+- Created ADR-022 for Vitest Browser Mode
+- Updated decisions/index.md, architecture.md, patterns/index.md
+- Updated current-task.md with completion status
 
 ## Files Touched
 
-- `src/styles/theme-variables.test.ts` (modified: removed 2 obsolete light-theme tests, added 15 new tests, extracted helper functions)
-- `src/components/BattleViewer/WhiffOverlay.test.tsx` (modified: replaced 3 tests, added 1 new test)
-- `src/styles/theme.css` (modified: merged 3-block to 2-block with light-dark(), added color-mix() for derived tokens, added color-scheme declarations)
-- `src/index.css` (modified: removed color-scheme: light dark line)
-- `src/components/BattleViewer/WhiffOverlay.tsx` (modified: removed WHIFF_FILL_OPACITY, replaced opacity attribute with color-mix() in fill)
-- `.docs/architecture.md` (modified: updated 2 three-block theming references)
-- `.docs/decisions/adr-021-css-light-dark-color-mix.md` (created: ADR-021)
-- `.docs/decisions/index.md` (modified: added ADR-021 row)
-- `.docs/current-task.md` (modified: moved CSS theming to completions)
+- .tdd/session.md (updated)
+- .tdd/exploration.md (created)
+- .tdd/plan.md (created)
+- .tdd/test-designs.md (created)
+- vite.config.ts (modified: replaced `defineConfig` import from `vite` to `vitest/config`, added `test.projects` with unit + browser configs, removed old `test` block)
+- src/test/setup.browser.ts (created: browser test setup without matchMedia mock)
+- src/components/BattleViewer/CharacterTooltip.browser.test.tsx (created: 4 browser positioning tests)
+- package.json (modified: added `@vitest/browser`, `@vitest/browser-playwright`, `playwright` devDeps; added `test:unit`, `test:browser` scripts)
 
 ## Browser Verification
 
-Status: VERIFIED
-
-- Light theme: Renders correctly (light background, proper text/grid colors)
-- Dark theme: Renders correctly (dark background, proper text/grid colors)
-- Theme toggle: Switches correctly between light and dark
-- Console: No errors
-- light-dark() and color-scheme switching work as expected in browser
+Status: N/A
 
 ## Human Approval
 
-Status: N/A (non-UI behavioral change — CSS refactor)
+Status: N/A
 
 ## Blockers
 
-(none)
+- (none)
 
 ## Review Cycles
 
 Count: 1
 
-- Cycle 1: PASS -- 0 critical, 1 important (architecture.md outdated "three-block" reference), 2 minor (pre-existing). No blocking issues.
+### Review #1 (2026-02-09)
+
+**Verdict**: APPROVED with minor notes
+
+- 0 CRITICAL issues
+- 1 IMPORTANT issue: hardcoded Chromium path (`/usr/bin/chromium`) reduces portability
+- 2 MINOR issues: screenshot artifacts not gitignored, planned docs not created
+- All quality gates pass (1448 unit + 4 browser tests, TypeScript, ESLint)

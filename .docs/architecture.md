@@ -6,7 +6,7 @@
 - Framework: React 19+
 - State Management: Zustand + Immer middleware
 - Build Tool: Vite 7 + React Compiler (babel-plugin-react-compiler for automatic memoization, ADR-020)
-- Testing: Vitest + React Testing Library + @testing-library/user-event
+- Testing: Vitest + React Testing Library + @testing-library/user-event + Vitest Browser Mode (Playwright, ADR-022)
 - Styling: CSS Modules + CSS Custom Properties (terminal overlay tokens + legacy tokens, `light-dark()` + `color-mix()` theming, ADR-021)
 
 ## Key Patterns
@@ -126,9 +126,19 @@ During battle phase, SkillRow shows evaluation indicators alongside config contr
 
 - Unit tests for engine logic: Pure functions, no React
 - Component tests: React Testing Library, user-centric
+- Browser tests (`.browser.test.tsx`): Real DOM rendering via Vitest Browser Mode + Playwright for tests requiring `getBoundingClientRect`, `getComputedStyle`, or SVG geometry (ADR-022)
 - No mocking game engine in component tests (use real engine)
 - Test accessibility settings via class/attribute assertions
 - Hex coordinates in tests must satisfy: `max(|q|, |r|, |q+r|) <= 5`
+
+### Test Infrastructure
+
+Two Vitest projects configured in `vite.config.ts` via `test.projects`:
+
+- **unit**: jsdom environment, runs `*.test.{ts,tsx}` files (excludes `*.browser.test.*`)
+- **browser**: Playwright/Chromium, runs `*.browser.test.{ts,tsx}` files
+
+Scripts: `npm run test` (both), `npm run test:unit`, `npm run test:browser`, `npm run test:watch` (unit only, fast TDD loop).
 
 ## Accessibility Requirements
 

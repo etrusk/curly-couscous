@@ -1,61 +1,62 @@
-# Review Findings: CSS `light-dark()` and `color-mix()` Adoption
+# Review Findings: Vitest Browser Mode Setup
 
-## Verdict: PASS
+**Reviewer**: tdd-reviewer | **Date**: 2026-02-09 | **Verdict**: APPROVED with minor notes
 
-All 5 modified files reviewed. Implementation matches plan. No critical issues found.
+## Quality Gates
 
-## Acceptance Criteria Check
+| Gate          | Status | Details                       |
+| ------------- | ------ | ----------------------------- |
+| TypeScript    | PASS   | `tsc --noEmit` clean          |
+| ESLint        | PASS   | No warnings or errors         |
+| Unit tests    | PASS   | 150 files, 1448 tests passing |
+| Browser tests | PASS   | 1 file, 4 tests passing       |
 
-- [x] All theme-dependent color declarations use `light-dark()` -- confirmed ~43 variables in `:root` block
-- [x] Opacity variants use `color-mix()` where appropriate -- 9 derived tokens in `:root`, 9 in high-contrast, WhiffOverlay fill
-- [x] Visual appearance unchanged (behavior-preserving) -- `color-mix(... 20%, transparent)` equivalent to `opacity: 0.2`; browser verified per session.md
-- [x] All 1448 tests pass, 0 failing, 0 skipped
-- [x] All quality gates pass (TypeScript, ESLint, build)
+## Checklist Results
 
-## Spec Compliance
+### 1. Duplication Check - PASS
 
-Spec defines whiff opacity as "Opacity: 0.2" (spec.md line 406). Implementation uses `color-mix(in srgb, ${fillColor} 20%, transparent)` which produces visually identical 20% alpha. Acceptable behavior-preserving equivalent.
+No duplication found. Browser tests target real-DOM behaviors (getBoundingClientRect, viewport constraints) that jsdom tests cannot cover. No overlap with existing 13 jsdom tests in `CharacterTooltip.test.tsx`.
 
-## Plan Compliance
+### 2. Spec Compliance - PASS
 
-All planned changes implemented correctly:
+Tests validate tooltip positioning requirements from spec (right-preferred, left-fallback, viewport clamping). No production code changed.
 
-- Phase 1: `color-scheme` declarations in all 3 blocks, `light-dark()` unification, `index.css` removal -- DONE
-- Phase 2: WhiffOverlay `WHIFF_FILL_OPACITY` removed, opacity attribute removed, fill uses `color-mix()` -- DONE
-- Phase 3: Tests updated (2 removed, 15 added in theme-variables; 3 replaced + 1 added in WhiffOverlay) -- DONE
-- Phase 4: Quality gates all pass -- DONE
+### 3. Pattern Compliance - PASS
 
-## CSS Correctness
+- Test file co-located with component per project pattern
+- `beforeEach` store reset matches existing jsdom test pattern
+- CSS modules inherited via `extends: true` in workspace config
 
-- `light-dark()` argument order verified: light value first, dark value second (e.g., `light-dark(#fafafa, #242424)`)
-- `color-mix()` syntax correct: `color-mix(in srgb, <color> <percentage>, transparent)`
-- Nesting valid: `light-dark(#e6f2ff, color-mix(in srgb, var(--faction-friendly) 15%, transparent))`
-- `rgba()` values without named base tokens correctly kept as `rgba()` per plan decision
+### 4. Configuration Correctness - PASS
+
+- `test.projects` with `extends: true` correctly inherits plugins/CSS config
+- Include/exclude patterns are mutually exclusive (no double-running)
+- `test:watch` scoped to unit project (fast TDD loop preserved)
+- `test` script runs both projects via `vitest run`
+
+### 5. No Regressions - PASS
+
+All 1448 unit tests pass unchanged. The workspace migration from flat `test` block to `test.projects` preserves all existing behavior.
 
 ## Issues Found
 
-### IMPORTANT: Architecture doc outdated (1)
+### IMPORTANT: Hardcoded Chromium path (portability)
 
-`/home/bob/Projects/auto-battler/.docs/architecture.md` lines 10 and 20 reference "three-block theming" which is now a "two-block + high-contrast override" pattern. This should be updated to reflect the new structure in a follow-up task or as part of the commit for this change.
+**File**: `/home/bob/Projects/auto-battler/vite.config.ts` line 49
+**Issue**: `executablePath: "/usr/bin/chromium"` is Linux-specific. This will fail on macOS or Windows, and in CI environments where Chromium is at a different path.
+**Recommendation**: Remove `executablePath` and let Playwright auto-detect, or use an environment variable fallback: `process.env.CHROMIUM_PATH || undefined`.
+**Mitigating factor**: Session log documents this was necessary due to a SOCKS proxy issue blocking `npx playwright install chromium`. The downloaded browser binary would normally be auto-detected.
 
-### MINOR: Duplicate token definitions (1)
+### MINOR: Screenshot artifacts not gitignored
 
-`:root` block defines both `--content-primary` (line 31) and `--text-primary` (line 112) with identical values (`light-dark(#333, rgba(255, 255, 255, 0.87))`). Same for `--content-secondary`/`--text-secondary` and `--content-muted`/`--text-muted`. This is a pre-existing concern (terminal overlay tokens coexisting with legacy tokens per ADR-019), not introduced by this change.
+**File**: `src/components/BattleViewer/__screenshots__/`
+**Issue**: Vitest Browser Mode generated screenshot artifacts (2 PNG files). These should be added to `.gitignore` unless intentionally tracked for visual regression testing.
 
-### MINOR: Test file reads CSS multiple times (1)
+### MINOR: Missing planned documentation updates
 
-`theme-variables.test.ts` calls `getThemeCssContent()` and extract helpers in every single test case. A `beforeAll` with shared content would reduce I/O. Pre-existing pattern, not introduced by this change.
-
-## Duplication Check
-
-No new duplication introduced. `light-dark()` and `color-mix()` usage confined to `theme.css`. WhiffOverlay `color-mix()` usage is in JSX (inline SVG attribute), architecturally distinct from CSS token definitions.
-
-## File Hygiene
-
-- `theme.css`: 280 lines (under 300-line flag threshold)
-- `theme-variables.test.ts`: 294 lines (under threshold)
-- `WhiffOverlay.test.tsx`: 167 lines (fine)
+**Files**: Plan Step 10 specified ADR-022, architecture.md update, and decisions/index.md update. None were created.
+**Mitigating factor**: Session log shows the coder phase focused on infrastructure + tests. Documentation can be a follow-up commit. Not blocking.
 
 ## Summary
 
-0 CRITICAL, 1 IMPORTANT (architecture doc outdated), 2 MINOR (pre-existing). Implementation is clean, well-tested, and follows the plan precisely. The IMPORTANT issue is a documentation sync task and does not block approval.
+Clean implementation. The workspace configuration correctly separates unit and browser test projects. Tests are well-structured, target genuine jsdom gaps, and follow the approved test designs with review adjustments applied (relational assertions, waitFor timing). The hardcoded Chromium path is the only notable concern -- it works on this machine but reduces portability. Recommend addressing it before CI integration.

@@ -1,176 +1,327 @@
-# Implementation Plan: CSS `light-dark()` and `color-mix()` Adoption
+# Implementation Plan: Vitest Browser Mode for SVG/Component Test Subset
 
 ## Summary
 
-Consolidate the 3-block theming in `theme.css` (`:root` dark, `[data-theme="light"]`, `[data-theme="high-contrast"]`) into a 2-block structure using CSS `light-dark()` for the dark/light axis. Replace `rgba()` alpha variants in theme tokens with `color-mix()` where they derive from a base color. Convert WhiffOverlay SVG opacity to `color-mix()` fill. Leave TargetingLine, cooldown, and disabled-button opacity as-is.
+Configure a Vitest workspace with two projects -- `unit` (jsdom, existing tests) and `browser` (Playwright, new browser-mode tests) -- to enable real DOM/SVG rendering for tooltip positioning tests. Start with infrastructure and a single proof-of-concept browser test, then create new `.browser.test.tsx` files for the 3 tooltip test files that benefit most from real `getBoundingClientRect`.
 
-## Architectural Decisions
+## Decision: Keep Existing Tests, Add Browser Variants Alongside
 
-### Decision: CSS-based `color-scheme` coordination (not JS-based)
+**Decision**: Create new `.browser.test.tsx` files alongside existing jsdom tests rather than migrating them.
 
-**Decision**: Set `color-scheme` per selector in CSS (`color-scheme: dark` on `:root`, `color-scheme: light` on `[data-theme="light"]`, `color-scheme: dark` on `[data-theme="high-contrast"]`) rather than having `accessibilityStore.ts` set `document.documentElement.style.colorScheme` via JavaScript.
+**Context**: The existing jsdom tests validate content, ARIA, callbacks, and mocked positioning. They run fast (~14s for all 1448 tests) and provide regression coverage. Browser tests are slower and primarily add value for layout/positioning verification that jsdom cannot provide (real `getBoundingClientRect`, real `getComputedStyle`).
 
-**Context**: `light-dark()` resolves based on the inherited `color-scheme` property. Two strategies exist: (a) CSS selectors set it alongside `data-theme`, (b) JS store sets it alongside the attribute. CSS-based is simpler, keeps the color-scheme concern in the stylesheet, and does not require store changes.
+**Consequences**: Slight test count increase, but clear separation of concerns. jsdom tests remain the fast feedback loop. Browser tests validate visual correctness. The jsdom workaround in `CharacterTooltip.tsx` (lines 255-256, zero-rect fallback) should NOT be removed yet -- it stays until browser tests prove the positioning works without it, at which point a follow-up task can remove it.
 
-**Consequences**: The `index.css` line `color-scheme: light dark` (which tells the UA to support both) must be removed from `:root` and replaced with theme-specific values in `theme.css`. No JS store changes needed. The `accessibilityStore.ts` and its tests remain untouched.
+---
 
-### Decision: WhiffOverlay converts to `color-mix()`, TargetingLine stays as-is
+## Step 1: Install Dependencies
 
-**Decision**: WhiffOverlay's `opacity={0.2}` on polygons will be replaced with `color-mix()` in the `fill` attribute (e.g., `color-mix(in srgb, var(--action-attack) 20%, transparent)`). TargetingLine's `opacity="0.4"` on the `<g>` element stays as-is.
+**Files**: `package.json`, `package-lock.json`
 
-**Context**: WhiffOverlay applies opacity to tint a hex cell with an action color -- a natural fit for `color-mix()` since the intent is "20% of this color." TargetingLine applies opacity to an entire `<g>` group containing two `<line>` elements with different strokes (contrast outline + main color). Converting the group opacity to individual `color-mix()` fills on each line would complicate the rendering and break the outline/main layering. The group opacity approach is the correct pattern for "fade the whole group."
+Install `@vitest/browser` and `playwright` as dev dependencies:
 
-**Consequences**: WhiffOverlay.tsx changes: remove `WHIFF_FILL_OPACITY` constant, remove `opacity` attribute, use `color-mix()` in fill. WhiffOverlay.test.tsx: update opacity test to assert `fill` contains `color-mix` instead of asserting `opacity="0.2"`. TargetingLine.tsx and TargetingLine.test.tsx: no changes.
+```bash
+npm install --save-dev @vitest/browser playwright
+```
 
-### Decision: Leave cooldown/disabled/skipped `opacity` as-is
+- `@vitest/browser` is the Vitest 4.x browser mode provider
+- `playwright` provides the Chromium browser engine
+- After install, run `npx playwright install chromium` to download the browser binary
 
-**Decision**: CSS `opacity` declarations on `.onCooldown`, `.statusSkipped`, `.priorityControls button:disabled` (and similar disabled-button patterns in other components) remain unchanged.
+**Verification**: `npx playwright install chromium` exits cleanly.
 
-**Context**: These are whole-element opacity fades, not color alpha. `color-mix()` is for deriving alpha-variant colors, not for dimming entire DOM subtrees. Converting these would require replacing every color property in the subtree with a mixed variant -- impractical and wrong in intent. CSS `opacity` is the correct tool for "dim this element."
+## Step 2: Create Vitest Workspace Configuration
 
-**Consequences**: No changes to any `.module.css` file for opacity-based dimming patterns.
+**Files to create**: `/home/bob/Projects/auto-battler/vitest.workspace.ts`
 
-### Decision: `rgba()` tokens in `theme.css` where base color is reused get `color-mix()`
+**Files to modify**: `/home/bob/Projects/auto-battler/vite.config.ts` (remove `test` block)
 
-**Decision**: Replace `rgba()` declarations in theme.css that are provably alpha variants of an existing base token with `color-mix()` referencing that token. Example: `--faction-friendly-bg: rgba(0, 114, 178, 0.15)` becomes `--faction-friendly-bg: color-mix(in srgb, var(--faction-friendly) 15%, transparent)` since `--faction-friendly: #0072b2` is `rgb(0, 114, 178)`.
+### 2a. Create `vitest.workspace.ts`
 
-For `rgba()` values that use white/black with alpha (e.g., `--content-primary: rgba(255, 255, 255, 0.87)`), these will be wrapped in `light-dark()` with the appropriate dark/light values. They will NOT be converted to `color-mix()` because they don't derive from a named base token in the system.
+Define two projects:
 
-**Context**: `color-mix()` is most valuable when it references a CSS variable, creating a dependency. Hardcoding `color-mix(in srgb, white 87%, transparent)` is no better than `rgba(255, 255, 255, 0.87)`. But `color-mix(in srgb, var(--faction-friendly) 15%, transparent)` is better because changing `--faction-friendly` automatically updates the bg.
+```typescript
+// vitest.workspace.ts
+import { defineWorkspace } from "vitest/config";
 
-**Consequences**: Faction bg tokens, status bg tokens, accent-subtle/muted tokens, and danger-subtle tokens in the `:root` block gain `color-mix()`. Light-theme equivalents that use opaque hex colors (e.g., `--faction-friendly-bg: #e6f2ff`) cannot use `color-mix()` since they aren't simple alpha variants -- they stay as opaque values inside `light-dark()`.
+export default defineWorkspace([
+  {
+    // Unit tests - jsdom (existing behavior, unchanged)
+    extends: "./vite.config.ts",
+    test: {
+      name: "unit",
+      globals: true,
+      environment: "jsdom",
+      setupFiles: "./src/test/setup.ts",
+      css: true,
+      include: ["src/**/*.test.{ts,tsx}"],
+      exclude: ["node_modules", ".archive", "src/**/*.browser.test.{ts,tsx}"],
+    },
+  },
+  {
+    // Browser tests - Playwright (new, targets tooltip/SVG positioning)
+    extends: "./vite.config.ts",
+    test: {
+      name: "browser",
+      globals: true,
+      setupFiles: "./src/test/setup.browser.ts",
+      css: true,
+      include: ["src/**/*.browser.test.{ts,tsx}"],
+      browser: {
+        enabled: true,
+        provider: "playwright",
+        instances: [{ browser: "chromium" }],
+      },
+    },
+  },
+]);
+```
 
-## Implementation Steps (Ordered)
+Key design choices:
 
-### Phase 1: `color-scheme` + `light-dark()` in theme.css
+- Both projects extend `vite.config.ts` to inherit React plugin, CSS modules, and React Compiler config
+- Unit project explicitly excludes `*.browser.test.*` files
+- Browser project only includes `*.browser.test.*` files
+- Convention-based file naming provides clear separation
 
-**Files modified**: `src/styles/theme.css`, `src/index.css`
+### 2b. Remove `test` block from `vite.config.ts`
 
-1. **Remove `color-scheme: light dark` from `src/index.css`** -- delete line 9.
+Remove lines 19-25 from `vite.config.ts` (the `test: { ... }` block). The workspace config now owns all test configuration. The `vite.config.ts` keeps only build-related config (plugins, css modules).
 
-2. **Restructure `src/styles/theme.css`** into 2 blocks:
+**Risk**: If `test` block remains alongside workspace config, Vitest may log warnings or exhibit undefined behavior. The workspace config must be the sole source of test configuration.
 
-   **Block 1: `:root`** -- Unified dark+light declarations:
-   - Add `color-scheme: dark;` at top of `:root` block.
-   - For ~43 variables that differ between dark and light: use `light-dark(light-value, dark-value)`.
-     - Example: `--surface-ground: light-dark(#fafafa, #242424);`
-   - For ~20 variables identical in dark and light: keep simple values (no `light-dark()` needed).
-   - For variables that can use `color-mix()` in dark but not light (e.g., faction bg): use `light-dark(#e6f2ff, color-mix(in srgb, var(--faction-friendly) 15%, transparent))`.
-   - Terminal overlay tokens follow the same pattern.
-   - Keep radii and font-mono as simple values (identical across themes).
+## Step 3: Create Browser-Mode Test Setup File
 
-   **Block 2: `:root[data-theme="light"]`** -- Only sets `color-scheme: light;`. All variable values are handled by `light-dark()` in `:root`. This block is 1-2 lines.
+**File to create**: `/home/bob/Projects/auto-battler/src/test/setup.browser.ts`
 
-   **Block 3: `:root[data-theme="high-contrast"]`** -- Unchanged (full override block). Add `color-scheme: dark;` at top.
+The browser setup file differs from the jsdom setup in two ways:
 
-   **Block 4: `:root[data-high-contrast="true"]`** -- Unchanged.
+1. No `window.matchMedia` mock (browser has native `matchMedia`)
+2. Still imports `@testing-library/jest-dom` for DOM matchers
+3. Still calls `cleanup()` after each test
 
-3. **`color-mix()` for derived tokens in `:root` block**:
+```typescript
+// src/test/setup.browser.ts
+import { afterEach } from "vitest";
+import { cleanup } from "@testing-library/react";
+import "@testing-library/jest-dom";
 
-   Apply `color-mix()` to these tokens (dark-theme value only, inside `light-dark()`):
-   - `--faction-friendly-bg`: `color-mix(in srgb, var(--faction-friendly) 15%, transparent)` (dark)
-   - `--faction-enemy-bg`: `color-mix(in srgb, var(--faction-enemy) 15%, transparent)` (dark)
-   - `--status-success-bg`: `color-mix(in srgb, var(--status-success) 15%, transparent)` (dark)
-   - `--status-error-bg`: `color-mix(in srgb, var(--status-error) 15%, transparent)` (dark)
-   - `--status-warning-bg`: `color-mix(in srgb, var(--status-warning) 15%, transparent)` (dark)
-   - `--status-neutral-bg`: `color-mix(in srgb, var(--status-neutral) 15%, transparent)` (dark)
-   - `--accent-subtle`: `color-mix(in srgb, var(--accent) 15%, transparent)` (dark)
-   - `--accent-muted`: `color-mix(in srgb, var(--accent) 8%, transparent)` (dark)
-   - `--danger-subtle`: `color-mix(in srgb, var(--danger) 15%, transparent)` (dark)
+// No matchMedia mock needed - real browser has native matchMedia
 
-   For these, the light-theme values are opaque hex colors, so use `light-dark(#e6f2ff, color-mix(...))`.
+// Cleanup after each test case
+afterEach(() => {
+  cleanup();
+});
+```
 
-   High-contrast block also uses `rgba()` for bg tokens -- convert those to `color-mix()` referencing the high-contrast base colors (e.g., `color-mix(in srgb, var(--faction-friendly) 20%, transparent)` where `--faction-friendly` in high-contrast is `#0099ff`).
+## Step 4: Update TypeScript Configuration
 
-   **Note on terminal overlay tokens with `rgba()` in dark block**: `--surface: rgba(255,255,255,0.03)`, `--surface-hover: rgba(255,255,255,0.06)`, `--border: rgba(255,255,255,0.12)`, `--divider: rgba(255,255,255,0.06)`, `--text-*`, `--text-ghost`, `--accent-subtle`, `--accent-muted`, `--danger-subtle`. The white/black-with-alpha terminal tokens do NOT have a named base token to reference (there is no `--white` variable). These stay as `rgba()` values wrapped in `light-dark()`. Only tokens derived from a named variable (accent, danger, faction, status) get `color-mix()`.
+**File to modify**: `/home/bob/Projects/auto-battler/tsconfig.json`
 
-### Phase 2: WhiffOverlay `color-mix()` adoption
+Add `@vitest/browser/providers/playwright` to the `types` array so browser-mode test files get correct type checking:
 
-**Files modified**: `src/components/BattleViewer/WhiffOverlay.tsx`
+```json
+"types": ["vite/client", "vitest/globals", "@testing-library/jest-dom", "@vitest/browser/providers/playwright"]
+```
 
-1. Remove the `WHIFF_FILL_OPACITY` constant.
-2. Remove the `opacity={WHIFF_FILL_OPACITY}` attribute from `<polygon>`.
-3. Change `fill={fillColor}` to use `color-mix()`:
-   ```
-   fill={`color-mix(in srgb, ${fillColor} 20%, transparent)`}
-   ```
+Note: Vitest 4.x browser mode may require additional type setup. Check `@vitest/browser` docs for exact type import path. If the types conflict with jsdom globals, a separate `tsconfig.browser.json` may be needed -- but try the simple approach first.
 
-### Phase 3: Update tests
+## Step 5: Create Proof-of-Concept Browser Test
 
-**Files modified**: `src/styles/theme-variables.test.ts`, `src/components/BattleViewer/WhiffOverlay.test.tsx`
+**File to create**: `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.browser.test.tsx`
 
-1. **`theme-variables.test.ts`**: The existing regex `/:root\s*\{([^}]+)\}/s` will still match the `:root` block (it's still `:root { ... }`). The light-theme tests that look for `:root[data-theme="light"]` block will fail because that block now only contains `color-scheme: light` and no variable definitions.
+This file contains a focused subset of the CharacterTooltip positioning tests that specifically validate real browser behavior. It does NOT duplicate all tests from `CharacterTooltip.test.tsx` -- only the ones that gain value from a real browser.
 
-   **Strategy**:
-   - Keep dark-theme tests (`:root` block assertions). They still work because variables are still defined in `:root`.
-   - Modify light-theme tests: instead of asserting variables exist in the `[data-theme="light"]` block, assert that variables in `:root` use `light-dark()`. This verifies light-theme coverage.
-   - Keep high-contrast tests unchanged (block still exists with full overrides).
-   - Specifically:
-     - `--text-on-faction` dark test: passes as-is (still in `:root` block).
-     - `--text-on-faction` light test: change to verify the variable in `:root` uses `light-dark()` OR is a plain value (meaning it's the same across both themes, which covers light). Since `--text-on-faction` is `#ffffff` in both themes, it will be a plain value -- test should verify it exists in `:root`.
-     - `--accent-primary` light test: same approach -- `--accent-primary` differs between dark/light, so it will use `light-dark()`. Test should verify `light-dark()` is used for this variable.
-     - High-contrast tests: unchanged.
+### Tests to include:
 
-2. **`WhiffOverlay.test.tsx`**: The test at line 119 (`expect(polygon).toHaveAttribute("opacity", "0.2")`) must change:
-   - Remove opacity assertion.
-   - Assert fill attribute contains `color-mix`.
-   - Example: `expect(polygon?.getAttribute("fill")).toMatch(/color-mix/)`.
-   - Also update the fill assertions in the action-type tests (lines 83, 101) since fill now wraps the CSS variable in `color-mix()`.
+1. **"tooltip gets real dimensions from getBoundingClientRect"** -- Render CharacterTooltip, call `getBoundingClientRect()` on the tooltip element, assert `width > 0` and `height > 0`. This is the core validation that browser mode provides real geometry. In jsdom, this always returns zeros.
 
-3. **`theme.integration.test.tsx`**: No changes needed. Tests verify `data-theme` attribute mechanism which is unchanged.
+2. **"tooltip positions correctly relative to anchor without zero-rect fallback"** -- Render with a known anchor rect, verify the tooltip's computed `left` and `top` style values use actual tooltip dimensions (not the 300/150 fallback values from the jsdom workaround).
 
-4. **`accessibilityStore.test.ts`**: No changes needed. Store behavior is unchanged.
+3. **"tooltip repositions when viewport is constrained"** -- Use Playwright's viewport API (or `page.setViewportSize`) to create a narrow viewport, render tooltip, verify it flips to left side. This tests real viewport constraint behavior.
 
-5. **`TargetingLine.test.tsx`**: No changes needed. Opacity stays as-is.
+### What NOT to duplicate:
 
-### Phase 4: Quality gates
+- Content rendering tests (these work identically in jsdom)
+- ARIA attribute tests (work identically in jsdom)
+- Hover callback tests (work identically in jsdom)
+- Portal rendering tests (work identically in jsdom)
 
-1. Run `npm run type-check` -- WhiffOverlay changes are TypeScript (template string in fill).
-2. Run `npm run lint` -- verify no new lint issues.
-3. Run `npm run test` -- all tests must pass.
-4. Run `npm run build` -- verify Vite builds successfully with `light-dark()` and `color-mix()` in CSS.
+### Test structure:
 
-## Spec Alignment Check
+```typescript
+// CharacterTooltip.browser.test.tsx
+import { describe, it, expect, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { CharacterTooltip } from "./CharacterTooltip";
+import { useGameStore } from "../../stores/gameStore";
+import {
+  createCharacter,
+  createTarget,
+} from "../RuleEvaluations/rule-evaluations-test-helpers";
+// No createMockRect needed -- we test with real rects
+// No mockViewport needed -- real browser viewport
 
-- [x] Plan aligns with `.docs/spec.md` -- behavior-preserving refactor, no functional changes.
-- [x] Approach consistent with `.docs/architecture.md` -- CSS Custom Property Theming pattern preserved, three theme support maintained (via 2-block + high-contrast).
-- [x] Patterns follow `.docs/patterns/index.md` -- no new patterns needed, CSS Modules pattern unchanged.
-- [x] No conflicts with `.docs/decisions/index.md` -- ADR-019 terminal overlay tokens maintained as independent layer.
+describe("CharacterTooltip - Browser Positioning", () => {
+  // ... setup, 2-3 focused tests
+});
+```
+
+## Step 6: Create Browser Test for Token Hover (Optional, Phase 2)
+
+**File to create**: `/home/bob/Projects/auto-battler/src/components/BattleViewer/token-hover.browser.test.tsx`
+
+A small test file that validates `getBoundingClientRect` returns real SVG geometry when hovering a Token `<g>` element. This is the behavior noted in ADR-008 ("getBoundingClientRect() on SVG `<g>` returns tight bounding box").
+
+### Tests to include:
+
+1. **"Token getBoundingClientRect returns non-zero dimensions for SVG group"** -- Render a Token in an SVG, hover it, verify the rect passed to `onMouseEnter` has `width > 0` and `height > 0`.
+
+This is lower priority than CharacterTooltip browser tests and can be deferred to Phase 2.
+
+## Step 7: Create Browser Test for Battle Viewer Tooltip z-index (Optional, Phase 2)
+
+**File to create**: `/home/bob/Projects/auto-battler/src/components/BattleViewer/battle-viewer-tooltip.browser.test.tsx`
+
+A focused test that validates `getComputedStyle` returns the actual z-index value for the tooltip. The existing jsdom test at line 227 of `battle-viewer-tooltip.test.tsx` already tests this, but jsdom's `getComputedStyle` may not resolve CSS Module values correctly.
+
+### Tests to include:
+
+1. **"tooltip z-index resolves correctly from CSS Modules"** -- Render BattleViewer, hover a token, verify `getComputedStyle(tooltip).zIndex` returns a real numeric value.
+
+This is Phase 2 scope.
+
+## Step 8: Update npm Scripts
+
+**File to modify**: `/home/bob/Projects/auto-battler/package.json`
+
+Update and add scripts:
+
+```json
+{
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --project unit",
+    "test:browser": "vitest run --project browser",
+    "test:unit:watch": "vitest --project unit"
+  }
+}
+```
+
+- `npm run test` runs both unit and browser projects (workspace default)
+- `npm run test:unit` runs only jsdom tests (fast feedback)
+- `npm run test:browser` runs only browser tests (slower, needs Chromium)
+- `npm run test:unit:watch` watches only unit tests (TDD mode)
+
+The existing `test:ui`, `test:critical` scripts should continue to work with the workspace.
+
+## Step 9: Verify All Existing Tests Pass
+
+Run the full test suite to verify zero regressions:
+
+```bash
+npm run test        # Both projects
+npm run test:unit   # Just jsdom (should show 1448 tests passing)
+npm run test:browser # Just browser (should show 2-3 new tests passing)
+```
+
+Verify:
+
+- All 1448 existing tests pass in the `unit` project
+- New browser tests pass in the `browser` project
+- No test file runs in both projects (the include/exclude patterns are mutually exclusive)
+- Total test count = 1448 + N browser tests
+
+## Step 10: Documentation Updates
+
+### 10a. Create ADR-022: Vitest Browser Mode for Real DOM Testing
+
+**File to create**: `/home/bob/Projects/auto-battler/.docs/decisions/adr-022-vitest-browser-mode.md`
+
+Contents:
+
+- **Decision**: Use Vitest Browser Mode with Playwright for tests requiring real DOM/SVG rendering
+- **Context**: jsdom returns zero-values for `getBoundingClientRect`, `getComputedStyle` does not resolve CSS Module values, SVG geometry is not computed
+- **Options**: (1) Continue mocking, (2) Browser mode for subset, (3) Cypress/Playwright E2E
+- **Rationale**: Browser mode integrates with existing Vitest workflow, runs only the tests that need real rendering, no separate E2E framework needed
+- **Consequences**: Requires Playwright + Chromium in CI, slightly slower for browser tests, `.browser.test.tsx` naming convention
+
+### 10b. Update ADR Index
+
+**File to modify**: `/home/bob/Projects/auto-battler/.docs/decisions/index.md`
+
+Add row:
+
+```
+| ADR-022 | Vitest Browser Mode for Real DOM Testing | 2026-02-09 | Accepted | [adr-022-vitest-browser-mode.md](./adr-022-vitest-browser-mode.md) |
+```
+
+### 10c. Update Architecture Doc
+
+**File to modify**: `/home/bob/Projects/auto-battler/.docs/architecture.md`
+
+Update the Testing Guidelines section (around line 127) to mention browser mode:
+
+```markdown
+## Testing Guidelines
+
+- Unit tests for engine logic: Pure functions, no React
+- Component tests: React Testing Library, user-centric
+- Browser tests (`.browser.test.tsx`): Real DOM rendering via Vitest Browser Mode + Playwright for tests requiring `getBoundingClientRect`, `getComputedStyle`, or SVG geometry
+- No mocking game engine in component tests (use real engine)
+- Test accessibility settings via class/attribute assertions
+- Hex coordinates in tests must satisfy: `max(|q|, |r|, |q+r|) <= 5`
+```
+
+---
+
+## Phasing Summary
+
+### Phase 1 (This Task -- Minimum Viable)
+
+- Steps 1-5, 8-10: Install deps, create workspace config, create browser setup, create proof-of-concept CharacterTooltip browser test, update scripts, verify, document
+- **Deliverables**: Working browser mode infrastructure + 2-3 browser tests proving real `getBoundingClientRect`
+
+### Phase 2 (Follow-Up Task)
+
+- Steps 6-7: Token hover browser test, BattleViewer tooltip z-index browser test
+- Evaluate whether the zero-rect fallback in `CharacterTooltip.tsx` (lines 255-256) can be removed
+- Consider additional SVG geometry tests if Phase 1 proves valuable
+
+---
 
 ## Risk Assessment
 
-**Low risk:**
+| Risk                                                         | Likelihood | Impact | Mitigation                                                                    |
+| ------------------------------------------------------------ | ---------- | ------ | ----------------------------------------------------------------------------- |
+| `@vitest/browser` 4.x API differs from docs                  | Medium     | High   | Check actual installed package docs/types before coding                       |
+| Playwright Chromium download fails in CI                     | Low        | High   | Add `npx playwright install chromium` to CI setup step                        |
+| `@testing-library/react` behaves differently in browser mode | Low        | Medium | Use same render/screen/waitFor APIs; test one file first                      |
+| tsconfig types conflict between jsdom and browser globals    | Medium     | Medium | Try unified tsconfig first; split to tsconfig.browser.json if conflicts arise |
+| CSS Modules not processed in browser mode                    | Low        | Medium | Both projects `extends: './vite.config.ts'` which has CSS module config       |
+| React Compiler plugin not applied in browser mode            | Low        | Low    | `extends` inherits all Vite plugins including React Compiler                  |
+| Workspace config breaks `vitest --ui`                        | Low        | Low    | Test `npm run test:ui` after setup; may need `--project unit` flag            |
 
-- `light-dark()` and `color-mix()` have broad browser support (Chrome 111+/123+, Firefox 113+/120+, Safari 16.2+/17.5+). No polyfill needed.
-- Vite 7.3 passes CSS through without transformation by default (no browserslist or build target configured).
-- Behavior-preserving refactor with no game logic changes.
+## Files Summary
 
-**Medium risk:**
+### Created
 
-- `color-mix()` with CSS variables in `light-dark()` creates nested function calls: `--faction-friendly-bg: light-dark(#e6f2ff, color-mix(in srgb, var(--faction-friendly) 15%, transparent))`. This is valid CSS but complex to read. If any browser has issues with nested `light-dark()` + `color-mix()` + `var()`, it would fail silently (custom property becomes invalid). Mitigation: test in browser after changes.
-- `theme-variables.test.ts` regex changes require careful construction. The existing regex `/:root\s*\{([^}]+)\}/s` uses `[^}]+` which will NOT match if the `:root` block contains nested braces (it shouldn't, but `light-dark()` has parentheses, not braces, so this is fine).
+- `/home/bob/Projects/auto-battler/vitest.workspace.ts` -- Workspace config with unit + browser projects
+- `/home/bob/Projects/auto-battler/src/test/setup.browser.ts` -- Browser-mode test setup (no matchMedia mock)
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.browser.test.tsx` -- Proof-of-concept browser positioning tests
+- `/home/bob/Projects/auto-battler/.docs/decisions/adr-022-vitest-browser-mode.md` -- ADR for browser mode decision
 
-**Excluded from scope (per decisions above):**
+### Modified
 
-- TargetingLine SVG opacity -- stays as group opacity.
-- Cooldown/disabled/skipped CSS opacity -- stays as `opacity` property.
-- `rgba()` values not derived from named tokens -- stay as `rgba()` inside `light-dark()`.
-- `accessibilityStore.ts` -- no JS changes needed.
+- `/home/bob/Projects/auto-battler/vite.config.ts` -- Remove `test` block (moved to workspace)
+- `/home/bob/Projects/auto-battler/package.json` -- Add deps, add `test:unit`/`test:browser` scripts
+- `/home/bob/Projects/auto-battler/tsconfig.json` -- Add browser type definitions
+- `/home/bob/Projects/auto-battler/.docs/decisions/index.md` -- Add ADR-022 row
+- `/home/bob/Projects/auto-battler/.docs/architecture.md` -- Add browser test guideline
 
-## Files Modified (Expected)
+### Unchanged
 
-| File                                                | Change                                                                                           |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `src/styles/theme.css`                              | Restructure to 2-block + high-contrast, add `light-dark()`, add `color-mix()` for derived tokens |
-| `src/index.css`                                     | Remove `color-scheme: light dark`                                                                |
-| `src/components/BattleViewer/WhiffOverlay.tsx`      | Replace opacity attribute with `color-mix()` fill                                                |
-| `src/styles/theme-variables.test.ts`                | Update regex tests for new file structure                                                        |
-| `src/components/BattleViewer/WhiffOverlay.test.tsx` | Update fill/opacity assertions                                                                   |
-
-## New ADR Recommendation
-
-Recommend adding **ADR-021: CSS light-dark() and color-mix() Theme Consolidation** to `.docs/decisions/index.md`:
-
-- **Decision**: Use CSS `light-dark()` to unify dark/light theme declarations; high-contrast retains full override block. Use `color-mix()` for alpha variants derived from named tokens. `color-scheme` set via CSS selectors.
-- **Context**: Three-block theming duplicated ~43 variables between dark and light. `light-dark()` eliminates the duplication.
-- **Consequences**: Light theme block reduced to just `color-scheme: light`. High-contrast block unchanged. Browser support requires Chrome 123+ / Firefox 120+ / Safari 17.5+ for `light-dark()`.
+- All 150 existing test files remain unchanged
+- `src/test/setup.ts` remains unchanged (jsdom setup)
+- `CharacterTooltip.tsx` remains unchanged (zero-rect workaround stays for now)

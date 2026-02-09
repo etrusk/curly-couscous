@@ -1,62 +1,58 @@
-# Review Findings: Vitest Browser Mode Setup
+# Review Findings: Phase 2 Browser Tests + Zero-Rect Fallback Removal
 
-**Reviewer**: tdd-reviewer | **Date**: 2026-02-09 | **Verdict**: APPROVED with minor notes
+**Reviewer**: tdd-reviewer | **Date**: 2026-02-09 | **Verdict**: APPROVE
 
 ## Quality Gates
 
-| Gate          | Status | Details                       |
-| ------------- | ------ | ----------------------------- |
-| TypeScript    | PASS   | `tsc --noEmit` clean          |
-| ESLint        | PASS   | No warnings or errors         |
-| Unit tests    | PASS   | 150 files, 1448 tests passing |
-| Browser tests | PASS   | 1 file, 4 tests passing       |
+| Gate          | Status | Details                                     |
+| ------------- | ------ | ------------------------------------------- |
+| TypeScript    | PASS   | `tsc --noEmit` clean                        |
+| ESLint        | PASS   | Zero warnings, zero errors                  |
+| Unit Tests    | PASS   | 1448 passed, 0 failed, 0 skipped            |
+| Browser Tests | PASS   | 10 passed (4 Phase 1 + 6 Phase 2), 0 failed |
 
-## Checklist Results
+## Files Reviewed
 
-### 1. Duplication Check - PASS
+1. `src/components/BattleViewer/tooltip-positioning.ts` (NEW, 43 lines) -- Clean extraction
+2. `src/components/BattleViewer/CharacterTooltip.tsx` (MODIFIED, 269 lines) -- Fallback removed
+3. `src/components/BattleViewer/BattleViewer.browser.test.tsx` (NEW, 305 lines) -- 6 browser tests
+4. `src/components/BattleViewer/CharacterTooltip.test.tsx` (MODIFIED, 473 lines) -- 5 positioning tests converted
 
-No duplication found. Browser tests target real-DOM behaviors (getBoundingClientRect, viewport constraints) that jsdom tests cannot cover. No overlap with existing 13 jsdom tests in `CharacterTooltip.test.tsx`.
+## Findings
 
-### 2. Spec Compliance - PASS
+### No CRITICAL Issues
 
-Tests validate tooltip positioning requirements from spec (right-preferred, left-fallback, viewport clamping). No production code changed.
+### IMPORTANT Issues
 
-### 3. Pattern Compliance - PASS
+None.
 
-- Test file co-located with component per project pattern
-- `beforeEach` store reset matches existing jsdom test pattern
-- CSS modules inherited via `extends: true` in workspace config
+### MINOR Issues
 
-### 4. Configuration Correctness - PASS
+**M1: Pattern doc not updated for extraction** (`portal-tooltip-positioning.md`)
+The portal-tooltip-positioning pattern's Related Files section still only lists `CharacterTooltip.tsx`. The new `tooltip-positioning.ts` file should be added. This is documentation-only, not a code issue.
 
-- `test.projects` with `extends: true` correctly inherits plugins/CSS config
-- Include/exclude patterns are mutually exclusive (no double-running)
-- `test:watch` scoped to unit project (fast TDD loop preserved)
-- `test` script runs both projects via `vitest run`
+**M2: Pre-existing file length** (`CharacterTooltip.test.tsx`, 473 lines)
+Exceeds the 400-line guideline. Noted in session.md as pre-existing (was 500 lines before, reduced by 28). Not introduced by this change. Recommend tracking for future extraction.
 
-### 5. No Regressions - PASS
+## Spec Compliance
 
-All 1448 unit tests pass unchanged. The workspace migration from flat `test` block to `test.projects` preserves all existing behavior.
+- Tooltip positioning behavior (right-preferred, left-fallback, viewport clamping) validated by 5 direct unit tests and 4 browser integration tests. Matches spec section "Character Tooltip > Tooltip positioning".
+- Z-index stacking (tooltip above all overlays) validated by 2 browser tests. Consistent with documented overlay z-index hierarchy (WhiffOverlay 5 < IntentOverlay 10 < DamageOverlay 20 < Tooltip 1000).
 
-## Issues Found
+## Pattern Compliance
 
-### IMPORTANT: Hardcoded Chromium path (portability)
+- Browser tests use `.browser.test.tsx` convention per ADR-022.
+- Function extraction to separate file avoids react-refresh ESLint warning (documented rationale).
+- Portal tooltip positioning algorithm matches the pattern in `portal-tooltip-positioning.md`.
+- Test helpers (`createCharacter`, `createTarget`, `mockViewport`) reused from existing infrastructure.
 
-**File**: `/home/bob/Projects/auto-battler/vite.config.ts` line 49
-**Issue**: `executablePath: "/usr/bin/chromium"` is Linux-specific. This will fail on macOS or Windows, and in CI environments where Chromium is at a different path.
-**Recommendation**: Remove `executablePath` and let Playwright auto-detect, or use an environment variable fallback: `process.env.CHROMIUM_PATH || undefined`.
-**Mitigating factor**: Session log documents this was necessary due to a SOCKS proxy issue blocking `npx playwright install chromium`. The downloaded browser binary would normally be auto-detected.
+## Code Quality Assessment
 
-### MINOR: Screenshot artifacts not gitignored
+- `tooltip-positioning.ts`: Pure function, well-documented, no side effects beyond `window.innerWidth`/`window.innerHeight` reads. Clean separation of concerns.
+- Zero-rect fallback removal is clean -- `rect.width` and `rect.height` passed directly, no conditional branches. Simpler production code path.
+- Browser tests use relational assertions (not exact pixels) for SVG geometry, reducing flakiness risk.
+- Z-index test handles `"auto"` -> NaN gracefully with `Number.isNaN(raw) ? 0 : raw`.
 
-**File**: `src/components/BattleViewer/__screenshots__/`
-**Issue**: Vitest Browser Mode generated screenshot artifacts (2 PNG files). These should be added to `.gitignore` unless intentionally tracked for visual regression testing.
+## Regression Risk
 
-### MINOR: Missing planned documentation updates
-
-**Files**: Plan Step 10 specified ADR-022, architecture.md update, and decisions/index.md update. None were created.
-**Mitigating factor**: Session log shows the coder phase focused on infrastructure + tests. Documentation can be a follow-up commit. Not blocking.
-
-## Summary
-
-Clean implementation. The workspace configuration correctly separates unit and browser test projects. Tests are well-structured, target genuine jsdom gaps, and follow the approved test designs with review adjustments applied (relational assertions, waitFor timing). The hardcoded Chromium path is the only notable concern -- it works on this machine but reduces portability. Recommend addressing it before CI integration.
+Low. The zero-rect fallback only triggered in jsdom (where `getBoundingClientRect()` returns zeros). Production code always had real dimensions. The 5 positioning tests that relied on the fallback were converted to direct `calculateTooltipPosition()` calls with explicit dimensions, preserving all algorithmic coverage.

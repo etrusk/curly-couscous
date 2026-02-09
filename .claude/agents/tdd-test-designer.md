@@ -48,6 +48,10 @@ Use this exact format for each test:
 - **Justification**: [Why this test is necessary—what bug or regression it prevents]
 ```
 
+## Design Principles
+
+- **Do not assume environment defaults**: When test behavior depends on viewport size, container dimensions, timing, or other environment characteristics, either (a) explicitly set the value in setup (e.g., `page.viewport(1280, 720)`), or (b) mark the assumption with "[VERIFY]" so the coder knows to confirm it. Do not assume default values based on general browser knowledge — test runners, iframes, and headless modes often differ.
+
 ## Handoff Protocol
 
 1. Write test designs to `.tdd/test-designs.md`

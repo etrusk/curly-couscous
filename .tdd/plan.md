@@ -1,327 +1,228 @@
-# Implementation Plan: Vitest Browser Mode for SVG/Component Test Subset
+# Implementation Plan: Phase 2 Browser Tests + Zero-Rect Fallback Removal
 
-## Summary
+## Overview
 
-Configure a Vitest workspace with two projects -- `unit` (jsdom, existing tests) and `browser` (Playwright, new browser-mode tests) -- to enable real DOM/SVG rendering for tooltip positioning tests. Start with infrastructure and a single proof-of-concept browser test, then create new `.browser.test.tsx` files for the 3 tooltip test files that benefit most from real `getBoundingClientRect`.
+Three work areas:
 
-## Decision: Keep Existing Tests, Add Browser Variants Alongside
+1. Token hover SVG geometry browser tests
+2. BattleViewer tooltip z-index browser tests
+3. Zero-rect fallback evaluation and removal
 
-**Decision**: Create new `.browser.test.tsx` files alongside existing jsdom tests rather than migrating them.
+## Decision: Extract `calculateTooltipPosition` and Remove Zero-Rect Fallback
 
-**Context**: The existing jsdom tests validate content, ARIA, callbacks, and mocked positioning. They run fast (~14s for all 1448 tests) and provide regression coverage. Browser tests are slower and primarily add value for layout/positioning verification that jsdom cannot provide (real `getBoundingClientRect`, real `getComputedStyle`).
+**Decision**: Remove the zero-rect fallback (lines 254-256 of `CharacterTooltip.tsx`) and extract `calculateTooltipPosition` as an exported function for direct unit testing.
 
-**Consequences**: Slight test count increase, but clear separation of concerns. jsdom tests remain the fast feedback loop. Browser tests validate visual correctness. The jsdom workaround in `CharacterTooltip.tsx` (lines 255-256, zero-rect fallback) should NOT be removed yet -- it stays until browser tests prove the positioning works without it, at which point a follow-up task can remove it.
+**Context**: The fallback (`width > 0 ? rect.width : 300` and `height > 0 ? rect.height : 150`) exists solely because jsdom's `getBoundingClientRect()` returns zeros. It never triggers in production. Phase 1 browser tests already prove real dimensions work. The fallback masks potential bugs by silently substituting assumed values.
+
+**Consequences**:
+
+- jsdom positioning tests in `CharacterTooltip.test.tsx` (lines 273-395) that rely on the fallback will need updating: instead of testing through the rendered component (where jsdom returns zero rects), they test `calculateTooltipPosition` directly with explicit dimension arguments
+- Browser tests remain the authority for real positioning behavior
+- Simpler production code path with no test-only branches
+
+**Recommend adding to `.docs/decisions/index.md`**: Not a new ADR -- this is a follow-up to ADR-022 which explicitly called out this evaluation.
 
 ---
 
-## Step 1: Install Dependencies
-
-**Files**: `package.json`, `package-lock.json`
+## Area 1: Token Hover SVG Geometry Browser Tests
 
-Install `@vitest/browser` and `playwright` as dev dependencies:
+### New File
 
-```bash
-npm install --save-dev @vitest/browser playwright
-```
+`/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.browser.test.tsx`
 
-- `@vitest/browser` is the Vitest 4.x browser mode provider
-- `playwright` provides the Chromium browser engine
-- After install, run `npx playwright install chromium` to download the browser binary
+### Approach
 
-**Verification**: `npx playwright install chromium` exits cleanly.
+Render full `BattleViewer` with characters placed at known hex positions, hover a token using `userEvent.hover()`, and verify:
 
-## Step 2: Create Vitest Workspace Configuration
+1. The token `<g>` element has non-zero `getBoundingClientRect()` dimensions
+2. The tooltip appears with correct positioning relative to the token
+3. The anchor rect passed to `CharacterTooltip` reflects real SVG geometry
 
-**Files to create**: `/home/bob/Projects/auto-battler/vitest.workspace.ts`
+### Test Design (4 tests)
 
-**Files to modify**: `/home/bob/Projects/auto-battler/vite.config.ts` (remove `test` block)
+**Test 1: "token SVG element has non-zero bounding rect in real browser"**
 
-### 2a. Create `vitest.workspace.ts`
+- Setup: `initBattle` with a character at `{q: 0, r: 0}` and a target at `{q: 2, r: 0}`
+- Render `<BattleViewer />`
+- Get token `<g>` via `screen.getByTestId("token-<id>")`
+- Assert `getBoundingClientRect()` returns width > 0 and height > 0
+- Assert width and height are roughly proportional (token is ~40x46 in SVG coords, but scaled by viewBox)
 
-Define two projects:
+**Test 2: "hovering token shows tooltip positioned relative to real SVG geometry"**
 
-```typescript
-// vitest.workspace.ts
-import { defineWorkspace } from "vitest/config";
+- Setup: `page.viewport(1280, 720)` for deterministic layout
+- `initBattle` with character at `{q: 0, r: 0}` and target at `{q: 2, r: 0}`
+- Render `<BattleViewer />`
+- `userEvent.hover()` on token
+- `await screen.findByRole("tooltip")`
+- Wait for positioning via `waitFor`
+- Assert tooltip left > token rect.right (placed to the right)
+- Assert tooltip is vertically near the token center
 
-export default defineWorkspace([
-  {
-    // Unit tests - jsdom (existing behavior, unchanged)
-    extends: "./vite.config.ts",
-    test: {
-      name: "unit",
-      globals: true,
-      environment: "jsdom",
-      setupFiles: "./src/test/setup.ts",
-      css: true,
-      include: ["src/**/*.test.{ts,tsx}"],
-      exclude: ["node_modules", ".archive", "src/**/*.browser.test.{ts,tsx}"],
-    },
-  },
-  {
-    // Browser tests - Playwright (new, targets tooltip/SVG positioning)
-    extends: "./vite.config.ts",
-    test: {
-      name: "browser",
-      globals: true,
-      setupFiles: "./src/test/setup.browser.ts",
-      css: true,
-      include: ["src/**/*.browser.test.{ts,tsx}"],
-      browser: {
-        enabled: true,
-        provider: "playwright",
-        instances: [{ browser: "chromium" }],
-      },
-    },
-  },
-]);
-```
+**Test 3: "token bounding rect position changes with hex coordinates"**
 
-Key design choices:
+- Setup: Two characters at different hex positions (`{q: -2, r: 0}` and `{q: 2, r: 0}`)
+- Render `<BattleViewer />`
+- Get both token elements, compare their `getBoundingClientRect().left` values
+- Assert the token at `q: -2` has a smaller `left` than the token at `q: 2` (confirms hex-to-pixel mapping produces real screen positions)
 
-- Both projects extend `vite.config.ts` to inherit React plugin, CSS modules, and React Compiler config
-- Unit project explicitly excludes `*.browser.test.*` files
-- Browser project only includes `*.browser.test.*` files
-- Convention-based file naming provides clear separation
+**Test 4: "tooltip anchor rect comes from real SVG getBoundingClientRect"**
 
-### 2b. Remove `test` block from `vite.config.ts`
+- Setup: `page.viewport(1280, 720)`
+- Place character at off-center position `{q: 3, r: -1}` and target at `{q: -2, r: 2}`
+- Hover the token
+- Assert tooltip appears and its position is offset from the token's actual screen position (not default 0,0)
+- This confirms the full flow: Token.handleMouseEnter -> getBoundingClientRect -> BattleViewer.handleTokenHover -> CharacterTooltip.anchorRect -> positioning
 
-Remove lines 19-25 from `vite.config.ts` (the `test: { ... }` block). The workspace config now owns all test configuration. The `vite.config.ts` keeps only build-related config (plugins, css modules).
+### Key Implementation Details
 
-**Risk**: If `test` block remains alongside workspace config, Vitest may log warnings or exhibit undefined behavior. The workspace config must be the sole source of test configuration.
+- Use `userEvent.setup()` for hover simulation (same as `battle-viewer-tooltip.test.tsx` pattern)
+- Use `page.viewport()` for deterministic sizing (same as Phase 1 pattern)
+- Use `waitFor` for async positioning (useLayoutEffect propagation)
+- Import from `vitest`, `@testing-library/react`, `vitest/browser`
+- Import `createCharacter`, `createTarget` from test helpers
+- Store setup via `useGameStore.getState().actions`
 
-## Step 3: Create Browser-Mode Test Setup File
+### Risks and Mitigations
 
-**File to create**: `/home/bob/Projects/auto-battler/src/test/setup.browser.ts`
+**Risk**: SVG viewBox scaling makes exact pixel assertions fragile.
+**Mitigation**: Use relational assertions (left_A < left_B, width > 0) rather than exact pixel values. Only assert approximate relationships.
 
-The browser setup file differs from the jsdom setup in two ways:
-
-1. No `window.matchMedia` mock (browser has native `matchMedia`)
-2. Still imports `@testing-library/jest-dom` for DOM matchers
-3. Still calls `cleanup()` after each test
-
-```typescript
-// src/test/setup.browser.ts
-import { afterEach } from "vitest";
-import { cleanup } from "@testing-library/react";
-import "@testing-library/jest-dom";
-
-// No matchMedia mock needed - real browser has native matchMedia
-
-// Cleanup after each test case
-afterEach(() => {
-  cleanup();
-});
-```
-
-## Step 4: Update TypeScript Configuration
-
-**File to modify**: `/home/bob/Projects/auto-battler/tsconfig.json`
-
-Add `@vitest/browser/providers/playwright` to the `types` array so browser-mode test files get correct type checking:
-
-```json
-"types": ["vite/client", "vitest/globals", "@testing-library/jest-dom", "@vitest/browser/providers/playwright"]
-```
-
-Note: Vitest 4.x browser mode may require additional type setup. Check `@vitest/browser` docs for exact type import path. If the types conflict with jsdom globals, a separate `tsconfig.browser.json` may be needed -- but try the simple approach first.
-
-## Step 5: Create Proof-of-Concept Browser Test
-
-**File to create**: `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.browser.test.tsx`
-
-This file contains a focused subset of the CharacterTooltip positioning tests that specifically validate real browser behavior. It does NOT duplicate all tests from `CharacterTooltip.test.tsx` -- only the ones that gain value from a real browser.
-
-### Tests to include:
-
-1. **"tooltip gets real dimensions from getBoundingClientRect"** -- Render CharacterTooltip, call `getBoundingClientRect()` on the tooltip element, assert `width > 0` and `height > 0`. This is the core validation that browser mode provides real geometry. In jsdom, this always returns zeros.
-
-2. **"tooltip positions correctly relative to anchor without zero-rect fallback"** -- Render with a known anchor rect, verify the tooltip's computed `left` and `top` style values use actual tooltip dimensions (not the 300/150 fallback values from the jsdom workaround).
-
-3. **"tooltip repositions when viewport is constrained"** -- Use Playwright's viewport API (or `page.setViewportSize`) to create a narrow viewport, render tooltip, verify it flips to left side. This tests real viewport constraint behavior.
-
-### What NOT to duplicate:
-
-- Content rendering tests (these work identically in jsdom)
-- ARIA attribute tests (work identically in jsdom)
-- Hover callback tests (work identically in jsdom)
-- Portal rendering tests (work identically in jsdom)
-
-### Test structure:
-
-```typescript
-// CharacterTooltip.browser.test.tsx
-import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { CharacterTooltip } from "./CharacterTooltip";
-import { useGameStore } from "../../stores/gameStore";
-import {
-  createCharacter,
-  createTarget,
-} from "../RuleEvaluations/rule-evaluations-test-helpers";
-// No createMockRect needed -- we test with real rects
-// No mockViewport needed -- real browser viewport
-
-describe("CharacterTooltip - Browser Positioning", () => {
-  // ... setup, 2-3 focused tests
-});
-```
-
-## Step 6: Create Browser Test for Token Hover (Optional, Phase 2)
-
-**File to create**: `/home/bob/Projects/auto-battler/src/components/BattleViewer/token-hover.browser.test.tsx`
-
-A small test file that validates `getBoundingClientRect` returns real SVG geometry when hovering a Token `<g>` element. This is the behavior noted in ADR-008 ("getBoundingClientRect() on SVG `<g>` returns tight bounding box").
-
-### Tests to include:
-
-1. **"Token getBoundingClientRect returns non-zero dimensions for SVG group"** -- Render a Token in an SVG, hover it, verify the rect passed to `onMouseEnter` has `width > 0` and `height > 0`.
-
-This is lower priority than CharacterTooltip browser tests and can be deferred to Phase 2.
-
-## Step 7: Create Browser Test for Battle Viewer Tooltip z-index (Optional, Phase 2)
-
-**File to create**: `/home/bob/Projects/auto-battler/src/components/BattleViewer/battle-viewer-tooltip.browser.test.tsx`
-
-A focused test that validates `getComputedStyle` returns the actual z-index value for the tooltip. The existing jsdom test at line 227 of `battle-viewer-tooltip.test.tsx` already tests this, but jsdom's `getComputedStyle` may not resolve CSS Module values correctly.
-
-### Tests to include:
-
-1. **"tooltip z-index resolves correctly from CSS Modules"** -- Render BattleViewer, hover a token, verify `getComputedStyle(tooltip).zIndex` returns a real numeric value.
-
-This is Phase 2 scope.
-
-## Step 8: Update npm Scripts
-
-**File to modify**: `/home/bob/Projects/auto-battler/package.json`
-
-Update and add scripts:
-
-```json
-{
-  "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:unit": "vitest run --project unit",
-    "test:browser": "vitest run --project browser",
-    "test:unit:watch": "vitest --project unit"
-  }
-}
-```
-
-- `npm run test` runs both unit and browser projects (workspace default)
-- `npm run test:unit` runs only jsdom tests (fast feedback)
-- `npm run test:browser` runs only browser tests (slower, needs Chromium)
-- `npm run test:unit:watch` watches only unit tests (TDD mode)
-
-The existing `test:ui`, `test:critical` scripts should continue to work with the workspace.
-
-## Step 9: Verify All Existing Tests Pass
-
-Run the full test suite to verify zero regressions:
-
-```bash
-npm run test        # Both projects
-npm run test:unit   # Just jsdom (should show 1448 tests passing)
-npm run test:browser # Just browser (should show 2-3 new tests passing)
-```
-
-Verify:
-
-- All 1448 existing tests pass in the `unit` project
-- New browser tests pass in the `browser` project
-- No test file runs in both projects (the include/exclude patterns are mutually exclusive)
-- Total test count = 1448 + N browser tests
-
-## Step 10: Documentation Updates
-
-### 10a. Create ADR-022: Vitest Browser Mode for Real DOM Testing
-
-**File to create**: `/home/bob/Projects/auto-battler/.docs/decisions/adr-022-vitest-browser-mode.md`
-
-Contents:
-
-- **Decision**: Use Vitest Browser Mode with Playwright for tests requiring real DOM/SVG rendering
-- **Context**: jsdom returns zero-values for `getBoundingClientRect`, `getComputedStyle` does not resolve CSS Module values, SVG geometry is not computed
-- **Options**: (1) Continue mocking, (2) Browser mode for subset, (3) Cypress/Playwright E2E
-- **Rationale**: Browser mode integrates with existing Vitest workflow, runs only the tests that need real rendering, no separate E2E framework needed
-- **Consequences**: Requires Playwright + Chromium in CI, slightly slower for browser tests, `.browser.test.tsx` naming convention
-
-### 10b. Update ADR Index
-
-**File to modify**: `/home/bob/Projects/auto-battler/.docs/decisions/index.md`
-
-Add row:
-
-```
-| ADR-022 | Vitest Browser Mode for Real DOM Testing | 2026-02-09 | Accepted | [adr-022-vitest-browser-mode.md](./adr-022-vitest-browser-mode.md) |
-```
-
-### 10c. Update Architecture Doc
-
-**File to modify**: `/home/bob/Projects/auto-battler/.docs/architecture.md`
-
-Update the Testing Guidelines section (around line 127) to mention browser mode:
-
-```markdown
-## Testing Guidelines
-
-- Unit tests for engine logic: Pure functions, no React
-- Component tests: React Testing Library, user-centric
-- Browser tests (`.browser.test.tsx`): Real DOM rendering via Vitest Browser Mode + Playwright for tests requiring `getBoundingClientRect`, `getComputedStyle`, or SVG geometry
-- No mocking game engine in component tests (use real engine)
-- Test accessibility settings via class/attribute assertions
-- Hex coordinates in tests must satisfy: `max(|q|, |r|, |q+r|) <= 5`
-```
+**Risk**: `userEvent.hover()` on SVG `<g>` elements may not trigger `onMouseEnter` in browser mode.
+**Mitigation**: If `userEvent.hover` fails on SVG `<g>`, fall back to `fireEvent.mouseEnter` which directly dispatches the DOM event. The hover simulation just needs to trigger the mouseenter handler.
 
 ---
 
-## Phasing Summary
+## Area 2: BattleViewer Tooltip Z-Index Browser Tests
 
-### Phase 1 (This Task -- Minimum Viable)
+### File
 
-- Steps 1-5, 8-10: Install deps, create workspace config, create browser setup, create proof-of-concept CharacterTooltip browser test, update scripts, verify, document
-- **Deliverables**: Working browser mode infrastructure + 2-3 browser tests proving real `getBoundingClientRect`
+Add to the same file: `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.browser.test.tsx`
 
-### Phase 2 (Follow-Up Task)
+### Approach
 
-- Steps 6-7: Token hover browser test, BattleViewer tooltip z-index browser test
-- Evaluate whether the zero-rect fallback in `CharacterTooltip.tsx` (lines 255-256) can be removed
-- Consider additional SVG geometry tests if Phase 1 proves valuable
+Render `BattleViewer`, trigger tooltip via hover, then use `getComputedStyle()` to verify the real CSS z-index values resolved by the browser's CSS engine (not jsdom's incomplete CSS resolution).
+
+### Test Design (2 tests)
+
+**Test 5: "tooltip z-index is 1000 via real CSS resolution"**
+
+- Setup: `initBattle` with character and target
+- Render `<BattleViewer />`
+- Hover token, wait for tooltip
+- `getComputedStyle(tooltip).zIndex` should be `"1000"`
+- This validates that the CSS Module class `.tooltip` with `z-index: 1000` is correctly applied by the browser (unlike jsdom which may not resolve CSS Module values)
+
+**Test 6: "tooltip z-index exceeds all overlay z-indices"**
+
+- Setup: `initBattle` with character and target, advance a tick so overlays render
+- Render `<BattleViewer />`
+- Hover token, wait for tooltip
+- Query overlay elements: `.gridContainer` children with `position: absolute`
+- For each overlay, assert `parseInt(getComputedStyle(overlay).zIndex) < parseInt(getComputedStyle(tooltip).zIndex)`
+- Specifically verify: WhiffOverlay(5), IntentOverlay(10), DamageOverlay(20) are all below Tooltip(1000)
+
+### Key Implementation Details
+
+- Tooltip is portaled to `document.body` with `position: fixed` -- separate stacking context from `.gridContainer`
+- Overlays are `position: absolute` within `.gridContainer` (which has `position: relative`)
+- The stacking context separation means the tooltip always paints above the grid container's content; z-index comparison across contexts confirms this
+
+### Risks and Mitigations
+
+**Risk**: Overlay elements might not be present if no game events exist.
+**Mitigation**: Test 6 advances a tick (`actions.nextTick()`) to generate intents. If specific overlays still don't render content, query by class name on the container `<svg>` elements rather than by visible content. The CSS is applied to the overlay container regardless of whether it has children.
+
+**Risk**: `getComputedStyle` on overlay `<svg>` elements might return `"auto"` for z-index if the CSS Module class isn't applied.
+**Mitigation**: Use `querySelector` with the rendered class name pattern (CSS modules generate `[name]__[local]___[hash]`). Alternatively, query by the structural position within `.gridContainer`.
 
 ---
 
-## Risk Assessment
+## Area 3: Zero-Rect Fallback Removal
 
-| Risk                                                         | Likelihood | Impact | Mitigation                                                                    |
-| ------------------------------------------------------------ | ---------- | ------ | ----------------------------------------------------------------------------- |
-| `@vitest/browser` 4.x API differs from docs                  | Medium     | High   | Check actual installed package docs/types before coding                       |
-| Playwright Chromium download fails in CI                     | Low        | High   | Add `npx playwright install chromium` to CI setup step                        |
-| `@testing-library/react` behaves differently in browser mode | Low        | Medium | Use same render/screen/waitFor APIs; test one file first                      |
-| tsconfig types conflict between jsdom and browser globals    | Medium     | Medium | Try unified tsconfig first; split to tsconfig.browser.json if conflicts arise |
-| CSS Modules not processed in browser mode                    | Low        | Medium | Both projects `extends: './vite.config.ts'` which has CSS module config       |
-| React Compiler plugin not applied in browser mode            | Low        | Low    | `extends` inherits all Vite plugins including React Compiler                  |
-| Workspace config breaks `vitest --ui`                        | Low        | Low    | Test `npm run test:ui` after setup; may need `--project unit` flag            |
+### Files Modified
+
+1. `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.tsx` (lines 254-256)
+2. `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.test.tsx` (positioning tests, lines 273-395)
+
+### Step 1: Export `calculateTooltipPosition`
+
+In `CharacterTooltip.tsx`:
+
+- Add `export` to the existing `calculateTooltipPosition` function (line 39)
+- This makes it importable for direct unit testing
+
+### Step 2: Remove the Zero-Rect Fallback
+
+In `CharacterTooltip.tsx`, replace lines 253-257:
+
+```typescript
+// BEFORE (lines 253-257):
+const rect = tooltipRef.current.getBoundingClientRect();
+// Use actual dimensions if available, otherwise assume defaults (for test environment)
+const width = rect.width > 0 ? rect.width : 300;
+const height = rect.height > 0 ? rect.height : 150;
+const newPosition = calculateTooltipPosition(anchorRect, width, height);
+
+// AFTER:
+const rect = tooltipRef.current.getBoundingClientRect();
+const newPosition = calculateTooltipPosition(
+  anchorRect,
+  rect.width,
+  rect.height,
+);
+```
+
+### Step 3: Update jsdom Positioning Tests
+
+The 5 positioning tests in `CharacterTooltip.test.tsx` (lines 273-395) currently test via rendered component. With the fallback removed, they would get `width=0, height=0` in jsdom, producing incorrect positioning.
+
+**Strategy**: Convert these tests to directly call `calculateTooltipPosition()` with explicit arguments:
+
+1. **"positions-right-of-token-by-default"** -- Call `calculateTooltipPosition(anchorRect, 300, 200)` and assert `left === anchorRect.right + 12`
+2. **"positions-left-when-near-right-edge"** -- Call with viewport 800, anchor at left:700, and assert `left < anchorRect.left`
+3. **"fallback-position-when-both-sides-constrained"** -- Call with viewport 400 and assert `left >= 8`
+4. **"clamps-to-viewport-bottom"** -- Call with anchor at top:700 and assert `top < viewportHeight`
+5. **"clamps-to-viewport-top"** -- Call with anchor at top:20 and assert `top >= 8`
+
+These tests become pure function tests -- faster, simpler, no rendering needed. They test the positioning algorithm without depending on jsdom's broken `getBoundingClientRect`.
+
+The remaining jsdom tests (content rendering, ARIA, portal, callbacks) are unaffected since they don't depend on tooltip dimensions.
+
+### Step 4: Add Browser Test for Non-Fallback Path
+
+Already covered by Phase 1 Test 3 ("tooltip positions using real dimensions, not fallback") in `CharacterTooltip.browser.test.tsx`. After fallback removal, this test simply confirms the production code path works with real dimensions. No changes needed.
+
+### Risks and Mitigations
+
+**Risk**: Some jsdom test might indirectly depend on the fallback positioning (e.g., checking `style.left` values).
+**Mitigation**: After removal, run `npm run test:unit` to catch any failures. Convert any broken tests to use `calculateTooltipPosition` directly.
+
+**Risk**: The `useLayoutEffect` in jsdom might set `position = {0, 0}` after removal (since `width=0, height=0` produces different results from `calculateTooltipPosition`).
+**Mitigation**: The content/ARIA/portal tests don't assert on position values, so they remain unaffected. Only the 5 positioning tests need conversion.
+
+---
+
+## Execution Order
+
+1. **Create browser test file** (`BattleViewer.browser.test.tsx`) with Tests 1-6
+2. **Export `calculateTooltipPosition`** from `CharacterTooltip.tsx`
+3. **Remove zero-rect fallback** from `CharacterTooltip.tsx`
+4. **Convert jsdom positioning tests** to direct `calculateTooltipPosition` calls
+5. **Run all tests** (`npm run test`) to verify green
+6. **Run quality gates** (lint, type-check, build)
+
+## Spec Alignment Check
+
+- [x] Plan aligns with `.docs/spec.md` -- Character Tooltip section specifies positioning behavior (right-preferred, left-fallback, viewport clamping). Tests validate these behaviors.
+- [x] Approach consistent with `.docs/architecture.md` -- Testing Guidelines section specifies browser tests for `getBoundingClientRect` and `getComputedStyle` (ADR-022). Uses `.browser.test.tsx` convention.
+- [x] Patterns follow `.docs/patterns/index.md` -- Browser Test Convention (ADR-022), Portal Tooltip Positioning pattern followed.
+- [x] No conflicts with `.docs/decisions/index.md` -- ADR-022 explicitly calls out zero-rect fallback evaluation as follow-up work.
 
 ## Files Summary
 
-### Created
-
-- `/home/bob/Projects/auto-battler/vitest.workspace.ts` -- Workspace config with unit + browser projects
-- `/home/bob/Projects/auto-battler/src/test/setup.browser.ts` -- Browser-mode test setup (no matchMedia mock)
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.browser.test.tsx` -- Proof-of-concept browser positioning tests
-- `/home/bob/Projects/auto-battler/.docs/decisions/adr-022-vitest-browser-mode.md` -- ADR for browser mode decision
-
-### Modified
-
-- `/home/bob/Projects/auto-battler/vite.config.ts` -- Remove `test` block (moved to workspace)
-- `/home/bob/Projects/auto-battler/package.json` -- Add deps, add `test:unit`/`test:browser` scripts
-- `/home/bob/Projects/auto-battler/tsconfig.json` -- Add browser type definitions
-- `/home/bob/Projects/auto-battler/.docs/decisions/index.md` -- Add ADR-022 row
-- `/home/bob/Projects/auto-battler/.docs/architecture.md` -- Add browser test guideline
-
-### Unchanged
-
-- All 150 existing test files remain unchanged
-- `src/test/setup.ts` remains unchanged (jsdom setup)
-- `CharacterTooltip.tsx` remains unchanged (zero-rect workaround stays for now)
+| File                                                        | Action                                    |
+| ----------------------------------------------------------- | ----------------------------------------- |
+| `src/components/BattleViewer/BattleViewer.browser.test.tsx` | CREATE (6 tests)                          |
+| `src/components/BattleViewer/CharacterTooltip.tsx`          | MODIFY (export function, remove fallback) |
+| `src/components/BattleViewer/CharacterTooltip.test.tsx`     | MODIFY (convert 5 positioning tests)      |

@@ -86,5 +86,6 @@ const handleTooltipMouseEnter = () => {
 
 ## Related Files
 
-- `src/components/BattleViewer/CharacterTooltip.tsx` - Rule evaluations tooltip
+- `src/components/BattleViewer/tooltip-positioning.ts` - Pure `calculateTooltipPosition` function (extracted for testability)
+- `src/components/BattleViewer/CharacterTooltip.tsx` - Rule evaluations tooltip (imports from tooltip-positioning.ts)
 - `src/components/BattleViewer/CharacterTooltip.module.css` - Tooltip styles

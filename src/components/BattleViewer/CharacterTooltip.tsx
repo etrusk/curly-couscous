@@ -24,6 +24,7 @@ import {
   formatResolutionText,
   formatRejectionReason,
 } from "../RuleEvaluations/rule-evaluations-formatters";
+import { calculateTooltipPosition } from "./tooltip-positioning";
 import styles from "./CharacterTooltip.module.css";
 
 export interface CharacterTooltipProps {
@@ -31,48 +32,6 @@ export interface CharacterTooltipProps {
   anchorRect: DOMRect;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
-}
-
-/**
- * Calculate smart tooltip position based on anchor rect and viewport.
- */
-function calculateTooltipPosition(
-  anchorRect: DOMRect,
-  tooltipWidth: number,
-  tooltipHeight: number,
-): { top: number; left: number } {
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
-  const OFFSET = 12; // Gap between token and tooltip
-  const MARGIN = 8; // Minimum distance from viewport edge
-
-  let left: number;
-  let top: number;
-
-  // Horizontal positioning
-  if (anchorRect.right + OFFSET + tooltipWidth + MARGIN < viewportWidth) {
-    // Right of token (preferred)
-    left = anchorRect.right + OFFSET;
-  } else if (anchorRect.left - OFFSET - tooltipWidth > MARGIN) {
-    // Left of token
-    left = anchorRect.left - OFFSET - tooltipWidth;
-  } else {
-    // Fallback: align with left edge of token
-    left = Math.max(MARGIN, anchorRect.left);
-  }
-
-  // Vertical positioning
-  const tokenCenterY = anchorRect.top + anchorRect.height / 2;
-  top = tokenCenterY - tooltipHeight / 2;
-
-  // Clamp to viewport
-  if (top < MARGIN) {
-    top = MARGIN;
-  } else if (top + tooltipHeight + MARGIN > viewportHeight) {
-    top = viewportHeight - tooltipHeight - MARGIN;
-  }
-
-  return { top, left };
 }
 
 /**
@@ -251,10 +210,11 @@ export function CharacterTooltip({
   useLayoutEffect(() => {
     if (tooltipRef.current) {
       const rect = tooltipRef.current.getBoundingClientRect();
-      // Use actual dimensions if available, otherwise assume defaults (for test environment)
-      const width = rect.width > 0 ? rect.width : 300;
-      const height = rect.height > 0 ? rect.height : 150;
-      const newPosition = calculateTooltipPosition(anchorRect, width, height);
+      const newPosition = calculateTooltipPosition(
+        anchorRect,
+        rect.width,
+        rect.height,
+      );
       setPosition(newPosition);
     }
   }, [anchorRect]);

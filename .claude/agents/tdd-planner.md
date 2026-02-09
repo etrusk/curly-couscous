@@ -39,6 +39,7 @@ Before ANY planning work, you MUST read:
 2. Design implementation plan with file-level specificity
 3. Identify architectural risks and tradeoffs
 4. Verify plan aligns with spec, architecture, patterns, and decisions
+5. **When a plan involves configuring or integrating a dependency**: Before writing config snippets, verify the API against the actually-installed package version. Run `npm ls <package>` or check `node_modules/<package>/package.json` for the version, then read `node_modules/<package>/README.md` or relevant source files to confirm the config format. Do NOT rely on training data for rapidly-evolving tool APIs (Vitest, ESLint, Vite, Playwright, etc.).
 
 ## Spec Alignment Check
 

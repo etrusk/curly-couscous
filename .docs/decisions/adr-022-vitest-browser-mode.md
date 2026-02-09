@@ -41,4 +41,4 @@ Option 2 provides the best tradeoff. Browser Mode runs within the existing Vites
 - **Positive**: Real DOM geometry validation, catches positioning bugs that jsdom misses, same test API as unit tests
 - **Negative**: Requires Playwright + Chromium in CI (`npx playwright install chromium`), browser tests are slower (~seconds vs milliseconds), two test projects to maintain
 - **Convention**: New browser tests use `.browser.test.tsx` suffix; existing jsdom tests are not migrated
-- **Follow-up**: Once browser tests prove tooltip positioning works with real dimensions, the zero-rect fallback in CharacterTooltip.tsx can be evaluated for removal
+- **Follow-up (resolved)**: Phase 2 browser tests validated real SVG geometry and tooltip positioning. Zero-rect fallback removed from CharacterTooltip.tsx. `calculateTooltipPosition` extracted to `tooltip-positioning.ts` for direct unit testing. 10 browser tests total (4 Phase 1 + 6 Phase 2)

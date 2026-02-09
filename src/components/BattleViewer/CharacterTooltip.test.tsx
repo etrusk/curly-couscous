@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CharacterTooltip } from "./CharacterTooltip";
+import { calculateTooltipPosition } from "./tooltip-positioning";
 import { useGameStore } from "../../stores/gameStore";
 import {
   createCharacter,
@@ -272,133 +273,105 @@ describe("CharacterTooltip - Portal Rendering", () => {
 
 describe("CharacterTooltip - Positioning", () => {
   beforeEach(() => {
-    const { actions } = useGameStore.getState();
-    actions.initBattle([]);
     mockViewport(1000, 800);
   });
 
-  // Test: positions-right-of-token-by-default
-  it("positions tooltip to the right of token by default", () => {
-    const character = createCharacter();
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
+  // Test 7: positions-right-of-anchor-by-default
+  it("positions right of anchor by default", () => {
+    mockViewport(1000, 800);
+    const anchorRect = new DOMRect(200, 200, 40, 40);
+    const tooltipWidth = 300;
+    const tooltipHeight = 200;
 
-    const anchorRect = createMockRect({ top: 200, left: 200, right: 240 });
-
-    render(
-      <CharacterTooltip
-        characterId={character.id}
-        anchorRect={anchorRect}
-        onMouseEnter={() => {}}
-        onMouseLeave={() => {}}
-      />,
+    const result = calculateTooltipPosition(
+      anchorRect,
+      tooltipWidth,
+      tooltipHeight,
     );
 
-    const tooltip = screen.getByRole("tooltip");
-    // Tooltip left equals anchorRect.right + 12px offset
-    expect(tooltip.style.left).toBe(`${anchorRect.right + 12}px`);
-    // Tooltip top vertically centers on token (approximately)
-    const topValue = parseInt(tooltip.style.top);
-    const expectedTop = anchorRect.top + anchorRect.height / 2;
-    expect(Math.abs(topValue - expectedTop)).toBeLessThan(100); // Allow for tooltip height adjustment
+    // Right-side placement with OFFSET = 12: anchorRect.right + 12 = 240 + 12 = 252
+    expect(result.left).toBe(252);
+    // Vertically centered: anchorRect.top + anchorRect.height/2 - tooltipHeight/2
+    // = 200 + 20 - 100 = 120
+    expect(result.top).toBe(120);
   });
 
-  // Test: positions-left-when-near-right-edge
-  it("positions tooltip to the left when near viewport right edge", () => {
-    const character = createCharacter();
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-
+  // Test 8: positions-left-when-near-right-viewport-edge
+  it("positions left when near right viewport edge", () => {
     mockViewport(800, 800);
-    const anchorRect = createMockRect({ left: 700, right: 740 });
+    const anchorRect = new DOMRect(700, 200, 40, 40);
+    const tooltipWidth = 300;
+    const tooltipHeight = 200;
 
-    render(
-      <CharacterTooltip
-        characterId={character.id}
-        anchorRect={anchorRect}
-        onMouseEnter={() => {}}
-        onMouseLeave={() => {}}
-      />,
+    const result = calculateTooltipPosition(
+      anchorRect,
+      tooltipWidth,
+      tooltipHeight,
     );
 
-    const tooltip = screen.getByRole("tooltip");
-    // Tooltip should be positioned to the left of the token
-    const leftValue = parseInt(tooltip.style.left);
-    // Should be less than anchorRect.left (positioned to the left)
-    expect(leftValue).toBeLessThan(anchorRect.left);
+    // Left-side placement: anchorRect.left - 12 - tooltipWidth = 700 - 12 - 300 = 388
+    expect(result.left).toBe(388);
+    // Tooltip is to the left of the anchor
+    expect(result.left).toBeLessThan(anchorRect.left);
+    // Tooltip does not violate the MARGIN (8px) on the left edge
+    expect(result.left).toBeGreaterThan(8);
   });
 
-  // Test: fallback-position-when-both-sides-constrained
+  // Test 9: fallback-position-when-both-sides-constrained
   it("uses fallback position when both sides are constrained", () => {
-    const character = createCharacter();
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-
     mockViewport(400, 800);
-    const anchorRect = createMockRect({ left: 150, right: 190 });
+    const anchorRect = new DOMRect(150, 200, 40, 40);
+    const tooltipWidth = 300;
+    const tooltipHeight = 200;
 
-    render(
-      <CharacterTooltip
-        characterId={character.id}
-        anchorRect={anchorRect}
-        onMouseEnter={() => {}}
-        onMouseLeave={() => {}}
-      />,
+    const result = calculateTooltipPosition(
+      anchorRect,
+      tooltipWidth,
+      tooltipHeight,
     );
 
-    const tooltip = screen.getByRole("tooltip");
-    const leftValue = parseInt(tooltip.style.left);
-    // Should use fallback: max of (MARGIN, anchorRect.left)
-    expect(leftValue).toBeGreaterThanOrEqual(8); // MARGIN
+    // Respects the MARGIN minimum
+    expect(result.left).toBeGreaterThanOrEqual(8);
+    // Uses the fallback: Math.max(MARGIN, anchorRect.left) = Math.max(8, 150) = 150
+    expect(result.left).toBe(Math.max(8, anchorRect.left));
   });
 
-  // Test: clamps-to-viewport-bottom
-  it("clamps tooltip top when near viewport bottom", () => {
-    const character = createCharacter();
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-
+  // Test 10: clamps-to-viewport-bottom
+  it("clamps to viewport bottom", () => {
     mockViewport(1000, 800);
-    const anchorRect = createMockRect({ top: 700, bottom: 740 });
+    const anchorRect = new DOMRect(200, 700, 40, 40);
+    const tooltipWidth = 300;
+    const tooltipHeight = 200;
 
-    render(
-      <CharacterTooltip
-        characterId={character.id}
-        anchorRect={anchorRect}
-        onMouseEnter={() => {}}
-        onMouseLeave={() => {}}
-      />,
+    const result = calculateTooltipPosition(
+      anchorRect,
+      tooltipWidth,
+      tooltipHeight,
     );
 
-    const tooltip = screen.getByRole("tooltip");
-    const topValue = parseInt(tooltip.style.top);
-    // Tooltip should be clamped to fit within viewport
-    // With 8px margin, max top should be 800 - tooltipHeight - 8
-    expect(topValue).toBeLessThan(800);
+    // Tooltip bottom edge (top + height) plus margin fits within viewport height
+    expect(result.top + tooltipHeight + 8).toBeLessThanOrEqual(800);
+    // Clamping formula: viewportHeight - tooltipHeight - MARGIN = 800 - 200 - 8 = 592
+    expect(result.top).toBe(592);
   });
 
-  // Test: clamps-to-viewport-top
-  it("clamps tooltip top when near viewport top", () => {
-    const character = createCharacter();
-    const { actions } = useGameStore.getState();
-    actions.initBattle([character]);
-
+  // Test 11: clamps-to-viewport-top
+  it("clamps to viewport top", () => {
     mockViewport(1000, 800);
-    const anchorRect = createMockRect({ top: 20, bottom: 60 });
+    const anchorRect = new DOMRect(200, 20, 40, 40);
+    const tooltipWidth = 300;
+    const tooltipHeight = 200;
 
-    render(
-      <CharacterTooltip
-        characterId={character.id}
-        anchorRect={anchorRect}
-        onMouseEnter={() => {}}
-        onMouseLeave={() => {}}
-      />,
+    const result = calculateTooltipPosition(
+      anchorRect,
+      tooltipWidth,
+      tooltipHeight,
     );
 
-    const tooltip = screen.getByRole("tooltip");
-    const topValue = parseInt(tooltip.style.top);
-    // Tooltip top should be at least 8px from viewport top (MARGIN)
-    expect(topValue).toBeGreaterThanOrEqual(8);
+    // Tooltip does not go above MARGIN
+    expect(result.top).toBeGreaterThanOrEqual(8);
+    // Exact value: unclamped = 20 + 20 - 100 = -60, clamped to MARGIN = 8
+    expect(result.top).toBe(8);
   });
 });
 

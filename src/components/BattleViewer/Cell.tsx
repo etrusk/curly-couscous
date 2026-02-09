@@ -3,7 +3,6 @@
  * Pure presentational component with accessibility support.
  */
 
-import { useCallback } from "react";
 import { Token } from "./Token";
 import { hexVertices } from "../../engine/hex";
 import type { TokenData } from "../../stores/gameStore";
@@ -36,9 +35,9 @@ export function Cell({
   onTokenLeave,
   hoveredTokenId,
 }: CellProps) {
-  const handleClick = useCallback(() => {
+  const handleClick = () => {
     onClick?.(q, r);
-  }, [onClick, q, r]);
+  };
 
   const tooltipId =
     character && hoveredTokenId === character.id

@@ -3,7 +3,6 @@
  * Uses SVG for faction-specific shapes (circle/diamond) with HP visualization.
  */
 
-import { useMemo } from "react";
 import type { Faction } from "../../engine/types";
 import {
   useGameStore,
@@ -105,11 +104,7 @@ export function Token({
       ? Math.max(0, Math.min(HP_BAR_WIDTH, (hp / maxHp) * HP_BAR_WIDTH))
       : 0;
 
-  // Get letter for slot position (memoized to avoid recomputation on re-renders)
-  const letter = useMemo(
-    () => slotPositionToLetter(slotPosition),
-    [slotPosition],
-  );
+  const letter = slotPositionToLetter(slotPosition);
 
   // Capitalize faction for aria-label
   const factionLabel = faction.charAt(0).toUpperCase() + faction.slice(1);

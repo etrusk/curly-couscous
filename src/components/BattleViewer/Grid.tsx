@@ -3,7 +3,6 @@
  * Generates Cell components for each hex position.
  */
 
-import { useMemo } from "react";
 import { Cell } from "./Cell";
 import { Token } from "./Token";
 import {
@@ -34,11 +33,8 @@ export function Grid({
   onTokenLeave,
   hoveredTokenId,
 }: GridProps) {
-  // Compute viewBox for SVG (memoized)
-  const viewBox = useMemo(() => computeHexViewBox(hexSize), [hexSize]);
-
-  // Generate all hex coordinates (memoized)
-  const allHexes = useMemo(() => generateAllHexes(), []);
+  const viewBox = computeHexViewBox(hexSize);
+  const allHexes = generateAllHexes();
 
   return (
     <svg

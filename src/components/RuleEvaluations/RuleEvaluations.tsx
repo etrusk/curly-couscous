@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   useGameStore,
   selectSelectedCharacter,
@@ -343,12 +343,8 @@ function MultiCharacterView({
   );
   const allCharacters = useGameStore(selectCharacters);
 
-  // Create a map from character ID to character for O(1) lookup
-  const characterMap = useMemo(() => {
-    const map = new Map<string, Character>();
-    allCharacters.forEach((c: Character) => map.set(c.id, c));
-    return map;
-  }, [allCharacters]);
+  const characterMap = new Map<string, Character>();
+  allCharacters.forEach((c: Character) => characterMap.set(c.id, c));
 
   if (evaluations.length === 0) {
     return (

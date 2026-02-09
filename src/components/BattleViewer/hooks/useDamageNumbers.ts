@@ -3,7 +3,6 @@
  * Groups by target, enriches with positions and factions.
  */
 
-import { useMemo } from "react";
 import {
   useGameStore,
   selectRecentDamageEvents,
@@ -34,36 +33,34 @@ export function useDamageNumbers(): DamageNumberData[] {
   const damageEvents = useGameStore(selectRecentDamageEvents);
   const tokenData = useGameStore(selectTokenData);
 
-  return useMemo(() => {
-    // Build lookup maps
-    const tokenMap = new Map(tokenData.map((t) => [t.id, t]));
+  // Build lookup maps
+  const tokenMap = new Map(tokenData.map((t) => [t.id, t]));
 
-    // Group by target
-    const grouped = new Map<string, DamageNumberData>();
+  // Group by target
+  const grouped = new Map<string, DamageNumberData>();
 
-    for (const event of damageEvents) {
-      const target = tokenMap.get(event.targetId);
-      const source = tokenMap.get(event.sourceId);
-      if (!target || !source) continue;
+  for (const event of damageEvents) {
+    const target = tokenMap.get(event.targetId);
+    const source = tokenMap.get(event.sourceId);
+    if (!target || !source) continue;
 
-      if (!grouped.has(event.targetId)) {
-        grouped.set(event.targetId, {
-          targetId: event.targetId,
-          targetPosition: target.position,
-          damages: [],
-          totalDamage: 0,
-        });
-      }
-
-      const data = grouped.get(event.targetId)!;
-      data.damages.push({
-        attackerId: event.sourceId,
-        attackerFaction: source.faction,
-        amount: event.damage,
+    if (!grouped.has(event.targetId)) {
+      grouped.set(event.targetId, {
+        targetId: event.targetId,
+        targetPosition: target.position,
+        damages: [],
+        totalDamage: 0,
       });
-      data.totalDamage += event.damage;
     }
 
-    return Array.from(grouped.values());
-  }, [damageEvents, tokenData]);
+    const data = grouped.get(event.targetId)!;
+    data.damages.push({
+      attackerId: event.sourceId,
+      attackerFaction: source.faction,
+      amount: event.damage,
+    });
+    data.totalDamage += event.damage;
+  }
+
+  return Array.from(grouped.values());
 }

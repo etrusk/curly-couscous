@@ -1,42 +1,39 @@
-# Review Findings: React 18 to 19 Upgrade + React Compiler (Review #2)
+# Review Findings: Remove Redundant Manual Memoization
 
-**Reviewer:** tdd-reviewer | **Date:** 2026-02-09 | **Cycle:** 2/2
-
-## Verdict: PASS
-
-IMPORTANT-1 from Review #1 is resolved. All quality gates pass. No new issues introduced.
-
-## IMPORTANT-1 Resolution (VERIFIED)
-
-All 7 version references updated correctly across 2 files:
-
-| File              | Field      | Before | After  | Matches package.json? |
-| ----------------- | ---------- | ------ | ------ | --------------------- |
-| architecture.md:6 | React      | 18+    | 19+    | YES (^19.2.4)         |
-| architecture.md:8 | Vite       | 5      | 7      | YES (^7.3.1)          |
-| CLAUDE.md:9       | Version    | 0.19.0 | 0.20.0 | YES                   |
-| CLAUDE.md:13      | TypeScript | 5.3    | 5.9    | YES (^5.9.3)          |
-| CLAUDE.md:15      | React      | 18.2   | 19.2   | YES (^19.2.4)         |
-| CLAUDE.md:16      | Zustand    | 4.4    | 4.5    | YES (^4.5.7)          |
-| CLAUDE.md:19      | Prettier   | 3.1    | 3.8    | YES (^3.8.1)          |
-
-## Quality Gates (independently verified)
-
-- TypeScript: PASS
-- ESLint: PASS (0 warnings)
-- Tests: PASS (150 files, 1434/1434)
-
-## Remaining Minor Items (non-blocking, unchanged from Review #1)
-
-- MINOR-1: ~60 pre-existing act() warnings (follow-up item, not a regression)
-- MINOR-2: Single commit vs two-phase (acceptable)
+**Review cycle:** 1
+**Verdict:** PASS
+**Date:** 2026-02-09
 
 ## Summary
 
-| Category  | Count                                    |
-| --------- | ---------------------------------------- |
-| CRITICAL  | 0                                        |
-| IMPORTANT | 0                                        |
-| MINOR     | 2 (carried from Review #1, non-blocking) |
+All 8 `useMemo`/`useCallback` removals across 7 files are correct. Each transformation preserves identical behavior. Import cleanup is complete -- no unused imports remain. No `useMemo`, `useCallback`, or `React.memo` references exist anywhere in `src/`.
 
-Clean pass. Ready for commit.
+## Checklist Results
+
+| Check                 | Result                                                           |
+| --------------------- | ---------------------------------------------------------------- |
+| Duplication           | PASS -- no copy-pasted patterns                                  |
+| Spec compliance       | PASS -- pure internal refactor, no spec-level changes            |
+| Merge/move regression | N/A -- no functionality moved                                    |
+| Pattern compliance    | PASS -- aligns with existing direct-call pattern in overlays     |
+| Logic errors          | PASS -- all transformations are mechanical unwrapping            |
+| Edge cases            | PASS -- no logic changes                                         |
+| Security              | PASS -- no security surface                                      |
+| Test quality          | N/A -- no test changes (correctly: behavior-preserving refactor) |
+| File hygiene          | NOTE -- see pre-existing issue below                             |
+| Scope creep           | PASS -- diffs match plan exactly, no extraneous changes          |
+
+## Issues
+
+None. Zero CRITICAL, zero IMPORTANT, zero MINOR issues introduced by this change.
+
+## Pre-existing Notes (not blocking)
+
+- MINOR: `RuleEvaluations.tsx` is 413 lines (project limit: 400). This predates this refactor -- the change actually reduced it by 6 lines. Extraction should be considered in a future task.
+
+## Verification
+
+- No `useMemo`/`useCallback`/`React.memo` references remain in `src/` (grep confirmed)
+- Two "Memoized" comments in `gameStore-selectors.ts` refer to Zustand selector memoization, not React hooks -- correctly out of scope
+- All 7 diffs match the plan step-for-step with no extraneous changes
+- Quality gates confirmed by coder: 1434 tests pass, 0 ESLint errors, 0 TypeScript errors

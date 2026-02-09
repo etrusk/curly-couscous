@@ -24,5 +24,5 @@ Option 2 chosen. The compiler coexists cleanly with manual memoization (it skips
 ## Consequences
 
 - `eslint-plugin-react-compiler` (RC status, 19.1.0-rc.2) validates compiler compatibility at lint time
-- Manual memoization is harmless but redundant -- removal is a low-priority cleanup task
+- ~~Manual memoization is harmless but redundant -- removal is a low-priority cleanup task~~ **Completed 2026-02-09:** All 8 manual useMemo/useCallback calls removed across 7 files. Zero manual memoization remains in src/.
 - All 1434 tests pass with the compiler enabled, confirming no behavioral changes

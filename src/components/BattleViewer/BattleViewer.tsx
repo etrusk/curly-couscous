@@ -3,7 +3,7 @@
  * Coordinates grid rendering and overlays for intents and damage numbers.
  */
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { positionKey } from "../../engine/hex";
 import { Grid } from "./Grid";
 import { IntentOverlay } from "./IntentOverlay";
@@ -96,19 +96,13 @@ export function BattleViewer({ hexSize = 30 }: BattleViewerProps) {
   const gridContainerRef = useRef<HTMLDivElement>(null);
 
   // Handle background click to deselect in idle mode
-  const handleBackgroundClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (selectionMode !== "idle") return;
-      // Only deselect when clicking the container itself, not children
-      if (
-        e.target === e.currentTarget ||
-        e.target === gridContainerRef.current
-      ) {
-        actions.selectCharacter(null);
-      }
-    },
-    [selectionMode, actions],
-  );
+  const handleBackgroundClick = (e: React.MouseEvent) => {
+    if (selectionMode !== "idle") return;
+    // Only deselect when clicking the container itself, not children
+    if (e.target === e.currentTarget || e.target === gridContainerRef.current) {
+      actions.selectCharacter(null);
+    }
+  };
 
   return (
     <div className={styles.battleViewer} onClick={handleBackgroundClick}>

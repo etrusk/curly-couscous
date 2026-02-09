@@ -111,6 +111,14 @@ If during implementation you discover:
 - Missing spec clarity → Document assumption, proceed cautiously
 - Plan's algorithm/approach is suboptimal → Document deviation and rationale in `AGENT_COMPLETION notable_events`, proceed if alternative is strictly simpler and all tests pass
 
+## Post-Implementation Checks (Dependency Upgrades)
+
+After upgrading dependencies, before marking COMPLETE:
+
+1. Grep for old version strings in `CLAUDE.md` and `.docs/architecture.md`
+2. Update any stale version references to match actual installed versions from `package.json`
+3. Update the project version in `CLAUDE.md` if bumped in `package.json`
+
 ## Security Checklist
 
 Before completion, verify:

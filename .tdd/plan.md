@@ -1,105 +1,109 @@
-# Plan: Split CharacterTooltip.test.tsx
+# Phase 3 Browser Tests -- Implementation Plan
 
-## Decision
+## Candidate Selection
 
-**Split into 2 files** (Option A from exploration). Both files are well under 400 lines. The Positioning block tests a pure function with no React rendering, making it a clean extraction, but at only ~130 lines with imports it would create an unnecessarily small file. Grouping it with other behavior-oriented tests (Portal, Accessibility, Hover) creates two balanced, cohesive files.
+From the 7 candidates ranked in `exploration.md`, this phase selects **Priority 1 (Theme CSS Variable Resolution)** and **Priority 2 (Token Selection Glow and Animation)**.
 
-## Target Files
+**Rationale for this batch:**
 
-### 1. `CharacterTooltip-content.test.tsx` (~245 lines)
+- Priority 1 is the highest-value candidate by a wide margin: zero tests currently validate that CSS actually produces correct computed colors. The existing jsdom tests explicitly acknowledge they cannot test this (`theme-variables.test.ts` line 4, `theme.integration.test.tsx` line 5).
+- Priority 2 is a natural companion: it tests CSS-driven visual feedback (filters, animations) on a component that already has browser test infrastructure from Phase 2. Both candidates test `getComputedStyle` resolution of CSS properties that jsdom cannot process.
+- Priorities 3-7 are deferred to Phase 4. SVG markers (Priority 3) are a reasonable next candidate but would make this batch too large.
 
-**Location:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip-content.test.tsx`
+**Scope:** 2 new test files, ~10-12 tests total.
 
-**Contains:** Content Rendering describe block (lines 19-235, 4 tests)
+## Test File 1: Theme CSS Variable Resolution
 
-| Test                               | Description                                     |
-| ---------------------------------- | ----------------------------------------------- |
-| renders-next-action-section        | Next Action section with action name and target |
-| renders-skill-priority-section     | Skill Priority section with numbered skill list |
-| renders-collapsible-skipped-skills | Skipped skills in collapsible details/summary   |
-| renders-mid-action-display         | Continuing Action when character is mid-action  |
+**File:** `/home/bob/Projects/auto-battler/src/styles/theme.browser.test.tsx`
 
-**Imports needed:**
+**Purpose:** Validate that `light-dark()` and `color-mix()` CSS functions resolve to correct computed color values across all three themes (dark, light, high-contrast).
 
-- `describe, it, expect, beforeEach` from vitest
-- `render, screen` from @testing-library/react
-- `CharacterTooltip` from ./CharacterTooltip
-- `useGameStore` from ../../stores/gameStore
-- `createCharacter, createTarget, createAttackAction` from ../RuleEvaluations/rule-evaluations-test-helpers
-- `createMockRect, mockViewport` from ./tooltip-test-helpers
+### Tests
 
-**beforeEach:** Store reset (`initBattle([])`, `selectCharacter(null)`) + `mockViewport(1000, 800)`
+1. **dark theme resolves surface-ground to dark value** -- Set `data-theme="dark"` (or no attribute), render an element, verify `getComputedStyle(el).getPropertyValue('--surface-ground')` resolves to `#242424` (or RGB equivalent). This is the core test: `light-dark(#fafafa, #242424)` with `color-scheme: dark` should pick the dark value.
 
-**JSDoc header:** `/** Tests for CharacterTooltip component - content rendering. */`
+2. **light theme resolves surface-ground to light value** -- Set `data-theme="light"`, verify `--surface-ground` resolves to `#fafafa`. Validates that `color-scheme: light` triggers the `light-dark()` light branch.
 
-**Note:** The idle state test (lines 212-234) is part of Content Rendering and stays in this file.
+3. **high-contrast theme resolves surface-ground to pure black** -- Set `data-theme="high-contrast"`, verify `--surface-ground` resolves to `#000000`. Validates the full override block.
 
-### 2. `CharacterTooltip-behavior.test.tsx` (~255 lines)
+4. **light-dark() resolves differently for dark vs light themes** -- Compare a representative set of computed variables (`--content-primary`, `--grid-bg`, `--cell-bg`) between dark and light themes. Values must differ, proving `light-dark()` actually switches.
 
-**Location:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip-behavior.test.tsx`
+5. **color-mix() produces a resolved color for faction-friendly-bg** -- In dark theme, `--faction-friendly-bg` is `color-mix(in srgb, var(--faction-friendly) 15%, transparent)`. Verify `getComputedStyle` returns a resolved color value (not the raw `color-mix()` string). The result should contain an alpha channel (semi-transparent).
 
-**Contains:** Portal Rendering + Positioning + Accessibility + Hover Callbacks (lines 237-473, 9 tests across 4 describe blocks)
+6. **high-contrast faction colors differ from dark theme** -- Compare `--faction-friendly` and `--action-attack` between dark (`#0072b2`, `#d55e00`) and high-contrast (`#0099ff`, `#ff6633`). Validates the override block produces distinct values.
 
-| Block            | Tests | Description                                                                                                            |
-| ---------------- | ----- | ---------------------------------------------------------------------------------------------------------------------- |
-| Portal Rendering | 1     | Portal renders outside component tree                                                                                  |
-| Positioning      | 5     | calculateTooltipPosition pure function (right default, left fallback, both-sides-constrained, clamp bottom, clamp top) |
-| Accessibility    | 2     | role=tooltip, native details/summary                                                                                   |
-| Hover Callbacks  | 1     | onMouseEnter/onMouseLeave callbacks                                                                                    |
+7. **CSS variables cascade into rendered element backgrounds** -- Render a `<div>` with `background-color: var(--surface-ground)`, verify `getComputedStyle(div).backgroundColor` is a resolved RGB value (not empty or the literal string `var(--surface-ground)`). This tests cascade from `:root` into an actual element.
 
-**Imports needed:**
+### Setup Requirements
 
-- `describe, it, expect, beforeEach, vi` from vitest
-- `render, screen` from @testing-library/react
-- `userEvent` from @testing-library/user-event
-- `CharacterTooltip` from ./CharacterTooltip
-- `calculateTooltipPosition` from ./tooltip-positioning
-- `useGameStore` from ../../stores/gameStore
-- `createCharacter, createTarget` from ../RuleEvaluations/rule-evaluations-test-helpers
-- `createMockRect, mockViewport` from ./tooltip-test-helpers
+- Import `theme.css` at the top of the test file so Vite processes it in the browser environment. Existing browser tests already get theme CSS via component imports, but this file tests the CSS directly so needs an explicit import.
+- Helper function `setTheme(theme: string | null)` to set/remove `data-theme` attribute on `document.documentElement`.
+- Helper function `getCSSVar(name: string)` wrapping `getComputedStyle(document.documentElement).getPropertyValue(name).trim()`.
+- `beforeEach`: remove `data-theme` and `data-high-contrast` attributes (restore to default dark).
+- Color comparison: use `startsWith('rgb')` or regex to verify resolved colors. Avoid exact hex matching since browsers return `rgb(r, g, b)` or `rgba(r, g, b, a)` format from `getComputedStyle`. Define expected RGB equivalents for key hex values.
 
-**Note:** `createAttackAction` is NOT needed in this file. `vi` and `userEvent` are only needed for the Hover Callbacks block but are imported at file level.
+### Expected count: 7 tests
 
-**beforeEach per block:**
+## Test File 2: Token Selection Glow and Animation
 
-- Portal: Store reset + mockViewport
-- Positioning: mockViewport only (no React rendering, no store)
-- Accessibility: Store reset + mockViewport
-- Hover: Store reset + mockViewport
+**File:** `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.browser.test.tsx`
 
-**JSDoc header:** `/** Tests for CharacterTooltip component - portal, positioning, accessibility, and hover behavior. */`
+**Purpose:** Validate CSS-driven visual feedback on Token that jsdom cannot verify: selection glow filter, animation, focus-visible filter, and HP bar width.
 
-## Steps
+### Tests
 
-1. **Create** `CharacterTooltip-content.test.tsx` with Content Rendering block (lines 1-235 of original, adjusted imports)
-2. **Create** `CharacterTooltip-behavior.test.tsx` with remaining 4 blocks (lines 237-473 of original, adjusted imports)
-3. **Delete** original `CharacterTooltip.test.tsx`
-4. **Run** `npm run test` -- verify all 13 tests pass, total test count unchanged
-5. **Run** `npm run lint` -- verify no lint errors
+1. **selected token has drop-shadow filter** -- Render BattleViewer, select a character via store action, verify `getComputedStyle(tokenElement).filter` contains `drop-shadow`. jsdom returns empty string for filter; real browser resolves the CSS Module class.
 
-## Verification Checklist
+2. **unselected token has no drop-shadow filter** -- Verify an unselected token's computed `filter` is `none` or does not contain `drop-shadow`.
 
-- [ ] 13 tests total across both new files (4 + 9)
-- [ ] Each file under 400 lines
-- [ ] No test logic modified (copy-paste, not rewrite)
-- [ ] No new helper files created
-- [ ] Naming follows PascalCase-kebab convention (`CharacterTooltip-content`, `CharacterTooltip-behavior`)
-- [ ] Describe block names preserved exactly as-is
-- [ ] All imports trimmed per file (no unused imports)
-- [ ] Original `CharacterTooltip.test.tsx` deleted
-- [ ] `CharacterTooltip.browser.test.tsx` untouched
+3. **selected token has active animation** -- Verify `getComputedStyle(selectedToken).animationName` contains `selectionPulse` (CSS Modules may mangle the name, so check for a non-`none` value). Verify `animationDuration` is `2s`.
 
-## Risks
+4. **focus-visible token has drop-shadow filter** -- Tab to a token using keyboard, verify `getComputedStyle(focusedToken).filter` contains `drop-shadow`. This tests the `:focus-visible` CSS rule.
 
-None. This is a mechanical file split with no logic changes. The shared helpers are already extracted. Each describe block is self-contained with its own beforeEach.
+5. **HP bar fill width reflects HP proportion** -- Render a token with hp=50, maxHp=100. The HP bar fill rect should have `width` attribute of `20` (50% of TOKEN_SIZE=40). Verify via `getAttribute('width')` on the health bar element. (This is testable in jsdom via attributes but we validate the SVG `rect` element actually renders with correct width in a real browser.)
 
-## Spec Alignment
+### Setup Requirements
 
-- [x] Plan aligns with `.docs/spec.md` requirements (no behavior changes)
-- [x] Approach consistent with `.docs/architecture.md` (test co-location maintained)
-- [x] Patterns follow `.docs/patterns/index.md` (PascalCase-kebab naming matches IntentOverlay-_, PriorityTab-_, SkillRow-\*)
-- [x] No conflicts with `.docs/decisions/index.md` (ADR-022 browser test convention unaffected)
+- Reuse existing patterns from `BattleViewer.browser.test.tsx`: `beforeEach` with `initBattle([])` and `selectCharacter(null)`, `page.viewport(1280, 720)`.
+- Import `BattleViewer` component (provides full rendering context including CSS Module loading).
+- Use `createCharacter` helper from `rule-evaluations-test-helpers.ts`.
+- For focus-visible test: use `userEvent.tab()` or `page.keyboard.press('Tab')` to trigger keyboard focus.
+- For selection test: use `actions.selectCharacter(id)` to programmatically select (avoids click event complications with SVG hit areas).
+
+### Expected count: 5 tests
+
+## jsdom Test Conversion Analysis
+
+**No existing jsdom tests need to be converted.** The existing tests serve different purposes:
+
+- `theme-variables.test.ts` (static file analysis): Tests CSS source structure (variable declarations exist, `light-dark()` argument order, `color-mix()` references correct base variables). These are structural/architectural tests. Keep as-is.
+- `theme.integration.test.tsx` (attribute mechanism): Tests DOM attribute setting/clearing. Trivially simple, keep as-is.
+- Token jsdom tests: Test click behavior, ARIA attributes, content rendering. None test computed styles. Keep as-is.
+
+The browser tests complement these by validating what the CSS actually produces at runtime.
+
+## Risks and Dependencies
+
+1. **Color format matching**: `getComputedStyle` returns colors in `rgb()` or `rgba()` format, not hex. Test assertions need RGB equivalents of expected hex values. Risk: rounding differences. Mitigation: use approximate matching or `parseFloat` on RGB components.
+
+2. **CSS Module name mangling**: `animationName` in computed style may be the mangled class name, not the raw `selectionPulse`. Mitigation: assert the value is not `none` rather than matching the exact name. Alternatively, check that `animationDuration` is `2s` and `animationIterationCount` is `infinite`.
+
+3. **Theme CSS loading in browser tests**: The theme test file imports `theme.css` directly. Vite should process this, but if the import path is wrong the variables won't resolve. Mitigation: verify in the first test that a known variable resolves to a non-empty value before testing specific values.
+
+4. **`color-mix()` alpha resolution**: The resolved value of `color-mix(in srgb, #0072b2 15%, transparent)` should produce an `rgba()` value with alpha ~0.15. The exact computed representation may vary. Mitigation: assert the result contains `rgba` (has alpha component) and parse the alpha to verify it's approximately 0.15.
+
+5. **Focus-visible activation**: `:focus-visible` requires the browser to detect keyboard navigation vs mouse. `userEvent.tab()` should trigger it, but the exact behavior depends on browser heuristics. Mitigation: if `tab()` does not trigger `:focus-visible`, use `element.focus()` after a keyboard event, or check `document.activeElement` and verify focus state.
+
+## Summary
+
+| Item                           | File                                                 | Test Count |
+| ------------------------------ | ---------------------------------------------------- | ---------- |
+| Theme CSS Variable Resolution  | `src/styles/theme.browser.test.tsx`                  | 7          |
+| Token Selection Glow/Animation | `src/components/BattleViewer/Token.browser.test.tsx` | 5          |
+| **Total**                      |                                                      | **12**     |
+
+Phase total: 12 new browser tests, bringing the project total from 10 to 22 browser tests.
 
 ## New Decisions
 
-None. This plan follows existing patterns. No new ADR needed.
+None. This plan follows existing patterns established in ADR-022 (browser test convention, two-project workspace, `.browser.test.tsx` naming).

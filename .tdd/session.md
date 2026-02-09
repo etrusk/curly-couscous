@@ -2,81 +2,99 @@
 
 ## Task
 
-Extract CharacterTooltip.test.tsx (473 lines, exceeds 400-line guideline) into smaller, focused test files.
+Phase 3 browser tests: additional component behaviors requiring real DOM
 
 ## Confirmed Scope
 
-Split CharacterTooltip.test.tsx into multiple test files organized by concern (e.g., rendering, positioning, interactions, edge cases). Each resulting file should be under 400 lines. No behavior changes — pure test file reorganization.
+Add browser-mode tests for components that have behaviors depending on real DOM APIs (getBoundingClientRect, CSS computed styles, SVG rendering, scroll, focus management, etc.) that jsdom cannot reliably test. Identify candidates from existing unit tests that mock or skip DOM behaviors, and from components with known jsdom limitations.
 
 ## Acceptance Criteria
 
-- CharacterTooltip.test.tsx is split into multiple focused test files
-- Each resulting test file is under 400 lines
-- All existing tests continue to pass with no modifications to test logic
-- No test coverage lost (same number of test cases before and after)
-- Co-location pattern maintained (tests alongside component)
+- Identify components with behaviors that benefit from real DOM testing
+- Write browser tests (`.browser.test.tsx`) for selected components
+- All existing tests continue to pass
+- All quality gates pass (TypeScript, ESLint, tests)
 
 ## Current Phase
 
-EXPLORE (COMPLETE) → PLAN (COMPLETE) → DESIGN_TESTS (COMPLETE) → TEST_DESIGN_REVIEW (COMPLETE) → IMPLEMENT (COMPLETE) → REVIEW (COMPLETE) → SYNC_DOCS (COMPLETE)
+COMMIT (SYNC_DOCS complete)
 
 ## Phase History
 
-- 2026-02-09 INIT → EXPLORE
-- 2026-02-09 EXPLORE COMPLETE
-- 2026-02-09 PLAN COMPLETE
-- 2026-02-09 DESIGN_TESTS COMPLETE (corrected test count: 14, not 13 -- plan undercounted idle state test)
-- 2026-02-09 TEST_DESIGN_REVIEW COMPLETE (all 14 tests verified against source, 2 minor description fixes applied)
-- 2026-02-09 IMPLEMENT COMPLETE (split into 2 files, 14 tests passing, original deleted)
-- 2026-02-09 REVIEW COMPLETE -- APPROVED, 0 critical, 0 important, 1 minor (session line count discrepancy)
-- 2026-02-09 SYNC_DOCS COMPLETE -- updated current-task.md (moved extraction to completions, trimmed oldest entry), no other .docs/ files needed updates
+- 2026-02-09 INIT -> EXPLORE
+- 2026-02-09 EXPLORE complete: 7 candidates identified, exploration.md written
+- 2026-02-09 PLAN complete: Selected Priority 1 (Theme CSS) + Priority 2 (Token Glow/Animation), 12 tests planned across 2 files
+- 2026-02-09 DESIGN_TESTS complete: 12 test designs written to test-designs.md, 6 risk mitigations documented
+- 2026-02-09 TEST_DESIGN_REVIEW complete: 1 correctness issue found and fixed (color-mix RGB assertion), all other designs approved
+- 2026-02-09 WRITE_TESTS complete: 12 browser tests written across 2 files, all 1470 tests passing, all quality gates green
+- 2026-02-09 REVIEW complete: PASS -- 0 CRITICAL, 1 IMPORTANT (screenshot cleanup), 2 MINOR. All quality gates green.
+- 2026-02-09 SYNC_DOCS complete: Updated current-task.md, patterns/index.md (added CSS Variable Probe Element pattern), adr-022 follow-up, created patterns/css-variable-probe-element.md
 
 ## Context Metrics
 
-Orchestrator: ~10K/300K (3%)
-Cumulative agent tokens: ~65K
-Agent invocations: 2
+Orchestrator: ~15K/300K (5%)
+Cumulative agent tokens: ~198K
+Agent invocations: 7
 Compactions: 0
 
 ### Agent History
 
-| #   | Agent     | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                   |
-| --- | --------- | ------------------ | --------- | ------ | ----- | -------- | -------- | ----------------------------------------------------------------------- |
-| 1   | Explorer  | EXPLORE            | 6         | ~25K   | 18    | -        | COMPLETE | Mapped 5 describe blocks, 13 tests, identified 2 split options          |
-| 2   | Planner   | PLAN               | 4         | ~40K   | 10    | -        | COMPLETE | Selected 2-file split (content vs behavior), wrote plan                 |
-| 3   | Designer  | DESIGN_TESTS       | 4         | ~35K   | 8     | -        | COMPLETE | Documented 14 tests (5 content + 9 behavior), corrected plan undercount |
-| 4   | Reviewer  | TEST_DESIGN_REVIEW | 3         | ~20K   | 10    | -        | COMPLETE | Verified all 14 tests, fixed 2 assertion description inaccuracies       |
-| 5   | Coder     | IMPLEMENT          | 7         | ~60K   | 14    | -        | COMPLETE | Created 2 files (208+213 lines), deleted original, all gates pass       |
-| 6   | Reviewer  | REVIEW             | 5         | ~25K   | 14    | -        | COMPLETE | APPROVED: 14/14 tests verified, all gates pass, no issues               |
-| 7   | DocSyncer | SYNC_DOCS          | 3         | ~15K   | 9     | -        | COMPLETE | Updated current-task.md, session.md; no pattern/decision changes        |
+| #   | Agent             | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                       |
+| --- | ----------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | ----------------------------------------------------------- |
+| 1   | tdd-explorer      | EXPLORE            | 6         | ~28K   | 30    | 186s     | COMPLETE | 7 candidates ranked by priority                             |
+| 2   | tdd-planner       | PLAN               | 4         | ~32K   | 16    | 117s     | COMPLETE | 12 tests planned, 2 files, 5 risks identified               |
+| 3   | tdd-test-designer | DESIGN_TESTS       | 5         | ~32K   | 16    | 233s     | COMPLETE | 12 tests designed, 6 risk mitigations                       |
+| 4   | tdd-test-reviewer | TEST_DESIGN_REVIEW | 5         | ~18K   | 16    | 161s     | COMPLETE | Fixed color-mix assertion, 11 approved as-is                |
+| 5   | tdd-coder         | WRITE_TESTS        | 14        | ~48K   | 32    | 402s     | COMPLETE | 12 tests, probe element technique, dual-format color parser |
+| 6   | tdd-reviewer      | REVIEW             | 6         | ~28K   | 22    | 138s     | COMPLETE | PASS: 0 critical, 1 important (gitignored), 2 minor         |
+| 7   | tdd-doc-syncer    | SYNC_DOCS          | 3         | ~12K   | 12    | 93s      | COMPLETE | Updated 4 docs, created probe element pattern               |
 
 ### Action Log
 
-- Read all required docs (current-task, spec, architecture, patterns, decisions)
-- Read CharacterTooltip.test.tsx (473 lines) -- mapped all 5 describe blocks and 14 tests (plan said 13, corrected)
-- Read CharacterTooltip.browser.test.tsx (170 lines) -- confirmed separate, no split needed
-- Read tooltip-test-helpers.ts and rule-evaluations-test-helpers.ts -- shared helpers already extracted
-- Read tooltip-positioning.ts -- pure function tested in Positioning block
-- Analyzed 17 existing split test files for naming conventions and patterns
-- Wrote exploration findings to .tdd/exploration.md
-- Read exploration findings, verified against actual test file
-- Confirmed naming convention from 25 existing split test files (PascalCase-kebab)
-- Designed 2-file split: content (~245 lines) vs behavior (~255 lines)
-- Wrote plan to .tdd/plan.md
-- Read plan, exploration, and actual test file for DESIGN_TESTS phase
-- Read spec.md and patterns/index.md (required reading)
-- Verified actual it() count: 14 (5 in Content Rendering, 9 in remaining 4 blocks)
-- Wrote test designs to .tdd/test-designs.md with full inventory, imports, and verification checklist
+#### #1 tdd-explorer (EXPLORE)
+
+- Clean run
+
+#### #2 tdd-planner (PLAN)
+
+- Clean run
+
+#### #3 tdd-test-designer (DESIGN_TESTS)
+
+- Clean run
+
+#### #4 tdd-test-reviewer (TEST_DESIGN_REVIEW)
+
+- Fixed incorrect color-mix RGB assertion: sRGB mixing with transparent preserves RGB channels and sets alpha to 0.15
+
+#### #5 tdd-coder (WRITE_TESTS)
+
+- getPropertyValue('--custom-prop') returns raw declaration text, not resolved value; switched to probe element technique
+- Chromium returns color(srgb ...) format instead of rgba() for color-mix() results; added dual-format parseColor() helper
+- Token filter was 'none' without theme.css import; CSS variables needed for filter resolution
+- ESLint security/detect-unsafe-regex triggered on color parser regex; replaced with string split approach
+
+#### #6 tdd-reviewer (REVIEW)
+
+- Clean run (PASS, screenshot artifacts are gitignored — no cleanup needed)
+
+#### #7 tdd-doc-syncer (SYNC_DOCS)
+
+- Clean run
 
 ## Files Touched
 
 - `.tdd/exploration.md` (created)
 - `.tdd/plan.md` (created)
-- `.tdd/test-designs.md` (created)
 - `.tdd/session.md` (updated)
-- `src/components/BattleViewer/CharacterTooltip-content.test.tsx` (created, 208 lines, 5 tests)
-- `src/components/BattleViewer/CharacterTooltip-behavior.test.tsx` (created, 213 lines, 9 tests)
-- `src/components/BattleViewer/CharacterTooltip.test.tsx` (deleted)
+- `.tdd/test-designs.md` (created)
+- `.tdd/review-findings.md` (created)
+- `src/styles/theme.browser.test.tsx` (created, 254 lines, 7 tests)
+- `src/components/BattleViewer/Token.browser.test.tsx` (created, 197 lines, 5 tests)
+- `.docs/current-task.md` (modified)
+- `.docs/patterns/index.md` (modified)
+- `.docs/patterns/css-variable-probe-element.md` (created)
+- `.docs/decisions/adr-022-vitest-browser-mode.md` (modified)
 
 ## Browser Verification
 
@@ -84,7 +102,7 @@ Status: N/A
 
 ## Human Approval
 
-Status: N/A (non-UI task)
+Status: N/A
 
 ## Blockers
 
@@ -93,4 +111,5 @@ Status: N/A (non-UI task)
 ## Review Cycles
 
 Count: 1
-Verdict: APPROVED (0 critical, 0 important, 1 minor)
+Verdict: PASS (0 CRITICAL, 1 IMPORTANT, 2 MINOR)
+Action needed: Delete screenshot artifacts before commit (IMPORTANT-1)

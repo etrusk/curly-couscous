@@ -2,52 +2,51 @@
 
 ## Task
 
-Phase 3 browser tests: additional component behaviors requiring real DOM
+Phase 4 browser tests: SVG markers, remaining DOM-dependent component behaviors
 
 ## Confirmed Scope
 
-Add browser-mode tests for components that have behaviors depending on real DOM APIs (getBoundingClientRect, CSS computed styles, SVG rendering, scroll, focus management, etc.) that jsdom cannot reliably test. Identify candidates from existing unit tests that mock or skip DOM behaviors, and from components with known jsdom limitations.
+Add browser tests for SVG markers and any remaining DOM-dependent component behaviors that benefit from real browser rendering (beyond what jsdom can validate). This continues the browser test migration strategy from Phases 1-3.
 
 ## Acceptance Criteria
 
-- Identify components with behaviors that benefit from real DOM testing
-- Write browser tests (`.browser.test.tsx`) for selected components
-- All existing tests continue to pass
+- Browser tests for SVG marker elements (arrow markers, other SVG-specific rendering)
+- Browser tests for remaining DOM-dependent component behaviors not yet covered
+- All existing tests continue to pass (1470 total: 1448 unit + 22 browser)
 - All quality gates pass (TypeScript, ESLint, tests)
 
 ## Current Phase
 
-COMMIT (SYNC_DOCS complete)
+EXPLORE (COMPLETE) -> PLAN (COMPLETE) -> DESIGN_TESTS (COMPLETE) -> DESIGN_REVIEW (COMPLETE) -> IMPLEMENT_TESTS (COMPLETE) -> REVIEW (COMPLETE) -> SYNC_DOCS (COMPLETE)
 
 ## Phase History
 
-- 2026-02-09 INIT -> EXPLORE
-- 2026-02-09 EXPLORE complete: 7 candidates identified, exploration.md written
-- 2026-02-09 PLAN complete: Selected Priority 1 (Theme CSS) + Priority 2 (Token Glow/Animation), 12 tests planned across 2 files
-- 2026-02-09 DESIGN_TESTS complete: 12 test designs written to test-designs.md, 6 risk mitigations documented
-- 2026-02-09 TEST_DESIGN_REVIEW complete: 1 correctness issue found and fixed (color-mix RGB assertion), all other designs approved
-- 2026-02-09 WRITE_TESTS complete: 12 browser tests written across 2 files, all 1470 tests passing, all quality gates green
-- 2026-02-09 REVIEW complete: PASS -- 0 CRITICAL, 1 IMPORTANT (screenshot cleanup), 2 MINOR. All quality gates green.
-- 2026-02-09 SYNC_DOCS complete: Updated current-task.md, patterns/index.md (added CSS Variable Probe Element pattern), adr-022 follow-up, created patterns/css-variable-probe-element.md
+- 2026-02-09 INIT → EXPLORE
+- 2026-02-09 EXPLORE complete: identified 4 SVG markers in IntentOverlay, 1 SVG pattern in Token, inline color-mix() in WhiffOverlay, and ranked 11 browser test candidates across 3 tiers
+- 2026-02-09 PLAN complete: 8 browser tests planned across 4 files (5 new IntentOverlay + 1 Token + 1 theme + 1 CharacterTooltip). Non-UI task.
+- 2026-02-09 DESIGN_TESTS complete: 8 test designs written with full assertions, setup, justifications. Detailed probe element, marker reference chain, and SVG pattern validation strategies.
+- 2026-02-09 DESIGN_REVIEW complete: 3 minor clarifications applied (Test 4 faction alignment, Test 5 preview intent note, Test 6 CSS Module class name mangling). No structural changes. All 8 tests approved.
+- 2026-02-09 IMPLEMENT_TESTS complete: 8 browser tests implemented across 4 files. All 1478 tests pass (1448 unit + 30 browser). All quality gates pass.
+- 2026-02-09 REVIEW complete: No critical issues. 3 minor observations (resolveColorVar duplication by design, theme file approaching 300 lines, parseColor extraction candidate). All quality gates re-verified. Ready for SYNC_DOCS.
 
 ## Context Metrics
 
-Orchestrator: ~15K/300K (5%)
-Cumulative agent tokens: ~198K
+Orchestrator: ~25K/300K (~8%)
+Cumulative agent tokens: ~201K
 Agent invocations: 7
 Compactions: 0
 
 ### Agent History
 
-| #   | Agent             | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                       |
-| --- | ----------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | ----------------------------------------------------------- |
-| 1   | tdd-explorer      | EXPLORE            | 6         | ~28K   | 30    | 186s     | COMPLETE | 7 candidates ranked by priority                             |
-| 2   | tdd-planner       | PLAN               | 4         | ~32K   | 16    | 117s     | COMPLETE | 12 tests planned, 2 files, 5 risks identified               |
-| 3   | tdd-test-designer | DESIGN_TESTS       | 5         | ~32K   | 16    | 233s     | COMPLETE | 12 tests designed, 6 risk mitigations                       |
-| 4   | tdd-test-reviewer | TEST_DESIGN_REVIEW | 5         | ~18K   | 16    | 161s     | COMPLETE | Fixed color-mix assertion, 11 approved as-is                |
-| 5   | tdd-coder         | WRITE_TESTS        | 14        | ~48K   | 32    | 402s     | COMPLETE | 12 tests, probe element technique, dual-format color parser |
-| 6   | tdd-reviewer      | REVIEW             | 6         | ~28K   | 22    | 138s     | COMPLETE | PASS: 0 critical, 1 important (gitignored), 2 minor         |
-| 7   | tdd-doc-syncer    | SYNC_DOCS          | 3         | ~12K   | 12    | 93s      | COMPLETE | Updated 4 docs, created probe element pattern               |
+| #   | Agent             | Phase           | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                          |
+| --- | ----------------- | --------------- | --------- | ------ | ----- | -------- | -------- | -------------------------------------------------------------- |
+| 1   | tdd-explorer      | EXPLORE         | 7         | ~28K   | 23    | 176s     | COMPLETE | Found 4 SVG markers, 1 pattern, 11 test candidates             |
+| 2   | tdd-planner       | PLAN            | 7         | ~35K   | 18    | 194s     | COMPLETE | 8 tests across 4 files, probe element pattern for SVG defs     |
+| 3   | tdd-test-designer | DESIGN_TESTS    | 5         | ~35K   | 18    | 213s     | COMPLETE | 8 tests fully specified, probe element + parent <g> strategies |
+| 4   | tdd-reviewer      | DESIGN_REVIEW   | 6         | ~18K   | 16    | -        | COMPLETE | 3 minor clarifications, no structural changes, all 8 approved  |
+| 5   | tdd-coder         | IMPLEMENT_TESTS | 11        | ~50K   | 30    | -        | COMPLETE | 8 browser tests implemented, 2 type fixes, all gates pass      |
+| 6   | tdd-reviewer      | REVIEW          | 6         | ~25K   | 17    | -        | COMPLETE | No critical issues, 3 minor observations, all gates pass       |
+| 7   | tdd-doc-syncer    | SYNC_DOCS       | 3         | ~12K   | 10    | 63s      | COMPLETE | Updated current-task.md, ADR-022 (22→30 browser tests)         |
 
 ### Action Log
 
@@ -63,20 +62,23 @@ Compactions: 0
 
 - Clean run
 
-#### #4 tdd-test-reviewer (TEST_DESIGN_REVIEW)
+#### #4 tdd-reviewer (DESIGN_REVIEW)
 
-- Fixed incorrect color-mix RGB assertion: sRGB mixing with transparent preserves RGB channels and sets alpha to 0.15
+- 3 minor clarifications applied to test-designs.md
+- No structural issues found
 
-#### #5 tdd-coder (WRITE_TESTS)
+#### #5 tdd-coder (IMPLEMENT_TESTS)
 
-- getPropertyValue('--custom-prop') returns raw declaration text, not resolved value; switched to probe element technique
-- Chromium returns color(srgb ...) format instead of rgba() for color-mix() results; added dual-format parseColor() helper
-- Token filter was 'none' without theme.css import; CSS variables needed for filter resolution
-- ESLint security/detect-unsafe-regex triggered on color parser regex; replaced with string split approach
+- Created IntentOverlay.browser.test.tsx (5 tests: marker defs, CSS colors, bounding geometry, attack/heal markers, movement markers)
+- Extended Token.browser.test.tsx (+1 test: enemy stripe pattern)
+- Extended theme.browser.test.tsx (+1 test: WhiffOverlay color-mix probe)
+- Extended CharacterTooltip.browser.test.tsx (+1 test: fade-in animation)
+- Fixed 2 type errors: TriggerScope "friendly"->"ally", getElementById null guard
+- All quality gates pass: TypeScript, ESLint, 1478 tests (1448 unit + 30 browser)
 
 #### #6 tdd-reviewer (REVIEW)
 
-- Clean run (PASS, screenshot artifacts are gitignored — no cleanup needed)
+- Clean run
 
 #### #7 tdd-doc-syncer (SYNC_DOCS)
 
@@ -84,17 +86,14 @@ Compactions: 0
 
 ## Files Touched
 
-- `.tdd/exploration.md` (created)
-- `.tdd/plan.md` (created)
-- `.tdd/session.md` (updated)
-- `.tdd/test-designs.md` (created)
-- `.tdd/review-findings.md` (created)
-- `src/styles/theme.browser.test.tsx` (created, 254 lines, 7 tests)
-- `src/components/BattleViewer/Token.browser.test.tsx` (created, 197 lines, 5 tests)
-- `.docs/current-task.md` (modified)
-- `.docs/patterns/index.md` (modified)
-- `.docs/patterns/css-variable-probe-element.md` (created)
-- `.docs/decisions/adr-022-vitest-browser-mode.md` (modified)
+- .tdd/session.md (created, updated)
+- .tdd/exploration.md (created)
+- .tdd/plan.md (created)
+- .tdd/test-designs.md (created)
+- src/components/BattleViewer/IntentOverlay.browser.test.tsx (created, 262 lines)
+- src/components/BattleViewer/Token.browser.test.tsx (extended, 253 lines)
+- src/styles/theme.browser.test.tsx (extended, 305 lines)
+- src/components/BattleViewer/CharacterTooltip.browser.test.tsx (extended, 204 lines)
 
 ## Browser Verification
 
@@ -106,10 +105,8 @@ Status: N/A
 
 ## Blockers
 
-(none)
+- (none)
 
 ## Review Cycles
 
-Count: 1
-Verdict: PASS (0 CRITICAL, 1 IMPORTANT, 2 MINOR)
-Action needed: Delete screenshot artifacts before commit (IMPORTANT-1)
+Count: 2 (DESIGN_REVIEW pass, CODE_REVIEW pass -- 0 critical, 3 minor)

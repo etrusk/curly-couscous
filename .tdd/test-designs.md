@@ -1,418 +1,312 @@
-# Phase 3 Browser Test Designs
+# Phase 4 Browser Test Designs: SVG Markers and DOM-Dependent Behaviors
 
-## Overview
+**Reviewed 2026-02-09 -- 3 minor clarifications applied, no structural changes needed.**
 
-Two new test files with 12 total browser-mode tests validating CSS behaviors that jsdom cannot process: `light-dark()` function resolution, `color-mix()` computed values, CSS Module filter/animation properties, and SVG attribute rendering in a real browser.
+- [REVIEW CHANGE] Test 4: clarified faction assignments for healer/wounded-ally setup
+- [REVIEW CHANGE] Test 5: noted preview intent risk from default skills on characters with currentAction
+- [REVIEW CHANGE] Test 6: clarified CSS Modules class name mangling for shape query
 
-These tests complement existing jsdom tests:
-
-- `theme-variables.test.ts` -- static CSS source analysis (structural/architectural)
-- `theme.integration.test.tsx` -- DOM attribute mechanism (data-theme set/remove)
-- Token jsdom tests -- click behavior, ARIA attributes, content rendering
-
-The browser tests validate what the CSS **actually produces** at runtime.
+8 tests across 4 files. All tests run in Vitest Browser Mode (Playwright/Chromium).
 
 ---
 
-## Shared Conventions (Both Files)
+## File 1: `src/components/BattleViewer/IntentOverlay.browser.test.tsx` (NEW)
 
-### Imports Pattern
-
-All browser test files follow the established pattern from `BattleViewer.browser.test.tsx`:
-
-```
-import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
-import { page } from "vitest/browser";
-```
-
-### Color Format
-
-`getComputedStyle` returns colors in `rgb(r, g, b)` or `rgba(r, g, b, a)` format, never hex. All expected values below use this format.
-
-### CSS Module Name Mangling
-
-Vite CSS Modules mangle class names (e.g., `.selected` becomes `_selected_abc12`). Use `[class*='className']` selectors or check for substring matches on `animationName`. Never match exact mangled names.
-
----
-
-## Test File 1: Theme CSS Variable Resolution
-
-**File:** `src/styles/theme.browser.test.tsx`
-
-**Purpose:** Validate that `light-dark()` and `color-mix()` CSS functions resolve to correct computed color values across all three themes (dark, light, high-contrast).
+Top-level describe: `"IntentOverlay - SVG Markers (Browser)"`
 
 ### Shared Setup
 
-#### Imports
-
 ```
-import "../../styles/theme.css";  // Explicit import so Vite processes it
-```
-
-The explicit `theme.css` import is required because this test file does not render a component that would bring in the CSS via its module imports. Vite in browser mode processes the import and injects the styles into the document.
-
-#### Helper: `setTheme(theme: string | null)`
-
-Sets or removes `data-theme` attribute on `document.documentElement`.
-
-- `setTheme("dark")` -- sets `data-theme="dark"`
-- `setTheme("light")` -- sets `data-theme="light"`
-- `setTheme("high-contrast")` -- sets `data-theme="high-contrast"`
-- `setTheme(null)` -- removes `data-theme` (reverts to default dark)
-
-#### Helper: `getCSSVar(name: string): string`
-
-Wraps `getComputedStyle(document.documentElement).getPropertyValue(name).trim()`.
-Returns the resolved computed value of a CSS custom property on `:root`.
-
-#### `beforeEach` Cleanup
-
-Remove `data-theme` and `data-high-contrast` attributes from `document.documentElement` to restore default dark theme state.
-
-### Expected RGB Values Reference
-
-Hex-to-RGB conversions for assertions:
-
-| Hex       | RGB                  |
-| --------- | -------------------- |
-| `#242424` | `rgb(36, 36, 36)`    |
-| `#fafafa` | `rgb(250, 250, 250)` |
-| `#000000` | `rgb(0, 0, 0)`       |
-| `#1e1e1e` | `rgb(30, 30, 30)`    |
-| `#ffffff` | `rgb(255, 255, 255)` |
-| `#2a2a2a` | `rgb(42, 42, 42)`    |
-| `#0072b2` | `rgb(0, 114, 178)`   |
-| `#0099ff` | `rgb(0, 153, 255)`   |
-| `#d55e00` | `rgb(213, 94, 0)`    |
-| `#ff6633` | `rgb(255, 102, 51)`  |
-| `#333`    | `rgb(51, 51, 51)`    |
-| `#f5f5f5` | `rgb(245, 245, 245)` |
-| `#00a8ff` | `rgb(0, 168, 255)`   |
-
-Note: `rgba(255, 255, 255, 0.87)` may be returned as-is or normalized. Browser may return `rgba(255, 255, 255, 0.87)` or `color(srgb ...)` depending on engine. Assertions should use `startsWith("rgb")` for format validation, then parse components for value checks.
-
----
-
-### Test: dark-theme-resolves-surface-ground-to-dark-value
-
-- **File**: `src/styles/theme.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: The `light-dark(#fafafa, #242424)` function with `color-scheme: dark` resolves to the dark branch value `#242424`
-- **Setup**:
-  1. `beforeEach` restores default (no `data-theme` attribute, which means dark theme)
-  2. No additional setup needed -- default state is dark theme
-- **Action**: Call `getCSSVar('--surface-ground')` to read the computed value from `:root`
-- **Assertions**:
-  1. The returned value is not empty (CSS loaded successfully -- serves as a smoke test for the entire file)
-  2. The returned value starts with `rgb` (browser resolved the `light-dark()` function to an actual color)
-  3. The returned value equals `rgb(36, 36, 36)` (the RGB equivalent of `#242424`, the dark branch of `light-dark(#fafafa, #242424)`)
-- **Justification**: This is the foundational test for the entire theme system. jsdom cannot process `light-dark()` at all -- it returns the raw string. A real browser with `color-scheme: dark` must pick the second argument of `light-dark()`. If this test fails, all theme color resolution is broken. The non-empty check in assertion 1 also serves as an early diagnostic for CSS loading failures.
-
----
-
-### Test: light-theme-resolves-surface-ground-to-light-value
-
-- **File**: `src/styles/theme.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: Setting `data-theme="light"` (which sets `color-scheme: light`) causes `light-dark()` to resolve to its first (light) argument
-- **Setup**:
-  1. `beforeEach` restores default dark theme
-  2. Call `setTheme("light")` to set `data-theme="light"` on `document.documentElement`
-- **Action**: Call `getCSSVar('--surface-ground')` to read the computed value
-- **Assertions**:
-  1. The returned value starts with `rgb` (resolved, not raw function string)
-  2. The returned value equals `rgb(250, 250, 250)` (the RGB equivalent of `#fafafa`, the light branch of `light-dark(#fafafa, #242424)`)
-- **Justification**: The light theme block in `theme.css` contains only `color-scheme: light` with no variable overrides. The entire light theme depends on `light-dark()` flipping to its first argument. If `color-scheme: light` does not trigger the light branch, the light theme produces dark colors. This cannot be detected without a real CSS engine.
-
----
-
-### Test: high-contrast-theme-resolves-surface-ground-to-pure-black
-
-- **File**: `src/styles/theme.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: The high-contrast theme override block explicitly sets `--surface-ground: #000000`, overriding the `light-dark()` declaration from `:root`
-- **Setup**:
-  1. `beforeEach` restores default dark theme
-  2. Call `setTheme("high-contrast")` to set `data-theme="high-contrast"`
-- **Action**: Call `getCSSVar('--surface-ground')` to read the computed value
-- **Assertions**:
-  1. The returned value starts with `rgb`
-  2. The returned value equals `rgb(0, 0, 0)` (pure black, from the explicit override `--surface-ground: #000000` in the `[data-theme="high-contrast"]` block)
-- **Justification**: High-contrast theme uses explicit variable overrides (not `light-dark()`) on a selector `[data-theme="high-contrast"]` that must have higher specificity than `:root`. If CSS specificity is wrong, the `light-dark()` dark value (`#242424`) would win instead of pure black. This is a specificity/cascade test that only a real browser can validate.
-
----
-
-### Test: light-dark-resolves-differently-for-dark-vs-light-themes
-
-- **File**: `src/styles/theme.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: A representative set of `light-dark()` variables produce distinct computed values between dark and light themes, proving the function actually switches based on `color-scheme`
-- **Setup**:
-  1. `beforeEach` restores default dark theme
-  2. Read computed values for `--content-primary`, `--grid-bg`, and `--cell-bg` in default (dark) state
-  3. Call `setTheme("light")`
-  4. Read the same variables again
-- **Action**: Compare the two sets of computed values
-- **Assertions**:
-  1. `--content-primary` dark value differs from light value (dark: `rgba(255, 255, 255, 0.87)`, light: `rgb(51, 51, 51)`)
-  2. `--grid-bg` dark value differs from light value (dark: `rgb(30, 30, 30)`, light: `rgb(245, 245, 245)`)
-  3. `--cell-bg` dark value differs from light value (dark: `rgb(42, 42, 42)`, light: `rgb(255, 255, 255)`)
-  4. All six values (3 dark + 3 light) start with `rgb` (all resolved successfully)
-- **Justification**: Tests 1-2 verify individual variables but do not prove the switching mechanism works broadly. This test confirms multiple independent `light-dark()` declarations all flip simultaneously when `color-scheme` changes. A regression where `color-scheme: light` is removed from the light theme block would cause all these values to match, which this test catches. The breadth across surface/content/grid categories ensures coverage of the full variable taxonomy.
-
----
-
-### Test: color-mix-produces-resolved-color-for-faction-friendly-bg
-
-- **File**: `src/styles/theme.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: The `color-mix(in srgb, var(--faction-friendly) 15%, transparent)` function resolves to an actual RGBA color with a semi-transparent alpha channel in dark theme
-- **Setup**:
-  1. `beforeEach` restores default dark theme (dark theme uses the `color-mix()` branch of the `light-dark()` wrapper for `--faction-friendly-bg`)
-- **Action**: Call `getCSSVar('--faction-friendly-bg')` to read the computed value
-- **Assertions**:
-  1. The returned value is not empty and does not contain the literal string `color-mix` (the browser resolved the function)
-  2. The returned value contains `rgba` or has an alpha component (the mix with `transparent` produces a semi-transparent result)
-  3. Parse the alpha component: it should be approximately 0.15 (within tolerance of 0.05), since `color-mix(in srgb, #0072b2 15%, transparent)` produces 15% opacity of the base color
-  4. Parse the RGB components: red should be approximately 0, green approximately 114, blue approximately 178 -- allow tolerance of +/- 5 for rounding. Note: `color-mix` in sRGB with `transparent` adjusts the alpha channel to reflect the mix percentage; the RGB channels of the non-transparent color are preserved (not scaled). Chromium serializes this as `rgba(0, 114, 178, 0.15)`.
-- **Justification**: `color-mix()` is a relatively new CSS function. jsdom does not support it. The test validates that: (a) the browser resolves the nested `var()` reference inside `color-mix()`, (b) the mix with `transparent` correctly produces an alpha channel, and (c) the percentage is applied correctly. A broken `color-mix()` implementation would return either the raw string or an incorrect color. Risk mitigation: assertion 4 uses approximate matching (tolerance +/- 5) to handle browser rounding differences in sRGB interpolation.
-
----
-
-### Test: high-contrast-faction-colors-differ-from-dark-theme
-
-- **File**: `src/styles/theme.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: The high-contrast override block produces distinct (brighter) faction and action colors compared to the default dark theme
-- **Setup**:
-  1. `beforeEach` restores default dark theme
-  2. Read `--faction-friendly` and `--action-attack` in default dark state
-  3. Call `setTheme("high-contrast")`
-  4. Read the same variables again
-- **Action**: Compare the two sets of computed values
-- **Assertions**:
-  1. Dark `--faction-friendly` equals `rgb(0, 114, 178)` (hex `#0072b2`)
-  2. High-contrast `--faction-friendly` equals `rgb(0, 153, 255)` (hex `#0099ff`, brighter blue)
-  3. Dark `--action-attack` equals `rgb(213, 94, 0)` (hex `#d55e00`)
-  4. High-contrast `--action-attack` equals `rgb(255, 102, 51)` (hex `#ff6633`, brighter vermillion)
-  5. The dark and high-contrast values differ for both variables
-- **Justification**: The high-contrast theme intentionally brightens Okabe-Ito palette colors for better visibility on pure black backgrounds. If the override block's specificity is wrong or the selectors are broken, the dark theme values would leak through. This test validates that the `[data-theme="high-contrast"]` selector properly overrides `:root` declarations for non-`light-dark()` variables (plain hex values that are simply redeclared in the override block).
-
----
-
-### Test: css-variables-cascade-into-rendered-element-backgrounds
-
-- **File**: `src/styles/theme.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: CSS custom properties defined on `:root` cascade into child elements and produce resolved `backgroundColor` values (not empty strings or literal `var()` references)
-- **Setup**:
-  1. `beforeEach` restores default dark theme
-  2. Render a `<div>` element with inline style `backgroundColor: "var(--surface-ground)"` using Testing Library's `render()`
-- **Action**: Call `getComputedStyle(div).backgroundColor` on the rendered element
-- **Assertions**:
-  1. The computed `backgroundColor` is not an empty string (CSS processed and cascaded)
-  2. The computed `backgroundColor` does not contain the literal string `var(` (the variable was resolved, not passed through raw)
-  3. The computed `backgroundColor` starts with `rgb` (it is a resolved color value)
-  4. The computed `backgroundColor` equals `rgb(36, 36, 36)` (matches `--surface-ground` dark value, confirming the variable cascaded correctly from `:root` to the child element)
-- **Justification**: Tests 1-6 read CSS variables directly from `:root` via `getPropertyValue()`. This test validates the full cascade path: `:root` declaration -> inherited/resolved property -> child element computed style. This is the path that actual components use (e.g., `background-color: var(--surface-ground)` in real components). A failure here would mean variables are defined on `:root` but don't cascade, which could happen if the CSS is loaded in a shadow DOM or scoped context.
-
----
-
-## Test File 2: Token Selection Glow and Animation
-
-**File:** `src/components/BattleViewer/Token.browser.test.tsx`
-
-**Purpose:** Validate CSS-driven visual feedback on Token that jsdom cannot verify: selection glow filter, animation properties, focus-visible filter, and HP bar width in a real browser.
-
-### Shared Setup
-
-#### Imports
-
-```
-import { BattleViewer } from "./BattleViewer";
-import { useGameStore } from "../../stores/gameStore";
-import { createCharacter } from "../RuleEvaluations/rule-evaluations-test-helpers";
-import userEvent from "@testing-library/user-event";
+beforeEach:
+  - useGameStore.getState().actions.initBattle([])
+  - useGameStore.getState().actions.selectCharacter(null)
+  - document.documentElement.removeAttribute("data-theme")
 ```
 
-`BattleViewer` is rendered (not `Token` directly) because `Token` is an SVG child that requires its parent SVG context. `BattleViewer` imports CSS Modules that include `Token.module.css`, ensuring all styles are loaded.
+Imports:
 
-#### `beforeEach` Cleanup
+- `vitest`: `describe, it, expect, beforeEach`
+- `@testing-library/react`: `render`
+- `vitest/browser`: `page`
+- `./BattleViewer`: `BattleViewer`
+- `../../stores/gameStore`: `useGameStore`
+- `../RuleEvaluations/rule-evaluations-test-helpers`: `createCharacter` (component version, includes default skills for intent selector)
+- `../RuleEvaluations/rule-evaluations-test-helpers`: `createAttackAction`, `createMoveAction`
+- `../../styles/theme.css`: CSS variable resolution
 
-Following the pattern from `BattleViewer.browser.test.tsx`:
+Utility function (duplicate from theme.browser.test.tsx):
 
-1. `const { actions } = useGameStore.getState()`
-2. `actions.initBattle([])`
-3. `actions.selectCharacter(null)`
-4. Also remove `data-theme` attribute to ensure default dark theme
-
-#### Standard Characters
-
-Every test creates at least two characters (friendly + enemy) since `BattleViewer` needs characters to render tokens. Use `createCharacter()` helper for the friendly token and a minimal enemy character.
-
-### CSS Module Class Name Note
-
-`Token.module.css` classes are mangled by Vite (e.g., `.selected` -> `_selected_xxxx`). Tests should locate elements via `data-testid` attributes (e.g., `token-char-1`) and check computed styles, not class names. For the `.selected` class, the test verifies the visual result (filter, animation) rather than the class string.
+```
+function resolveColorVar(name: string): string {
+  const probe = document.createElement("div");
+  probe.style.backgroundColor = `var(${name})`;
+  document.documentElement.appendChild(probe);
+  const resolved = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  return resolved;
+}
+```
 
 ---
 
-### Test: selected-token-has-drop-shadow-filter
+### Test 1: `all four marker definitions exist in rendered SVG defs`
+
+- **File**: `src/components/BattleViewer/IntentOverlay.browser.test.tsx`
+- **Type**: integration
+- **Verifies**: The 4 SVG `<marker>` elements (`arrowhead-attack`, `cross-heal`, `circle-friendly`, `diamond-enemy`) are present in the rendered DOM with correct child shape elements and marker attributes.
+- **Why jsdom cannot test this**: While jsdom preserves SVG DOM structure, this test validates that markers exist and are queryable in a real Chromium SVG rendering context. Combined with Test 2 (color resolution), this forms the smoke test for the entire marker rendering pipeline. Additionally, marker attributes like `markerUnits`, `overflow`, and `orient` are rendering hints that only matter in a real browser.
+- **Setup**:
+  - Create a friendly character at `{q: 0, r: 0}` and an enemy character at `{q: 2, r: 0}` using `createCharacter` from `rule-evaluations-test-helpers`.
+  - Call `initBattle([friendly, enemy])`.
+  - No tick advancement needed -- marker `<defs>` are always rendered regardless of whether intents exist.
+  - `page.viewport(1280, 720)`.
+  - `render(<BattleViewer />)`.
+- **Assertions**:
+  1. `document.getElementById("arrowhead-attack")` is not null
+  2. `document.getElementById("cross-heal")` is not null
+  3. `document.getElementById("circle-friendly")` is not null
+  4. `document.getElementById("diamond-enemy")` is not null
+  5. `arrowhead-attack` marker has exactly 2 `<polygon>` children (contrast outline + colored main)
+  6. `cross-heal` marker has exactly 2 `<path>` children (contrast outline cross + colored main cross)
+  7. `circle-friendly` marker has exactly 2 `<circle>` children (contrast outline + colored main)
+  8. `diamond-enemy` marker has exactly 2 `<polygon>` children (contrast outline + colored main)
+  9. All 4 markers have `markerUnits="userSpaceOnUse"` attribute
+  10. All 4 markers have `overflow="visible"` attribute
+  11. All 4 markers have `orient="auto"` attribute
+- **Justification**: Validates the structural completeness of the marker definitions in a real SVG rendering context. If a marker ID changes or a child shape is accidentally removed, this test catches it. The existing jsdom unit tests only check `marker-end` attribute strings on lines, not the marker definitions themselves.
+- **Implementation notes**:
+  - Query child elements with `marker.querySelectorAll("polygon")`, `marker.querySelectorAll("path")`, `marker.querySelectorAll("circle")`.
+  - Use `getAttribute("markerUnits")` for marker attribute checks.
+  - Markers are always in the IntentOverlay SVG `<defs>` regardless of game state, so minimal game setup is required (just need 2 characters for BattleViewer to render).
+
+---
+
+### Test 2: `marker CSS variables resolve to correct action colors`
+
+- **File**: `src/components/BattleViewer/IntentOverlay.browser.test.tsx`
+- **Type**: integration
+- **Verifies**: CSS custom properties `--action-attack`, `--action-heal`, `--action-move`, and `--contrast-line` used by SVG markers resolve to their expected RGB color values in the browser.
+- **Why jsdom cannot test this**: jsdom cannot resolve CSS custom properties. Existing unit tests only verify attribute strings like `fill="var(--action-attack)"`. This test confirms the CSS engine resolves these variables to actual color values.
+- **Setup**:
+  - No component rendering needed. Uses the CSS variable probe element pattern.
+  - Theme CSS is imported at file level (`import "../../styles/theme.css"`).
+  - Default dark theme (no `data-theme` attribute).
+- **Assertions**:
+  1. `resolveColorVar("--action-attack")` equals `"rgb(213, 94, 0)"` (vermillion #d55e00)
+  2. `resolveColorVar("--action-heal")` equals `"rgb(0, 158, 115)"` (green #009e73)
+  3. `resolveColorVar("--action-move")` equals `"rgb(0, 114, 178)"` (blue #0072b2)
+  4. `resolveColorVar("--contrast-line")` equals `"rgb(255, 255, 255)"` (white #ffffff)
+- **Justification**: Markers reference these CSS variables for fill and stroke colors. If theme variable definitions change or are removed, marker colors silently break. This test verifies the CSS resolution pipeline that jsdom cannot exercise.
+- **Implementation notes**:
+  - Uses the `resolveColorVar()` helper (probe element pattern) defined locally in this file.
+  - Does NOT read `getComputedStyle` on elements inside `<marker>` because elements in `<defs>` are not part of the render tree until referenced, making `getComputedStyle` unreliable on them.
+  - This approach was documented in the plan as the preferred strategy over reading styles from marker children.
+
+---
+
+### Test 3: `intent line with marker-end produces non-zero visual extent`
+
+- **File**: `src/components/BattleViewer/IntentOverlay.browser.test.tsx`
+- **Type**: integration
+- **Verifies**: When an IntentOverlay renders an intent line with a `marker-end` attribute, the SVG `<line>` element has non-zero bounding geometry in the real browser, proving the marker rendering pipeline is functional.
+- **Why jsdom cannot test this**: jsdom SVG elements always return zero-dimension bounding rects from `getBoundingClientRect()`. This test validates the full rendering pipeline: `<defs>` marker -> `marker-end` reference on `<line>` -> browser renders line with marker at endpoint.
+- **Setup**:
+  - Create a friendly character at `{q: 0, r: 0}` with `currentAction` set to an attack action targeting `{q: 2, r: 0}`, `startedAtTick: 0`, `resolvesAtTick: 2`. Use `createCharacter` with `createAttackAction("light-punch", "Light Punch", {q: 2, r: 0}, null, 0, 2)` passed as `currentAction` override.
+  - Create an enemy character at `{q: 2, r: 0}` with `skills: []`.
+  - `initBattle([friendly, enemy])`.
+  - `page.viewport(1280, 720)`.
+  - `render(<BattleViewer />)`.
+- **Assertions**:
+  1. Query all `<line>` elements that have a `marker-end` attribute. At least one exists.
+  2. The line with `marker-end` containing `"arrowhead-attack"` exists.
+  3. Call `getBoundingClientRect()` on the parent `<g>` element of the intent line. Width is greater than 0.
+  4. Call `getBoundingClientRect()` on the parent `<g>` element of the intent line. Height is greater than 0.
+- **Justification**: Validates that the entire marker rendering chain produces visible geometry. If marker definitions are malformed or the `marker-end` URL reference is broken, the line would render but the marker would not. Measuring bounding geometry proves the browser processed both line and marker.
+- **Implementation notes**:
+  - The `selectIntentData` selector filters intents by `ticksRemaining >= 0`. With `startedAtTick: 0`, `resolvesAtTick: 2`, and tick at 0, `ticksRemaining = 2`, so the intent line renders.
+  - The intent line SVG structure is: `<g>` containing outline `<line>` (no marker) + main `<line>` (with `marker-end`) + optional `<text>`. Query the `<line>` with `marker-end` attribute, then get its parent `<g>` for bounding rect.
+  - Risk mitigation: SVG `<line>` bounding rect behavior varies across browsers. If `getBoundingClientRect()` on the `<line>` itself returns zero height (horizontal lines have zero height), fall back to measuring the parent `<g>` element which includes marker geometry. The plan recommends this fallback. Design the assertion on the `<g>` parent from the start.
+
+---
+
+### Test 4: `attack intent uses arrowhead marker, heal uses cross marker`
+
+- **File**: `src/components/BattleViewer/IntentOverlay.browser.test.tsx`
+- **Type**: integration
+- **Verifies**: The correct marker-type-per-action-type mapping in a real rendered context: attack lines get `arrowhead-attack` marker, heal lines get `cross-heal` marker.
+- **Why jsdom cannot test this**: Complements the jsdom attribute tests by verifying that the `marker-end` URL actually references an existing `<marker>` element in the rendered SVG DOM. jsdom tests only check the attribute string value but cannot confirm the referenced marker exists and is renderable.
+- **Setup**:
+  - Create 4 characters for a valid game state:
+    1. Friendly attacker at `{q: -2, r: 0}` with `currentAction`: attack targeting `{q: 2, r: 0}`, `startedAtTick: 0`, `resolvesAtTick: 2`. Use `createAttackAction("light-punch", "Light Punch", {q: 2, r: 0}, null, 0, 2)`.
+    2. Enemy target at `{q: 2, r: 0}` with `skills: []`, no `currentAction`.
+    3. Enemy healer at `{q: 4, r: 0}` with `currentAction`: heal targeting `{q: 3, r: 0}`, `startedAtTick: 0`, `resolvesAtTick: 1`. Construct heal action manually: `{ type: "heal", skill: { id: "heal", instanceId: "heal", name: "Heal", actionType: "heal", tickCost: 1, range: 2, healing: 15, behavior: "", enabled: true, trigger: { scope: "friendly", condition: "always" }, target: "friendly", criterion: "nearest" }, targetCell: {q: 3, r: 0}, targetCharacter: null, startedAtTick: 0, resolvesAtTick: 1 }`.
+    4. [REVIEW CHANGE] Wounded enemy at `{q: 3, r: 0}` with `hp: 50`, `skills: []`, `faction: "enemy"`. Must be same faction as healer (enemy) so the heal relationship is logically consistent, even though `currentAction` bypass means the selector does not check targeting validity. Using correct faction avoids confusion during implementation.
+  - `initBattle([attacker, target, healer, woundedAlly])`.
+  - `page.viewport(1280, 720)`.
+  - `render(<BattleViewer />)`.
+- **Assertions**:
+  1. Query all `<line>` elements with a `marker-end` attribute. At least 2 exist.
+  2. At least one line has `marker-end` attribute containing `"arrowhead-attack"`.
+  3. At least one line has `marker-end` attribute containing `"cross-heal"`.
+  4. `document.getElementById("arrowhead-attack")` is not null (referenced marker exists in DOM).
+  5. `document.getElementById("cross-heal")` is not null (referenced marker exists in DOM).
+- **Justification**: Validates the marker reference chain end-to-end. A broken marker ID (typo in `getMarkerEnd()` vs. `IntentOverlay` defs) would pass jsdom attribute tests but fail here because the referenced marker would not exist. This test catches ID mismatches between `IntentLine.tsx` and `IntentOverlay.tsx`.
+- **Implementation notes**:
+  - The heal action setup is more complex because `createAttackAction` from `rule-evaluations-test-helpers` creates attack-type actions. A heal action must be constructed manually or use a local helper.
+  - [REVIEW CHANGE] The healer (enemy) and wounded character (enemy) must share the same faction. The `selectIntentData` selector does not validate targeting correctness -- it only checks `currentAction !== null` and `type !== "idle"` -- so the heal intent will render regardless. However, using consistent factions avoids implementation confusion and keeps the test scenario realistic.
+  - Alternative: make the healer friendly and the wounded ally friendly. The key is that one intent is attack-type and one is heal-type.
+  - The `selectIntentData` selector returns intents for all characters with `currentAction !== null` and `ticksRemaining >= 0` and `type !== "idle"`.
+
+---
+
+### Test 5: `friendly and enemy movement intents use different marker shapes`
+
+- **File**: `src/components/BattleViewer/IntentOverlay.browser.test.tsx`
+- **Type**: integration
+- **Verifies**: Movement marker selection is faction-dependent: friendly movement uses `circle-friendly`, enemy movement uses `diamond-enemy`.
+- **Why jsdom cannot test this**: Same rationale as Test 4. Validates the marker reference chain is complete and the faction-based branching in `getMarkerEnd()` produces references to real marker elements.
+- **Setup**:
+  - Create 2 characters with move actions:
+    1. Friendly character at `{q: -2, r: 0}` with `currentAction`: move to `{q: -1, r: 0}`, `startedAtTick: 0`, `resolvesAtTick: 1`. Use `createMoveAction("move", "Move", "towards", {q: -1, r: 0}, 0, 1)`.
+    2. Enemy character at `{q: 2, r: 0}` with `faction: "enemy"`, `currentAction`: move to `{q: 1, r: 0}`, `startedAtTick: 0`, `resolvesAtTick: 1`. Use `createMoveAction("move", "Move", "towards", {q: 1, r: 0}, 0, 1)`.
+  - `initBattle([friendly, enemy])`.
+  - `page.viewport(1280, 720)`.
+  - `render(<BattleViewer />)`.
+- **Assertions**:
+  1. Query all `<line>` elements with a `marker-end` attribute. At least 2 exist.
+  2. At least one line has `marker-end` attribute containing `"circle-friendly"`.
+  3. At least one line has `marker-end` attribute containing `"diamond-enemy"`.
+  4. `document.getElementById("circle-friendly")` is not null.
+  5. `document.getElementById("diamond-enemy")` is not null.
+  6. No line has `marker-end` containing both `"circle"` and `"diamond"` (sanity check: each line uses exactly one marker).
+- **Justification**: The faction-based marker branching in `getMarkerEnd()` is a conditional code path (`faction === "friendly" ? circle : diamond`). If the condition is inverted or the marker IDs swapped, jsdom attribute tests would still pass (they only check strings), but this test validates the full reference chain.
+- **Implementation notes**:
+  - Using `createMoveAction` from `rule-evaluations-test-helpers` is the cleanest approach. It creates a move-type action with `type: "move"` and the correct skill structure.
+  - Both characters need move actions with `ticksRemaining >= 0` for the intent selector to include them.
+  - The friendly vs. enemy distinction comes from each character's `faction` property, which the `selectIntentData` selector propagates to `IntentData.faction`, which `IntentLine` uses to call `getMarkerEnd(type, faction)`.
+  - [REVIEW CHANGE] Preview intent note: `createCharacter` adds default skills (Light Punch, Move, Heavy Punch). Since both characters have `currentAction` set, they are not idle, so `selectIntentData` will NOT compute preview decisions for them. However, if `createCharacter` is used with `skills: []` override for either character, ensure `currentAction` is still set or the character won't produce any intent. The current design is correct as written.
+
+---
+
+## File 2: `src/components/BattleViewer/Token.browser.test.tsx` (EXTEND)
+
+Add to existing describe block or create sibling describe: `"Token - Enemy Stripe Pattern (Browser)"`
+
+### Test 6: `enemy token has SVG pattern definition with diagonal stripe`
 
 - **File**: `src/components/BattleViewer/Token.browser.test.tsx`
 - **Type**: integration
-- **Verifies**: A programmatically selected token has a CSS `filter` containing `drop-shadow`, proving the `.selected` CSS Module class applies its multi-layer drop-shadow filter in a real browser
+- **Verifies**: Enemy tokens render a `<pattern>` element with `patternTransform="rotate(45)"` and the diamond `<path>` references it via a valid `fill="url(#stripe-enemy-...)"` URL that resolves to an existing pattern in the DOM.
+- **Why jsdom cannot test this**: jsdom parses SVG `<pattern>` elements as DOM nodes but cannot render them. This test validates the pattern exists in the real SVG DOM and the `fill` URL reference chain is valid (the referenced pattern ID exists in the document). Additionally, `patternTransform` is a rendering instruction that only takes effect in a real browser.
 - **Setup**:
-  1. Set viewport to `1280x720` via `page.viewport()`
-  2. Create friendly character (`id: "char-1"`, position `{q: 0, r: 0}`) and enemy character (`id: "enemy-1"`, position `{q: 2, r: 0}`)
-  3. `actions.initBattle([character, enemy])`
-  4. `actions.selectCharacter("char-1")` -- programmatic selection avoids click event complications with SVG hit areas
-  5. `render(<BattleViewer />)`
-- **Action**: Query `screen.getByTestId("token-char-1")` and read `getComputedStyle(element).filter`
+  - Reuse the existing `beforeEach` from `Token.browser.test.tsx` (clears game state, removes theme attribute).
+  - Create an enemy character at `{q: 2, r: 0}` with `id: "enemy-stripe"`, `faction: "enemy"`.
+  - Create a friendly character at `{q: 0, r: 0}` (needed for valid battle state).
+  - `initBattle([friendly, enemy])`.
+  - `page.viewport(1280, 720)`.
+  - `render(<BattleViewer />)`.
 - **Assertions**:
-  1. The computed `filter` is not `none` and is not an empty string (a filter is applied)
-  2. The computed `filter` contains the string `drop-shadow` (the correct filter type from `.selected { filter: drop-shadow(...) }`)
-  3. The computed `filter` contains at least two occurrences of `drop-shadow` (the `.selected` class uses three stacked drop-shadows: `0 0 8px`, `0 0 16px`, `0 0 24px`)
-- **Justification**: jsdom returns an empty string for `getComputedStyle().filter` because it does not process CSS Module stylesheets. The selection glow is a critical visual indicator -- if it silently breaks (e.g., CSS Module class not applied, variable `--accent-primary` undefined), users cannot see which character is selected. This test catches such regressions. The multi-shadow check (assertion 3) ensures the full glow effect is present, not just a single shadow.
+  1. `document.querySelector('pattern[id^="stripe-enemy-"]')` is not null (at least one enemy stripe pattern exists).
+  2. The pattern element has `patternTransform` attribute containing `"rotate(45)"`.
+  3. The pattern element has `width` attribute equal to `"4"`.
+  4. The pattern element has `height` attribute equal to `"4"`.
+  5. The pattern element has `patternUnits` attribute equal to `"userSpaceOnUse"`.
+  6. Query the enemy token via `screen.getByTestId("token-enemy-stripe")`, then find the `<path>` with `className` containing `shape`. Its `fill` attribute starts with `"url(#stripe-enemy-"`.
+  7. Extract the pattern ID from the `fill` attribute URL (parse between `#` and `)`). `document.getElementById(extractedId)` is not null (the referenced pattern exists).
+- **Justification**: The enemy stripe pattern is a colorblind accessibility feature. If the pattern definition is removed or the fill URL reference breaks, enemy tokens lose their visual faction distinction for colorblind users. jsdom tests cannot validate the fill URL reference chain.
+- **Implementation notes**:
+  - The pattern ID is `stripe-enemy-${id}`, so for `id: "enemy-stripe"` it would be `stripe-enemy-enemy-stripe`.
+  - [REVIEW CHANGE] To find the diamond `<path>`, query within the token `<g>` for path elements. The diamond path is the one with a `d` attribute (not the HP bar rects). CSS Modules will mangle `styles.shape` to something like `_shape_xxxxx`, so query with `[class*="shape"]` within the token. Alternatively, simply query for `path[d]` within the token `<g>` since only the diamond has a `d` attribute among the token's children.
+  - Pattern ID extraction regex: `/url\(#(.+?)\)/` to capture the ID.
 
 ---
 
-### Test: unselected-token-has-no-drop-shadow-filter
+## File 3: `src/styles/theme.browser.test.tsx` (EXTEND)
 
-- **File**: `src/components/BattleViewer/Token.browser.test.tsx`
+Add to existing describe block: `"Theme CSS Variable Resolution (Browser)"`
+
+### Test 7: `WhiffOverlay color-mix() inline fill resolves to semi-transparent color`
+
+- **File**: `src/styles/theme.browser.test.tsx`
+- **Type**: unit
+- **Verifies**: The CSS expression `color-mix(in srgb, var(--action-attack) 20%, transparent)` used by WhiffOverlay for whiff polygon fills resolves to a semi-transparent color in the browser, not a raw CSS function string.
+- **Why jsdom cannot test this**: jsdom cannot resolve `color-mix()` functions, nor can it resolve nested `var()` within `color-mix()`. The fill would remain as the raw function text `"color-mix(in srgb, var(--action-attack) 20%, transparent)"` in jsdom.
+- **Setup**:
+  - No component rendering needed. Uses probe element pattern.
+  - Theme CSS is imported at file level (already imported in `theme.browser.test.tsx`).
+  - Default dark theme (restored by existing `beforeEach`).
+  - Uses the existing `resolveColorVar()` and `parseColor()` helpers already defined in `theme.browser.test.tsx`.
+- **Assertions**:
+  For attack color-mix:
+  1. Create a probe div with `background-color: color-mix(in srgb, var(--action-attack) 20%, transparent)`. Read `getComputedStyle(probe).backgroundColor`.
+  2. The resolved value does not contain `"color-mix"` (browser resolved it).
+  3. The resolved value does not contain `"var("` (CSS variable was substituted).
+  4. Parse the resolved color with `parseColor()`. Alpha channel is approximately 0.2 (tolerance +/- 0.05).
+  5. RGB channels approximate `#d55e00` (213, 94, 0) with tolerance +/- 5.
+
+  For heal color-mix: 6. Create a probe div with `background-color: color-mix(in srgb, var(--action-heal) 20%, transparent)`. Read resolved value. 7. Parse color. Alpha channel is approximately 0.2 (tolerance +/- 0.05). 8. RGB channels approximate `#009e73` (0, 158, 115) with tolerance +/- 5.
+
+- **Justification**: WhiffOverlay applies `color-mix(in srgb, ${fillColor} 20%, transparent)` as an inline SVG fill. If the browser cannot resolve this expression (or if the CSS variable is missing), whiff indicators become invisible or show incorrect colors. This test validates the exact CSS expression without requiring the complexity of setting up whiff events through the game engine.
+- **Implementation notes**:
+  - The probe element approach differs slightly from `resolveColorVar()`: instead of `var(${name})`, use the full `color-mix(...)` expression as `background-color`. Create a dedicated inline probe rather than using the existing `resolveColorVar` helper.
+  - Code pattern:
+    ```
+    const probe = document.createElement("div");
+    probe.style.backgroundColor = "color-mix(in srgb, var(--action-attack) 20%, transparent)";
+    document.documentElement.appendChild(probe);
+    const resolved = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    ```
+  - Chromium may return `color(srgb r g b / a)` format rather than `rgba()`. The existing `parseColor()` in `theme.browser.test.tsx` already handles both formats.
+  - Test both attack and heal color variants because WhiffOverlay uses both (line 31-33 in WhiffOverlay.tsx: conditional on `data.actionType`).
+
+---
+
+## File 4: `src/components/BattleViewer/CharacterTooltip.browser.test.tsx` (EXTEND)
+
+Add new describe block: `"CharacterTooltip - Fade-in Animation (Browser)"`
+
+### Test 8: `tooltip has active fade-in animation properties`
+
+- **File**: `src/components/BattleViewer/CharacterTooltip.browser.test.tsx`
 - **Type**: integration
-- **Verifies**: A token that is NOT selected has no `drop-shadow` filter applied, confirming the `.selected` class is not leaking to unselected tokens
+- **Verifies**: The tooltip's `@keyframes fadeIn` CSS animation properties are applied by the real CSS engine: animation is active (name is not `"none"`), duration is 150ms, timing function is `ease-out`, fill mode is `forwards`.
+- **Why jsdom cannot test this**: jsdom does not compute CSS animation properties from stylesheets. `getComputedStyle(el).animationName` always returns `"none"` in jsdom regardless of CSS rules applied. This is the same jsdom limitation that motivated the Token animation browser test in Phase 3.
 - **Setup**:
-  1. Set viewport to `1280x720`
-  2. Create friendly character (`id: "char-1"`, position `{q: 0, r: 0}`) and enemy character (`id: "enemy-1"`, position `{q: 2, r: 0}`)
-  3. `actions.initBattle([character, enemy])`
-  4. Do NOT call `selectCharacter` (no character selected)
-  5. `render(<BattleViewer />)`
-- **Action**: Query `screen.getByTestId("token-char-1")` and read `getComputedStyle(element).filter`
+  - Reuse the existing `beforeEach` from `CharacterTooltip.browser.test.tsx` (clears game state).
+  - Create a character and a target using `createCharacter` and `createTarget` from `rule-evaluations-test-helpers`.
+  - `initBattle([character, target])`.
+  - Create an anchor rect: `new DOMRect(200, 200, 40, 40)`.
+  - Render `<CharacterTooltip characterId={character.id} anchorRect={anchorRect} onMouseEnter={() => {}} onMouseLeave={() => {}} />`.
+  - Query `screen.getByRole("tooltip")`.
 - **Assertions**:
-  1. The computed `filter` is either `none` or does not contain `drop-shadow` (no glow applied)
-- **Justification**: This is the negative complement to the selected test. If CSS specificity is wrong (e.g., `.token` accidentally inherits filter from a parent), all tokens could have glow effects regardless of selection state. The test ensures the filter is exclusively applied when `.selected` is present. Together with the selected test, this pair validates conditional CSS class application through the real CSS engine.
-
----
-
-### Test: selected-token-has-active-animation
-
-- **File**: `src/components/BattleViewer/Token.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: A selected token has the `selectionPulse` CSS animation active with the correct duration and iteration count
-- **Setup**:
-  1. Set viewport to `1280x720`
-  2. Create friendly character and enemy character
-  3. `actions.initBattle([character, enemy])`
-  4. `actions.selectCharacter("char-1")`
-  5. `render(<BattleViewer />)`
-- **Action**: Query `screen.getByTestId("token-char-1")` and read animation-related computed style properties
-- **Assertions**:
-  1. `getComputedStyle(element).animationName` is not `none` (an animation is active). Note: CSS Modules may mangle the keyframe name (e.g., `selectionPulse` -> `_selectionPulse_abc12`), so assert not-none rather than exact name match
-  2. `getComputedStyle(element).animationDuration` equals `2s` (from `.selected { animation: selectionPulse 2s ease-in-out infinite }`)
-  3. `getComputedStyle(element).animationIterationCount` equals `infinite` (the pulse loops forever while selected)
-  4. `getComputedStyle(element).animationTimingFunction` equals `ease-in-out` (matches the declared timing)
-- **Justification**: CSS animations are completely invisible to jsdom. The `selectionPulse` animation provides a pulsing glow that draws attention to the selected token. If the `@keyframes` block is removed or the animation shorthand is malformed, the token would have a static glow instead of pulsing. This test validates the full animation declaration chain: `.selected` class -> `animation` shorthand -> `@keyframes selectionPulse`. Risk mitigation: assertion 1 uses not-none instead of exact name matching to handle CSS Module keyframe name mangling.
-
----
-
-### Test: focus-visible-token-has-drop-shadow-filter
-
-- **File**: `src/components/BattleViewer/Token.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: A token that receives keyboard focus (via Tab) has a `drop-shadow` filter from the `:focus-visible` CSS rule
-- **Setup**:
-  1. Set viewport to `1280x720`
-  2. Create friendly character and enemy character
-  3. `actions.initBattle([character, enemy])`
-  4. Do NOT select any character (so `.selected` filter is not applied)
-  5. `render(<BattleViewer />)`
-  6. Set up `userEvent.setup()`
-- **Action**:
-  1. Press Tab key via `user.tab()` to move keyboard focus to the first focusable token element (tokens have `tabIndex={0}`)
-  2. Verify the focused element is a token by checking `document.activeElement` has a `data-testid` starting with `token-`
-  3. Read `getComputedStyle(document.activeElement).filter`
-- **Assertions**:
-  1. `document.activeElement` has a `data-testid` attribute starting with `token-` (focus actually reached a token, not some other element)
-  2. The computed `filter` contains `drop-shadow` (the `:focus-visible` rule applies `drop-shadow(0 0 4px ...) drop-shadow(0 0 8px ...)`)
-  3. The `drop-shadow` values are from the focus rule, not the selection rule: the focus shadows use `4px` and `8px` blur radii while selection uses `8px`, `16px`, `24px`. Validate by checking the filter string contains `4px` (focus-specific blur radius)
-- **Justification**: `:focus-visible` is a CSS pseudo-class that only activates during keyboard navigation (not mouse clicks). jsdom does not implement `:focus-visible` styling. Keyboard accessibility is a critical requirement (WCAG 2.2 AA compliance per spec). If the `:focus-visible` rule breaks, keyboard users see no visual indication of which token has focus. Risk mitigation: if `user.tab()` does not trigger `:focus-visible` in the browser (edge case with focus heuristics), an alternative approach is to dispatch a keyboard event first then call `element.focus()`. The test should check `document.activeElement` before asserting filter to diagnose focus-delivery failures separately from CSS failures. Assertion 3 distinguishes focus glow from selection glow to ensure the correct CSS rule fired.
-
----
-
-### Test: hp-bar-fill-width-reflects-hp-proportion
-
-- **File**: `src/components/BattleViewer/Token.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: The HP bar fill `<rect>` SVG element has its `width` attribute set proportionally to the character's HP ratio, and this attribute is present in the real DOM
-- **Setup**:
-  1. Set viewport to `1280x720`
-  2. Create friendly character with `hp: 50`, `maxHp: 100` (50% health)
-  3. Create enemy character (standard)
-  4. `actions.initBattle([character, enemy])`
-  5. `render(<BattleViewer />)`
-- **Action**: Query `screen.getByTestId("health-bar-char-1")` to get the HP fill rect element, read its `width` attribute
-- **Assertions**:
-  1. The element exists (the `data-testid="health-bar-char-1"` is present in the real SVG DOM)
-  2. The `width` attribute (via `getAttribute('width')`) equals `"20"` (50% of `HP_BAR_WIDTH=40`, computed as `(50/100) * 40 = 20`)
-  3. The element tag name is `rect` (it is an SVG rect, not some other element)
-- **Justification**: While the `width` attribute is technically testable in jsdom via `getAttribute()`, this test validates the complete rendering pipeline in a real browser: React renders the SVG, Vite processes the CSS Module, and the `<rect>` element appears in the actual DOM with computed dimensions. The HP bar is a "Level 1 - Glanceable" UI element per the spec's progressive disclosure hierarchy, making its correctness critical. The specific value `20` validates the calculation `Math.max(0, Math.min(HP_BAR_WIDTH, (hp / maxHp) * HP_BAR_WIDTH))` with `hp=50, maxHp=100, HP_BAR_WIDTH=40`. This test also serves as a baseline for future HP animation tests (the CSS `transition: width 0.3s ease-out` on `.hpBarFill`).
-
----
-
-## Risk Mitigations
-
-### 1. Color Format Matching
-
-**Risk:** `getComputedStyle` returns `rgb()`/`rgba()` format, not hex. Rounding differences possible.
-
-**Mitigation:** All assertions use `rgb(r, g, b)` format. For `color-mix()` results where exact values may vary due to sRGB interpolation rounding, use approximate matching with tolerance (+/- 5 per component, +/- 0.05 for alpha). A helper function `parseRGBA(colorString)` should be created to extract numeric components for approximate comparison.
-
-### 2. CSS Module Name Mangling
-
-**Risk:** `animationName` in computed style is the mangled keyframe name (e.g., `_selectionPulse_abc12`), not `selectionPulse`.
-
-**Mitigation:** Test 3 (selected-token-has-active-animation) asserts `animationName !== "none"` rather than matching the exact name. The animation's other properties (`duration: 2s`, `iterationCount: infinite`, `timingFunction: ease-in-out`) are not mangled and can be matched exactly.
-
-### 3. Theme CSS Loading in Browser Tests
-
-**Risk:** The theme test file imports `theme.css` directly. If Vite does not process this import, variables will not resolve.
-
-**Mitigation:** Test 1 (dark-theme-resolves-surface-ground) includes a smoke check: assert the returned value is not empty before checking the specific color. If the value is empty, the error message will indicate a CSS loading problem rather than a color mismatch.
-
-### 4. `color-mix()` Alpha Resolution
-
-**Risk:** The exact computed representation of `color-mix(in srgb, #0072b2 15%, transparent)` may vary between browser versions. Chromium returns `rgba(0, 114, 178, 0.15)` -- the RGB channels are preserved and the alpha reflects the mix percentage. Some newer browsers may use `color(srgb ...)` syntax instead of `rgba()`.
-
-**Mitigation:** Test 5 (color-mix-produces-resolved-color) uses approximate assertions: alpha within 0.05 tolerance, RGB components within +/- 5 tolerance. The test also accepts both `rgba()` and `color()` formats. RGB values are expected to match the base color (`#0072b2` = 0, 114, 178), not scaled by the mix percentage, since `color-mix` with `transparent` in sRGB adjusts alpha rather than RGB channels.
-
-### 5. Focus-Visible Activation
-
-**Risk:** `:focus-visible` requires the browser to detect keyboard navigation vs mouse. `userEvent.tab()` should trigger it, but browser heuristics vary.
-
-**Mitigation:** Test 4 (focus-visible-token-has-drop-shadow-filter) first verifies focus delivery by checking `document.activeElement` before asserting the filter. If Tab does not reach a token (e.g., other focusable elements intercept), the test fails at assertion 1 with a clear diagnostic. If focus is delivered but `:focus-visible` does not activate, the test can be adjusted to use `page.keyboard.press('Tab')` (Playwright-level keyboard) instead of `userEvent.tab()` (JS-level).
-
-### 6. SVG Computed Style Specifics
-
-**Risk:** SVG `<g>` elements may not report `filter` via `getComputedStyle` the same way HTML elements do.
-
-**Mitigation:** The existing Phase 2 test (`BattleViewer.browser.test.tsx`) successfully uses `getComputedStyle` on token `<g>` elements for z-index checks. The `filter` property should similarly resolve. If SVG `<g>` elements do not report filter, an alternative is to check the style attribute directly or query the child shape element instead.
+  1. `getComputedStyle(tooltip).animationName` is not `"none"` (CSS Modules will mangle the keyframe name, so do NOT check exact name -- just verify it is active).
+  2. `getComputedStyle(tooltip).animationDuration` is `"0.15s"` (browsers normalize 150ms to 0.15s).
+  3. `getComputedStyle(tooltip).animationTimingFunction` is `"ease-out"`.
+  4. `getComputedStyle(tooltip).animationFillMode` is `"forwards"`.
+- **Justification**: The fade-in animation is the tooltip's entrance effect (`opacity: 0` to `opacity: 1` over 150ms). If the CSS Module fails to process the `@keyframes fadeIn` rule or the animation shorthand is malformed, the tooltip would appear without animation (opacity stuck at 0 if fill-mode is missing, or no transition at all). This test catches regressions in the animation declaration.
+- **Implementation notes**:
+  - This follows the exact same pattern as Token.browser.test.tsx Test 3 (`selected token has active animation`) which checks `animationName`, `animationDuration`, `animationTimingFunction`, and `animationIterationCount`.
+  - The tooltip animation is `animation: fadeIn 150ms ease-out forwards` (from `CharacterTooltip.module.css` line 17). Unlike the token's infinite animation, this is a one-shot animation with `forwards` fill mode.
+  - `animationDuration` normalization: browsers report `"0.15s"` for `150ms`. Accept either `"0.15s"` or `"150ms"` for robustness, but expect `"0.15s"` based on Chromium behavior.
+  - The tooltip renders immediately when the component mounts (it is not triggered by hover in this test). The animation properties should be present from the initial render.
+  - Import note: `CharacterTooltip.browser.test.tsx` already imports `CharacterTooltip`, `useGameStore`, `createCharacter`, and `createTarget`. The new describe block can reuse these.
 
 ---
 
 ## Summary
 
-| #   | Test Name                                                 | File                   | Type        | Key Assertion                                           |
-| --- | --------------------------------------------------------- | ---------------------- | ----------- | ------------------------------------------------------- |
-| 1   | dark-theme-resolves-surface-ground-to-dark-value          | theme.browser.test.tsx | integration | `--surface-ground` = `rgb(36, 36, 36)`                  |
-| 2   | light-theme-resolves-surface-ground-to-light-value        | theme.browser.test.tsx | integration | `--surface-ground` = `rgb(250, 250, 250)`               |
-| 3   | high-contrast-theme-resolves-surface-ground-to-pure-black | theme.browser.test.tsx | integration | `--surface-ground` = `rgb(0, 0, 0)`                     |
-| 4   | light-dark-resolves-differently-for-dark-vs-light-themes  | theme.browser.test.tsx | integration | 3 variables differ between themes                       |
-| 5   | color-mix-produces-resolved-color-for-faction-friendly-bg | theme.browser.test.tsx | integration | RGBA with alpha ~0.15                                   |
-| 6   | high-contrast-faction-colors-differ-from-dark-theme       | theme.browser.test.tsx | integration | `--faction-friendly` differs, `--action-attack` differs |
-| 7   | css-variables-cascade-into-rendered-element-backgrounds   | theme.browser.test.tsx | integration | `div.backgroundColor` = resolved RGB                    |
-| 8   | selected-token-has-drop-shadow-filter                     | Token.browser.test.tsx | integration | filter contains `drop-shadow` (x3)                      |
-| 9   | unselected-token-has-no-drop-shadow-filter                | Token.browser.test.tsx | integration | filter is `none` or no `drop-shadow`                    |
-| 10  | selected-token-has-active-animation                       | Token.browser.test.tsx | integration | animationDuration=2s, iterationCount=infinite           |
-| 11  | focus-visible-token-has-drop-shadow-filter                | Token.browser.test.tsx | integration | focus filter contains `drop-shadow` + `4px`             |
-| 12  | hp-bar-fill-width-reflects-hp-proportion                  | Token.browser.test.tsx | integration | width attribute = "20" for 50/100 HP                    |
+| #   | Test Name                                                               | File                              | Type        | jsdom Gap                      |
+| --- | ----------------------------------------------------------------------- | --------------------------------- | ----------- | ------------------------------ |
+| 1   | all four marker definitions exist in rendered SVG defs                  | IntentOverlay.browser.test.tsx    | integration | SVG marker rendering context   |
+| 2   | marker CSS variables resolve to correct action colors                   | IntentOverlay.browser.test.tsx    | integration | CSS custom property resolution |
+| 3   | intent line with marker-end produces non-zero visual extent             | IntentOverlay.browser.test.tsx    | integration | SVG getBoundingClientRect      |
+| 4   | attack intent uses arrowhead marker, heal uses cross marker             | IntentOverlay.browser.test.tsx    | integration | marker-end reference chain     |
+| 5   | friendly and enemy movement intents use different markers               | IntentOverlay.browser.test.tsx    | integration | marker-end reference chain     |
+| 6   | enemy token has SVG pattern definition with diagonal stripe             | Token.browser.test.tsx            | integration | SVG pattern fill reference     |
+| 7   | WhiffOverlay color-mix() inline fill resolves to semi-transparent color | theme.browser.test.tsx            | unit        | color-mix() + var() resolution |
+| 8   | tooltip has active fade-in animation properties                         | CharacterTooltip.browser.test.tsx | integration | CSS animation properties       |
+
+**Total: 8 new browser tests (5 new file + 1 extend + 1 extend + 1 extend)**
+
+Expected outcome: Brings browser test count from 22 to 30. All existing 1470 tests (1448 unit + 22 browser) continue to pass.

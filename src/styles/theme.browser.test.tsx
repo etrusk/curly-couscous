@@ -257,4 +257,53 @@ describe("Theme CSS Variable Resolution (Browser)", () => {
     // Matches --surface-ground dark value
     expect(bgColor).toBe("rgb(36, 36, 36)");
   });
+
+  // Test 8 (Phase 4): WhiffOverlay-color-mix-inline-fill-resolves-to-semi-transparent-color
+  it("WhiffOverlay color-mix() inline fill resolves to semi-transparent color", () => {
+    // Test attack color-mix expression
+    const attackProbe = document.createElement("div");
+    attackProbe.style.backgroundColor =
+      "color-mix(in srgb, var(--action-attack) 20%, transparent)";
+    document.documentElement.appendChild(attackProbe);
+    const attackResolved = getComputedStyle(attackProbe).backgroundColor;
+    attackProbe.remove();
+
+    // Browser resolved the color-mix function
+    expect(attackResolved).not.toContain("color-mix");
+    expect(attackResolved).not.toContain("var(");
+
+    // Parse and validate attack color components
+    const attackParsed = parseColor(attackResolved);
+    // Alpha should be approximately 0.2 (tolerance +/- 0.05)
+    expect(attackParsed.a).toBeGreaterThanOrEqual(0.15);
+    expect(attackParsed.a).toBeLessThanOrEqual(0.25);
+    // RGB channels approximate #d55e00 (213, 94, 0), tolerance +/- 5
+    expect(attackParsed.r).toBeGreaterThanOrEqual(208);
+    expect(attackParsed.r).toBeLessThanOrEqual(218);
+    expect(attackParsed.g).toBeGreaterThanOrEqual(89);
+    expect(attackParsed.g).toBeLessThanOrEqual(99);
+    expect(attackParsed.b).toBeGreaterThanOrEqual(0);
+    expect(attackParsed.b).toBeLessThanOrEqual(5);
+
+    // Test heal color-mix expression
+    const healProbe = document.createElement("div");
+    healProbe.style.backgroundColor =
+      "color-mix(in srgb, var(--action-heal) 20%, transparent)";
+    document.documentElement.appendChild(healProbe);
+    const healResolved = getComputedStyle(healProbe).backgroundColor;
+    healProbe.remove();
+
+    // Parse and validate heal color components
+    const healParsed = parseColor(healResolved);
+    // Alpha should be approximately 0.2 (tolerance +/- 0.05)
+    expect(healParsed.a).toBeGreaterThanOrEqual(0.15);
+    expect(healParsed.a).toBeLessThanOrEqual(0.25);
+    // RGB channels approximate #009e73 (0, 158, 115), tolerance +/- 5
+    expect(healParsed.r).toBeGreaterThanOrEqual(0);
+    expect(healParsed.r).toBeLessThanOrEqual(5);
+    expect(healParsed.g).toBeGreaterThanOrEqual(153);
+    expect(healParsed.g).toBeLessThanOrEqual(163);
+    expect(healParsed.b).toBeGreaterThanOrEqual(110);
+    expect(healParsed.b).toBeLessThanOrEqual(120);
+  });
 });

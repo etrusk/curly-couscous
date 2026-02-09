@@ -167,3 +167,42 @@ describe("CharacterTooltip - Browser Positioning", () => {
     expect(tooltip.getBoundingClientRect().width).toBeGreaterThan(0);
   });
 });
+
+describe("CharacterTooltip - Fade-in Animation (Browser)", () => {
+  beforeEach(() => {
+    const { actions } = useGameStore.getState();
+    actions.initBattle([]);
+    actions.selectCharacter(null);
+  });
+
+  // Test 8 (Phase 4): tooltip-has-active-fade-in-animation-properties
+  it("tooltip has active fade-in animation properties", () => {
+    const target = createTarget();
+    const character = createCharacter({ currentAction: null });
+    const { actions } = useGameStore.getState();
+    actions.initBattle([character, target]);
+
+    const anchorRect = new DOMRect(200, 200, 40, 40);
+
+    render(
+      <CharacterTooltip
+        characterId={character.id}
+        anchorRect={anchorRect}
+        onMouseEnter={() => {}}
+        onMouseLeave={() => {}}
+      />,
+    );
+
+    const tooltip = screen.getByRole("tooltip");
+    const computedStyle = getComputedStyle(tooltip);
+
+    // An animation is active (CSS Modules will mangle the keyframe name)
+    expect(computedStyle.animationName).not.toBe("none");
+    // Duration from animation: fadeIn 150ms ease-out forwards (browsers normalize to 0.15s)
+    expect(computedStyle.animationDuration).toBe("0.15s");
+    // Timing function
+    expect(computedStyle.animationTimingFunction).toBe("ease-out");
+    // Fill mode
+    expect(computedStyle.animationFillMode).toBe("forwards");
+  });
+});

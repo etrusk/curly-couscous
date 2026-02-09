@@ -2,196 +2,124 @@
 
 ## Task Understanding
 
-Identify component behaviors that would benefit from real DOM browser tests (Phase 3). We already have 10 browser tests covering CharacterTooltip positioning (4 tests) and Token SVG geometry + tooltip z-index stacking (6 tests). The goal is to find NEW candidates -- components with behaviors that depend on real DOM APIs that jsdom cannot reliably test.
-
-## Already Covered by Browser Tests
-
-- CharacterTooltip: `getBoundingClientRect` for positioning, viewport flip behavior, real dimensions
-- Token SVG: `getBoundingClientRect` for non-zero geometry, position-dependent bounding rects
-- BattleViewer: Hover-to-tooltip integration flow with real SVG anchors
-- Z-index stacking: `getComputedStyle(tooltip).zIndex` vs overlay z-indices
-
-## Candidate Components (Priority Ranked)
-
-### Priority 1: Theme CSS Variable Resolution
-
-**Files**: `src/styles/theme.css`, `src/styles/theme.integration.test.tsx`, `src/styles/theme-variables.test.ts`, `src/stores/accessibilityStore.ts`
-
-**Rationale**: The existing theme tests explicitly acknowledge jsdom limitations:
-
-- `theme-variables.test.ts` (line 4): "jsdom cannot process CSS custom properties, so we read the file directly" -- uses static file parsing instead of actual CSS resolution
-- `theme.integration.test.tsx` (line 5): "jsdom doesn't process external CSS or resolve CSS variables" -- only tests data-attribute mechanism, not actual computed colors
-
-**What to test in browser**:
-
-- `getComputedStyle` resolves `light-dark()` CSS function correctly per theme
-- Theme switching via `data-theme` attribute actually changes computed colors
-- `color-mix()` derived tokens (faction-bg, status-bg) produce correct computed values
-- High-contrast mode (`data-theme="high-contrast"`) produces different computed values than dark mode
-- CSS variables cascade correctly from `:root` through component CSS Modules
-
-**Value**: High. Currently zero tests validate that CSS actually produces the right colors. All theme tests are either static file analysis or attribute-mechanism verification. A browser test would catch `light-dark()` or `color-mix()` browser compatibility regressions.
-
-### Priority 2: Token Selection Glow and Animation
-
-**Files**: `src/components/BattleViewer/Token.tsx`, `src/components/BattleViewer/Token.module.css`
-
-**Rationale**: Token has CSS-driven visual feedback that jsdom cannot verify:
-
-- Selection pulse animation (`@keyframes selectionPulse` with `drop-shadow` filter)
-- `:focus-visible` drop-shadow filter for keyboard navigation
-- `:hover` brightness filter on `.shape`
-- HP bar `transition: width 0.3s ease-out`
-- Shape `transition: opacity 0.2s ease-in-out`
-
-**What to test in browser**:
-
-- Selected token has `filter` containing `drop-shadow` via `getComputedStyle`
-- Focus-visible state applies filter on keyboard focus (Tab to token)
-- Animation is running (`animation-name` is `selectionPulse` in computed style)
-- HP bar width reflects actual HP proportion in rendered SVG
-
-**Value**: Medium-high. CSS animations and filters are invisible to jsdom. The selection glow is a core UX signal. Testing that `filter: drop-shadow(...)` actually resolves validates the visual feedback pipeline.
-
-### Priority 3: SVG Marker Rendering in IntentOverlay
-
-**Files**: `src/components/BattleViewer/IntentOverlay.tsx`, `src/components/BattleViewer/IntentLine.tsx`
-
-**Rationale**: IntentOverlay defines SVG `<marker>` elements (arrowhead-attack, cross-heal, circle-friendly, diamond-enemy) with `markerEnd` URL references. jsdom does not render SVG markers -- marker geometry, `orient="auto"` rotation, and `refX/refY` positioning are pure browser features. The CSS variable colors (`var(--action-attack)`, etc.) in markers also cannot be resolved by jsdom.
-
-**What to test in browser**:
-
-- Marker elements (`#arrowhead-attack`, `#cross-heal`, etc.) are resolvable via `document.getElementById`
-- Intent lines with `markerEnd="url(#arrowhead-attack)"` produce non-zero marker bounding rects
-- Different action types use correct marker references (attack -> arrowhead, heal -> cross, move -> faction shape)
-- CSS variable colors resolve inside SVG marker `<defs>` (browser confirms variables cascade into SVG markers)
-
-**Value**: Medium. SVG markers are a known jsdom blind spot. Tests would validate that the visual encoding spec (action-type markers) actually renders.
-
-### Priority 4: Overlay Stacking and Pointer Events
-
-**Files**: `src/components/BattleViewer/BattleViewer.tsx`, all overlay CSS modules (`IntentOverlay.module.css`, `WhiffOverlay.module.css`, `DamageOverlay.module.css`, `TargetingLineOverlay.module.css`)
-
-**Rationale**: Overlays use `position: absolute`, `pointer-events: none`, and specific z-index values (5, 10, 20) to stack correctly over the grid. The existing browser tests verify tooltip z-index > overlay z-indices, but don't verify:
-
-- `pointer-events: none` on overlays actually allows click-through to grid cells
-- Overlay SVGs align correctly with the Grid SVG (shared viewBox coordinate system)
-- Render order matches spec: Grid -> WhiffOverlay -> IntentOverlay -> TargetingLineOverlay -> DamageOverlay
-
-**What to test in browser**:
-
-- Click on a hex cell passes through overlay SVGs (pointer-events: none verified functionally)
-- Overlay z-index ordering matches spec (WhiffOverlay < IntentOverlay < TargetingLineOverlay < DamageOverlay)
-- Overlay SVGs share identical viewBox with Grid SVG
-
-**Value**: Medium. Pointer-events pass-through is a critical UX behavior that jsdom cannot test functionally. ViewBox alignment is testable via attribute comparison but geometric alignment requires real rendering.
-
-### Priority 5: Details/Summary Progressive Disclosure
-
-**Files**: `src/components/BattleViewer/CharacterTooltip.tsx`, `src/components/RuleEvaluations/RuleEvaluations.tsx`
-
-**Rationale**: Both components use native `<details>/<summary>` elements for collapsible sections. jsdom supports the DOM structure but has incomplete behavior for:
-
-- Click on `<summary>` toggling `open` attribute (works in jsdom but animation behavior differs)
-- `::-webkit-details-marker` hiding (CSS Module hides the default triangle, only testable in browser)
-- Content height changes when expanding/collapsing (layout-dependent)
-
-**What to test in browser**:
-
-- `<summary>` click toggles visibility of collapsed skills content
-- Default disclosure marker is hidden via CSS (no browser-default triangle visible)
-- Expanded content has non-zero height; collapsed content is hidden
-
-**Value**: Low-medium. jsdom tests already verify the DOM structure and toggle behavior. Browser tests would primarily validate CSS marker hiding and layout changes.
-
-### Priority 6: Accessibility Store -- matchMedia System Preference Detection
-
-**Files**: `src/stores/accessibilityStore.ts`, `src/stores/accessibilityStore.test.ts`
-
-**Rationale**: The accessibility store uses `window.matchMedia("(prefers-color-scheme: dark)")` to detect system preference. The test file heavily mocks matchMedia (8+ mock instances). The global test setup (`src/test/setup.ts`) also mocks matchMedia. A browser test could validate that the real `matchMedia` API responds correctly.
-
-**What to test in browser**:
-
-- `window.matchMedia("(prefers-color-scheme: dark)")` returns a valid MediaQueryList
-- Store initializes without errors in real browser environment
-- Theme application via `data-theme` attribute produces real CSS changes
-
-**Value**: Low. matchMedia mocking is standard practice and unlikely to hide bugs. The store logic is straightforward. However, a single integration test validating the full initialization -> DOM effect pipeline in a real browser would increase confidence.
-
-### Priority 7: WhiffOverlay color-mix() Fill
-
-**Files**: `src/components/BattleViewer/WhiffOverlay.tsx`
-
-**Rationale**: WhiffOverlay uses `color-mix(in srgb, ${fillColor} 20%, transparent)` directly in the `fill` attribute of SVG polygons. This is a modern CSS function that jsdom does not process. A browser test could verify the computed fill color is semi-transparent.
-
-**What to test in browser**:
-
-- WhiffOverlay polygon `fill` attribute using `color-mix()` produces a resolvable color in `getComputedStyle`
-- The fill is visually semi-transparent (color has alpha channel)
-
-**Value**: Low. This is a single CSS function validation, but it directly tests `color-mix()` in SVG context which is relatively novel.
-
-## Existing Patterns
-
-- **Browser Test Convention**: `.browser.test.tsx` suffix, co-located with component (ADR-022)
-- **Two-project workspace**: `unit` (jsdom, `*.test.{ts,tsx}`) and `browser` (Playwright, `*.browser.test.{ts,tsx}`)
-- **Test helpers**: `rule-evaluations-test-helpers.ts` provides `createCharacter()`, `createTarget()` for game state setup
-- **Viewport control**: `await page.viewport(1280, 720)` used in existing browser tests
-- **Store reset**: `useGameStore.getState().actions.initBattle([])` in `beforeEach`
-
-## Dependencies
-
-- Vitest Browser Mode + Playwright already configured (Phase 1/2)
-- `src/test/setup.browser.ts` exists for browser-specific setup
-- CSS Modules and `theme.css` must be loaded by Vite for browser tests to work (already handled by existing infrastructure)
-- Game store and engine are used directly (no mocking philosophy continues)
-
-## Constraints Discovered
-
-1. **Theme variable tests cannot use jsdom at all**: The `theme-variables.test.ts` file reads CSS as raw text because jsdom cannot process `light-dark()` or `color-mix()`. Browser tests are the only way to validate actual computed values.
-2. **SVG marker rendering is a jsdom blind spot**: `<marker>` elements and their references via `url(#id)` are not rendered in jsdom. Geometry testing requires a real browser.
-3. **CSS animations/transitions are invisible to jsdom**: `getComputedStyle` in jsdom does not resolve `@keyframes`, `animation`, `transition`, or `filter` properties meaningfully.
-4. **Existing z-index browser tests already validate overlay stacking partially**: The Phase 2 browser tests check tooltip z-index > all overlays. Extending this to overlay-to-overlay ordering would be incremental.
-5. **Browser tests are slower** (~seconds vs milliseconds): Keep the Phase 3 scope focused on behaviors that genuinely cannot be tested in jsdom.
+Phase 4 of the browser test migration: identify SVG marker elements and remaining DOM-dependent component behaviors that would benefit from real browser testing (Vitest Browser Mode + Playwright). The project currently has 22 browser tests across 4 files from Phases 1-3. This phase targets SVG `<marker>` rendering (jsdom does not render SVG markers at all) and any other DOM-dependent behaviors not yet covered.
 
 ## Relevant Files
 
-### Components (source)
+### SVG Marker Definitions and Usage
 
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.tsx` - Selection glow, focus-visible, hover brightness
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.module.css` - Animations, filters, transitions
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay.tsx` - SVG marker definitions
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentLine.tsx` - markerEnd references, CSS variable colors
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/WhiffOverlay.tsx` - color-mix() in SVG fill
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.tsx` - Overlay stacking, pointer-events pass-through
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.tsx` - details/summary progressive disclosure
-- `/home/bob/Projects/auto-battler/src/stores/accessibilityStore.ts` - matchMedia, theme application
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Grid.tsx` - SVG viewBox, two-pass rendering
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay.tsx` - Defines 4 SVG `<marker>` elements in `<defs>` (lines 113-219): `arrowhead-attack`, `cross-heal`, `circle-friendly`, `diamond-enemy`. Each marker uses a two-layer rendering pattern (white contrast outline behind colored main shape) with CSS variables for colors (`--action-attack`, `--action-heal`, `--action-move`, `--contrast-line`).
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentLine.tsx` - Applies `marker-end` attribute on lines via `getMarkerEnd()` function (line 74). Maps action types to marker IDs: attack/interrupt/charge -> `arrowhead-attack`, heal -> `cross-heal`, move -> `circle-friendly` or `diamond-enemy` by faction.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay.module.css` - Positions overlay with `position: absolute`, `z-index: 10`, `pointer-events: none`.
 
-### CSS (styling)
+### SVG Pattern Definitions (Token)
 
-- `/home/bob/Projects/auto-battler/src/styles/theme.css` - Theme variables, light-dark(), color-mix()
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay.module.css` - z-index: 10, pointer-events: none
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Cell.module.css` - hover transitions, high-contrast overrides
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.module.css` - fadeIn animation, z-index: 1000
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.tsx` - Defines per-character `<pattern>` elements for enemy diagonal stripes (lines 138-156). Pattern ID uses character ID for uniqueness: `stripe-enemy-${id}`. Referenced via `fill="url(#stripe-enemy-${id})"` on enemy diamond `<path>`.
 
-### Tests (existing)
+### Components with DOM-Dependent Behaviors
 
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.browser.test.tsx` - Phase 1 browser tests
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.browser.test.tsx` - Phase 2 browser tests
-- `/home/bob/Projects/auto-battler/src/styles/theme-variables.test.ts` - Static CSS file analysis (workaround for jsdom)
-- `/home/bob/Projects/auto-battler/src/styles/theme.integration.test.tsx` - Attribute mechanism only
-- `/home/bob/Projects/auto-battler/src/stores/accessibilityStore.test.ts` - Heavy matchMedia mocking
-- `/home/bob/Projects/auto-battler/src/test/setup.ts` - Global matchMedia mock
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.tsx` - `getBoundingClientRect()` on mouse enter (line 86) for tooltip anchor positioning. Also has `:hover .shape` CSS with `brightness(1.1)` filter effect.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.tsx` - `useLayoutEffect` with `getBoundingClientRect()` (line 212) for tooltip size measurement. Fade-in animation via CSS `@keyframes fadeIn` (150ms).
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/tooltip-positioning.ts` - Uses `window.innerWidth` and `window.innerHeight` for viewport-aware positioning.
+- `/home/bob/Projects/auto-battler/src/stores/accessibilityStore.ts` - `window.matchMedia("(prefers-color-scheme: light)")` for system theme detection (line 46). Listener for system preference changes (line 127).
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.tsx` - `useRef` for hover timeout (line 45) and grid container ref for background click detection (line 96). Hover-to-tooltip flow with 100ms leave delay (line 81).
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/WhiffOverlay.tsx` - Uses `color-mix()` inline in SVG `fill` attribute (line 39): `color-mix(in srgb, ${fillColor} 20%, transparent)`. This is a CSS function applied directly on an SVG attribute, which jsdom cannot resolve.
 
-### Infrastructure
+### Existing Browser Tests (Already Covered)
 
-- `/home/bob/Projects/auto-battler/.docs/decisions/adr-022-vitest-browser-mode.md` - Browser test ADR
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.browser.test.tsx` - Phase 1: 4 tests for real getBoundingClientRect, tooltip dimensions, positioning, viewport flip.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.browser.test.tsx` - Phase 2: 6 tests for token SVG geometry (non-zero bounding rects, position-dependent layout, hover-to-tooltip flow) and tooltip z-index stacking.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.browser.test.tsx` - Phase 3: 5 tests for selection glow drop-shadow, animation properties, focus-visible filter, HP bar width.
+- `/home/bob/Projects/auto-battler/src/styles/theme.browser.test.tsx` - Phase 3: 7 tests for light-dark() resolution, color-mix(), theme switching, CSS cascade.
+
+### Existing Unit Tests for Markers (jsdom - attribute-only)
+
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentLine.test.tsx` - Tests `marker-end` attribute values (e.g., `url(#arrowhead-attack)`).
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentLine-action-colors.test.tsx` - Tests marker-end attribute per action type.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentLine-accessibility.test.tsx` - Tests outline line has no marker-end.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay-rendering.test.tsx` - Tests marker-end attribute on rendered intent lines.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay-subscription.test.tsx` - Tests marker attribute values via subscription.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/TargetingLine.test.tsx` - Tests that targeting lines have NO marker-end/marker-start.
+
+### CSS Files with Animations/Transitions (Potentially Testable)
+
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.module.css` - `@keyframes fadeIn` (150ms ease-out), tooltip opacity animation.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.module.css` - `@keyframes selectionPulse` (2s ease-in-out infinite) [COVERED in Phase 3], `.shape` transition (opacity 0.2s), `.hpBarFill` transition (width 0.3s), `:hover .shape` brightness filter.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Cell.module.css` - `.hexagon` transition (fill 0.15s), `:hover` fill change, high-contrast stroke-width override.
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/TargetingLine.module.css` - Opacity transition (0.2s ease).
+
+### Test Infrastructure
+
+- `/home/bob/Projects/auto-battler/src/test/setup.browser.ts` - Minimal browser setup (cleanup only, no matchMedia mock needed).
+- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-test-helpers.ts` - `createCharacter()` and `createTarget()` helpers used by all browser tests.
+
+## Existing Patterns
+
+- **CSS Variable Probe Element** (`/home/bob/Projects/auto-battler/.docs/patterns/css-variable-probe-element.md`) - Technique for resolving CSS custom properties in browser tests by creating a temporary probe element with `background-color: var(--prop)` and reading `getComputedStyle(probe).backgroundColor`. Already used in theme.browser.test.tsx.
+- **Browser Test Convention** (ADR-022) - `.browser.test.tsx` suffix, co-located with components. Two-project Vitest workspace (unit + browser).
+- **Two-Layer SVG Rendering** - All markers and intent lines use a contrast outline layer behind the main colored layer. This is the same pattern used by Token (contrast stroke behind faction fill) and TargetingLine (contrast outline behind targeting line).
+
+## Dependencies
+
+- **Vitest Browser Mode + Playwright/Chromium** - Already configured in `vite.config.ts`.
+- **`createCharacter` / `createTarget` helpers** - For setting up game state in browser tests.
+- **Theme CSS import** - Browser tests that test CSS variable resolution need `import "../../styles/theme.css"`.
+- **IntentOverlay requires game state with pending actions** - To render intent lines with markers, tests need characters with wind-up skills in progress (e.g., after `nextTick()` with characters that have valid attack/heal/move targets).
+
+## Constraints Discovered
+
+1. **jsdom limitation with SVG markers**: jsdom parses `<marker>` elements and `marker-end` attributes as DOM attributes but does not render them visually. Existing unit tests only verify attribute strings (e.g., `toHaveAttribute("marker-end", "url(#arrowhead-attack)")`). Real SVG marker rendering (geometry, fill color resolution, orientation) requires a browser.
+
+2. **jsdom limitation with SVG `<pattern>` fill**: The enemy token diagonal stripe pattern (`<pattern>` with `patternTransform="rotate(45)"`) is defined as SVG but never tested for visual rendering. jsdom cannot validate pattern rendering.
+
+3. **jsdom limitation with inline `color-mix()`**: WhiffOverlay uses `color-mix(in srgb, ${fillColor} 20%, transparent)` directly in SVG fill attributes. jsdom does not resolve this CSS function.
+
+4. **CSS variable resolution in SVG markers**: Markers use CSS variables (`--action-attack`, `--action-heal`, `--action-move`, `--contrast-line`). jsdom cannot verify that these resolve to actual colors within SVG `<marker>` elements.
+
+5. **`markerUnits="userSpaceOnUse"`**: All 4 markers use `userSpaceOnUse` (fixed pixel dimensions independent of stroke-width). Browser tests can validate that marker dimensions are consistent regardless of the line's stroke width.
+
+6. **Marker `overflow="visible"`**: All markers have `overflow="visible"`, allowing marker content to extend beyond the marker box. This is a rendering detail only verifiable in a browser.
+
+7. **CharacterTooltip fadeIn animation**: The tooltip has a 150ms fade-in animation (`opacity: 0` to `opacity: 1`). This could be tested in browser mode but the timing might make assertions flaky without waiting.
+
+## Recommended Test Candidates (Ranked by Value)
+
+### Tier 1 - High Value (SVG markers - primary Phase 4 target)
+
+1. **SVG marker `<defs>` existence and structure in rendered DOM** - Verify that the 4 marker definitions (`arrowhead-attack`, `cross-heal`, `circle-friendly`, `diamond-enemy`) exist in the rendered SVG with correct child elements (polygon, path, circle). While jsdom preserves DOM structure, browser rendering validates the markers are properly attached and queryable in a real SVG context.
+
+2. **SVG marker CSS variable color resolution** - Use probe elements or `getComputedStyle` to verify that `--action-attack` (vermillion), `--action-heal` (green), `--action-move` (blue), and `--contrast-line` (white) resolve to correct color values within the marker context. This is the key gap: jsdom unit tests verify attribute strings but not color resolution.
+
+3. **IntentLine with rendered markers has non-zero marker bounding geometry** - Render an IntentOverlay with active intents and verify that intent lines with `marker-end` produce SVG content with non-zero visual extent. This validates the full marker rendering pipeline.
+
+4. **Marker type correctness per action type** - Render intent lines for attack, heal, and move actions and verify the correct marker shape is rendered (arrowhead polygon for attack, cross path for heal, circle/diamond for move).
+
+### Tier 2 - Medium Value (SVG patterns and other DOM behaviors)
+
+5. **Enemy token diagonal stripe pattern rendering** - Verify that enemy tokens' `<pattern>` element with `patternTransform="rotate(45)"` produces a valid fill. The `url(#stripe-enemy-${id})` fill reference could be validated to resolve in a real browser context.
+
+6. **WhiffOverlay inline `color-mix()` resolution** - Verify that the whiff indicator's `color-mix(in srgb, var(--action-attack) 20%, transparent)` fill produces a semi-transparent color (not raw CSS function text).
+
+7. **CharacterTooltip fade-in animation** - Verify the tooltip's `@keyframes fadeIn` animation properties (`animationDuration: "150ms"`, `animationName` not "none") similar to how Token animation was tested in Phase 3.
+
+8. **Token hover brightness filter** - Verify that hovering a token applies `filter: brightness(1.1)` on the `.shape` child element. This requires real CSS `:hover` pseudo-class matching.
+
+### Tier 3 - Lower Value (nice-to-have)
+
+9. **Cell hover fill change** - Verify that hovering a clickable cell changes the hex polygon fill via `var(--cell-hover-bg)`. Requires real `:hover` matching.
+
+10. **AccessibilityStore real `matchMedia` response** - Verify that the accessibility store correctly reads system `prefers-color-scheme` in a real browser (no mock needed). Lower value because the mocked unit tests already cover the logic paths.
+
+11. **High-contrast mode stroke-width overrides** - Verify that `[data-theme="high-contrast"] .shape { stroke-width: 2 }` and `[data-theme="high-contrast"] .hexagon { stroke-width: 2 }` are applied by the real CSS engine.
 
 ## Open Questions
 
-1. **Scope**: Should Phase 3 focus on a single high-value candidate (theme CSS variables) or attempt multiple candidates? The theme CSS variable resolution is by far the highest-value candidate since zero tests currently validate actual computed colors.
-2. **Test count target**: Phase 1 had 4 tests, Phase 2 had 6. Should Phase 3 aim for a similar 4-8 test count?
-3. **Theme test granularity**: Should browser tests validate every CSS variable across all three themes, or just a representative sample (e.g., 2-3 key variables per theme)?
-4. **SVG marker tests**: Are marker bounding rects reliable across browser versions, or should we test marker presence/referenceability only?
-5. **Animation testing**: Should we test that `animation-name` resolves to `selectionPulse`, or should we go further and test `animation-play-state`?
+1. **Marker bounding box accessibility**: Can `getBoundingClientRect()` be called on `<marker>` elements directly, or do we need to query the `<line>` elements that reference them and check their visual extent? (SVG markers are not part of the DOM tree in the same way as regular elements -- they are in `<defs>` and rendered via reference.)
+
+2. **Hover pseudo-class in Vitest Browser Mode**: Can `userEvent.hover()` trigger CSS `:hover` pseudo-class matching in Playwright-backed Vitest Browser Mode? Existing Phase 2 tests use hover for tooltip triggering but do not verify `:hover` CSS effects on the hovered element itself.
+
+3. **WhiffOverlay test setup complexity**: Testing WhiffOverlay requires generating whiff events, which means setting up a battle scenario where an attack or heal targets a cell, the target moves away, and the action resolves against an empty cell. This may require multiple `nextTick()` calls with specific character configurations.
+
+4. **Marker orientation (`orient="auto"`)**: Should we test that markers auto-orient to the line direction? This requires rendering lines at different angles and checking marker rotation, which may be complex.
+
+5. **Recommended test count for Phase 4**: Phases 1-3 had 4, 6, and 12 tests respectively. How many tests should Phase 4 target? Suggest 6-10 tests covering Tier 1 (markers) and selected Tier 2 items.

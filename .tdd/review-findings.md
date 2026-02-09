@@ -1,59 +1,71 @@
-# Review Findings -- Phase 3 Browser Tests
+# Phase 4 Browser Tests - Review Findings
 
-**Reviewer:** tdd-reviewer | **Date:** 2026-02-09
-**Files reviewed:** `src/styles/theme.browser.test.tsx` (254 lines), `src/components/BattleViewer/Token.browser.test.tsx` (197 lines)
-**Verdict:** PASS -- No CRITICAL issues. 1 IMPORTANT, 2 MINOR.
+**Reviewer**: tdd-reviewer | **Date**: 2026-02-09 | **Verdict**: PASS
 
 ## Quality Gates
 
-- Tests: 1470/1470 passing (1448 unit + 22 browser)
 - TypeScript: PASS (no errors)
 - ESLint: PASS (no warnings)
-- File sizes: Both under 300 lines
+- Tests: PASS (1478/1478, 1448 unit + 30 browser)
 
-## Issues
+## Coverage Check
 
-### IMPORTANT-1: Screenshot artifacts from intermediate test runs
+All 8 planned tests implemented. No `.skip` or `.todo` found.
 
-Screenshot directories exist from failed intermediate test runs:
+| #   | Test                                                              | File                              | Status |
+| --- | ----------------------------------------------------------------- | --------------------------------- | ------ |
+| 1   | all four marker definitions exist in rendered SVG defs            | IntentOverlay.browser.test.tsx    | OK     |
+| 2   | marker CSS variables resolve to correct action colors             | IntentOverlay.browser.test.tsx    | OK     |
+| 3   | intent line with marker-end produces non-zero visual extent       | IntentOverlay.browser.test.tsx    | OK     |
+| 4   | attack intent uses arrowhead marker, heal uses cross marker       | IntentOverlay.browser.test.tsx    | OK     |
+| 5   | friendly and enemy movement intents use different marker shapes   | IntentOverlay.browser.test.tsx    | OK     |
+| 6   | enemy token has SVG pattern definition with diagonal stripe       | Token.browser.test.tsx            | OK     |
+| 7   | WhiffOverlay color-mix() inline fill resolves to semi-transparent | theme.browser.test.tsx            | OK     |
+| 8   | tooltip has active fade-in animation properties                   | CharacterTooltip.browser.test.tsx | OK     |
 
-- `src/styles/__screenshots__/` (7 files)
-- `src/components/BattleViewer/__screenshots__/Token.browser.test.tsx/` (2 files)
+## Critical Issues
 
-These are gitignored (`__screenshots__/` in `.gitignore`) so they will not be committed, but they clutter the working tree. The coder flagged these proactively. **Recommend deleting** the directories before commit to avoid confusion during future development.
+None.
 
-### MINOR-1: Enemy character boilerplate repeated across Token browser tests
+## Non-Blocking Observations
 
-All 5 Token tests create an identical enemy: `createCharacter({ id: "enemy-1", faction: "enemy", position: { q: 2, r: 0 }, skills: [] })`. This could be extracted to a shared `const` or `beforeEach` setup. However, the existing Phase 2 browser tests (`BattleViewer.browser.test.tsx`) follow the same inline pattern, so this is consistent with established convention.
+### 1. MINOR: `resolveColorVar()` duplicated across 2 files
 
-### MINOR-2: HP bar test (Test 5) largely duplicates jsdom capability
+`resolveColorVar()` is duplicated in `IntentOverlay.browser.test.tsx` (line 30) and `theme.browser.test.tsx` (line 48). This was an explicit design decision (Option A in test-designs.md) -- 6-line function, only 2 usages, extraction would be premature. Acceptable. If a Phase 5 adds a third usage, extraction to a shared browser test utility should occur.
 
-The test design acknowledges this ("technically testable in jsdom via getAttribute()"). The browser-mode value is marginal for this specific assertion (SVG attribute, no computed style involved). However, it validates the full rendering pipeline and serves as a baseline for future HP animation tests, so the inclusion is acceptable.
+### 2. MINOR: `theme.browser.test.tsx` at 309 lines
 
-## Correctness Verification
+Approaching 300-line flag threshold. Not urgent since it is a test file and the helper functions (`resolveColorVar`, `parseColor`, `setTheme`) naturally belong here. No action needed unless Phase 5 adds more tests to this file.
 
-1. **Probe element technique** -- Correct. `getComputedStyle(el).getPropertyValue('--custom-prop')` returns raw text; using a probe div with `background-color: var(...)` forces resolution. Well-documented in file header.
-2. **parseColor dual-format support** -- Handles both `rgb()/rgba()` and `color(srgb ...)` formats. String-split approach avoids ESLint `detect-unsafe-regex` (noted in session log). Parsing logic is correct: sRGB values (0-1 range) are converted to 0-255 via `Math.round(val * 255)`.
-3. **color-mix assertions** -- RGB tolerance (+/- 5) and alpha tolerance (+/- 0.05) are appropriate. Expected values (R=0, G=114, B=178, A=0.15) match `color-mix(in srgb, #0072b2 15%, transparent)` semantics correctly (sRGB mixing with transparent preserves RGB, adjusts alpha).
-4. **Token filter assertions** -- CSS source confirms `.selected` has 3 `drop-shadow` layers and `.token:focus-visible` has 2 layers with `4px` blur. Assertions align.
-5. **Animation assertions** -- CSS source confirms `animation: selectionPulse 2s ease-in-out infinite`. All 4 computed style property checks match.
-6. **HP bar calculation** -- `TOKEN_SIZE=40`, `HP_BAR_WIDTH=TOKEN_SIZE=40`, `(50/100)*40=20`. Assertion `width="20"` is correct.
+### 3. MINOR: `parseColor` only used by 2 tests within theme file
 
-## Pattern Compliance
+`parseColor()` (lines 64-110, ~47 lines) is a substantial helper used by Test 5 (Phase 3) and Test 8 (Phase 4) in `theme.browser.test.tsx`. If it grows or is needed elsewhere, it would be a good extraction candidate. No action now.
 
-- Import pattern matches existing browser tests (vitest, testing-library, page from vitest/browser)
-- `beforeEach` cleanup matches `BattleViewer.browser.test.tsx` pattern
-- `page.viewport()` used consistently in Token tests
-- Theme CSS imported explicitly (documented rationale)
-- No application code modified -- test-only changes
+## Design Match Verification
+
+All 8 tests match the approved test designs in `.tdd/test-designs.md`:
+
+- Test setup patterns (beforeEach, viewport, createCharacter) are consistent
+- Assertion strategies match designs (probe element, getElementById, marker-end queries)
+- The heal action in Test 4 uses `scope: "ally"` (matching the design review fix from `"friendly"` to the correct TriggerScope)
+- Test 7 uses inline probe instead of `resolveColorVar` as designed
+- Test 8 checks all 4 animation properties as designed
 
 ## Spec Alignment
 
-- Theme switching (light-dark(), color-mix(), cascade): Aligns with ADR-021 theming architecture
-- Selection glow (drop-shadow filter): Validates spec's visual feedback for selected character
-- Focus-visible: Validates WCAG 2.2 AA keyboard accessibility requirement
-- HP bar: Validates "Level 1 - Glanceable" progressive disclosure (spec)
+- Marker IDs match spec (arrowhead-attack, cross-heal, circle-friendly, diamond-enemy)
+- Action colors match Okabe-Ito palette (#d55e00, #009e73, #0072b2)
+- Faction marker differentiation (circle=friendly, diamond=enemy for movement) matches spec
+- WhiffOverlay 20% opacity matches spec's "Opacity: 0.2"
+- Tooltip fadeIn animation matches CharacterTooltip.module.css declaration
 
-## Recommendation
+## Pattern Compliance
 
-Approve after deleting screenshot artifacts (IMPORTANT-1). No code changes required.
+- `.browser.test.tsx` naming convention: followed
+- CSS variable probe element pattern: correctly applied
+- beforeEach cleanup pattern: consistent with existing browser tests
+- Co-location: test files adjacent to source components
+
+## Conclusion
+
+No critical issues. Ready for SYNC_DOCS.

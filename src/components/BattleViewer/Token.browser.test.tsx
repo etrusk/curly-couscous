@@ -195,3 +195,59 @@ describe("Token - Selection Glow and Animation (Browser)", () => {
     expect(healthBar.tagName.toLowerCase()).toBe("rect");
   });
 });
+
+describe("Token - Enemy Stripe Pattern (Browser)", () => {
+  beforeEach(() => {
+    const { actions } = useGameStore.getState();
+    actions.initBattle([]);
+    actions.selectCharacter(null);
+    document.documentElement.removeAttribute("data-theme");
+  });
+
+  // Test 6: enemy-token-has-SVG-pattern-definition-with-diagonal-stripe
+  it("enemy token has SVG pattern definition with diagonal stripe", async () => {
+    await page.viewport(1280, 720);
+
+    const friendly = createCharacter({
+      id: "friendly-1",
+      position: { q: 0, r: 0 },
+    });
+    const enemy = createCharacter({
+      id: "enemy-stripe",
+      faction: "enemy",
+      position: { q: 2, r: 0 },
+      skills: [],
+    });
+
+    const { actions } = useGameStore.getState();
+    actions.initBattle([friendly, enemy]);
+
+    render(<BattleViewer />);
+
+    // Assert pattern element exists with stripe-enemy- prefix
+    const pattern = document.querySelector('pattern[id^="stripe-enemy-"]');
+    expect(pattern).not.toBeNull();
+
+    // Assert pattern attributes
+    expect(pattern!.getAttribute("patternTransform")).toContain("rotate(45)");
+    expect(pattern!.getAttribute("width")).toBe("4");
+    expect(pattern!.getAttribute("height")).toBe("4");
+    expect(pattern!.getAttribute("patternUnits")).toBe("userSpaceOnUse");
+
+    // Query the enemy token and find the diamond <path> with shape class
+    const token = screen.getByTestId("token-enemy-stripe");
+    const shapePath = token.querySelector('path[class*="shape"]');
+    expect(shapePath).not.toBeNull();
+
+    // The diamond path fill references the stripe pattern
+    const fill = shapePath!.getAttribute("fill") ?? "";
+    expect(fill.startsWith("url(#stripe-enemy-")).toBe(true);
+
+    // Extract the pattern ID from the fill URL and verify it exists
+    const idMatch = fill.match(/url\(#(.+?)\)/);
+    expect(idMatch).not.toBeNull();
+    const patternId = idMatch![1] as string;
+    const referencedPattern = document.getElementById(patternId);
+    expect(referencedPattern).not.toBeNull();
+  });
+});

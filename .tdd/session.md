@@ -2,111 +2,81 @@
 
 ## Task
 
-Phase 2 browser tests: Token hover SVG geometry and BattleViewer tooltip z-index. Evaluate and potentially remove CharacterTooltip zero-rect fallback now that browser tests validate real positioning.
+Extract CharacterTooltip.test.tsx (473 lines, exceeds 400-line guideline) into smaller, focused test files.
 
 ## Confirmed Scope
 
-Add browser tests for token hover SVG geometry (verifying SVG element dimensions, positions, and hover interactions) and BattleViewer tooltip z-index stacking. Evaluate the CharacterTooltip zero-rect fallback — if browser tests can validate real positioning, the fallback may be safely removable. Tests use `.browser.test.tsx` convention per ADR-022.
+Split CharacterTooltip.test.tsx into multiple test files organized by concern (e.g., rendering, positioning, interactions, edge cases). Each resulting file should be under 400 lines. No behavior changes — pure test file reorganization.
 
 ## Acceptance Criteria
 
-- Browser tests verify token SVG geometry on hover (real getBoundingClientRect)
-- Browser tests verify BattleViewer tooltip z-index stacking order
-- CharacterTooltip zero-rect fallback evaluated; removed if browser tests provide sufficient coverage, kept with rationale if not
-- All existing tests continue to pass
-- All quality gates pass
+- CharacterTooltip.test.tsx is split into multiple focused test files
+- Each resulting test file is under 400 lines
+- All existing tests continue to pass with no modifications to test logic
+- No test coverage lost (same number of test cases before and after)
+- Co-location pattern maintained (tests alongside component)
 
 ## Current Phase
 
-EXPLORE (COMPLETE) -> PLAN (COMPLETE) -> DESIGN_TESTS (COMPLETE) -> TEST_DESIGN_REVIEW (COMPLETE) -> WRITE_TESTS (COMPLETE) -> IMPLEMENT (COMPLETE) -> REVIEW (COMPLETE) -> SYNC_DOCS (COMPLETE)
+EXPLORE (COMPLETE) → PLAN (COMPLETE) → DESIGN_TESTS (COMPLETE) → TEST_DESIGN_REVIEW (COMPLETE) → IMPLEMENT (COMPLETE) → REVIEW (COMPLETE) → SYNC_DOCS (COMPLETE)
 
 ## Phase History
 
-- 2026-02-09 INIT -> EXPLORE
-- 2026-02-09 EXPLORE complete. Findings in `.tdd/exploration.md`.
-- 2026-02-09 PLAN complete. Plan in `.tdd/plan.md`.
-- 2026-02-09 DESIGN_TESTS complete. Test designs in `.tdd/test-designs.md`.
-- 2026-02-09 TEST_DESIGN_REVIEW complete. Designs approved with minor adjustments (see review status block in test-designs.md).
-- 2026-02-09 WRITE_TESTS complete. 6 browser tests created, 5 unit tests converted. All 5 unit tests fail with expected import error (calculateTooltipPosition not exported).
-- 2026-02-09 IMPLEMENT complete. Exported calculateTooltipPosition to tooltip-positioning.ts, removed zero-rect fallback, fixed browser test for z-index auto. All 1458 tests pass, all quality gates pass.
-- 2026-02-09 REVIEW complete. APPROVED with 0 critical, 0 important, 2 minor issues. All quality gates verified: TypeScript, ESLint, 1448 unit tests, 10 browser tests all pass.
-
-## Key Exploration Findings
-
-- Token `<g>` getBoundingClientRect() returns zero in jsdom, non-zero in real browser
-- Z-index hierarchy: WhiffOverlay(5) < IntentOverlay(10) < DamageOverlay(20) < Tooltip(1000, position:fixed)
-- Zero-rect fallback (CharacterTooltip.tsx:255-256) only triggers in jsdom; removal requires migrating jsdom positioning tests
-- Phase 1 pattern: standalone CharacterTooltip with DOMRect. Phase 2 needs BattleViewer integration for hover flow
-- `calculateTooltipPosition` is a pure function extractable for direct testing
+- 2026-02-09 INIT → EXPLORE
+- 2026-02-09 EXPLORE COMPLETE
+- 2026-02-09 PLAN COMPLETE
+- 2026-02-09 DESIGN_TESTS COMPLETE (corrected test count: 14, not 13 -- plan undercounted idle state test)
+- 2026-02-09 TEST_DESIGN_REVIEW COMPLETE (all 14 tests verified against source, 2 minor description fixes applied)
+- 2026-02-09 IMPLEMENT COMPLETE (split into 2 files, 14 tests passing, original deleted)
+- 2026-02-09 REVIEW COMPLETE -- APPROVED, 0 critical, 0 important, 1 minor (session line count discrepancy)
+- 2026-02-09 SYNC_DOCS COMPLETE -- updated current-task.md (moved extraction to completions, trimmed oldest entry), no other .docs/ files needed updates
 
 ## Context Metrics
 
-Orchestrator: ~5K/300K (~2%)
-Cumulative agent tokens: ~152K
-Agent invocations: 5
+Orchestrator: ~10K/300K (3%)
+Cumulative agent tokens: ~65K
+Agent invocations: 2
 Compactions: 0
 
 ### Agent History
 
-| #   | Agent             | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                        |
-| --- | ----------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | -------------------------------------------- |
-| 1   | tdd-explorer      | EXPLORE            | 7         | ~25K   | 28    | -        | COMPLETE | Full codebase exploration                    |
-| 2   | tdd-planner       | PLAN               | 8         | ~35K   | 15    | -        | COMPLETE | Plan with 6 browser tests + fallback removal |
-| 3   | tdd-test-designer | DESIGN_TESTS       | 7         | ~32K   | 16    | -        | COMPLETE | 11 test cases across 3 areas                 |
-| 4   | tdd-test-reviewer | TEST_DESIGN_REVIEW | 6         | ~18K   | 18    | -        | COMPLETE | Approved with 4 minor adjustments            |
-| 5   | tdd-coder         | WRITE_TESTS        | 12        | ~42K   | 22    | -        | COMPLETE | 5 expected failures (RED phase)              |
-| 6   | tdd-coder         | IMPLEMENT          | 12        | ~60K   | 28    | -        | COMPLETE | All 1458 tests pass (GREEN phase)            |
+| #   | Agent     | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                   |
+| --- | --------- | ------------------ | --------- | ------ | ----- | -------- | -------- | ----------------------------------------------------------------------- |
+| 1   | Explorer  | EXPLORE            | 6         | ~25K   | 18    | -        | COMPLETE | Mapped 5 describe blocks, 13 tests, identified 2 split options          |
+| 2   | Planner   | PLAN               | 4         | ~40K   | 10    | -        | COMPLETE | Selected 2-file split (content vs behavior), wrote plan                 |
+| 3   | Designer  | DESIGN_TESTS       | 4         | ~35K   | 8     | -        | COMPLETE | Documented 14 tests (5 content + 9 behavior), corrected plan undercount |
+| 4   | Reviewer  | TEST_DESIGN_REVIEW | 3         | ~20K   | 10    | -        | COMPLETE | Verified all 14 tests, fixed 2 assertion description inaccuracies       |
+| 5   | Coder     | IMPLEMENT          | 7         | ~60K   | 14    | -        | COMPLETE | Created 2 files (208+213 lines), deleted original, all gates pass       |
+| 6   | Reviewer  | REVIEW             | 5         | ~25K   | 14    | -        | COMPLETE | APPROVED: 14/14 tests verified, all gates pass, no issues               |
+| 7   | DocSyncer | SYNC_DOCS          | 3         | ~15K   | 9     | -        | COMPLETE | Updated current-task.md, session.md; no pattern/decision changes        |
 
 ### Action Log
 
 - Read all required docs (current-task, spec, architecture, patterns, decisions)
-- Read ADR-022 (Vitest Browser Mode) and portal-tooltip-positioning pattern
-- Explored Token.tsx, Grid.tsx, BattleViewer.tsx, CharacterTooltip.tsx
-- Analyzed z-index hierarchy across all overlay CSS modules
-- Identified zero-rect fallback code and its jsdom dependency
-- Examined Phase 1 browser test patterns
-- Documented findings in .tdd/exploration.md
-- Planned 6 browser tests in BattleViewer.browser.test.tsx (4 SVG geometry + 2 z-index)
-- Decided to remove zero-rect fallback and extract calculateTooltipPosition
-- Planned conversion of 5 jsdom positioning tests to direct function tests
+- Read CharacterTooltip.test.tsx (473 lines) -- mapped all 5 describe blocks and 14 tests (plan said 13, corrected)
+- Read CharacterTooltip.browser.test.tsx (170 lines) -- confirmed separate, no split needed
+- Read tooltip-test-helpers.ts and rule-evaluations-test-helpers.ts -- shared helpers already extracted
+- Read tooltip-positioning.ts -- pure function tested in Positioning block
+- Analyzed 17 existing split test files for naming conventions and patterns
+- Wrote exploration findings to .tdd/exploration.md
+- Read exploration findings, verified against actual test file
+- Confirmed naming convention from 25 existing split test files (PascalCase-kebab)
+- Designed 2-file split: content (~245 lines) vs behavior (~255 lines)
 - Wrote plan to .tdd/plan.md
-
-#### #3 tdd-test-designer (DESIGN_TESTS)
-
-- Clean run
-
-#### #4 tdd-test-reviewer (TEST_DESIGN_REVIEW)
-
-- Added missing nextTick() to Test 6 setup for overlay data generation
-- Relaxed Test 6 overlay z-index count assertion from 2-of-3 to 1-of-3
-- Widened Test 4 pixel tolerance from 5px to 15px for SVG reflow timing
-
-#### #5 tdd-coder (WRITE_TESTS)
-
-- Clean run
-
-#### #6 tdd-coder (IMPLEMENT)
-
-- Exported `calculateTooltipPosition` to new file `tooltip-positioning.ts` (avoids react-refresh ESLint warning)
-- Removed zero-rect fallback from `CharacterTooltip.tsx` (lines 254-256)
-- Updated import in `CharacterTooltip.test.tsx` to point to new module
-- Fixed browser Test 6: `z-index: auto` parses to NaN, treated as 0 for comparison
-- Symlinked old Playwright chromium-1181 to satisfy chromium-1208 path requirement (network proxy blocked download)
+- Read plan, exploration, and actual test file for DESIGN_TESTS phase
+- Read spec.md and patterns/index.md (required reading)
+- Verified actual it() count: 14 (5 in Content Rendering, 9 in remaining 4 blocks)
+- Wrote test designs to .tdd/test-designs.md with full inventory, imports, and verification checklist
 
 ## Files Touched
 
 - `.tdd/exploration.md` (created)
-- `.tdd/session.md` (updated)
 - `.tdd/plan.md` (created)
 - `.tdd/test-designs.md` (created)
-- `src/components/BattleViewer/BattleViewer.browser.test.tsx` (created, 6 browser tests; IMPLEMENT: fixed z-index auto handling)
-- `src/components/BattleViewer/CharacterTooltip.test.tsx` (modified, 5 positioning tests converted; IMPLEMENT: updated import path)
-- `src/components/BattleViewer/CharacterTooltip.tsx` (modified: removed zero-rect fallback, imported from tooltip-positioning.ts)
-- `src/components/BattleViewer/tooltip-positioning.ts` (created: extracted calculateTooltipPosition function)
-
-## Notes
-
-- `CharacterTooltip.test.tsx` is 472 lines (exceeds 400-line limit). Pre-existing issue: file was 500 lines before changes. Changes reduced it by 28 lines. Extraction should be addressed in a future task.
+- `.tdd/session.md` (updated)
+- `src/components/BattleViewer/CharacterTooltip-content.test.tsx` (created, 208 lines, 5 tests)
+- `src/components/BattleViewer/CharacterTooltip-behavior.test.tsx` (created, 213 lines, 9 tests)
+- `src/components/BattleViewer/CharacterTooltip.test.tsx` (deleted)
 
 ## Browser Verification
 
@@ -114,7 +84,7 @@ Status: N/A
 
 ## Human Approval
 
-Status: N/A
+Status: N/A (non-UI task)
 
 ## Blockers
 
@@ -122,7 +92,5 @@ Status: N/A
 
 ## Review Cycles
 
-Count: 2
-
-- 2026-02-09 TEST_DESIGN_REVIEW: Approved with 3 minor adjustments (Test 6 setup, Test 4 tolerance, Test 3 clarity)
-- 2026-02-09 REVIEW: APPROVED. 0 critical, 0 important, 2 minor (pattern doc update, pre-existing file length). All quality gates pass. Findings in `.tdd/review-findings.md`.
+Count: 1
+Verdict: APPROVED (0 critical, 0 important, 1 minor)

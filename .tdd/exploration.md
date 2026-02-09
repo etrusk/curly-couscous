@@ -2,155 +2,93 @@
 
 ## Task Understanding
 
-Phase 2 browser tests need to cover two new areas:
+Split `CharacterTooltip.test.tsx` (473 lines) into multiple focused test files, each under 400 lines. Pure reorganization -- no test logic changes, no coverage loss. The file currently has 5 describe blocks covering distinct concerns that map naturally to separate files.
 
-1. **Token hover SVG geometry** -- Verify that hovering an SVG `<g>` token element produces a real, non-zero `DOMRect` from `getBoundingClientRect()`, which is then passed to `CharacterTooltip` as `anchorRect`. In jsdom, SVG `<g>` elements always return zero-dimension rects.
+## File Structure Analysis
 
-2. **BattleViewer tooltip z-index** -- Verify the tooltip (z-index: 1000) actually renders visually above all overlays (z-index: 5/10/20) using `getComputedStyle()` in a real browser. The existing jsdom test at `battle-viewer-tooltip.test.tsx:213` already tests this, but jsdom `getComputedStyle` does not resolve CSS Module values reliably.
+### Current describe blocks and line ranges
 
-3. **CharacterTooltip zero-rect fallback evaluation** -- Determine if the fallback (`width > 0 ? width : 300` and `height > 0 ? height : 150`) at lines 255-256 of `CharacterTooltip.tsx` can be removed now that browser tests validate real positioning.
+| #   | describe block                         | Lines               | Tests   | Concern                                                                   |
+| --- | -------------------------------------- | ------------------- | ------- | ------------------------------------------------------------------------- |
+| 1   | `CharacterTooltip - Content Rendering` | 19-235 (217 lines)  | 4 tests | Next action, skill priority, collapsible sections, mid-action, idle state |
+| 2   | `CharacterTooltip - Portal Rendering`  | 237-272 (36 lines)  | 1 test  | Portal renders outside component tree                                     |
+| 3   | `CharacterTooltip - Positioning`       | 274-376 (103 lines) | 5 tests | calculateTooltipPosition pure function tests                              |
+| 4   | `CharacterTooltip - Accessibility`     | 378-434 (57 lines)  | 2 tests | role=tooltip, details/summary elements                                    |
+| 5   | `CharacterTooltip - Hover Callbacks`   | 436-473 (38 lines)  | 1 test  | onMouseEnter/onMouseLeave callbacks                                       |
+
+**Total: 13 tests across 5 describe blocks in 473 lines.**
+
+### Natural split points
+
+**Option A: Two files by concern type**
+
+- `CharacterTooltip-content.test.tsx` -- Content Rendering (217 lines) = ~240 lines with imports
+- `CharacterTooltip-behavior.test.tsx` -- Portal + Positioning + Accessibility + Hover (234 lines) = ~260 lines with imports
+
+**Option B: Three files (more granular, aligns with existing codebase patterns)**
+
+- `CharacterTooltip-content.test.tsx` -- Content Rendering (4 tests, ~240 lines)
+- `CharacterTooltip-positioning.test.tsx` -- Positioning pure function tests (5 tests, ~130 lines)
+- `CharacterTooltip-portal.test.tsx` -- Portal + Accessibility + Hover (4 tests, ~130 lines)
+
+Option A is simplest and each file is well under 400 lines. Option B is more granular but creates very small files. The project precedent leans toward concern-based splitting (e.g., `PriorityTab-battle.test.tsx`, `PriorityTab-config.test.tsx`, `token-accessibility.test.tsx`, `token-interaction.test.tsx`).
+
+### Imports used per describe block
+
+| Import                             | Content | Portal | Positioning | A11y | Hover |
+| ---------------------------------- | ------- | ------ | ----------- | ---- | ----- |
+| `describe, it, expect, beforeEach` | Y       | Y      | Y           | Y    | Y     |
+| `vi`                               | N       | N      | N           | N    | Y     |
+| `render, screen`                   | Y       | Y      | N           | Y    | Y     |
+| `userEvent`                        | N       | N      | N           | N    | Y     |
+| `CharacterTooltip`                 | Y       | Y      | N           | Y    | Y     |
+| `calculateTooltipPosition`         | N       | N      | Y           | N    | N     |
+| `useGameStore`                     | Y       | Y      | N           | Y    | Y     |
+| `createCharacter`                  | Y       | Y      | N           | Y    | Y     |
+| `createTarget`                     | Y       | N      | N           | Y    | N     |
+| `createAttackAction`               | Y       | N      | N           | N    | N     |
+| `createMockRect`                   | Y       | Y      | N           | Y    | Y     |
+| `mockViewport`                     | Y       | Y      | Y           | Y    | Y     |
+
+**Key observation:** The Positioning block (block 3) tests the pure function `calculateTooltipPosition` directly -- it does not render the CharacterTooltip component at all. This makes it the cleanest extraction target. It only needs `calculateTooltipPosition` and `mockViewport`.
 
 ## Relevant Files
 
-### Core Components
-
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.tsx` -- SVG token component. Renders as `<g transform="translate(cx-20, cy-20)">` containing circle/diamond shape, letter text, and HP bar. The `handleMouseEnter` (line 85-88) calls `e.currentTarget.getBoundingClientRect()` on the `<g>` element and passes it to `onMouseEnter` callback.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Grid.tsx` -- Renders SVG grid with two-pass rendering. Pass 1: hex cells. Pass 2: all tokens in a wrapping `<g>`. Tokens receive `onTokenHover`/`onTokenLeave` callbacks.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.tsx` -- Container orchestrating Grid + overlays + CharacterTooltip. `handleTokenHover` (line 70) stores `{characterId, anchorRect}` as `hoverState`. Passes `hoverState.anchorRect` to `CharacterTooltip`.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.tsx` -- Portal-rendered tooltip using `anchorRect` for positioning. Contains the zero-rect fallback at lines 254-256.
-
-### CSS / Z-Index Stack
-
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.module.css` -- `z-index: 1000`, `position: fixed`, `min-width: 280px`, `max-width: 320px`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/WhiffOverlay.module.css` -- `z-index: 5`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay.module.css` -- `z-index: 10`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/TargetingLineOverlay.module.css` -- No z-index (just `position: absolute`)
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/DamageOverlay.module.css` -- `z-index: 20`
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.module.css` -- `.gridContainer` has `position: relative` (establishes stacking context for overlays)
-
-### Existing Tests
-
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.browser.test.tsx` -- Phase 1 browser tests (4 tests): real browser validation, real dimensions, positioning with real dims, left-side flip in narrow viewport
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.test.tsx` -- jsdom unit tests for tooltip content, ARIA, callbacks, portal, positioning logic with mocked rects
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/battle-viewer-tooltip.test.tsx` -- Integration tests including z-index test (line 213) that uses `getComputedStyle` -- this test already passes in jsdom but may not reflect real CSS resolution
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.test.tsx` -- Unit tests for Grid, BattleViewer, token z-ordering (SVG document order), deselection
-
-### Test Infrastructure
-
-- `/home/bob/Projects/auto-battler/vite.config.ts` -- Two-project workspace: `unit` (jsdom, `*.test.{ts,tsx}`, excludes `*.browser.test.*`) and `browser` (Playwright/Chromium, `*.browser.test.{ts,tsx}`)
-- `/home/bob/Projects/auto-battler/src/test/setup.browser.ts` -- Minimal browser setup (cleanup only, no matchMedia mock)
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-test-helpers.ts` -- Shared helpers: `createCharacter()`, `createTarget()`, `createAttackAction()`, etc. Used by Phase 1 browser tests.
-
-### Documentation
-
-- `/home/bob/Projects/auto-battler/.docs/decisions/adr-022-vitest-browser-mode.md` -- Browser mode rationale, file convention, follow-up note about zero-rect fallback
-- `/home/bob/Projects/auto-battler/.docs/patterns/portal-tooltip-positioning.md` -- Smart positioning algorithm pattern
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.test.tsx` - The file to split (473 lines, 13 tests)
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.browser.test.tsx` - Related browser tests (170 lines, 4 tests) -- NOT being split, already separate
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/tooltip-test-helpers.ts` - Shared helpers: `createMockRect`, `mockViewport`, `waitForTooltipDelay` (38 lines)
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/tooltip-positioning.ts` - Pure function `calculateTooltipPosition` (44 lines)
+- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-test-helpers.ts` - Shared helpers: `createCharacter`, `createTarget`, `createAttackAction` (169 lines)
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.tsx` - The component under test
+- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.module.css` - CSS module for the component
 
 ## Existing Patterns
 
-### Phase 1 Browser Test Pattern (from CharacterTooltip.browser.test.tsx)
-
-- **Imports**: `vitest` for describe/it/expect, `@testing-library/react` for render/screen/waitFor, `vitest/browser` for `page` (viewport control)
-- **Store setup**: `beforeEach` resets via `actions.initBattle([])` and `actions.selectCharacter(null)`
-- **Character setup**: Uses `createCharacter()` and `createTarget()` from test helpers, then `actions.initBattle([character, target])` to populate store
-- **Viewport control**: `await page.viewport(1280, 720)` to set explicit viewport size
-- **Anchor simulation**: Uses `new DOMRect(x, y, w, h)` to provide anchor position (does NOT actually hover a token)
-- **Async positioning**: Uses `await waitFor(() => { ... })` for `useLayoutEffect` position updates
-- **Assertions on style**: `parseInt(tooltip.style.left)`, `tooltip.getBoundingClientRect()` for real dimensions
-- **No tooltip content duplication**: Browser tests intentionally avoid duplicating content/ARIA tests from jsdom suite
-
-### SVG Token Geometry
-
-- Token `<g>` is positioned at `translate(cx-20, cy-20)` where cx/cy come from `hexToPixel(position, hexSize)`
-- `hexToPixel({q,r}, hexSize)` returns `{ x: hexSize * (sqrt(3)*q + sqrt(3)/2*r), y: hexSize * (3/2)*r }`
-- TOKEN_SIZE = 40px (internal coordinates 0..40), TOKEN_RADIUS = 20px
-- The `<g>` contains: shape (circle r=18 or diamond path), text label, HP bar (width 40, height 4, at y=42)
-- For `getBoundingClientRect()` on the `<g>`, the browser computes the bounding box of ALL child elements in screen coordinates, accounting for SVG viewBox scaling
-
-### Z-Index Hierarchy
-
-The tooltip uses `position: fixed` (portaled to `document.body`), so it is NOT in the `.gridContainer` stacking context. The overlays are `position: absolute` within `.gridContainer`. This means:
-
-- Overlays stack relative to each other: WhiffOverlay(5) < IntentOverlay(10) < DamageOverlay(20)
-- Tooltip at z-index 1000 with `position: fixed` on `document.body` should always be above the `.gridContainer` content
+- **Hyphenated concern-based naming** - The project uses `Component-concern.test.tsx` naming: `IntentOverlay-offset-basic.test.tsx`, `PriorityTab-battle.test.tsx`, `SkillRow-actions.test.tsx`, `SkillRow-filter.test.tsx`
+- **Lowercase concern naming for non-component splits** - Token tests use `token-interaction.test.tsx`, `token-accessibility.test.tsx` (lowercase, kebab-case)
+- **Since this is a component split, use PascalCase-kebab pattern** - `CharacterTooltip-content.test.tsx` matches `PriorityTab-battle.test.tsx`, `SkillRow-actions.test.tsx`
+- **Shared test helpers in separate files** - Already have `tooltip-test-helpers.ts` and `rule-evaluations-test-helpers.ts`; no new helper files needed
+- **Each split file has its own JSDoc header** - e.g., `/** * Tests for IntentOverlay component - basic bidirectional attack offset. */`
+- **Each split file has its own beforeEach** - Reset logic is duplicated per file (not shared)
+- **Describe block names retain context** - e.g., `IntentOverlay - Basic Offset` (component name prefix preserved)
+- **Split files are typically 86-376 lines** - All under 400 lines; range varies widely
 
 ## Dependencies
 
-- `vitest/browser` `page` API for viewport control
-- `@testing-library/react` render/screen/waitFor (same API as unit tests)
-- Playwright + Chromium runtime
-- Test helpers from `rule-evaluations-test-helpers.ts`
-- `useGameStore` for store initialization
+- `tooltip-test-helpers.ts` - Already extracted, shared across test files. No changes needed.
+- `rule-evaluations-test-helpers.ts` - Already extracted, shared across test files. No changes needed.
+- `useGameStore` - Store reset pattern (`actions.initBattle([])` or `actions.selectCharacter(null)`) is used in beforeEach; each new file will need its own beforeEach.
+- `mockViewport(1000, 800)` - Called in most beforeEach blocks; each new file will need this.
 
 ## Constraints Discovered
 
-### SVG getBoundingClientRect Behavior
-
-- In a real browser, `getBoundingClientRect()` on an SVG `<g>` element returns the tight bounding box of all child elements, transformed to screen coordinates
-- The bounding box accounts for SVG `viewBox` scaling (the SVG might render at a different pixel size than the viewBox dimensions)
-- For a token at `{q:0, r:0}`, hexToPixel returns `{x:0, y:0}`, so the `<g>` transform would be `translate(-20, -20)`. The actual screen position depends on the SVG's viewBox-to-pixel mapping
-- Phase 2 token hover tests will need to render a full `<Grid>` or `<BattleViewer>` (not just a standalone `<Token>`) to get meaningful geometry, since the SVG viewBox scaling matters
-
-### Tooltip Z-Index in jsdom vs Real Browser
-
-- The existing jsdom test (`battle-viewer-tooltip.test.tsx:213-231`) calls `getComputedStyle(tooltip).zIndex` and checks `>= 1000`
-- In jsdom, `getComputedStyle` for CSS Module classes may or may not resolve correctly. The test passes, but it may be checking inline styles or partial CSS resolution
-- A browser test would validate that the CSS Module class `.tooltip` with `z-index: 1000` is actually applied and resolved by the browser's CSS engine
-- The tooltip is portaled to `document.body` with `position: fixed`, which puts it in the root stacking context -- separate from the `.gridContainer` stacking context where overlays live
-
-### Zero-Rect Fallback Analysis
-
-**Location**: `CharacterTooltip.tsx` lines 254-256:
-
-```typescript
-const width = rect.width > 0 ? rect.width : 300;
-const height = rect.height > 0 ? rect.height : 150;
-```
-
-**Why it exists**: In jsdom, `getBoundingClientRect()` always returns `DOMRect(0, 0, 0, 0)` for all elements. Without this fallback, `calculateTooltipPosition()` would receive `width=0, height=0`, causing incorrect positioning (tooltip would always fit to the right, vertical centering would be off).
-
-**Who uses the fallback path**:
-
-- All 4 jsdom positioning tests in `CharacterTooltip.test.tsx` (lines 289-378) rely on the fallback implicitly -- they all run in jsdom where `getBoundingClientRect` returns zeros
-- The browser tests in Phase 1 explicitly verify that the NON-fallback path works (test 3: "tooltip positions using real dimensions, not fallback")
-
-**Risk of removal**:
-
-- **Safe for production**: In a real browser, `getBoundingClientRect()` on a rendered tooltip will always return non-zero dimensions. The fallback is never triggered in production.
-- **Breaks jsdom tests**: Removing the fallback would make jsdom positioning tests fail, since tooltip width=0 and height=0 would produce different positioning math. The jsdom tests use `mockViewport` and `createMockRect` for anchor position, but the tooltip's own dimensions come from the real (zero) `getBoundingClientRect`.
-- **Options**: (a) Remove fallback and delete/rewrite jsdom positioning tests to only test the `calculateTooltipPosition` function directly, or (b) Keep fallback but add a comment noting it's jsdom-only, or (c) Extract `calculateTooltipPosition` into a utility and test it directly with explicit width/height arguments, removing the fallback from the component.
-
-### Token Hover Flow (for Phase 2 browser test design)
-
-1. User hovers SVG `<g>` token element
-2. `Token.handleMouseEnter` calls `e.currentTarget.getBoundingClientRect()` on the `<g>`
-3. Result passed to `BattleViewer.handleTokenHover(id, rect)` via `onTokenHover`
-4. BattleViewer sets `hoverState = { characterId, anchorRect }`
-5. `CharacterTooltip` renders with `anchorRect` prop
-6. `useLayoutEffect` in CharacterTooltip calls `tooltipRef.current.getBoundingClientRect()` for its own dimensions
-7. `calculateTooltipPosition(anchorRect, tooltipWidth, tooltipHeight)` computes final position
-
-A Phase 2 browser test for token hover geometry would need to:
-
-- Render `BattleViewer` with characters in the store
-- Actually hover a token (using Testing Library `userEvent.hover` or `page` API)
-- Verify the tooltip appears and is positioned relative to the token's actual screen position
-- Verify the anchor rect from the token `<g>` has non-zero dimensions
+- **No new helper files needed** - All shared utilities already exist in `tooltip-test-helpers.ts` and `rule-evaluations-test-helpers.ts`
+- **The Positioning block is self-contained** - Tests only the pure function, zero React rendering. Cleanest extraction.
+- **Content Rendering is the largest block at 217 lines** - Even with imports/boilerplate (~25 lines), it will be ~242 lines, well under 400.
+- **Portal + Accessibility + Hover are small** - Combined they total ~131 lines of test code. They could be one file (~155 with imports) or stay in a slimmed-down `CharacterTooltip.test.tsx`.
+- **The browser test file (`CharacterTooltip.browser.test.tsx`) is 170 lines** - It does NOT need splitting and is already separate by convention (ADR-022).
 
 ## Open Questions
 
-1. **Should Phase 2 token hover test render BattleViewer or just Grid+Token?** Rendering BattleViewer gives full integration (hover handler wiring, tooltip rendering). Just Grid would test SVG geometry without tooltip coupling. BattleViewer seems more valuable since it tests the full hover-to-tooltip flow.
-
-2. **What specific SVG geometry assertions matter?** Should we assert specific pixel values for the token's bounding rect, or just that width/height > 0? Given SVG viewBox scaling, exact pixel values depend on container size. Non-zero assertion plus approximate proportionality (width ~= height for a circular token) seems sufficient.
-
-3. **For z-index browser test, should we test all overlays or just tooltip > max overlay?** The overlay stacking is CSS-only (no JS logic). Testing that tooltip z-index >= 1000 in a real browser validates CSS Module resolution. Testing the full hierarchy (5 < 10 < 20 < 1000) would be more thorough but may be over-testing CSS.
-
-4. **How to handle the zero-rect fallback removal?** Options:
-   - (a) Remove fallback, migrate jsdom positioning tests to unit-test `calculateTooltipPosition()` directly with explicit dimensions
-   - (b) Keep fallback, add comment explaining jsdom-only purpose
-   - (c) Extract pure function, test independently, remove fallback from component
-     Option (a) or (c) seem cleanest. The planning phase should decide.
-
-5. **Should we use `userEvent.hover()` or Playwright-level mouse events for token hover in browser tests?** Phase 1 browser tests use `new DOMRect()` to provide anchor position directly to `CharacterTooltip`, bypassing actual hover. Phase 2 should test the actual hover-to-tooltip flow through `BattleViewer`, which means using `userEvent.hover()` on the token `<g>` element.
-
-6. **Viewport size sensitivity**: Token screen position depends on viewport size (SVG scales with container). Tests should set explicit viewport dimensions via `page.viewport()` for deterministic geometry assertions.
+- **Two vs three files?** Option A (two files) is simpler and both files are well under 400 lines. Option B (three files) is more granular. The content rendering block alone at ~240 lines is the largest single concern and cannot be further split without breaking test cohesion. Recommend Option A for simplicity, but either works.
+- **Should the original `CharacterTooltip.test.tsx` be deleted or become one of the split files?** Project precedent has no "base" file remaining after splits (IntentOverlay tests are all `IntentOverlay-*.test.tsx`; there is a separate `IntentLine.test.tsx` which is a different component). Recommend deleting the original and creating fresh named files.

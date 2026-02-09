@@ -1,388 +1,375 @@
-# Test Designs: Phase 2 Browser Tests + Converted Positioning Tests
-
-## Review Status: APPROVED (with minor adjustments)
-
-**Reviewed by**: TEST_DESIGN_REVIEW phase, 2026-02-09
-
-**Verdict**: Test designs are well-structured with correct math, good coverage of plan requirements, and proper alignment with the spec. All 11 test cases cover the three areas specified in the plan. Minor adjustments applied:
-
-1. **Test 6**: Added `actions.nextTick()` to setup (was in plan but missing from design). Relaxed assertion #3 from "at least 2 of {5, 10, 20}" to "at least 1 of {5, 10, 20}" since overlay rendering depends on game state.
-2. **Test 4**: Widened tolerance on assertion #3 from 5px to 15px. The anchor rect captured inside `handleMouseEnter` may differ slightly from external `getBoundingClientRect()` due to SVG reflow timing.
-3. **Test 3**: Added explicit `slotPosition` overrides to setup for clarity.
-4. **Area 3 math**: All five positioning test calculations verified against `calculateTooltipPosition` source code -- all correct.
-
-**No missing edge cases identified** -- the 5 unit tests cover all 3 horizontal branches and both vertical clamp branches. Browser tests cover the integration flow at center, off-center, and multi-token positions.
-
-**No redundancy with existing tests** -- Phase 1 browser tests use synthetic DOMRect anchors; these Phase 2 tests use real SVG hover flow. The existing jsdom z-index test at `battle-viewer-tooltip.test.tsx:213` is intentionally superseded by browser Test 5.
-
----
+# Test Designs: CharacterTooltip Test File Extraction
 
 ## Overview
 
-Three test areas covering 11 total test cases:
+This is a **reorganization-only** task. No test logic changes. The design documents the exact test inventory for each new file so the coder can verify no tests are lost during the split.
 
-- **Area 1**: Token hover SVG geometry (4 browser tests) -- new file
-- **Area 2**: Tooltip z-index stacking (2 browser tests) -- same new file
-- **Area 3**: Converted positioning tests (5 unit tests) -- modify existing file
+**Source file:** `src/components/BattleViewer/CharacterTooltip.test.tsx` (473 lines, 13 tests, 5 describe blocks)
 
----
+**Target files:**
 
-## Shared Setup Patterns
-
-### Browser Test Setup (Areas 1 and 2)
-
-**File**: `src/components/BattleViewer/BattleViewer.browser.test.tsx`
-
-**Imports**:
-
-- `describe`, `it`, `expect`, `beforeEach` from `vitest`
-- `render`, `screen`, `waitFor` from `@testing-library/react`
-- `userEvent` from `@testing-library/user-event`
-- `page` from `vitest/browser`
-- `BattleViewer` from `./BattleViewer`
-- `useGameStore` from `../../stores/gameStore`
-- `createCharacter`, `createTarget` from `../RuleEvaluations/rule-evaluations-test-helpers`
-
-**beforeEach**:
-
-- Reset store: `actions.initBattle([])`
-- Deselect: `actions.selectCharacter(null)`
-
-**Patterns** (matching Phase 1 `CharacterTooltip.browser.test.tsx`):
-
-- Use `await page.viewport(width, height)` for deterministic layout
-- Use `userEvent.setup()` then `user.hover()` for token interactions
-- Use `await screen.findByRole("tooltip")` for tooltip appearance
-- Use `await waitFor()` for async positioning updates
-- Use relational assertions (greater-than, less-than) not exact pixel values for SVG geometry
-- Token elements queried via `screen.getByTestId("token-<id>")`
-
-### Unit Test Setup (Area 3)
-
-**File**: `src/components/BattleViewer/CharacterTooltip.test.tsx`
-
-**Change pattern**: The 5 existing positioning tests in the `"CharacterTooltip - Positioning"` describe block currently render a full `<CharacterTooltip>` component and check `tooltip.style.left`/`tooltip.style.top`. After `calculateTooltipPosition` is exported from `CharacterTooltip.tsx`, these tests will be converted to call the pure function directly with explicit `tooltipWidth` and `tooltipHeight` arguments, removing the dependency on jsdom's broken `getBoundingClientRect()`.
-
-**New imports** (added to existing file):
-
-- `calculateTooltipPosition` from `./CharacterTooltip`
-
-**Removed dependencies for positioning tests**: No longer need `render`, `screen`, `createCharacter`, `useGameStore`, or `createMockRect` in the positioning describe block. The `mockViewport` helper is still needed to set `window.innerWidth`/`window.innerHeight` since `calculateTooltipPosition` reads these globals.
+1. `CharacterTooltip-content.test.tsx` -- 4 tests in 1 describe block
+2. `CharacterTooltip-behavior.test.tsx` -- 9 tests in 4 describe blocks
 
 ---
 
-## Area 1: Token Hover SVG Geometry (Browser Tests)
+## File 1: CharacterTooltip-content.test.tsx
 
-### Test: token-svg-element-has-non-zero-bounding-rect
+- **JSDoc header:** `/** Tests for CharacterTooltip component - content rendering. */`
+- **Estimated lines:** ~245 (well under 400)
 
-- **File**: `src/components/BattleViewer/BattleViewer.browser.test.tsx`
-- **Type**: browser (integration)
-- **Verifies**: SVG `<g>` token elements have real, non-zero dimensions from `getBoundingClientRect()` in a real browser, unlike jsdom which always returns zeros.
-- **Setup**:
-  - `await page.viewport(1280, 720)` for deterministic container sizing
-  - Create character at `{q: 0, r: 0}` with `createCharacter({ id: "char-1", position: { q: 0, r: 0 } })`
-  - Create target at `{q: 2, r: 0}` with `createCharacter({ id: "enemy-1", faction: "enemy", position: { q: 2, r: 0 }, skills: [] })`
-  - Initialize store: `actions.initBattle([character, target])`
-  - Render `<BattleViewer />`
-- **Actions**:
-  1. Query the token element: `screen.getByTestId("token-char-1")`
-  2. Call `getBoundingClientRect()` on the token element
+### Imports
+
+```
+import { describe, it, expect, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { CharacterTooltip } from "./CharacterTooltip";
+import { useGameStore } from "../../stores/gameStore";
+import {
+  createCharacter,
+  createTarget,
+  createAttackAction,
+} from "../RuleEvaluations/rule-evaluations-test-helpers";
+import { createMockRect, mockViewport } from "./tooltip-test-helpers";
+```
+
+**Notable exclusions vs. original:** `vi` (no mocks needed), `userEvent` (no user interactions), `calculateTooltipPosition` (no positioning tests).
+
+### Shared Setup (beforeEach)
+
+```
+beforeEach(() => {
+  const { actions } = useGameStore.getState();
+  actions.initBattle([]);
+  actions.selectCharacter(null);
+  mockViewport(1000, 800);
+});
+```
+
+This is the Content Rendering block's existing beforeEach, copied verbatim from lines 20-27 of the original.
+
+### Describe Block: `CharacterTooltip - Content Rendering`
+
+---
+
+### Test: renders-next-action-section
+
+- **File**: src/components/BattleViewer/CharacterTooltip-content.test.tsx
+- **Type**: unit
+- **Verifies**: Next Action section renders with action name, target letter, and resolution timing
+- **Setup**: Create character with `currentAction: null` and a target; init battle with both; render with `createMockRect` anchor
 - **Assertions**:
-  1. `rect.width > 0` -- token has real horizontal extent
-  2. `rect.height > 0` -- token has real vertical extent
-  3. `rect.width` and `rect.height` are within a plausible range (between 5 and 200 pixels) -- not just nonzero but reasonable for an SVG token scaled from 40x46 SVG units through viewBox
-  4. `rect.width` and `rect.height` are roughly similar (ratio between 0.5 and 2.0) -- token shape is roughly square, accounting for HP bar adding some height
-- **Justification**: This is the foundational assertion for all hover-based tests. If SVG `<g>` elements do not produce real bounding rects in the browser test environment, the entire hover-to-tooltip flow is untestable. This test catches regressions in browser mode configuration or SVG rendering.
+  1. "Next Action" text is in the document
+  2. At least one element matches /Light Punch/i
+  3. Target letter /B/i is in the document
+  4. Resolution timing /next tick/i is in the document
+- **Justification**: Verifies the primary tooltip content -- the next action display with all key information fields. Prevents regressions in action name, target reference, and timing display.
+- **Original location**: Lines 30-66
 
 ---
 
-### Test: hovering-token-shows-tooltip-positioned-near-token
+### Test: renders-skill-priority-section
 
-- **File**: `src/components/BattleViewer/BattleViewer.browser.test.tsx`
-- **Type**: browser (integration)
-- **Verifies**: The full hover-to-tooltip flow works with real SVG geometry -- hovering a token triggers `handleMouseEnter`, passes a real `DOMRect` as `anchorRect`, and the tooltip positions itself relative to the token's actual screen location.
-- **Setup**:
-  - `await page.viewport(1280, 720)` for wide viewport (tooltip fits right of token)
-  - Create character at `{q: 0, r: 0}` with id `"char-1"`
-  - Create target at `{q: 2, r: 0}` (enemy, so character has valid skills to show)
-  - Initialize store, render `<BattleViewer />`
-  - `const user = userEvent.setup()`
-- **Actions**:
-  1. Get token element: `screen.getByTestId("token-char-1")`
-  2. Get the token's bounding rect before hover (for position reference): `const tokenRect = token.getBoundingClientRect()`
-  3. `await user.hover(token)` -- triggers `Token.handleMouseEnter` which calls `e.currentTarget.getBoundingClientRect()`
-  4. Wait for tooltip: `const tooltip = await screen.findByRole("tooltip")`
-  5. Wait for positioning: `await waitFor(() => { expect(parseInt(tooltip.style.left)).toBeGreaterThan(0); })`
-  6. Read tooltip position: `parseInt(tooltip.style.left)` and `parseInt(tooltip.style.top)`
+- **File**: src/components/BattleViewer/CharacterTooltip-content.test.tsx
+- **Type**: unit
+- **Verifies**: Skill Priority section renders numbered skill list with selection indicator and collapsed skills
+- **Setup**: Create character with 3 skills (Light Punch enabled, Move enabled, Heavy Punch disabled) and a target; init battle; render
 - **Assertions**:
-  1. Tooltip appears in the document (findByRole succeeds)
-  2. `tooltipLeft > tokenRect.right` -- tooltip is positioned to the right of the token (OFFSET = 12px gap)
-  3. `tooltipLeft < tokenRect.right + 50` -- tooltip is reasonably close to the token, not at an absurd position
-  4. `tooltipTop` is within 200px of `tokenRect.top + tokenRect.height / 2` -- tooltip is vertically near the token center (allowing for tooltip height offset)
-- **Justification**: Phase 1 browser tests validated tooltip positioning with a synthetic `new DOMRect()` anchor. This test validates the full flow where the anchor rect comes from an actual SVG element's `getBoundingClientRect()`. This catches bugs in the `Token.handleMouseEnter` -> `BattleViewer.handleTokenHover` -> `CharacterTooltip.anchorRect` pipeline that synthetic DOMRects skip.
-- **Fallback note**: If `userEvent.hover()` does not trigger `onMouseEnter` on SVG `<g>` elements in browser mode, fall back to `fireEvent.mouseEnter(token)` which directly dispatches the DOM event. The plan identifies this as a known risk.
+  1. "Skill Priority" text is in the document
+  2. Skills are numbered: /1\.\s*Light Punch/i, /2\.\s*Move/i, /3\.\s\*Heavy Punch/i
+  3. At least one arrow indicator (`/→/` -- Unicode U+2192 RIGHT ARROW) exists (selected skill)
+  4. /Heavy Punch/i is present in the DOM (collapsed section content)
+- **Justification**: Verifies the skill priority list rendering with correct numbering, selection indicators, and presence of collapsed skills. Prevents regressions in the gambit-style priority display.
+- **Original location**: Lines 69-141
 
 ---
 
-### Test: token-bounding-rects-differ-by-hex-position
+### Test: renders-collapsible-skipped-skills
 
-- **File**: `src/components/BattleViewer/BattleViewer.browser.test.tsx`
-- **Type**: browser (integration)
-- **Verifies**: Tokens placed at different hex coordinates have different screen positions, confirming that the hex-to-pixel coordinate mapping (`hexToPixel`) produces real, distinct screen positions through SVG viewBox scaling.
-- **Setup**:
-  - `await page.viewport(1280, 720)`
-  - Create character A at `{q: -2, r: 0}` with `createCharacter({ id: "char-left", faction: "friendly", position: { q: -2, r: 0 }, slotPosition: 1 })`
-  - Create character B at `{q: 2, r: 0}` with `createCharacter({ id: "char-right", faction: "enemy", position: { q: 2, r: 0 }, slotPosition: 2, skills: [] })`
-  - Initialize store, render `<BattleViewer />`
-- **Actions**:
-  1. Get both token elements: `screen.getByTestId("token-char-left")` and `screen.getByTestId("token-char-right")`
-  2. Call `getBoundingClientRect()` on each
+- **File**: src/components/BattleViewer/CharacterTooltip-content.test.tsx
+- **Type**: unit
+- **Verifies**: Skipped skills render inside a native details/summary collapsible section
+- **Setup**: Create character with `currentAction: null` and a target; init battle; render
 - **Assertions**:
-  1. `rectLeft.left < rectRight.left` -- the token at q:-2 is to the left of the token at q:2 (hex q-axis maps to horizontal position)
-  2. `Math.abs(rectLeft.top - rectRight.top) < 5` -- both tokens are on the same row (r=0 for both), so vertical positions should be nearly identical
-  3. `rectRight.left - rectLeft.left > 20` -- there is meaningful horizontal separation (not just a 1px rounding difference)
-- **Justification**: Verifies that SVG viewBox-to-screen coordinate mapping preserves hex spatial relationships. A bug in viewBox computation, hex-to-pixel math, or SVG scaling could cause tokens to stack on top of each other or invert positions. This is only testable with real browser layout -- jsdom's zero-rect returns would make both positions identical (0, 0).
+  1. A `<details>` element exists in the document
+  2. The `<summary>` element text matches /Show \d+ more skill/i
+- **Justification**: Verifies the progressive disclosure pattern (spec requirement) for skipped skills. Uses native details/summary for keyboard accessibility per spec.
+- **Original location**: Lines 144-169
 
 ---
 
-### Test: full-hover-to-tooltip-flow-with-off-center-token
+### Test: renders-mid-action-display
 
-- **File**: `src/components/BattleViewer/BattleViewer.browser.test.tsx`
-- **Type**: browser (integration)
-- **Verifies**: The complete hover-to-tooltip pipeline works when the token is at a non-origin hex position, confirming that the anchor rect passed through the chain reflects the token's real screen location (not a default 0,0).
-- **Setup**:
-  - `await page.viewport(1280, 720)`
-  - Create character at `{q: 3, r: -1}` with id `"char-offset"`, faction `"friendly"`, slotPosition 1
-  - Create target at `{q: -2, r: 2}` with id `"enemy-far"`, faction `"enemy"`, slotPosition 2, skills `[]`
-  - Initialize store, render `<BattleViewer />`
-  - `const user = userEvent.setup()`
-- **Actions**:
-  1. Get the token: `screen.getByTestId("token-char-offset")`
-  2. Read the token's screen position: `const tokenRect = token.getBoundingClientRect()`
-  3. `await user.hover(token)`
-  4. Wait for tooltip: `const tooltip = await screen.findByRole("tooltip")`
-  5. Wait for positioning to settle: `await waitFor(() => { expect(parseInt(tooltip.style.left)).toBeGreaterThan(0); })`
-  6. Read tooltip position
+- **File**: src/components/BattleViewer/CharacterTooltip-content.test.tsx
+- **Type**: unit
+- **Verifies**: Tooltip shows "Continuing Action" (not "Next Action") when character has an in-progress action with remaining ticks
+- **Setup**: Create character with `createAttackAction` current action (Light Punch, ticks 0-3); create target; init battle; set game tick to 1 (mid-action); render
 - **Assertions**:
-  1. `tokenRect.left > 0` and `tokenRect.top > 0` -- off-center token is not at the default origin
-  2. Tooltip `style.left` is not `"0px"` -- positioning used a real anchor, not a zero DOMRect
-  3. `parseInt(tooltip.style.left)` is approximately `tokenRect.right + 12` (within a tolerance of 15px) -- confirms the anchor rect came from the token's actual getBoundingClientRect, not a cached or default value. Tolerance is wider than Area 3 unit tests because the external `getBoundingClientRect()` call and the one inside `handleMouseEnter` may see slightly different rects due to SVG reflow timing.
-  4. Tooltip content contains the character letter (confirming correct character association)
-- **Justification**: Tests 2 and 3 use tokens near the grid center. This test places the token at an off-center position to verify the full chain handles non-trivial coordinates. The `{q: 3, r: -1}` position produces distinct hex-to-pixel coordinates, catching bugs where the anchor rect is accidentally zeroed, cached from a previous hover, or hardcoded.
+  1. "Continuing Action" text is in the document
+  2. "Next Action" text is NOT in the document
+  3. /Light Punch/i is displayed
+  4. /2 ticks/i remaining timing is displayed
+- **Justification**: Verifies the distinction between idle-choosing and mid-action states. Ensures the tooltip accurately reports continuing actions with correct remaining tick count.
+- **Original location**: Lines 172-209
 
 ---
 
-## Area 2: Tooltip Z-Index Stacking (Browser Tests)
+### Test: renders-idle-state
 
-### Test: tooltip-z-index-is-1000-via-real-css-resolution
-
-- **File**: `src/components/BattleViewer/BattleViewer.browser.test.tsx`
-- **Type**: browser (integration)
-- **Verifies**: The tooltip's computed z-index resolves to exactly 1000 when CSS Modules are processed by a real browser engine, validating that the `.tooltip` class from `CharacterTooltip.module.css` is correctly applied.
-- **Setup**:
-  - Create character with id `"char-1"` at `{q: 0, r: 0}`
-  - Create target at `{q: 1, r: 0}`
-  - Initialize store, render `<BattleViewer />`
-  - `const user = userEvent.setup()`
-- **Actions**:
-  1. Hover token: `await user.hover(screen.getByTestId("token-char-1"))`
-  2. Wait for tooltip: `const tooltip = await screen.findByRole("tooltip")`
-  3. Read computed style: `window.getComputedStyle(tooltip).zIndex`
+- **File**: src/components/BattleViewer/CharacterTooltip-content.test.tsx
+- **Type**: unit
+- **Verifies**: Tooltip shows idle state when character has no valid action (no enemies to target)
+- **Setup**: Create character with `currentAction: null`; init battle with only the character (no enemies); render
 - **Assertions**:
-  1. `getComputedStyle(tooltip).zIndex === "1000"` -- exact value, not just "greater than"
-  2. `getComputedStyle(tooltip).position === "fixed"` -- confirms the tooltip is in the root stacking context (portaled to document.body), not within the `.gridContainer` stacking context
-- **Justification**: The existing jsdom test at `battle-viewer-tooltip.test.tsx:213-231` checks `getComputedStyle(tooltip).zIndex >= 1000`, but jsdom's CSS Module resolution is incomplete and may return values from inline styles or partial processing rather than the actual CSS rule. A real browser test validates that the CSS Module class `.tooltip` with `z-index: 1000` is properly loaded, hashed, applied, and resolved. This is the definitive test for CSS Module z-index behavior.
+  1. Idle emoji display is present (`/💤 Idle/` regex match)
+  2. /No valid action/i message is shown
+- **Justification**: Verifies the edge case where no skill conditions are met. Prevents regression of the idle state indicator.
+- **Original location**: Lines 212-234
 
 ---
 
-### Test: tooltip-z-index-exceeds-all-overlay-z-indices
+## File 2: CharacterTooltip-behavior.test.tsx
 
-- **File**: `src/components/BattleViewer/BattleViewer.browser.test.tsx`
-- **Type**: browser (integration)
-- **Verifies**: The tooltip's z-index (1000) is strictly greater than all overlay z-indices (WhiffOverlay: 5, IntentOverlay: 10, DamageOverlay: 20), ensuring the tooltip always renders visually on top of battle visualizations.
-- **Setup**:
-  - Create character with id `"char-1"` at `{q: 0, r: 0}`
-  - Create target at `{q: 1, r: 0}`
-  - Initialize store: `actions.initBattle([character, target])`
-  - Advance a tick to generate intent/overlay data: `actions.nextTick()`
-  - Render `<BattleViewer />`
-  - `const user = userEvent.setup()`
-- **Actions**:
-  1. Hover token: `await user.hover(screen.getByTestId("token-char-1"))`
-  2. Wait for tooltip: `const tooltip = await screen.findByRole("tooltip")`
-  3. Get tooltip z-index: `parseInt(window.getComputedStyle(tooltip).zIndex)`
-  4. Query overlay elements within `.gridContainer`:
-     - The `.gridContainer` div is the parent of all overlays. Use `document.querySelector` with structural selectors or query by the SVG elements that are direct children of `.gridContainer` (after the main Grid SVG).
-     - Overlays are SVG elements rendered after the Grid SVG, with `position: absolute`. Query all absolutely-positioned children of the grid container div: loop through `gridContainer.children` and check `getComputedStyle(child).position === "absolute"`.
-  5. For each overlay element, read `getComputedStyle(overlay).zIndex`
+- **JSDoc header:** `/** Tests for CharacterTooltip component - portal, positioning, accessibility, and hover behavior. */`
+- **Estimated lines:** ~255 (well under 400)
+
+### Imports
+
+```
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { CharacterTooltip } from "./CharacterTooltip";
+import { calculateTooltipPosition } from "./tooltip-positioning";
+import { useGameStore } from "../../stores/gameStore";
+import {
+  createCharacter,
+  createTarget,
+} from "../RuleEvaluations/rule-evaluations-test-helpers";
+import { createMockRect, mockViewport } from "./tooltip-test-helpers";
+```
+
+**Notable exclusions vs. original:** `createAttackAction` (not needed -- only used in Content Rendering's mid-action test).
+
+**Notable inclusions vs. content file:** `vi` (for mock functions in Hover test), `userEvent` (for hover simulation), `calculateTooltipPosition` (for Positioning tests).
+
+### Describe Block: `CharacterTooltip - Portal Rendering`
+
+**beforeEach:**
+
+```
+beforeEach(() => {
+  const { actions } = useGameStore.getState();
+  actions.initBattle([]);
+  mockViewport(1000, 800);
+});
+```
+
+---
+
+### Test: portal-renders-outside-component-tree
+
+- **File**: src/components/BattleViewer/CharacterTooltip-behavior.test.tsx
+- **Type**: unit
+- **Verifies**: Tooltip renders via React Portal outside its parent container element
+- **Setup**: Create character; init battle; render CharacterTooltip inside a `<div data-testid="container">`
 - **Assertions**:
-  1. At least one overlay element is found (test validity check -- if no overlays are found, the test is not exercising anything meaningful)
-  2. For every overlay element: `parseInt(getComputedStyle(overlay).zIndex) < tooltipZIndex`
-  3. Specifically validate known z-index values are present among the overlays: the set of overlay z-indices should include at least 1 value from {5, 10, 20} (some overlays may conditionally return null if no game events exist for them; the `nextTick()` in setup ensures at least intents are generated)
-  4. `tooltipZIndex === 1000` (cross-check with Test 5)
-- **Justification**: While Test 5 validates the tooltip's absolute z-index value, this test validates the relative ordering. A future code change could add a new overlay with z-index 1500, which would break tooltip visibility. By asserting that the tooltip z-index exceeds ALL overlay z-indices found in the rendered DOM, this test catches such regressions. The comparison across stacking contexts (fixed vs absolute-within-relative) is particularly important and can only be validated in a real browser.
-- **Note on stacking contexts**: The tooltip uses `position: fixed` portaled to `document.body`, while overlays use `position: absolute` within `.gridContainer` (which has `position: relative`). In CSS, a `position: fixed` element with `z-index: 1000` in the root stacking context will paint above elements in a child stacking context with lower z-indices. This test confirms that the CSS design achieves the intended visual layering.
+  1. Element with role="tooltip" exists in the document
+  2. The container div does NOT contain the tooltip element (`containerDiv.contains(tooltip)` is false)
+  3. `document.body` DOES contain the tooltip element
+- **Justification**: Verifies React Portal behavior -- tooltip must render outside the component tree for correct z-index stacking and overflow handling. Prevents regression if portal implementation is changed.
+- **Original location**: Lines 245-271
 
 ---
 
-## Area 3: Converted Positioning Tests (Unit Tests)
+### Describe Block: `CharacterTooltip - Positioning`
 
-These 5 tests replace the existing component-render positioning tests in `CharacterTooltip.test.tsx`. They call `calculateTooltipPosition()` directly as a pure function, with explicit `tooltipWidth` and `tooltipHeight` parameters, removing the dependency on jsdom's zero-returning `getBoundingClientRect()`.
+**beforeEach:**
 
-The `describe` block header changes from rendering components to calling the pure function. The `beforeEach` only needs `mockViewport` setup (no store init needed since no components are rendered).
+```
+beforeEach(() => {
+  mockViewport(1000, 800);
+});
+```
+
+Note: No store reset needed -- Positioning tests call `calculateTooltipPosition` directly (pure function, no React rendering).
+
+---
 
 ### Test: positions-right-of-anchor-by-default
 
-- **File**: `src/components/BattleViewer/CharacterTooltip.test.tsx`
+- **File**: src/components/BattleViewer/CharacterTooltip-behavior.test.tsx
 - **Type**: unit
-- **Verifies**: `calculateTooltipPosition` places the tooltip to the right of the anchor rect with a 12px offset when there is sufficient viewport space.
-- **Setup**:
-  - `mockViewport(1000, 800)` -- wide viewport
-  - `const anchorRect = new DOMRect(200, 200, 40, 40)` -- anchor at (200,200), 40x40
-  - `const tooltipWidth = 300`
-  - `const tooltipHeight = 200`
-- **Actions**:
-  1. Call `calculateTooltipPosition(anchorRect, tooltipWidth, tooltipHeight)`
+- **Verifies**: Tooltip positions to the right of the anchor with correct offset and vertical centering
+- **Setup**: `mockViewport(1000, 800)`; anchor at (200, 200, 40, 40); tooltip 300x200
 - **Assertions**:
-  1. `result.left === anchorRect.right + 12` -- i.e., `result.left === 252`. Right-side placement with OFFSET = 12.
-  2. `result.top === anchorRect.top + anchorRect.height / 2 - tooltipHeight / 2` -- i.e., `result.top === 220 - 100 === 120`. Vertically centered on the anchor.
-- **Justification**: This is the primary "happy path" test for the positioning algorithm. It validates right-side preference and vertical centering with explicit dimensions. Previously this test rendered a component and implicitly used the zero-rect fallback (width=300, height=150); now it passes dimensions explicitly, producing deterministic and verifiable results.
+  1. `result.left` is 252 (anchor right 240 + offset 12)
+  2. `result.top` is 120 (vertically centered: 200 + 20 - 100)
+- **Justification**: Verifies the default (happy path) positioning logic for the pure function. Ensures the OFFSET constant (12px) is correctly applied.
+- **Original location**: Lines 280-297
 
 ---
 
 ### Test: positions-left-when-near-right-viewport-edge
 
-- **File**: `src/components/BattleViewer/CharacterTooltip.test.tsx`
+- **File**: src/components/BattleViewer/CharacterTooltip-behavior.test.tsx
 - **Type**: unit
-- **Verifies**: `calculateTooltipPosition` flips the tooltip to the left side of the anchor when the right side would overflow the viewport.
-- **Setup**:
-  - `mockViewport(800, 800)` -- narrower viewport
-  - `const anchorRect = new DOMRect(700, 200, 40, 40)` -- anchor near the right edge (right = 740)
-  - `const tooltipWidth = 300`
-  - `const tooltipHeight = 200`
-- **Actions**:
-  1. Call `calculateTooltipPosition(anchorRect, tooltipWidth, tooltipHeight)`
+- **Verifies**: Tooltip falls back to left-side placement when right side would exceed viewport
+- **Setup**: `mockViewport(800, 800)`; anchor at (700, 200, 40, 40); tooltip 300x200
 - **Assertions**:
-  1. `result.left === anchorRect.left - 12 - tooltipWidth` -- i.e., `result.left === 700 - 12 - 300 === 388`. Left-side placement.
-  2. `result.left < anchorRect.left` -- tooltip is to the left of the anchor.
-  3. `result.left > 8` -- tooltip does not violate the MARGIN (8px) on the left edge.
-- **Justification**: Validates the left-side fallback logic. The right-side check: `740 + 12 + 300 + 8 = 1060 > 800` fails. The left-side check: `700 - 12 - 300 = 388 > 8` passes. Previously, this test used the zero-rect fallback's assumed 300px width, which coincidentally matched. Now it uses an explicit 300px, making the test intention transparent.
+  1. `result.left` is 388 (anchor left 700 - offset 12 - width 300)
+  2. `result.left` is less than `anchorRect.left`
+  3. `result.left` is greater than 8 (respects MARGIN)
+- **Justification**: Verifies the left-side fallback logic. Prevents tooltips from rendering off-screen to the right.
+- **Original location**: Lines 300-318
 
 ---
 
 ### Test: fallback-position-when-both-sides-constrained
 
-- **File**: `src/components/BattleViewer/CharacterTooltip.test.tsx`
+- **File**: src/components/BattleViewer/CharacterTooltip-behavior.test.tsx
 - **Type**: unit
-- **Verifies**: `calculateTooltipPosition` uses the fallback alignment (left edge of anchor, clamped to margin) when neither right nor left placement fits.
-- **Setup**:
-  - `mockViewport(400, 800)` -- very narrow viewport
-  - `const anchorRect = new DOMRect(150, 200, 40, 40)` -- anchor in the middle of a narrow viewport
-  - `const tooltipWidth = 300`
-  - `const tooltipHeight = 200`
-- **Actions**:
-  1. Call `calculateTooltipPosition(anchorRect, tooltipWidth, tooltipHeight)`
+- **Verifies**: Tooltip uses fallback position (clamped to MARGIN) when neither left nor right placement fits
+- **Setup**: `mockViewport(400, 800)`; anchor at (150, 200, 40, 40); tooltip 300x200
 - **Assertions**:
-  1. `result.left >= 8` -- respects the MARGIN minimum
-  2. `result.left === Math.max(8, anchorRect.left)` -- i.e., `result.left === Math.max(8, 150) === 150`. Uses the fallback: `Math.max(MARGIN, anchorRect.left)`.
-  3. Right-side check confirmation: `190 + 12 + 300 + 8 = 510 > 400` fails.
-  4. Left-side check confirmation: `150 - 12 - 300 = -162 < 8` fails. Both sides are constrained.
-- **Justification**: Tests the third branch of the horizontal positioning logic -- the fallback that triggers when the tooltip cannot fit on either side. This is a real scenario for narrow viewports or very wide tooltips. The explicit width/height make the branch conditions transparent.
+  1. `result.left` is >= 8 (MARGIN minimum)
+  2. `result.left` equals `Math.max(8, anchorRect.left)` which is 150
+- **Justification**: Verifies the edge case where the viewport is too narrow for either side. Ensures the tooltip remains visible and does not go off-screen.
+- **Original location**: Lines 321-337
 
 ---
 
 ### Test: clamps-to-viewport-bottom
 
-- **File**: `src/components/BattleViewer/CharacterTooltip.test.tsx`
+- **File**: src/components/BattleViewer/CharacterTooltip-behavior.test.tsx
 - **Type**: unit
-- **Verifies**: `calculateTooltipPosition` clamps the tooltip top position so it does not overflow the bottom viewport edge.
-- **Setup**:
-  - `mockViewport(1000, 800)` -- standard viewport
-  - `const anchorRect = new DOMRect(200, 700, 40, 40)` -- anchor near the bottom (top=700, bottom=740)
-  - `const tooltipWidth = 300`
-  - `const tooltipHeight = 200`
-- **Actions**:
-  1. Call `calculateTooltipPosition(anchorRect, tooltipWidth, tooltipHeight)`
+- **Verifies**: Tooltip vertical position is clamped when it would exceed the viewport bottom
+- **Setup**: `mockViewport(1000, 800)`; anchor at (200, 700, 40, 40); tooltip 300x200
 - **Assertions**:
-  1. `result.top + tooltipHeight + 8 <= 800` -- tooltip bottom edge (top + height) plus margin fits within viewport height.
-  2. `result.top === 800 - 200 - 8` -- i.e., `result.top === 592`. The clamping formula: `viewportHeight - tooltipHeight - MARGIN`.
-  3. Unclamped value would be: `700 + 20 - 100 = 620`, and `620 + 200 + 8 = 828 > 800`, so clamping activates.
-- **Justification**: Validates the bottom-clamping logic. Without clamping, the tooltip would extend below the viewport, making content inaccessible. The previous test used the fallback's assumed 150px height; now the explicit 200px height makes the clamping trigger condition and expected result deterministic.
+  1. `result.top + tooltipHeight + 8` is <= 800 (fits within viewport with margin)
+  2. `result.top` is 592 (800 - 200 - 8)
+- **Justification**: Verifies bottom-edge clamping. Prevents tooltips from rendering below the visible viewport area.
+- **Original location**: Lines 340-356
 
 ---
 
 ### Test: clamps-to-viewport-top
 
-- **File**: `src/components/BattleViewer/CharacterTooltip.test.tsx`
+- **File**: src/components/BattleViewer/CharacterTooltip-behavior.test.tsx
 - **Type**: unit
-- **Verifies**: `calculateTooltipPosition` clamps the tooltip top position to the MARGIN minimum when the anchor is near the top of the viewport.
-- **Setup**:
-  - `mockViewport(1000, 800)` -- standard viewport
-  - `const anchorRect = new DOMRect(200, 20, 40, 40)` -- anchor near the top (top=20, bottom=60)
-  - `const tooltipWidth = 300`
-  - `const tooltipHeight = 200`
-- **Actions**:
-  1. Call `calculateTooltipPosition(anchorRect, tooltipWidth, tooltipHeight)`
+- **Verifies**: Tooltip vertical position is clamped when it would go above the viewport top
+- **Setup**: `mockViewport(1000, 800)`; anchor at (200, 20, 40, 40); tooltip 300x200
 - **Assertions**:
-  1. `result.top >= 8` -- tooltip does not go above MARGIN
-  2. `result.top === 8` -- exact value. Unclamped: `20 + 20 - 100 = -60`, which is below MARGIN (8), so clamping sets `top = 8`.
-- **Justification**: Validates the top-clamping logic. When the anchor is near the viewport top and the tooltip height exceeds the available space above-center, the tooltip top is clamped to MARGIN. This prevents the tooltip from being partially hidden above the viewport. The explicit 200px height guarantees the unclamped value is negative, triggering the clamp.
+  1. `result.top` is >= 8 (MARGIN minimum)
+  2. `result.top` is 8 (unclamped would be -60, clamped to MARGIN)
+- **Justification**: Verifies top-edge clamping. Prevents tooltips from rendering above the visible viewport area.
+- **Original location**: Lines 359-375
 
 ---
 
-## Summary Table
+### Describe Block: `CharacterTooltip - Accessibility`
 
-| #   | Test Name                                          | File                          | Type    | Area         |
-| --- | -------------------------------------------------- | ----------------------------- | ------- | ------------ |
-| 1   | token-svg-element-has-non-zero-bounding-rect       | BattleViewer.browser.test.tsx | browser | SVG Geometry |
-| 2   | hovering-token-shows-tooltip-positioned-near-token | BattleViewer.browser.test.tsx | browser | SVG Geometry |
-| 3   | token-bounding-rects-differ-by-hex-position        | BattleViewer.browser.test.tsx | browser | SVG Geometry |
-| 4   | full-hover-to-tooltip-flow-with-off-center-token   | BattleViewer.browser.test.tsx | browser | SVG Geometry |
-| 5   | tooltip-z-index-is-1000-via-real-css-resolution    | BattleViewer.browser.test.tsx | browser | Z-Index      |
-| 6   | tooltip-z-index-exceeds-all-overlay-z-indices      | BattleViewer.browser.test.tsx | browser | Z-Index      |
-| 7   | positions-right-of-anchor-by-default               | CharacterTooltip.test.tsx     | unit    | Positioning  |
-| 8   | positions-left-when-near-right-viewport-edge       | CharacterTooltip.test.tsx     | unit    | Positioning  |
-| 9   | fallback-position-when-both-sides-constrained      | CharacterTooltip.test.tsx     | unit    | Positioning  |
-| 10  | clamps-to-viewport-bottom                          | CharacterTooltip.test.tsx     | unit    | Positioning  |
-| 11  | clamps-to-viewport-top                             | CharacterTooltip.test.tsx     | unit    | Positioning  |
-
-## Implementation Notes
-
-### BattleViewer.browser.test.tsx Structure
+**beforeEach:**
 
 ```
-describe("BattleViewer - Token SVG Geometry (Browser)", () => {
-  // Tests 1-4
-});
-
-describe("BattleViewer - Tooltip Z-Index Stacking (Browser)", () => {
-  // Tests 5-6
+beforeEach(() => {
+  const { actions } = useGameStore.getState();
+  actions.initBattle([]);
+  mockViewport(1000, 800);
 });
 ```
 
-### CharacterTooltip.test.tsx Changes
+---
 
-The existing `describe("CharacterTooltip - Positioning")` block (lines 273-403) is modified:
+### Test: has-role-tooltip
 
-- Remove component rendering from each test
-- Remove `createCharacter`, `useGameStore` usage from these 5 tests
-- Import `calculateTooltipPosition` from `./CharacterTooltip`
-- Use `new DOMRect(x, y, w, h)` directly (or keep using `createMockRect`)
-- Call `calculateTooltipPosition(anchorRect, width, height)` and assert on the returned `{ top, left }` object
-- The `beforeEach` for this describe block still calls `mockViewport` since the function reads `window.innerWidth`/`window.innerHeight`
-- Other describe blocks (Content Rendering, Portal, Accessibility, Hover Callbacks) are unchanged
+- **File**: src/components/BattleViewer/CharacterTooltip-behavior.test.tsx
+- **Type**: unit
+- **Verifies**: Tooltip element has correct ARIA role and unique ID pattern
+- **Setup**: Create character; init battle; render with `createMockRect` anchor
+- **Assertions**:
+  1. Element found by `getByRole("tooltip")` has attribute `role="tooltip"`
+  2. Element has attribute `id` matching `tooltip-${character.id}`
+- **Justification**: Verifies ARIA compliance for tooltip accessibility. The unique ID enables `aria-describedby` linkage from the anchor element. Prevents accessibility regressions.
+- **Original location**: Lines 386-406
 
-### Prerequisite Code Changes (for Coder)
+---
 
-Before these tests can pass, the coder must:
+### Test: uses-details-summary-for-collapsed-skills
 
-1. Add `export` to `calculateTooltipPosition` in `CharacterTooltip.tsx` (line 39)
-2. Remove the zero-rect fallback (lines 254-256) -- replace with direct `rect.width`/`rect.height` usage
-3. These are implementation changes specified in the plan, not test design concerns
+- **File**: src/components/BattleViewer/CharacterTooltip-behavior.test.tsx
+- **Type**: unit
+- **Verifies**: Collapsed skills use native HTML details/summary elements for keyboard accessibility
+- **Setup**: Create character with `currentAction: null` and a target; init battle; render
+- **Assertions**:
+  1. A `<details>` element is in the document
+  2. A `<summary>` element is in the document
+- **Justification**: Verifies the progressive disclosure pattern uses semantic HTML (not custom disclosure widgets). Native details/summary provides built-in keyboard navigation and screen reader announcements per spec requirements.
+- **Original location**: Lines 409-433
 
-### Risk Mitigations
+---
 
-- **SVG hover events**: If `userEvent.hover()` does not trigger `onMouseEnter` on SVG `<g>` elements, tests 2 and 4 should fall back to `fireEvent.mouseEnter()` which directly dispatches the DOM event
-- **Exact pixel values**: All browser test assertions use relational comparisons (greater-than, less-than, within-tolerance) rather than exact pixel values, since SVG viewBox scaling makes exact values viewport-dependent
-- **Overlay presence**: Test 6 asserts at least one overlay is found before comparing z-indices, preventing a false pass if the query selector matches nothing
-- **Stacking context nuance**: Tests 5 and 6 note the tooltip is `position: fixed` on `document.body` while overlays are `position: absolute` within `.gridContainer`. The z-index comparison is valid because both stacking contexts participate in the same root stacking context painting order
+### Describe Block: `CharacterTooltip - Hover Callbacks`
+
+**beforeEach:**
+
+```
+beforeEach(() => {
+  const { actions } = useGameStore.getState();
+  actions.initBattle([]);
+  mockViewport(1000, 800);
+});
+```
+
+---
+
+### Test: calls-onMouseEnter-and-onMouseLeave-callbacks
+
+- **File**: src/components/BattleViewer/CharacterTooltip-behavior.test.tsx
+- **Type**: unit
+- **Verifies**: Tooltip element correctly invokes onMouseEnter and onMouseLeave callback props on hover/unhover
+- **Setup**: Create character; init battle; render with `vi.fn()` mocks for `onMouseEnter` and `onMouseLeave`; use `userEvent.setup()`
+- **Assertions**:
+  1. After `user.hover(tooltip)`, `mockOnMouseEnter` has been called exactly once
+  2. After `user.unhover(tooltip)`, `mockOnMouseLeave` has been called exactly once
+- **Justification**: Verifies the tooltip hover delay mechanism works -- the CharacterTooltip must forward mouse events to enable the parent's 100ms leave delay logic. Prevents regression in the tooltip hover interaction chain.
+- **Original location**: Lines 444-472
+
+---
+
+## Verification Checklist
+
+| #   | Test Name (it description)                                          | Source File Block | Target File | Line Range |
+| --- | ------------------------------------------------------------------- | ----------------- | ----------- | ---------- |
+| 1   | renders Next Action section with action name and target             | Content Rendering | content     | 30-66      |
+| 2   | renders Skill Priority section with numbered skill list             | Content Rendering | content     | 69-141     |
+| 3   | renders skipped skills in collapsible section using details/summary | Content Rendering | content     | 144-169    |
+| 4   | renders Continuing Action when character is mid-action              | Content Rendering | content     | 172-209    |
+| 5   | renders idle state when character has no valid action               | Content Rendering | content     | 212-234    |
+| 6   | renders via React Portal outside the component container            | Portal Rendering  | behavior    | 245-271    |
+| 7   | positions right of anchor by default                                | Positioning       | behavior    | 280-297    |
+| 8   | positions left when near right viewport edge                        | Positioning       | behavior    | 300-318    |
+| 9   | uses fallback position when both sides are constrained              | Positioning       | behavior    | 321-337    |
+| 10  | clamps to viewport bottom                                           | Positioning       | behavior    | 340-356    |
+| 11  | clamps to viewport top                                              | Positioning       | behavior    | 359-375    |
+| 12  | has role='tooltip' for accessibility                                | Accessibility     | behavior    | 386-406    |
+| 13  | uses native details/summary for keyboard accessibility              | Accessibility     | behavior    | 409-433    |
+| 14  | calls onMouseEnter and onMouseLeave callbacks                       | Hover Callbacks   | behavior    | 444-472    |
+
+**Total: 14 tests** (5 content + 9 behavior)
+
+Wait -- the plan says 13 tests (4 content + 9 behavior), but the actual file has 5 tests in the Content Rendering block (the idle state test at lines 212-234 was noted in the plan as part of Content Rendering). Let me reconcile:
+
+The plan table lists 4 tests for content: renders-next-action-section, renders-skill-priority-section, renders-collapsible-skipped-skills, renders-mid-action-display. But the plan also says "The idle state test (lines 212-234) is part of Content Rendering and stays in this file." The exploration correctly counts 4 tests in Content Rendering block but the actual file has 5 `it()` calls in that block (lines 30, 69, 144, 172, 212).
+
+**Corrected count: 14 tests total (5 content + 9 behavior).** The plan's "4 tests" appears to be an undercount -- the idle state test was acknowledged in the plan note but not counted. The actual `it()` count from the source file is authoritative.
+
+## Constraints for Coder
+
+1. **No test logic changes.** Each test body is copied verbatim from the original.
+2. **No new helper files.** All shared helpers (`tooltip-test-helpers.ts`, `rule-evaluations-test-helpers.ts`) already exist.
+3. **Describe block names preserved exactly.** Do not rename any describe or it strings.
+4. **Imports trimmed per file.** Each file imports only what it uses (no unused imports).
+5. **Original file deleted.** `CharacterTooltip.test.tsx` must be removed after split.
+6. **Browser test file untouched.** `CharacterTooltip.browser.test.tsx` is not part of this task.
+7. **Verification:** Run `npm run test` -- total test count must remain the same as before the split. All 14 CharacterTooltip tests pass.

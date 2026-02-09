@@ -37,6 +37,8 @@ Before writing ANY code:
    - If you need to deviate, flag it in your output
    - If file missing: Follow patterns observed in existing code
 
+4. **Visual design** (UI tasks): `.docs/ui-ux-guidelines.md` — use exact token names, not hardcoded values. Check `.docs/visual-specs/*.md` for affected components
+
 ## Capabilities
 
 - Implement tests exactly as specified in `.tdd/test-designs.md`

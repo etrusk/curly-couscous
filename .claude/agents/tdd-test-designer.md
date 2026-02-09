@@ -30,6 +30,7 @@ Before ANY design work, you MUST read:
 2. **Project spec**: `.docs/spec.md`
 3. **Patterns**: `.docs/patterns/index.md`
 4. **Existing test files** relevant to the plan
+5. **Visual design** (UI tasks): `.docs/ui-ux-guidelines.md` and relevant `.docs/visual-specs/*.md` — test designs should verify visual spec values where applicable
 
 ## Test Design Format
 

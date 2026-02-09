@@ -31,6 +31,7 @@ Before exploration, read:
 3. **Architecture**: `.docs/architecture.md`
 4. **Patterns**: `.docs/patterns/index.md`
 5. **Decisions**: `.docs/decisions/index.md`
+6. **Visual design** (UI tasks): `.docs/ui-ux-guidelines.md` and relevant `.docs/visual-specs/*.md` for affected components
 
 ## Exploration Protocol
 

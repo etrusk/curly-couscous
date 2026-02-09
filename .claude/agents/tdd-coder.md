@@ -35,6 +35,7 @@ Before writing ANY code:
 1. **The plan**: `.tdd/plan.md` — implement exactly this
 2. **Test designs**: `.tdd/test-designs.md` — implement tests exactly as specified
 3. **Patterns**: `.docs/patterns/index.md` — follow established conventions
+4. **Visual design** (UI tasks): `.docs/ui-ux-guidelines.md` — use exact token names, not hardcoded values. Check `.docs/visual-specs/*.md` for affected components
 
 ## Pre-Implementation Verification
 

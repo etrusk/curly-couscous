@@ -40,6 +40,8 @@ This project maintains documentation in `.docs/`:
 - **decisions/index.md**: LLM-optimized index of ADRs (details in `decisions/*.md`)
 - **investigations/index.md**: LLM-optimized index of debugging sessions (details in `investigations/*.md`)
 - **lessons-learned/index.md**: LLM-optimized index of lessons (details in `lessons-learned/*.md`)
+- **ui-ux-guidelines.md**: Visual design rules — agents MUST read before any UI/CSS work
+- **visual-specs/**: Per-component visual specifications (layout, tokens, states)
 - **current-task.md**: Project status (shared by both Roo and Claude Code workflows)
 
 **Index files are lightweight pointers. Read specific detail files (e.g., `patterns/collapsible-section.md`) when needed.**

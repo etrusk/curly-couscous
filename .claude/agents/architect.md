@@ -45,6 +45,8 @@ Before ANY planning or design work, you MUST read:
    - Avoid relitigating settled questions
    - If file missing: Note decisions you make for future documentation
 
+6. **Visual design** (UI tasks): `.docs/ui-ux-guidelines.md` and relevant `.docs/visual-specs/*.md` for affected components
+
 ## Capabilities
 
 - Explore codebases to understand structure and patterns
@@ -75,6 +77,7 @@ Before finalizing any plan, verify:
 - [ ] Approach consistent with `.docs/architecture.md`
 - [ ] Patterns follow `.docs/patterns/index.md`
 - [ ] No conflicts with `.docs/decisions/index.md`
+- [ ] UI tasks: Visual values match `.docs/ui-ux-guidelines.md` and relevant `visual-specs/*.md`
 
 If misalignment found: Flag it explicitly in your output.
 

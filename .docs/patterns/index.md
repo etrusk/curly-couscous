@@ -17,6 +17,17 @@ LLM-optimized index of implementation patterns successfully applied in this code
 
 **Note**: Progressive disclosure patterns (collapsible sections, nested tooltips) are documented as design principles in `spec.md` rather than implementation patterns.
 
+## Visual Patterns
+
+| Pattern                     | Description                                                                  | Reference                        |
+| --------------------------- | ---------------------------------------------------------------------------- | -------------------------------- |
+| Ghost Button                | Transparent background + dashed border; content appears on hover             | `ui-ux-guidelines.md` Buttons    |
+| Opacity Text Hierarchy      | Primary (87%), secondary (60%), muted (38%), ghost (15%) opacity levels      | `ui-ux-guidelines.md` Typography |
+| Row Density                 | `0.5rem` padding, `0.5rem` gap, `0.85rem` font; battle mode compacts further | `visual-specs/skill-row.md`      |
+| SVG Overlay Stack           | Grid(0) < whiff(5) < intents(10) < damage(20) < tooltip(1000) z-ordering     | `visual-specs/battle-viewer.md`  |
+| Contrast Outline            | White stroke behind colored stroke for SVG line visibility on any background | `visual-specs/intent-line.md`    |
+| Evaluation Status Indicator | Left `3px` border color + icon color encodes selected/rejected/skipped       | `visual-specs/skill-row.md`      |
+
 ## Adding New Patterns
 
 1. Create new file: `.docs/patterns/[pattern-name].md`

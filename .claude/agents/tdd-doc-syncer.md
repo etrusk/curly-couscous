@@ -39,6 +39,12 @@ You synchronize project documentation after successful implementation.
 3. **Document decisions** (if any)
    - Add to `.docs/decisions/index.md` with brief description
 
+4. **Update visual specs** (if task modified `.module.css` or component rendering)
+   - Update corresponding `.docs/visual-specs/*.md` with changed CSS properties, tokens, and states
+   - If a new styled component was added, create `.docs/visual-specs/[component].md`
+   - If tokens or global styles changed, update `.docs/ui-ux-guidelines.md`
+   - Update "Last verified" date on each touched spec
+
 ## Handoff Protocol
 
 1. Update documentation files

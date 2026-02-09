@@ -32,6 +32,7 @@ Before ANY planning work, you MUST read:
 4. **Architecture**: `.docs/architecture.md`
 5. **Patterns**: `.docs/patterns/index.md`
 6. **Decisions**: `.docs/decisions/index.md`
+7. **Visual design** (UI tasks): `.docs/ui-ux-guidelines.md` and relevant `.docs/visual-specs/*.md` for affected components
 
 ## Planning Protocol
 
@@ -49,6 +50,7 @@ Before finalizing any plan, verify:
 - [ ] Approach consistent with `.docs/architecture.md`
 - [ ] Patterns follow `.docs/patterns/index.md`
 - [ ] No conflicts with `.docs/decisions/index.md`
+- [ ] UI tasks: Visual values match `.docs/ui-ux-guidelines.md` and relevant `visual-specs/*.md`
 
 If misalignment found: Flag it explicitly in your output.
 

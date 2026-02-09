@@ -22,6 +22,9 @@
 - **Selector-based Subscriptions**: Zustand selectors for fine-grained re-renders
 - **Local State for UI Concerns**: Transient UI state (hover, tooltips) uses local React state, not Zustand (ADR-004)
 - **Action-Based Visual Encoding**: Intent line colors encode action type (attack/heal/move/interrupt/charge), not faction
+- **Game HUD Aesthetic**: Dense monospace UI with opacity-based text hierarchy, invisible-until-hovered controls, and color reserved for game semantics (see `.docs/ui-ux-guidelines.md`)
+- **Dark Theme Prototyping**: Only dark theme is actively developed; light and high-contrast are functional but not refined
+- **Visual Spec Workflow**: Mockup -> human approval -> LLM-readable spec extraction -> architect implementation -> human verification (see `.docs/visual-specs/`)
 
 ## Project Structure
 
@@ -84,6 +87,42 @@ The grid renders using SVG elements instead of CSS Grid (ADR-008). All rendering
 - **Event handling**: `pointer-events="all"` on Cell `<g>` elements. Hex-shaped polygon provides natural hit area. CSS `:hover` and `cursor: pointer` work on SVG elements. With two-pass rendering, token clicks do not bubble through Cell handlers (separate `<g>` elements). Empty cell clicks and BattleViewer background clicks trigger deselection in idle selection mode.
 - **Tooltip positioning**: Token's `<g>` element supports `getBoundingClientRect()` for portal tooltip anchoring (ADR-004).
 
+## Visual Design System
+
+### Token Architecture
+
+Design tokens are CSS custom properties defined in `src/styles/theme.css` on `:root`. Two token layers coexist:
+
+- **Terminal overlay tokens** (`--ground`, `--surface`, `--border`, `--text-*`, `--accent`, `--danger`, `--success`, `--radius-*`, `--font-mono`): Semantic layer for the HUD aesthetic. Used by migrated components.
+- **Legacy tokens** (`--surface-primary`, `--content-primary`, `--border-default`, etc.): Original token set. Used across all components.
+
+Both layers use `light-dark()` for theme-dependent values and `color-mix()` for derived alpha tokens.
+
+### Component Visual Standards
+
+| Property           | Standard Value                                                           | Source                    |
+| ------------------ | ------------------------------------------------------------------------ | ------------------------- |
+| Font               | `var(--font-mono)` (Fira Code / Cascadia Code / JetBrains Mono)          | `index.css`               |
+| Row height         | auto (driven by `0.5rem` padding + content)                              | SkillRow                  |
+| Row padding        | `0.5rem` (config), `0.25rem 0.5rem` (battle)                             | SkillRow                  |
+| Row gap            | `0.5rem`                                                                 | PriorityTab `.skillList`  |
+| Panel padding      | `1rem`                                                                   | CharacterPanel, controls  |
+| Panel border       | `1px solid var(--border)`                                                | CharacterPanel            |
+| Panel radius       | `var(--radius-md)` (4px)                                                 | CharacterPanel            |
+| Panel background   | `var(--surface-primary)` (#2a2a2a dark)                                  | CharacterPanel            |
+| Section background | `var(--surface-secondary)` (#1e1e1e dark)                                | Row backgrounds, headers  |
+| Select pattern     | Native `<select>` with `0.25rem 0.5rem` padding, `0.85rem` font          | SkillRow, TriggerDropdown |
+| Button pattern     | `0.5rem 1rem` padding (standard), `0.25rem 0.75rem` (action)             | Controls, SkillRowActions |
+| Border radius      | `3px` (controls), `4px`/`var(--radius-md)` (containers), `6px` (tooltip) | Throughout                |
+
+### File Locations
+
+- **Guidelines**: `.docs/ui-ux-guidelines.md` (authoritative design reference)
+- **Visual specs**: `.docs/visual-specs/*.md` (per-component specifications)
+- **Theme tokens**: `src/styles/theme.css`
+- **Root styles**: `src/index.css`
+- **App layout**: `src/App.css`
+
 ## Character Panel Architecture
 
 The CharacterPanel provides a single-view design (BattleViewer + CharacterPanel) with no tab navigation. The App uses a fixed `2fr 3fr` grid layout at all times (~40% battle viewer, ~60% character panel).
@@ -121,6 +160,9 @@ During battle phase, SkillRow shows evaluation indicators alongside config contr
 - Color palette: Okabe-Ito colorblind-safe (friendly: #0072B2, enemy: #E69F00, action-attack: #d55e00, action-heal: #009e73, action-move: #0072b2)
 - Minimum 3:1 contrast ratio on interactive elements
 - TDD workflow required per project rules
+- Dark theme only during prototype phase
+- All UI work must follow `.docs/ui-ux-guidelines.md`
+- Font: Fira Code / Cascadia Code / JetBrains Mono monospace stack only in game UI (`--font-mono`)
 
 ## Testing Guidelines
 

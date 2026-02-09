@@ -16,6 +16,32 @@ Client-side only.
 
 **Progressive disclosure:** Show minimum needed for immediate decisions, reveal depth on demand, preserve ability to override automation, always let players see why AI made each choice.
 
+### Visual Aesthetic
+
+The UI follows a dense, monospace game HUD aesthetic designed for information-rich tactical display:
+
+1. **Density over whitespace** -- Compact layouts with tight padding (0.25-0.5rem for rows, 1rem for sections) maximize visible information.
+2. **Monospace unification** -- All text uses a monospace font stack (Fira Code / Cascadia Code / JetBrains Mono) creating terminal/HUD cohesion where data alignment is natural.
+3. **Opacity-based text hierarchy** -- Visual hierarchy through opacity levels (87%/60%/38%/15%) rather than multiple font sizes.
+4. **Controls invisible until needed** -- Buttons and selects use transparent backgrounds that reveal on hover, reducing visual noise.
+5. **Color reserved for meaning** -- Base UI is achromatic; color only encodes game semantics (faction, action type, status).
+
+**Font**: Monospace stack (`--font-mono`) for all game UI. Exception: Token SVG letters use `system-ui` for rendering compatibility.
+
+**Theme**: Dark-theme-only during prototyping phase. Light and high-contrast themes are functional but not visually refined.
+
+For full design token reference, see `.docs/ui-ux-guidelines.md`. For component-specific visual specifications, see `.docs/visual-specs/`.
+
+### Visual Design Workflow
+
+1. **Prototype** -- JSX/HTML mockup created and rendered in browser
+2. **Approve** -- Human confirms visual direction
+3. **Extract** -- Convert to LLM-readable spec in `.docs/visual-specs/*.md`
+4. **Implement** -- Architect reads spec + `.docs/ui-ux-guidelines.md` + `architecture.md`
+5. **Verify** -- Human confirms in browser
+
+This workflow ensures LLM agents (who cannot evaluate visual output) have structured textual specifications to implement UI correctly.
+
 ### Progressive Disclosure Implementation
 
 Inspired by Baldur's Gate 3's nested tooltip system, the UI should layer information depth-first:
@@ -456,6 +482,10 @@ Character tokens display alphabetical letters for visual distinction, making it 
 ## UI Layout
 
 Four-panel structure:
+
+**Typography Scale**: All text uses `var(--font-mono)`. Key sizes: 16px/700 (page title), 1.1rem/600 (panel titles), 0.95rem/600 (section titles), 0.85rem (controls/battle mode), 0.75rem (badges/small). See `.docs/ui-ux-guidelines.md` for full table.
+
+**Spacing Scale**: Key values: 8px (app padding), 12px (grid gap), 1rem (panel padding/section gap), 0.5rem (row padding/list gap), 0.25rem (control gap/padding). See `.docs/ui-ux-guidelines.md` for full table.
 
 1. **Battle Viewer (~40% width):** Hexagonal grid (radius 5, 91 hexes) with tokens, intent lines, damage numbers. Hovering over character tokens displays rule evaluation tooltips. Uses CSS Grid rendering. Fixed `2fr 3fr` grid layout at all times.
 2. **CharacterPanel (~60% width):** Single-view panel (no tabs) combining skill configuration, priority ordering, and inventory. Shows a skill list with enable/disable checkboxes, trigger/target/criterion/behavior dropdowns, priority reorder buttons, unassign buttons (non-innate), and duplicate/remove buttons. An Inventory section below the skill list shows assignable skills with Assign buttons (hidden when both factions are present on the board). During active battle, evaluation indicators (selected/rejected/skipped) appear alongside config controls.

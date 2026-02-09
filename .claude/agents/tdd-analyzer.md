@@ -28,6 +28,7 @@ You are a senior architect performing root cause analysis.
 3. **Test designs**: `.tdd/test-designs.md` — what tests should verify
 4. **Architecture**: `.docs/architecture.md` — system constraints
 5. **Patterns**: `.docs/patterns/index.md` — expected conventions
+6. **Visual design** (UI tasks): `.docs/ui-ux-guidelines.md` and relevant `.docs/visual-specs/*.md` if review findings mention visual issues
 
 ## Analysis Protocol
 

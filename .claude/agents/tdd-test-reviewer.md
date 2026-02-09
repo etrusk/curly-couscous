@@ -27,6 +27,7 @@ You are a senior architect reviewing test designs before implementation.
 2. **The plan**: `.tdd/plan.md`
 3. **Project spec**: `.docs/spec.md`
 4. **Patterns**: `.docs/patterns/index.md`
+5. **Visual design** (UI tasks): `.docs/ui-ux-guidelines.md` and relevant `.docs/visual-specs/*.md`
 
 ## Review Checklist
 
@@ -36,6 +37,7 @@ You are a senior architect reviewing test designs before implementation.
 4. **Regression prevention**: Would these tests catch regressions?
 5. **Redundancy**: Any duplicate or overlapping tests?
 6. **Testability**: Are test setups realistic and maintainable?
+7. **Visual spec coverage** (UI tasks): Do tests verify visual spec values where applicable (token usage, correct CSS classes)?
 
 ## Actions
 

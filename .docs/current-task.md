@@ -22,5 +22,3 @@
 - 2026-02-09: Phase 2 browser tests + zero-rect fallback removal (COMPLETE, TDD/Claude Code) - Added 6 browser tests for Token SVG geometry and tooltip z-index stacking in BattleViewer. Extracted `calculateTooltipPosition` to `tooltip-positioning.ts`, removed zero-rect fallback from CharacterTooltip (browser tests validate real positioning). Converted 5 jsdom positioning tests to direct function calls. All 1458 tests pass (1448 unit + 10 browser), all quality gates pass.
 
 ## Next Steps
-
-- [ ] Browser test migration largely complete (30 tests across 4 phases); consider high-contrast theme or UI scale features next

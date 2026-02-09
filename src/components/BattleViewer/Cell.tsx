@@ -3,9 +3,7 @@
  * Pure presentational component with accessibility support.
  */
 
-import { Token } from "./Token";
 import { hexVertices } from "../../engine/hex";
-import type { TokenData } from "../../stores/gameStore";
 import styles from "./Cell.module.css";
 
 export interface CellProps {
@@ -14,12 +12,8 @@ export interface CellProps {
   centerX: number; // pre-computed pixel center X
   centerY: number; // pre-computed pixel center Y
   hexSize: number;
-  character?: TokenData;
   onClick?: (q: number, r: number) => void;
   isClickable?: boolean;
-  onTokenHover?: (id: string, rect: DOMRect) => void;
-  onTokenLeave?: () => void;
-  hoveredTokenId?: string;
 }
 
 export function Cell({
@@ -28,21 +22,12 @@ export function Cell({
   centerX,
   centerY,
   hexSize,
-  character,
   onClick,
   isClickable,
-  onTokenHover,
-  onTokenLeave,
-  hoveredTokenId,
 }: CellProps) {
   const handleClick = () => {
     onClick?.(q, r);
   };
-
-  const tooltipId =
-    character && hoveredTokenId === character.id
-      ? `tooltip-${character.id}`
-      : undefined;
 
   // Generate hex vertices for polygon rendering
   const vertices = hexVertices({ x: centerX, y: centerY }, hexSize);
@@ -72,20 +57,6 @@ export function Cell({
           stroke="var(--accent)"
           strokeWidth="2"
           style={{ pointerEvents: "none" }}
-        />
-      )}
-      {character && (
-        <Token
-          id={character.id}
-          faction={character.faction}
-          hp={character.hp}
-          maxHp={character.maxHp}
-          slotPosition={character.slotPosition}
-          cx={centerX}
-          cy={centerY}
-          onMouseEnter={onTokenHover}
-          onMouseLeave={onTokenLeave}
-          tooltipId={tooltipId}
         />
       )}
     </g>

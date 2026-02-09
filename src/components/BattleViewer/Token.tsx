@@ -27,12 +27,6 @@ export interface TokenProps {
   cx: number;
   /** Hex center Y in SVG coordinate space */
   cy: number;
-  /** Callback when mouse enters token */
-  onMouseEnter?: (id: string, rect: DOMRect) => void;
-  /** Callback when mouse leaves token */
-  onMouseLeave?: () => void;
-  /** Tooltip ID for aria-describedby when tooltip visible */
-  tooltipId?: string;
 }
 
 // Token size constants
@@ -53,9 +47,6 @@ export function Token({
   slotPosition,
   cx,
   cy,
-  onMouseEnter,
-  onMouseLeave,
-  tooltipId,
 }: TokenProps) {
   // Selection state and actions
   const selectedCharacterId = useGameStore(selectSelectedCharacterId);
@@ -79,16 +70,6 @@ export function Token({
       handleClick();
       e.preventDefault();
     }
-  };
-
-  // Hover handlers for tooltip
-  const handleMouseEnter = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    onMouseEnter?.(id, rect);
-  };
-
-  const handleMouseLeaveLocal = () => {
-    onMouseLeave?.();
   };
 
   // Use CSS variables for faction colors (theme-aware)
@@ -124,11 +105,8 @@ export function Token({
       data-testid={`token-${id}`}
       role="img"
       aria-label={ariaLabel}
-      aria-describedby={tooltipId}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeaveLocal}
       tabIndex={0}
       transform={transform}
     >

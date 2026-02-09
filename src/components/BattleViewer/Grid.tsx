@@ -19,9 +19,6 @@ export interface GridProps {
   characters?: TokenData[];
   onCellClick?: (q: number, r: number) => void;
   clickableCells?: Set<string>;
-  onTokenHover?: (id: string, rect: DOMRect) => void;
-  onTokenLeave?: () => void;
-  hoveredTokenId?: string;
 }
 
 export function Grid({
@@ -29,9 +26,6 @@ export function Grid({
   characters = [],
   onCellClick,
   clickableCells,
-  onTokenHover,
-  onTokenLeave,
-  hoveredTokenId,
 }: GridProps) {
   const viewBox = computeHexViewBox(hexSize);
   const allHexes = generateAllHexes();
@@ -68,8 +62,6 @@ export function Grid({
       <g>
         {characters.map((char) => {
           const center = hexToPixel(char.position, hexSize);
-          const tooltipId =
-            hoveredTokenId === char.id ? `tooltip-${char.id}` : undefined;
           return (
             <Token
               key={char.id}
@@ -80,9 +72,6 @@ export function Grid({
               slotPosition={char.slotPosition}
               cx={center.x}
               cy={center.y}
-              onMouseEnter={onTokenHover}
-              onMouseLeave={onTokenLeave}
-              tooltipId={tooltipId}
             />
           );
         })}

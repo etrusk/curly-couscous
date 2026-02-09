@@ -3,14 +3,13 @@
  * Coordinates grid rendering and overlays for intents and damage numbers.
  */
 
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { positionKey } from "../../engine/hex";
 import { Grid } from "./Grid";
 import { IntentOverlay } from "./IntentOverlay";
 import { TargetingLineOverlay } from "./TargetingLineOverlay";
 import { DamageOverlay } from "./DamageOverlay";
 import { WhiffOverlay } from "./WhiffOverlay";
-import { CharacterTooltip } from "./CharacterTooltip";
 import {
   useGameStore,
   selectTokenData,
@@ -25,11 +24,6 @@ export interface BattleViewerProps {
   hexSize?: number;
 }
 
-interface HoverState {
-  characterId: string;
-  anchorRect: DOMRect;
-}
-
 export function BattleViewer({ hexSize = 30 }: BattleViewerProps) {
   // Subscribe to token data for character rendering
   const characters = useGameStore(selectTokenData);
@@ -39,10 +33,6 @@ export function BattleViewer({ hexSize = 30 }: BattleViewerProps) {
   const selectionMode = useGameStore(selectSelectionMode);
   const selectedCharacterId = useGameStore(selectSelectedCharacterId);
   const actions = useGameStore(selectActions);
-
-  // Hover state for tooltip
-  const [hoverState, setHoverState] = useState<HoverState | null>(null);
-  const hoverTimeoutRef = useRef<number | null>(null);
 
   // Handle cell click based on selection mode
   const handleCellClick = (q: number, r: number) => {
@@ -66,32 +56,6 @@ export function BattleViewer({ hexSize = 30 }: BattleViewerProps) {
     }
   };
 
-  // Handle token hover
-  const handleTokenHover = (id: string, rect: DOMRect) => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-    setHoverState({ characterId: id, anchorRect: rect });
-  };
-
-  // Handle token leave with delay
-  const handleTokenLeave = () => {
-    hoverTimeoutRef.current = window.setTimeout(() => {
-      setHoverState(null);
-    }, 100); // 100ms delay allows moving to tooltip
-  };
-
-  // Keep tooltip open when hovering tooltip itself
-  const handleTooltipEnter = () => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-    }
-  };
-
-  const handleTooltipLeave = () => {
-    setHoverState(null);
-  };
-
   // Refs for background click detection
   const gridContainerRef = useRef<HTMLDivElement>(null);
 
@@ -112,23 +76,12 @@ export function BattleViewer({ hexSize = 30 }: BattleViewerProps) {
           characters={characters}
           onCellClick={handleCellClick}
           clickableCells={clickableCells}
-          onTokenHover={handleTokenHover}
-          onTokenLeave={handleTokenLeave}
-          hoveredTokenId={hoverState?.characterId}
         />
         <WhiffOverlay hexSize={hexSize} />
         <IntentOverlay hexSize={hexSize} />
         <TargetingLineOverlay hexSize={hexSize} />
         <DamageOverlay hexSize={hexSize} />
       </div>
-      {hoverState && (
-        <CharacterTooltip
-          characterId={hoverState.characterId}
-          anchorRect={hoverState.anchorRect}
-          onMouseEnter={handleTooltipEnter}
-          onMouseLeave={handleTooltipLeave}
-        />
-      )}
     </div>
   );
 }

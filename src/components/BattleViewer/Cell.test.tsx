@@ -166,34 +166,4 @@ describe("Cell - SVG Hex Rendering", () => {
     expect(handleClick).toHaveBeenCalledTimes(1);
     expect(handleClick).toHaveBeenCalledWith(1, -1);
   });
-
-  it("renders token when character is provided", () => {
-    const character = {
-      id: "c1",
-      faction: "friendly" as const,
-      hp: 100,
-      maxHp: 100,
-      position: { q: 0, r: 0 },
-      slotPosition: 1,
-    };
-
-    renderCell({
-      q: 0,
-      r: 0,
-      centerX: 0,
-      centerY: 0,
-      hexSize: 30,
-      character,
-    });
-
-    const token = screen.getByTestId("token-c1");
-    expect(token).toBeInTheDocument();
-  });
-
-  it("does not render token when no character", () => {
-    renderCell({ q: 0, r: 0, centerX: 0, centerY: 0, hexSize: 30 });
-
-    const token = screen.queryByTestId(/token-/);
-    expect(token).not.toBeInTheDocument();
-  });
 });

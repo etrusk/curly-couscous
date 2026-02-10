@@ -603,4 +603,85 @@ describe("SkillRow", () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe("Field Labels", () => {
+    const renderConfigMode = () => {
+      const skill = createSkill({ id: "light-punch", name: "Light Punch" });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+      return render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          index={0}
+          isFirst={false}
+          isLast={false}
+        />,
+      );
+    };
+
+    it("shows TRIGGER label in config mode", () => {
+      renderConfigMode();
+      expect(screen.getByText("TRIGGER")).toBeInTheDocument();
+    });
+
+    it("shows TARGET label in config mode", () => {
+      renderConfigMode();
+      expect(screen.getByText("TARGET")).toBeInTheDocument();
+    });
+
+    it("shows SELECTOR label in config mode", () => {
+      renderConfigMode();
+      expect(screen.getByText("SELECTOR")).toBeInTheDocument();
+    });
+
+    it("shows FILTER label in config mode", () => {
+      renderConfigMode();
+      expect(screen.getByText("FILTER")).toBeInTheDocument();
+    });
+
+    it("shows all four labels in battle mode", () => {
+      const skill = createSkill({ id: "light-punch", name: "Light Punch" });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          index={0}
+          isFirst={false}
+          isLast={false}
+          evaluation={{ status: "selected", resolvedTarget: undefined }}
+        />,
+      );
+
+      expect(screen.getByText("TRIGGER")).toBeInTheDocument();
+      expect(screen.getByText("TARGET")).toBeInTheDocument();
+      expect(screen.getByText("SELECTOR")).toBeInTheDocument();
+      expect(screen.getByText("FILTER")).toBeInTheDocument();
+    });
+
+    it("does not show label for behavior select", () => {
+      const skill = createSkill({
+        id: "move-towards",
+        name: "Move",
+        behavior: "towards",
+      });
+      const character = createCharacter({ id: "char1", skills: [skill] });
+
+      render(
+        <SkillRow
+          skill={skill}
+          character={character}
+          index={0}
+          isFirst={false}
+          isLast={false}
+        />,
+      );
+
+      // Precondition: behavior select IS rendered
+      expect(screen.getByLabelText(/behavior.*move/i)).toBeInTheDocument();
+      // No BEHAVIOR label should exist
+      expect(screen.queryByText("BEHAVIOR")).not.toBeInTheDocument();
+    });
+  });
 });

@@ -242,3 +242,22 @@
 .onCooldown {
   opacity: 0.6;
 }
+
+.fieldGroup {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.fieldLabel {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.battleMode .fieldLabel {
+  font-size: 0.55rem;
+}

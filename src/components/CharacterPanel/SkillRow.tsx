@@ -224,75 +224,87 @@ export function SkillRow({
         </span>
       )}
 
-      <div className={styles.triggerGroup}>
-        <TriggerDropdown
-          trigger={skill.trigger}
-          skillName={skill.name}
-          triggerIndex={0}
-          onTriggerChange={handleTriggerUpdate}
-        />
+      <div className={styles.fieldGroup}>
+        <span className={styles.fieldLabel}>TRIGGER</span>
+        <div className={styles.triggerGroup}>
+          <TriggerDropdown
+            trigger={skill.trigger}
+            skillName={skill.name}
+            triggerIndex={0}
+            onTriggerChange={handleTriggerUpdate}
+          />
+        </div>
       </div>
 
-      <select
-        value={skill.target}
-        onChange={handleTargetChange}
-        className={styles.select}
-        aria-label={`Target for ${skill.name}`}
-      >
-        <option value="enemy">Enemy</option>
-        <option value="ally">Ally</option>
-        <option value="self">Self</option>
-      </select>
-
-      <select
-        value={skill.criterion}
-        onChange={handleCriterionChange}
-        disabled={skill.target === "self"}
-        className={styles.select}
-        aria-label={`Criterion for ${skill.name}`}
-      >
-        <option value="nearest">Nearest</option>
-        <option value="furthest">Furthest</option>
-        <option value="lowest_hp">Lowest HP</option>
-        <option value="highest_hp">Highest HP</option>
-        <option value="most_enemies_nearby">Most Enemies Nearby</option>
-      </select>
-
-      {skill.filter ? (
-        <span className={styles.filterGroup}>
-          <select
-            value={skill.filter.condition}
-            onChange={handleFilterTypeChange}
-            className={styles.select}
-            aria-label={`Filter type for ${skill.name}`}
-          >
-            <option value="hp_below">HP below</option>
-            <option value="hp_above">HP above</option>
-          </select>
-          <input
-            type="number"
-            defaultValue={skill.filter.conditionValue}
-            onChange={handleFilterValueChange}
-            className={styles.input}
-            aria-label={`Filter value for ${skill.name}`}
-          />
-          <button
-            onClick={handleRemoveFilter}
-            className={styles.removeFilterBtn}
-            aria-label={`Remove filter for ${skill.name}`}
-          >
-            x
-          </button>
-        </span>
-      ) : (
-        <button
-          onClick={handleAddFilter}
-          className={styles.addFilterBtn}
-          aria-label={`Add filter for ${skill.name}`}
+      <div className={styles.fieldGroup}>
+        <span className={styles.fieldLabel}>TARGET</span>
+        <select
+          value={skill.target}
+          onChange={handleTargetChange}
+          className={styles.select}
+          aria-label={`Target for ${skill.name}`}
         >
-          + Filter
-        </button>
-      )}
+          <option value="enemy">Enemy</option>
+          <option value="ally">Ally</option>
+          <option value="self">Self</option>
+        </select>
+      </div>
+
+      <div className={styles.fieldGroup}>
+        <span className={styles.fieldLabel}>SELECTOR</span>
+        <select
+          value={skill.criterion}
+          onChange={handleCriterionChange}
+          disabled={skill.target === "self"}
+          className={styles.select}
+          aria-label={`Criterion for ${skill.name}`}
+        >
+          <option value="nearest">Nearest</option>
+          <option value="furthest">Furthest</option>
+          <option value="lowest_hp">Lowest HP</option>
+          <option value="highest_hp">Highest HP</option>
+          <option value="most_enemies_nearby">Most Enemies Nearby</option>
+        </select>
+      </div>
+
+      <div className={styles.fieldGroup}>
+        <span className={styles.fieldLabel}>FILTER</span>
+        {skill.filter ? (
+          <span className={styles.filterGroup}>
+            <select
+              value={skill.filter.condition}
+              onChange={handleFilterTypeChange}
+              className={styles.select}
+              aria-label={`Filter type for ${skill.name}`}
+            >
+              <option value="hp_below">HP below</option>
+              <option value="hp_above">HP above</option>
+            </select>
+            <input
+              type="number"
+              defaultValue={skill.filter.conditionValue}
+              onChange={handleFilterValueChange}
+              className={styles.input}
+              aria-label={`Filter value for ${skill.name}`}
+            />
+            <button
+              onClick={handleRemoveFilter}
+              className={styles.removeFilterBtn}
+              aria-label={`Remove filter for ${skill.name}`}
+            >
+              x
+            </button>
+          </span>
+        ) : (
+          <button
+            onClick={handleAddFilter}
+            className={styles.addFilterBtn}
+            aria-label={`Add filter for ${skill.name}`}
+          >
+            + Filter
+          </button>
+        )}
+      </div>
 
       {skillDef && skillDef.behaviors.length > 1 && (
         <select

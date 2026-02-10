@@ -1,7 +1,7 @@
 # SkillRow Visual Specification
 
 > Extracted from: `src/components/CharacterPanel/SkillRow.tsx` + `SkillRow.module.css`
-> Last verified: 2026-02-09
+> Last verified: 2026-02-10
 
 ## Overview
 
@@ -46,27 +46,27 @@ SkillRow displays a single skill in a character's priority list. It has two visu
 - Cooldown badge inline: `0.75rem`, color `var(--text-muted)`, margin-left `0.5em`, weight normal
 - **Tooltip on hover/focus**: Wrapped in `SkillNameWithTooltip` component. Shows portal-rendered tooltip with skill stats (action type, tick cost, range, plus optional damage/healing/distance/cooldown/behaviors). 150ms appear delay, immediate dismiss. Positioned below by default, flips above if insufficient space. See `patterns/portal-tooltip-positioning.md`.
 
-### 5. Trigger Group (auto width, flex)
+### 5. Trigger Group (auto width, flex) -- wrapped in `.fieldGroup` with "TRIGGER" label
 
 - Container: `display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap`
 - Contains TriggerDropdown component(s)
 - AND label between triggers: `0.75rem`, weight `600`, `--text-secondary`, uppercase
 - Add trigger button: ghost button style (dashed border)
 
-### 6. Target Select (auto width, fixed)
+### 6. Target Select (auto width, fixed) -- wrapped in `.fieldGroup` with "TARGET" label
 
 - Standard select: `0.25rem 0.5rem` padding, `0.85rem` font, `1px solid var(--border)`, background `var(--surface-primary)`, border-radius `3px`
 
-### 7. Criterion Select (auto width, fixed)
+### 7. Criterion Select (auto width, fixed) -- wrapped in `.fieldGroup` with "SELECTOR" label
 
 - Same styling as Target select
 
-### 8. Behavior Select (auto width, conditional)
+### 8. Behavior Select (auto width, conditional) -- NOT wrapped in `.fieldGroup`
 
 - Same styling as Target select
 - Only rendered when skill has multiple behaviors
 
-### 9. Filter Group (auto width, conditional)
+### 9. Filter Group (auto width, conditional) -- wrapped in `.fieldGroup` with "FILTER" label
 
 - Container: `display: inline-flex; align-items: center; gap: 0.25rem`
 - Contains filter condition select + value input when filter exists
@@ -89,6 +89,40 @@ SkillRow displays a single skill in a character's priority list. It has two visu
 - All: `0.25rem 0.75rem` padding, `0.85rem` font, `1px solid var(--border)`, background `var(--surface-hover)`, border-radius `3px`
 - Remove hover: `--health-low` background, `--text-on-faction` color
 - Unassign hover: `brightness(1.1)` filter
+
+## Field Labels
+
+Each of four control groups (Trigger, Target, Criterion, Filter) is wrapped in a `.fieldGroup` container with a `.fieldLabel` above it.
+
+### Layout
+
+- `.fieldGroup`: `display: inline-flex; flex-direction: column; align-items: flex-start`
+- `.fieldLabel`: Above the control(s), stacked vertically
+
+### Typography
+
+- Font-size: `0.6rem` (config) / `0.55rem` (battle)
+- Font-weight: `600`
+- Color: `var(--text-secondary)`
+- Text-transform: `uppercase`
+- Letter-spacing: `0.05em`
+- Line-height: `1`
+
+### Labels
+
+| Label    | Wraps                                       |
+| -------- | ------------------------------------------- |
+| TRIGGER  | `.triggerGroup` (TriggerDropdown)           |
+| TARGET   | Target `<select>` (Enemy/Ally/Self)         |
+| SELECTOR | Criterion `<select>` (Nearest/Furthest/...) |
+| FILTER   | Filter group or "+ Filter" button           |
+
+### Notes
+
+- Behavior select does NOT get a label
+- Labels are unconditionally visible (not hover-revealed)
+- Labels have no impact on existing `aria-label` attributes
+- In disabled/skipped states, labels inherit the row's dimming (opacity 0.6)
 
 ## States
 
@@ -128,6 +162,7 @@ SkillRow displays a single skill in a character's priority list. It has two visu
 | Target display color  | `--accent-primary`    | `#00a8ff`                |
 | Rejection color       | `--health-low`        | `#f44336`                |
 | Cooldown badge color  | `--text-muted`        | `rgba(255,255,255,0.38)` |
+| Field label color     | `--text-secondary`    | `rgba(255,255,255,0.6)`  |
 
 ## Accessibility
 

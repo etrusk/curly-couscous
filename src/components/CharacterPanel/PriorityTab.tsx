@@ -10,6 +10,7 @@ import { MAX_SKILL_SLOTS } from "../../stores/gameStore-constants";
 import { evaluateSkillsForCharacter } from "../../engine/game";
 import { SKILL_REGISTRY } from "../../engine/skill-registry";
 import { SkillRow } from "./SkillRow";
+import { SkillNameWithTooltip } from "./SkillNameWithTooltip";
 import styles from "./PriorityTab.module.css";
 
 type EvalEntry = {
@@ -97,7 +98,11 @@ export function PriorityTab() {
         <div className={styles.inventoryList}>
           {availableSkills.map((skillDef) => (
             <div key={skillDef.id} className={styles.inventoryRow}>
-              <span className={styles.skillName}>{skillDef.name}</span>
+              <span className={styles.skillName}>
+                <SkillNameWithTooltip skillId={skillDef.id}>
+                  {skillDef.name}
+                </SkillNameWithTooltip>
+              </span>
               <button
                 onClick={() => handleAssign(skillDef.id)}
                 disabled={!canAssign}

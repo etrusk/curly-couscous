@@ -55,6 +55,7 @@ PriorityTab renders inside CharacterPanel's content area. It displays the charac
 
 - Color: `var(--text-primary)`
 - Font: `0.9rem`
+- **Tooltip on hover/focus**: Wrapped in `SkillNameWithTooltip` component. Shows portal-rendered tooltip with skill stats from the registry. Same behavior as SkillRow skill name tooltips. See `patterns/portal-tooltip-positioning.md`.
 
 ##### Assign Button (fixed)
 

@@ -13,6 +13,7 @@ import { MAX_SKILL_SLOTS } from "../../stores/gameStore-constants";
 import { getSkillDefinition } from "../../engine/skill-registry";
 import { TriggerDropdown } from "./TriggerDropdown";
 import { SkillRowActions } from "./SkillRowActions";
+import { SkillNameWithTooltip } from "./SkillNameWithTooltip";
 import styles from "./SkillRow.module.css";
 
 interface SkillRowProps {
@@ -185,7 +186,11 @@ export function SkillRow({
         </button>
       </div>
 
-      <h3 className={styles.skillName}>{skill.name}</h3>
+      <h3 className={styles.skillName}>
+        <SkillNameWithTooltip skillId={skill.id}>
+          {skill.name}
+        </SkillNameWithTooltip>
+      </h3>
       {skill.cooldownRemaining != null && skill.cooldownRemaining > 0 && (
         <span className={styles.cooldownBadge}>
           CD: {skill.cooldownRemaining}

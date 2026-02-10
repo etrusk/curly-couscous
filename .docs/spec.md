@@ -51,6 +51,7 @@ Inspired by Baldur's Gate 3's nested tooltip system, the UI should layer informa
 **Level 2 - On-demand detail:** Additional context revealed through interaction:
 
 - Collapsed sections for secondary information (e.g., "Show 8 more skill evaluations")
+- Skill name tooltips showing registry stats (action type, tick cost, range, damage/healing/distance/cooldown/behaviors) on hover/focus
 - Nested tooltips for rule explanations
 - Expandable decision chains showing AI reasoning
 
@@ -514,7 +515,7 @@ The Inventory section is rendered within PriorityTab below the skill list in con
 
 **Skill list items show:**
 
-- Skill name
+- Skill name (with hover/focus tooltip showing skill stats from the registry)
 - "Assign" button (disabled when character has MAX_SKILL_SLOTS skills)
 
 **Filtering:** The inventory only shows non-innate skills that are not assigned to any character of the selected character's faction. Skills assigned to characters of the opposite faction are still shown. To unassign a skill, use the "Unassign" button on the SkillRow.

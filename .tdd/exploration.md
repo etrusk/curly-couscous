@@ -2,124 +2,186 @@
 
 ## Task Understanding
 
-Phase 4 of the browser test migration: identify SVG marker elements and remaining DOM-dependent component behaviors that would benefit from real browser testing (Vitest Browser Mode + Playwright). The project currently has 22 browser tests across 4 files from Phases 1-3. This phase targets SVG `<marker>` rendering (jsdom does not render SVG markers at all) and any other DOM-dependent behaviors not yet covered.
+Add hover/focus tooltips on skill names that display all relevant stats from the skill registry. A shared `SkillNameWithTooltip` component will be used in both SkillRow (priority list) and PriorityTab (inventory section). The tooltip shows action type, tick cost, range, and conditionally: damage, healing, distance, cooldown, and behaviors. Portal rendering is required to escape `overflow-y: auto` clipping. This implements progressive disclosure Level 2 ("on-demand detail").
 
 ## Relevant Files
 
-### SVG Marker Definitions and Usage
+### Source Files to Modify
 
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay.tsx` - Defines 4 SVG `<marker>` elements in `<defs>` (lines 113-219): `arrowhead-attack`, `cross-heal`, `circle-friendly`, `diamond-enemy`. Each marker uses a two-layer rendering pattern (white contrast outline behind colored main shape) with CSS variables for colors (`--action-attack`, `--action-heal`, `--action-move`, `--contrast-line`).
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentLine.tsx` - Applies `marker-end` attribute on lines via `getMarkerEnd()` function (line 74). Maps action types to marker IDs: attack/interrupt/charge -> `arrowhead-attack`, heal -> `cross-heal`, move -> `circle-friendly` or `diamond-enemy` by faction.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay.module.css` - Positions overlay with `position: absolute`, `z-index: 10`, `pointer-events: none`.
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.tsx` - Line 188: `<h3 className={styles.skillName}>{skill.name}</h3>` must be replaced with `<SkillNameWithTooltip>`. Also uses `skill.id` (line 44) to call `getSkillDefinition(skill.id)` -- same pattern the tooltip component will use.
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab.tsx` - Line 100: `<span className={styles.skillName}>{skillDef.name}</span>` must be replaced with `<SkillNameWithTooltip>`. Has direct access to `skillDef.id` in the inventory `.map()`.
 
-### SVG Pattern Definitions (Token)
+### Source Files to Create
 
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.tsx` - Defines per-character `<pattern>` elements for enemy diagonal stripes (lines 138-156). Pattern ID uses character ID for uniqueness: `stripe-enemy-${id}`. Referenced via `fill="url(#stripe-enemy-${id})"` on enemy diamond `<path>`.
+- `src/components/CharacterPanel/SkillNameWithTooltip.tsx` - New shared component
+- `src/components/CharacterPanel/SkillNameWithTooltip.module.css` - New CSS module for tooltip styling
 
-### Components with DOM-Dependent Behaviors
+### Test Files to Create
 
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.tsx` - `getBoundingClientRect()` on mouse enter (line 86) for tooltip anchor positioning. Also has `:hover .shape` CSS with `brightness(1.1)` filter effect.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.tsx` - `useLayoutEffect` with `getBoundingClientRect()` (line 212) for tooltip size measurement. Fade-in animation via CSS `@keyframes fadeIn` (150ms).
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/tooltip-positioning.ts` - Uses `window.innerWidth` and `window.innerHeight` for viewport-aware positioning.
-- `/home/bob/Projects/auto-battler/src/stores/accessibilityStore.ts` - `window.matchMedia("(prefers-color-scheme: light)")` for system theme detection (line 46). Listener for system preference changes (line 127).
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.tsx` - `useRef` for hover timeout (line 45) and grid container ref for background click detection (line 96). Hover-to-tooltip flow with 100ms leave delay (line 81).
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/WhiffOverlay.tsx` - Uses `color-mix()` inline in SVG `fill` attribute (line 39): `color-mix(in srgb, ${fillColor} 20%, transparent)`. This is a CSS function applied directly on an SVG attribute, which jsdom cannot resolve.
+- `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx` - Unit tests for the new component (12 tests per requirements)
 
-### Existing Browser Tests (Already Covered)
+### Existing Test Files That May Need Updates
 
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.browser.test.tsx` - Phase 1: 4 tests for real getBoundingClientRect, tooltip dimensions, positioning, viewport flip.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/BattleViewer.browser.test.tsx` - Phase 2: 6 tests for token SVG geometry (non-zero bounding rects, position-dependent layout, hover-to-tooltip flow) and tooltip z-index stacking.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.browser.test.tsx` - Phase 3: 5 tests for selection glow drop-shadow, animation properties, focus-visible filter, HP bar width.
-- `/home/bob/Projects/auto-battler/src/styles/theme.browser.test.tsx` - Phase 3: 7 tests for light-dark() resolution, color-mix(), theme switching, CSS cascade.
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.test.tsx` - Tests reference skill names via `screen.getByText(/heavy punch/i)` etc. These should still work since `SkillNameWithTooltip` renders the name as children. However, tests that use `.closest("div")` to find the SkillRow container (lines 135, 453, 475, 504) may be affected if the wrapping element changes.
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab-inventory.test.tsx` - References skill names in inventory (e.g., `screen.getByText(/light punch/i)` on line 36). Should still work.
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab-config.test.tsx` - May reference skill names.
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab-battle.test.tsx` - May reference skill names.
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab-evaluation.test.tsx` - May reference skill names.
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow-actions.test.tsx` - May reference skill names.
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow-filter.test.tsx` - May reference skill names.
 
-### Existing Unit Tests for Markers (jsdom - attribute-only)
+### Reference Files (Read-only Context)
 
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentLine.test.tsx` - Tests `marker-end` attribute values (e.g., `url(#arrowhead-attack)`).
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentLine-action-colors.test.tsx` - Tests marker-end attribute per action type.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentLine-accessibility.test.tsx` - Tests outline line has no marker-end.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay-rendering.test.tsx` - Tests marker-end attribute on rendered intent lines.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/IntentOverlay-subscription.test.tsx` - Tests marker attribute values via subscription.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/TargetingLine.test.tsx` - Tests that targeting lines have NO marker-end/marker-start.
+- `/home/bob/Projects/auto-battler/src/engine/skill-registry.ts` - `SkillDefinition` type and `getSkillDefinition()` function
+- `/home/bob/Projects/auto-battler/src/styles/theme.css` - CSS custom properties for tooltip styling
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/CharacterPanel.module.css` - Confirms `.content` has `overflow-y: auto` (line 41), which necessitates portal rendering
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css` - Existing `.skillName` class (line 86-90): `font-weight: 500; color: var(--text-primary); min-width: 100px`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/PriorityTab.module.css` - Existing `.skillName` class (line 49-53): `flex: 1; color: var(--text-primary); font-size: 0.9rem`
 
-### CSS Files with Animations/Transitions (Potentially Testable)
+## Skill Registry Shape
 
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/CharacterTooltip.module.css` - `@keyframes fadeIn` (150ms ease-out), tooltip opacity animation.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Token.module.css` - `@keyframes selectionPulse` (2s ease-in-out infinite) [COVERED in Phase 3], `.shape` transition (opacity 0.2s), `.hpBarFill` transition (width 0.3s), `:hover .shape` brightness filter.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/Cell.module.css` - `.hexagon` transition (fill 0.15s), `:hover` fill change, high-contrast stroke-width override.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/TargetingLine.module.css` - Opacity transition (0.2s ease).
+The `SkillDefinition` interface (from `src/engine/skill-registry.ts`, lines 32-58):
 
-### Test Infrastructure
+```typescript
+export interface SkillDefinition {
+  id: string;
+  name: string;
+  actionType: "attack" | "move" | "heal" | "interrupt" | "charge";
+  tickCost: number;
+  range: number;
+  damage?: number;        // Optional -- only attack/charge skills
+  healing?: number;       // Optional -- only heal skill
+  distance?: number;      // Optional -- only move/dash/charge skills
+  behaviors: string[];    // Available behaviors (empty for most skills, ["towards","away"] for Move/Dash)
+  defaultBehavior: string;
+  innate: boolean;
+  defaultTarget: Target;
+  defaultCriterion: Criterion;
+  targetingMode: "cell" | "character";
+  cooldown?: number;      // Optional cooldown ticks after use
+  defaultTrigger?: { ... };
+  defaultFilter?: { ... };
+}
+```
 
-- `/home/bob/Projects/auto-battler/src/test/setup.browser.ts` - Minimal browser setup (cleanup only, no matchMedia mock needed).
-- `/home/bob/Projects/auto-battler/src/components/RuleEvaluations/rule-evaluations-test-helpers.ts` - `createCharacter()` and `createTarget()` helpers used by all browser tests.
+The tooltip should display: `actionType`, `tickCost`, `range`, and conditionally: `damage`, `healing`, `distance`, `cooldown`, `behaviors` (when non-empty array). `innate`, `defaultTarget`, `defaultCriterion`, `defaultBehavior`, `targetingMode`, `defaultTrigger`, `defaultFilter` are NOT shown.
+
+`getSkillDefinition(id: string): SkillDefinition | undefined` -- looks up by `id` string. Returns `undefined` for unknown IDs.
+
+### Skill Examples for Test Cases
+
+| Skill         | actionType | tickCost | range | damage | healing | distance | cooldown | behaviors          |
+| ------------- | ---------- | -------- | ----- | ------ | ------- | -------- | -------- | ------------------ |
+| Light Punch   | attack     | 0        | 1     | 10     | -       | -        | -        | []                 |
+| Heavy Punch   | attack     | 2        | 2     | 25     | -       | -        | 3        | []                 |
+| Move          | move       | 1        | 1     | -      | -       | 1        | 1        | ["towards","away"] |
+| Heal          | heal       | 2        | 5     | -      | 25      | -        | -        | []                 |
+| Ranged Attack | attack     | 1        | 4     | 15     | -       | -        | 2        | []                 |
+| Dash          | move       | 0        | 1     | -      | -       | 2        | 3        | ["towards","away"] |
+| Kick          | interrupt  | 0        | 1     | 0      | -       | -        | 4        | []                 |
+| Charge        | charge     | 1        | 3     | 20     | -       | 3        | 3        | []                 |
 
 ## Existing Patterns
 
-- **CSS Variable Probe Element** (`/home/bob/Projects/auto-battler/.docs/patterns/css-variable-probe-element.md`) - Technique for resolving CSS custom properties in browser tests by creating a temporary probe element with `background-color: var(--prop)` and reading `getComputedStyle(probe).backgroundColor`. Already used in theme.browser.test.tsx.
-- **Browser Test Convention** (ADR-022) - `.browser.test.tsx` suffix, co-located with components. Two-project Vitest workspace (unit + browser).
-- **Two-Layer SVG Rendering** - All markers and intent lines use a contrast outline layer behind the main colored layer. This is the same pattern used by Token (contrast stroke behind faction fill) and TargetingLine (contrast outline behind targeting line).
+### Portal Tooltip Positioning (from CharacterTooltip, removed in commit 7a4db95)
+
+The previous CharacterTooltip used:
+
+- `createPortal(tooltipContent, document.body)` for portal rendering
+- `position: fixed` with `z-index: 1000`
+- `useLayoutEffect` for flicker-free positioning after render
+- `calculateTooltipPosition(anchorRect, tooltipWidth, tooltipHeight)` extracted to separate file
+- Constants: `OFFSET = 12` (gap), `MARGIN = 8` (viewport edge margin)
+- Leave delay: 100ms `setTimeout` (for interactive tooltips only -- the new tooltip is non-interactive, so no leave delay needed)
+- `role="tooltip"` with `id` linked to trigger's `aria-describedby`
+- Entry animation: `fadeIn 150ms ease-out` (opacity 0 to 1)
+
+### Tooltip CSS Tokens (from CharacterTooltip.module.css)
+
+```css
+.tooltip {
+  position: fixed;
+  z-index: 1000;
+  min-width: 280px;
+  max-width: 320px;
+  background-color: var(--surface-primary);
+  border: 2px solid var(--border-default);
+  border-radius: 6px; /* matches var(--radius-lg) */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  opacity: 0;
+  animation: fadeIn 150ms ease-out forwards;
+}
+```
+
+For the new skill tooltip, differences from CharacterTooltip:
+
+- **Smaller**: stat-only content needs less width (no skill priority list)
+- **Non-interactive**: `pointer-events: none` (no hover-on-tooltip)
+- **Positioned below/above**: not right/left of anchor
+- **150ms appear delay**: mouseenter starts timer, mouseleave clears it
+- **No leave delay**: disappears immediately on mouse leave
+
+### CSS Module Pattern
+
+All components use CSS Modules (`.module.css`). Import as `import styles from "./Component.module.css"` and apply as `className={styles.className}`.
+
+### Component Test Pattern
+
+Tests use React Testing Library with:
+
+- `import { render, screen } from "@testing-library/react"`
+- `import userEvent from "@testing-library/user-event"`
+- `createSkill()` and `createCharacter()` from `src/engine/game-test-helpers.ts`
+- Direct store manipulation: `useGameStore.getState().actions.initBattle([...])`
+- Assertions: `screen.getByRole("tooltip")`, `screen.queryByRole("tooltip")` for presence/absence
+- `vi.useFakeTimers()` for delay testing (150ms appear delay needs fake timers)
+- `waitFor()` or `act()` for async state updates after timer fires
+
+### Key Test Helper: `createSkill`
+
+From `src/engine/game-test-helpers.ts` (line 47):
+
+```typescript
+export function createSkill(overrides: Partial<Skill> & { id: string }): Skill;
+```
+
+Requires `id` field, defaults everything else. For tooltip tests, need `id` matching a registry entry (e.g., `"light-punch"`, `"heal"`, `"move-towards"`) so `getSkillDefinition()` returns data.
 
 ## Dependencies
 
-- **Vitest Browser Mode + Playwright/Chromium** - Already configured in `vite.config.ts`.
-- **`createCharacter` / `createTarget` helpers** - For setting up game state in browser tests.
-- **Theme CSS import** - Browser tests that test CSS variable resolution need `import "../../styles/theme.css"`.
-- **IntentOverlay requires game state with pending actions** - To render intent lines with markers, tests need characters with wind-up skills in progress (e.g., after `nextTick()` with characters that have valid attack/heal/move targets).
+- `getSkillDefinition()` from `src/engine/skill-registry.ts` -- core data source
+- `createPortal` from `react-dom` -- portal rendering
+- `useLayoutEffect`, `useRef`, `useState` from `react` -- positioning logic
+- CSS custom properties from `src/styles/theme.css` -- styling tokens
+- `SkillRow` and `PriorityTab` -- consumption sites for the new component
 
 ## Constraints Discovered
 
-1. **jsdom limitation with SVG markers**: jsdom parses `<marker>` elements and `marker-end` attributes as DOM attributes but does not render them visually. Existing unit tests only verify attribute strings (e.g., `toHaveAttribute("marker-end", "url(#arrowhead-attack)")`). Real SVG marker rendering (geometry, fill color resolution, orientation) requires a browser.
+1. **Portal rendering is mandatory**: `CharacterPanel .content` (line 41 of `CharacterPanel.module.css`) uses `overflow-y: auto`, which clips absolutely positioned children. The outer `.panel` also has `overflow: hidden` (line 12). Both ancestors clip tooltips.
 
-2. **jsdom limitation with SVG `<pattern>` fill**: The enemy token diagonal stripe pattern (`<pattern>` with `patternTransform="rotate(45)"`) is defined as SVG but never tested for visual rendering. jsdom cannot validate pattern rendering.
+2. **SkillRow renders name as `<h3>`**: Line 188 of SkillRow.tsx: `<h3 className={styles.skillName}>{skill.name}</h3>`. The `SkillNameWithTooltip` component needs to either render as an `<h3>` or be wrapped in one. The `<h3>` tag is semantic for skill name within the list. The new component should accept a `className` prop and an element type or just render a `<span>` and let SkillRow keep the `<h3>` wrapper.
 
-3. **jsdom limitation with inline `color-mix()`**: WhiffOverlay uses `color-mix(in srgb, ${fillColor} 20%, transparent)` directly in SVG fill attributes. jsdom does not resolve this CSS function.
+3. **PriorityTab renders name as `<span>`**: Line 100 of PriorityTab.tsx: `<span className={styles.skillName}>{skillDef.name}</span>`. Different element than SkillRow. The shared component needs flexibility.
 
-4. **CSS variable resolution in SVG markers**: Markers use CSS variables (`--action-attack`, `--action-heal`, `--action-move`, `--contrast-line`). jsdom cannot verify that these resolve to actual colors within SVG `<marker>` elements.
+4. **Existing `.skillName` CSS classes differ**: SkillRow's `.skillName` has `min-width: 100px; font-weight: 500` while PriorityTab's has `flex: 1; font-size: 0.9rem`. The shared component should accept a `className` prop to preserve site-specific styling.
 
-5. **`markerUnits="userSpaceOnUse"`**: All 4 markers use `userSpaceOnUse` (fixed pixel dimensions independent of stroke-width). Browser tests can validate that marker dimensions are consistent regardless of the line's stroke width.
+5. **`skillId` vs full `SkillDefinition`**: SkillRow has `skill.id` available (from the `Skill` instance). PriorityTab inventory has `skillDef.id` available (from `SKILL_REGISTRY` iteration). Both provide the `id` string needed for `getSkillDefinition()`.
 
-6. **Marker `overflow="visible"`**: All markers have `overflow="visible"`, allowing marker content to extend beyond the marker box. This is a rendering detail only verifiable in a browser.
+6. **Kick has `damage: 0`**: The Kick skill definition includes `damage: 0`. The tooltip should probably omit damage when it's 0 (same as absent), or show it as "0". The requirements say "only present optional stats" -- `damage: 0` is technically present. This is an edge case to clarify. Convention should match what's useful: showing "Damage: 0" for Kick is informative (it confirms the skill does no damage despite being interrupt type).
 
-7. **CharacterTooltip fadeIn animation**: The tooltip has a 150ms fade-in animation (`opacity: 0` to `opacity: 1`). This could be tested in browser mode but the timing might make assertions flaky without waiting.
+7. **CharacterTooltip was removed**: The previous tooltip implementation was removed in commit `7a4db95`. The pattern documentation (`.docs/patterns/portal-tooltip-positioning.md`) and visual spec (`.docs/visual-specs/character-tooltip.md`) still exist as reference, but no live tooltip code exists in the codebase.
 
-## Recommended Test Candidates (Ranked by Value)
-
-### Tier 1 - High Value (SVG markers - primary Phase 4 target)
-
-1. **SVG marker `<defs>` existence and structure in rendered DOM** - Verify that the 4 marker definitions (`arrowhead-attack`, `cross-heal`, `circle-friendly`, `diamond-enemy`) exist in the rendered SVG with correct child elements (polygon, path, circle). While jsdom preserves DOM structure, browser rendering validates the markers are properly attached and queryable in a real SVG context.
-
-2. **SVG marker CSS variable color resolution** - Use probe elements or `getComputedStyle` to verify that `--action-attack` (vermillion), `--action-heal` (green), `--action-move` (blue), and `--contrast-line` (white) resolve to correct color values within the marker context. This is the key gap: jsdom unit tests verify attribute strings but not color resolution.
-
-3. **IntentLine with rendered markers has non-zero marker bounding geometry** - Render an IntentOverlay with active intents and verify that intent lines with `marker-end` produce SVG content with non-zero visual extent. This validates the full marker rendering pipeline.
-
-4. **Marker type correctness per action type** - Render intent lines for attack, heal, and move actions and verify the correct marker shape is rendered (arrowhead polygon for attack, cross path for heal, circle/diamond for move).
-
-### Tier 2 - Medium Value (SVG patterns and other DOM behaviors)
-
-5. **Enemy token diagonal stripe pattern rendering** - Verify that enemy tokens' `<pattern>` element with `patternTransform="rotate(45)"` produces a valid fill. The `url(#stripe-enemy-${id})` fill reference could be validated to resolve in a real browser context.
-
-6. **WhiffOverlay inline `color-mix()` resolution** - Verify that the whiff indicator's `color-mix(in srgb, var(--action-attack) 20%, transparent)` fill produces a semi-transparent color (not raw CSS function text).
-
-7. **CharacterTooltip fade-in animation** - Verify the tooltip's `@keyframes fadeIn` animation properties (`animationDuration: "150ms"`, `animationName` not "none") similar to how Token animation was tested in Phase 3.
-
-8. **Token hover brightness filter** - Verify that hovering a token applies `filter: brightness(1.1)` on the `.shape` child element. This requires real CSS `:hover` pseudo-class matching.
-
-### Tier 3 - Lower Value (nice-to-have)
-
-9. **Cell hover fill change** - Verify that hovering a clickable cell changes the hex polygon fill via `var(--cell-hover-bg)`. Requires real `:hover` matching.
-
-10. **AccessibilityStore real `matchMedia` response** - Verify that the accessibility store correctly reads system `prefers-color-scheme` in a real browser (no mock needed). Lower value because the mocked unit tests already cover the logic paths.
-
-11. **High-contrast mode stroke-width overrides** - Verify that `[data-theme="high-contrast"] .shape { stroke-width: 2 }` and `[data-theme="high-contrast"] .hexagon { stroke-width: 2 }` are applied by the real CSS engine.
+8. **Max 400 lines per file**: Project constraint. The `SkillNameWithTooltip` component + tests should stay under this limit. Component will be small; tests may approach but should stay under.
 
 ## Open Questions
 
-1. **Marker bounding box accessibility**: Can `getBoundingClientRect()` be called on `<marker>` elements directly, or do we need to query the `<line>` elements that reference them and check their visual extent? (SVG markers are not part of the DOM tree in the same way as regular elements -- they are in `<defs>` and rendered via reference.)
+1. **Damage: 0 display**: Should the tooltip show "Damage: 0" for Kick (interrupt skill with `damage: 0`), or omit it? Requirements say "only present optional stats" -- `damage` is defined but zero. Recommend showing it to be informative.
 
-2. **Hover pseudo-class in Vitest Browser Mode**: Can `userEvent.hover()` trigger CSS `:hover` pseudo-class matching in Playwright-backed Vitest Browser Mode? Existing Phase 2 tests use hover for tooltip triggering but do not verify `:hover` CSS effects on the hovered element itself.
+2. **SkillRow `<h3>` wrapping**: Should `SkillNameWithTooltip` render as a generic element (span) and sit inside the existing `<h3>`, or should it replace the `<h3>` entirely? The simpler approach is: `SkillNameWithTooltip` renders a `<span>` (or accepts an `as` prop), and SkillRow wraps it in `<h3>`. But current SkillRow has `<h3 className={styles.skillName}>{skill.name}</h3>` -- simplest replacement is `<h3 className={styles.skillName}><SkillNameWithTooltip skillId={skill.id}>{skill.name}</SkillNameWithTooltip></h3>`.
 
-3. **WhiffOverlay test setup complexity**: Testing WhiffOverlay requires generating whiff events, which means setting up a battle scenario where an attack or heal targets a cell, the target moves away, and the action resolves against an empty cell. This may require multiple `nextTick()` calls with specific character configurations.
+3. **Focus mechanism**: The requirements say focusing the skill name shows the tooltip. The `<h3>` element is not focusable by default. Options: (a) add `tabindex="0"` to a child `<span>` inside the `<h3>`, (b) make the `SkillNameWithTooltip` a `<button>` element, (c) use `tabindex="0"` on the `SkillNameWithTooltip` wrapper. Option (a) or (c) is cleanest -- a `<span tabindex="0">` inside the name element.
 
-4. **Marker orientation (`orient="auto"`)**: Should we test that markers auto-orient to the line direction? This requires rendering lines at different angles and checking marker rotation, which may be complex.
+4. **Tooltip width**: CharacterTooltip used `min-width: 280px; max-width: 320px`. The skill stat tooltip has less content. What width constraints? Recommend: no min-width (auto-size), max-width around `220px` to keep compact, or let it auto-size with `white-space: nowrap` on single-value rows.
 
-5. **Recommended test count for Phase 4**: Phases 1-3 had 4, 6, and 12 tests respectively. How many tests should Phase 4 target? Suggest 6-10 tests covering Tier 1 (markers) and selected Tier 2 items.
+5. **Tooltip content format**: Should stats be displayed as a vertical list (`Type: attack`, `Cost: 0 ticks`, `Range: 1`, `Damage: 10`) or more compactly (e.g., a small grid or inline tokens)? The requirements spec mentions "compact density patterns" -- a vertical label:value list with small font is consistent with the design system.

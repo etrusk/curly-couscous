@@ -7,7 +7,6 @@ When implementing tooltips that need to:
 - Appear near a trigger element but render outside its DOM hierarchy
 - Avoid being clipped by overflow:hidden containers
 - Position intelligently relative to viewport edges
-- Support hover interaction on the tooltip itself
 
 ## Implementation
 
@@ -36,43 +35,37 @@ const Tooltip = ({ anchorRect, children }) => {
 };
 ```
 
-**2. Smart Positioning Algorithm**
+**2. Below/Above Positioning (SkillNameWithTooltip pattern)**
 
 ```typescript
-function calculatePosition(anchor: DOMRect, tooltip: DOMRect) {
-  const OFFSET = 12; // Gap between anchor and tooltip
-  const MARGIN = 8; // Minimum distance from viewport edge
+// Place below anchor with gap; flip above if insufficient space
+const GAP = 4;
+const MARGIN = 8;
 
-  let left: number;
-  // Prefer right of anchor; fallback to left if constrained
-  if (anchor.right + OFFSET + tooltip.width + MARGIN < window.innerWidth) {
-    left = anchor.right + OFFSET;
-  } else if (anchor.left - OFFSET - tooltip.width > MARGIN) {
-    left = anchor.left - OFFSET - tooltip.width;
-  } else {
-    left = Math.max(MARGIN, anchor.left); // Fallback: align with anchor
-  }
-
-  // Vertically center on anchor, clamp to viewport
-  let top = anchor.top + anchor.height / 2 - tooltip.height / 2;
-  top = Math.max(
-    MARGIN,
-    Math.min(top, window.innerHeight - tooltip.height - MARGIN),
-  );
-
-  return { top, left };
+let top: number;
+if (anchorRect.bottom + GAP + tooltipHeight + MARGIN < window.innerHeight) {
+  top = anchorRect.bottom + GAP; // Below
+} else {
+  top = anchorRect.top - GAP - tooltipHeight; // Above
 }
+
+// Horizontal: align left edge, clamp to viewport
+let left = Math.max(
+  MARGIN,
+  Math.min(anchorRect.left, window.innerWidth - tooltipWidth - MARGIN),
+);
 ```
 
-**3. Leave Delay for Tooltip Interaction**
+**3. Appear Delay (non-interactive tooltip)**
 
 ```tsx
-const handleMouseLeave = () => {
-  timeoutRef.current = setTimeout(() => setHovered(null), 100); // 100ms delay
+// 150ms delay prevents flicker when traversing lists
+const handleMouseEnter = () => {
+  timerRef.current = setTimeout(() => setIsVisible(true), 150);
 };
-
-const handleTooltipMouseEnter = () => {
-  clearTimeout(timeoutRef.current); // Cancel close when moving to tooltip
+const handleMouseLeave = () => {
+  clearTimeout(timerRef.current);
+  setIsVisible(false);
 };
 ```
 
@@ -81,11 +74,10 @@ const handleTooltipMouseEnter = () => {
 - **Portal to body**: Avoids z-index stacking contexts and overflow clipping
 - **useLayoutEffect**: Prevents visual flicker by positioning synchronously
 - **Smart positioning**: Ensures tooltip remains visible at all viewport edges
-- **Leave delay**: Enables hovering on tooltip content without accidental close
 - **Fixed positioning**: Works with scrollable containers
+- **Appear delay**: Prevents tooltip flicker when moving through dense lists
 
 ## Related Files
 
-- `src/components/BattleViewer/tooltip-positioning.ts` - Pure `calculateTooltipPosition` function (extracted for testability)
-- `src/components/BattleViewer/CharacterTooltip.tsx` - Rule evaluations tooltip (imports from tooltip-positioning.ts)
-- `src/components/BattleViewer/CharacterTooltip.module.css` - Tooltip styles
+- `src/components/CharacterPanel/SkillNameWithTooltip.tsx` - Skill stat tooltip (portal-rendered, below/above positioning, 150ms delay)
+- `src/components/CharacterPanel/SkillNameWithTooltip.module.css` - Tooltip styles using design system tokens

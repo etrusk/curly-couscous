@@ -1,312 +1,446 @@
-# Phase 4 Browser Test Designs: SVG Markers and DOM-Dependent Behaviors
+# Test Designs: Skill Name Tooltips
 
-**Reviewed 2026-02-09 -- 3 minor clarifications applied, no structural changes needed.**
+## Test File
 
-- [REVIEW CHANGE] Test 4: clarified faction assignments for healer/wounded-ally setup
-- [REVIEW CHANGE] Test 5: noted preview intent risk from default skills on characters with currentAction
-- [REVIEW CHANGE] Test 6: clarified CSS Modules class name mangling for shape query
+- **Path**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Estimated size**: ~320 lines (13 unit tests + 2 integration tests)
+- **Type**: Unit tests (jsdom) via Vitest + React Testing Library
 
-8 tests across 4 files. All tests run in Vitest Browser Mode (Playwright/Chromium).
+## Test Infrastructure
 
----
-
-## File 1: `src/components/BattleViewer/IntentOverlay.browser.test.tsx` (NEW)
-
-Top-level describe: `"IntentOverlay - SVG Markers (Browser)"`
-
-### Shared Setup
+### Imports
 
 ```
-beforeEach:
-  - useGameStore.getState().actions.initBattle([])
-  - useGameStore.getState().actions.selectCharacter(null)
-  - document.documentElement.removeAttribute("data-theme")
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { render, screen, act } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
+import { SkillNameWithTooltip } from "./SkillNameWithTooltip";
+import { SkillRow } from "./SkillRow";
+import { PriorityTab } from "./PriorityTab";
+import { useGameStore } from "../../stores/gameStore";
+import { createSkill, createCharacter } from "../../engine/game-test-helpers";
 ```
 
-Imports:
+### Timer Setup
 
-- `vitest`: `describe, it, expect, beforeEach`
-- `@testing-library/react`: `render`
-- `vitest/browser`: `page`
-- `./BattleViewer`: `BattleViewer`
-- `../../stores/gameStore`: `useGameStore`
-- `../RuleEvaluations/rule-evaluations-test-helpers`: `createCharacter` (component version, includes default skills for intent selector)
-- `../RuleEvaluations/rule-evaluations-test-helpers`: `createAttackAction`, `createMoveAction`
-- `../../styles/theme.css`: CSS variable resolution
-
-Utility function (duplicate from theme.browser.test.tsx):
+Every `describe` block that tests the 150ms delay MUST use fake timers:
 
 ```
-function resolveColorVar(name: string): string {
-  const probe = document.createElement("div");
-  probe.style.backgroundColor = `var(${name})`;
-  document.documentElement.appendChild(probe);
-  const resolved = getComputedStyle(probe).backgroundColor;
-  probe.remove();
-  return resolved;
-}
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 ```
 
----
+When using `userEvent` with fake timers, create the user instance with `advanceTimers` option:
 
-### Test 1: `all four marker definitions exist in rendered SVG defs`
+```
+const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+```
 
-- **File**: `src/components/BattleViewer/IntentOverlay.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: The 4 SVG `<marker>` elements (`arrowhead-attack`, `cross-heal`, `circle-friendly`, `diamond-enemy`) are present in the rendered DOM with correct child shape elements and marker attributes.
-- **Why jsdom cannot test this**: While jsdom preserves SVG DOM structure, this test validates that markers exist and are queryable in a real Chromium SVG rendering context. Combined with Test 2 (color resolution), this forms the smoke test for the entire marker rendering pipeline. Additionally, marker attributes like `markerUnits`, `overflow`, and `orient` are rendering hints that only matter in a real browser.
-- **Setup**:
-  - Create a friendly character at `{q: 0, r: 0}` and an enemy character at `{q: 2, r: 0}` using `createCharacter` from `rule-evaluations-test-helpers`.
-  - Call `initBattle([friendly, enemy])`.
-  - No tick advancement needed -- marker `<defs>` are always rendered regardless of whether intents exist.
-  - `page.viewport(1280, 720)`.
-  - `render(<BattleViewer />)`.
-- **Assertions**:
-  1. `document.getElementById("arrowhead-attack")` is not null
-  2. `document.getElementById("cross-heal")` is not null
-  3. `document.getElementById("circle-friendly")` is not null
-  4. `document.getElementById("diamond-enemy")` is not null
-  5. `arrowhead-attack` marker has exactly 2 `<polygon>` children (contrast outline + colored main)
-  6. `cross-heal` marker has exactly 2 `<path>` children (contrast outline cross + colored main cross)
-  7. `circle-friendly` marker has exactly 2 `<circle>` children (contrast outline + colored main)
-  8. `diamond-enemy` marker has exactly 2 `<polygon>` children (contrast outline + colored main)
-  9. All 4 markers have `markerUnits="userSpaceOnUse"` attribute
-  10. All 4 markers have `overflow="visible"` attribute
-  11. All 4 markers have `orient="auto"` attribute
-- **Justification**: Validates the structural completeness of the marker definitions in a real SVG rendering context. If a marker ID changes or a child shape is accidentally removed, this test catches it. The existing jsdom unit tests only check `marker-end` attribute strings on lines, not the marker definitions themselves.
-- **Implementation notes**:
-  - Query child elements with `marker.querySelectorAll("polygon")`, `marker.querySelectorAll("path")`, `marker.querySelectorAll("circle")`.
-  - Use `getAttribute("markerUnits")` for marker attribute checks.
-  - Markers are always in the IntentOverlay SVG `<defs>` regardless of game state, so minimal game setup is required (just need 2 characters for BattleViewer to render).
+### Portal Rendering in Tests
 
----
+`createPortal` to `document.body` works in jsdom by default. The tooltip renders as a child of `document.body`. Queries via `screen.*` will find portal-rendered content because `screen` queries the entire document. No special setup needed.
 
-### Test 2: `marker CSS variables resolve to correct action colors`
+### Advancing Past the 150ms Delay
 
-- **File**: `src/components/BattleViewer/IntentOverlay.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: CSS custom properties `--action-attack`, `--action-heal`, `--action-move`, and `--contrast-line` used by SVG markers resolve to their expected RGB color values in the browser.
-- **Why jsdom cannot test this**: jsdom cannot resolve CSS custom properties. Existing unit tests only verify attribute strings like `fill="var(--action-attack)"`. This test confirms the CSS engine resolves these variables to actual color values.
-- **Setup**:
-  - No component rendering needed. Uses the CSS variable probe element pattern.
-  - Theme CSS is imported at file level (`import "../../styles/theme.css"`).
-  - Default dark theme (no `data-theme` attribute).
-- **Assertions**:
-  1. `resolveColorVar("--action-attack")` equals `"rgb(213, 94, 0)"` (vermillion #d55e00)
-  2. `resolveColorVar("--action-heal")` equals `"rgb(0, 158, 115)"` (green #009e73)
-  3. `resolveColorVar("--action-move")` equals `"rgb(0, 114, 178)"` (blue #0072b2)
-  4. `resolveColorVar("--contrast-line")` equals `"rgb(255, 255, 255)"` (white #ffffff)
-- **Justification**: Markers reference these CSS variables for fill and stroke colors. If theme variable definitions change or are removed, marker colors silently break. This test verifies the CSS resolution pipeline that jsdom cannot exercise.
-- **Implementation notes**:
-  - Uses the `resolveColorVar()` helper (probe element pattern) defined locally in this file.
-  - Does NOT read `getComputedStyle` on elements inside `<marker>` because elements in `<defs>` are not part of the render tree until referenced, making `getComputedStyle` unreliable on them.
-  - This approach was documented in the plan as the preferred strategy over reading styles from marker children.
+After a hover/focus action, advance fake timers to trigger the tooltip:
+
+```
+await act(() => {
+  vi.advanceTimersByTime(150);
+});
+```
+
+The `act()` wrapper ensures React processes state updates from the timer callback.
+
+### Skill IDs for Tests
+
+All tests use real skill IDs from `SKILL_REGISTRY` so `getSkillDefinition()` returns actual data. No mocking of the registry is needed.
+
+| Test Case       | Skill ID         | Why                                                                   |
+| --------------- | ---------------- | --------------------------------------------------------------------- |
+| Attack skill    | `"light-punch"`  | Has damage (10), no healing, no distance, no cooldown                 |
+| Heal skill      | `"heal"`         | Has healing (25), no damage, no distance, no cooldown                 |
+| Move skill      | `"move-towards"` | Has distance (1), behaviors ["towards","away"], no damage, no healing |
+| Cooldown skill  | `"heavy-punch"`  | Has cooldown (3), damage (25)                                         |
+| Interrupt skill | `"kick"`         | Has damage: 0 (edge case -- should display), cooldown (4)             |
+| Charge skill    | `"charge"`       | Has damage (20), distance (3), cooldown (3)                           |
 
 ---
 
-### Test 3: `intent line with marker-end produces non-zero visual extent`
+## Test Specifications
 
-- **File**: `src/components/BattleViewer/IntentOverlay.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: When an IntentOverlay renders an intent line with a `marker-end` attribute, the SVG `<line>` element has non-zero bounding geometry in the real browser, proving the marker rendering pipeline is functional.
-- **Why jsdom cannot test this**: jsdom SVG elements always return zero-dimension bounding rects from `getBoundingClientRect()`. This test validates the full rendering pipeline: `<defs>` marker -> `marker-end` reference on `<line>` -> browser renders line with marker at endpoint.
-- **Setup**:
-  - Create a friendly character at `{q: 0, r: 0}` with `currentAction` set to an attack action targeting `{q: 2, r: 0}`, `startedAtTick: 0`, `resolvesAtTick: 2`. Use `createCharacter` with `createAttackAction("light-punch", "Light Punch", {q: 2, r: 0}, null, 0, 2)` passed as `currentAction` override.
-  - Create an enemy character at `{q: 2, r: 0}` with `skills: []`.
-  - `initBattle([friendly, enemy])`.
-  - `page.viewport(1280, 720)`.
-  - `render(<BattleViewer />)`.
-- **Assertions**:
-  1. Query all `<line>` elements that have a `marker-end` attribute. At least one exists.
-  2. The line with `marker-end` containing `"arrowhead-attack"` exists.
-  3. Call `getBoundingClientRect()` on the parent `<g>` element of the intent line. Width is greater than 0.
-  4. Call `getBoundingClientRect()` on the parent `<g>` element of the intent line. Height is greater than 0.
-- **Justification**: Validates that the entire marker rendering chain produces visible geometry. If marker definitions are malformed or the `marker-end` URL reference is broken, the line would render but the marker would not. Measuring bounding geometry proves the browser processed both line and marker.
-- **Implementation notes**:
-  - The `selectIntentData` selector filters intents by `ticksRemaining >= 0`. With `startedAtTick: 0`, `resolvesAtTick: 2`, and tick at 0, `ticksRemaining = 2`, so the intent line renders.
-  - The intent line SVG structure is: `<g>` containing outline `<line>` (no marker) + main `<line>` (with `marker-end`) + optional `<text>`. Query the `<line>` with `marker-end` attribute, then get its parent `<g>` for bounding rect.
-  - Risk mitigation: SVG `<line>` bounding rect behavior varies across browsers. If `getBoundingClientRect()` on the `<line>` itself returns zero height (horizontal lines have zero height), fall back to measuring the parent `<g>` element which includes marker geometry. The plan recommends this fallback. Design the assertion on the `<g>` parent from the start.
+### Test 1: Tooltip appears on hover after 150ms delay
 
----
-
-### Test 4: `attack intent uses arrowhead marker, heal uses cross marker`
-
-- **File**: `src/components/BattleViewer/IntentOverlay.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: The correct marker-type-per-action-type mapping in a real rendered context: attack lines get `arrowhead-attack` marker, heal lines get `cross-heal` marker.
-- **Why jsdom cannot test this**: Complements the jsdom attribute tests by verifying that the `marker-end` URL actually references an existing `<marker>` element in the rendered SVG DOM. jsdom tests only check the attribute string value but cannot confirm the referenced marker exists and is renderable.
-- **Setup**:
-  - Create 4 characters for a valid game state:
-    1. Friendly attacker at `{q: -2, r: 0}` with `currentAction`: attack targeting `{q: 2, r: 0}`, `startedAtTick: 0`, `resolvesAtTick: 2`. Use `createAttackAction("light-punch", "Light Punch", {q: 2, r: 0}, null, 0, 2)`.
-    2. Enemy target at `{q: 2, r: 0}` with `skills: []`, no `currentAction`.
-    3. Enemy healer at `{q: 4, r: 0}` with `currentAction`: heal targeting `{q: 3, r: 0}`, `startedAtTick: 0`, `resolvesAtTick: 1`. Construct heal action manually: `{ type: "heal", skill: { id: "heal", instanceId: "heal", name: "Heal", actionType: "heal", tickCost: 1, range: 2, healing: 15, behavior: "", enabled: true, trigger: { scope: "friendly", condition: "always" }, target: "friendly", criterion: "nearest" }, targetCell: {q: 3, r: 0}, targetCharacter: null, startedAtTick: 0, resolvesAtTick: 1 }`.
-    4. [REVIEW CHANGE] Wounded enemy at `{q: 3, r: 0}` with `hp: 50`, `skills: []`, `faction: "enemy"`. Must be same faction as healer (enemy) so the heal relationship is logically consistent, even though `currentAction` bypass means the selector does not check targeting validity. Using correct faction avoids confusion during implementation.
-  - `initBattle([attacker, target, healer, woundedAlly])`.
-  - `page.viewport(1280, 720)`.
-  - `render(<BattleViewer />)`.
-- **Assertions**:
-  1. Query all `<line>` elements with a `marker-end` attribute. At least 2 exist.
-  2. At least one line has `marker-end` attribute containing `"arrowhead-attack"`.
-  3. At least one line has `marker-end` attribute containing `"cross-heal"`.
-  4. `document.getElementById("arrowhead-attack")` is not null (referenced marker exists in DOM).
-  5. `document.getElementById("cross-heal")` is not null (referenced marker exists in DOM).
-- **Justification**: Validates the marker reference chain end-to-end. A broken marker ID (typo in `getMarkerEnd()` vs. `IntentOverlay` defs) would pass jsdom attribute tests but fail here because the referenced marker would not exist. This test catches ID mismatches between `IntentLine.tsx` and `IntentOverlay.tsx`.
-- **Implementation notes**:
-  - The heal action setup is more complex because `createAttackAction` from `rule-evaluations-test-helpers` creates attack-type actions. A heal action must be constructed manually or use a local helper.
-  - [REVIEW CHANGE] The healer (enemy) and wounded character (enemy) must share the same faction. The `selectIntentData` selector does not validate targeting correctness -- it only checks `currentAction !== null` and `type !== "idle"` -- so the heal intent will render regardless. However, using consistent factions avoids implementation confusion and keeps the test scenario realistic.
-  - Alternative: make the healer friendly and the wounded ally friendly. The key is that one intent is attack-type and one is heal-type.
-  - The `selectIntentData` selector returns intents for all characters with `currentAction !== null` and `ticksRemaining >= 0` and `type !== "idle"`.
-
----
-
-### Test 5: `friendly and enemy movement intents use different marker shapes`
-
-- **File**: `src/components/BattleViewer/IntentOverlay.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: Movement marker selection is faction-dependent: friendly movement uses `circle-friendly`, enemy movement uses `diamond-enemy`.
-- **Why jsdom cannot test this**: Same rationale as Test 4. Validates the marker reference chain is complete and the faction-based branching in `getMarkerEnd()` produces references to real marker elements.
-- **Setup**:
-  - Create 2 characters with move actions:
-    1. Friendly character at `{q: -2, r: 0}` with `currentAction`: move to `{q: -1, r: 0}`, `startedAtTick: 0`, `resolvesAtTick: 1`. Use `createMoveAction("move", "Move", "towards", {q: -1, r: 0}, 0, 1)`.
-    2. Enemy character at `{q: 2, r: 0}` with `faction: "enemy"`, `currentAction`: move to `{q: 1, r: 0}`, `startedAtTick: 0`, `resolvesAtTick: 1`. Use `createMoveAction("move", "Move", "towards", {q: 1, r: 0}, 0, 1)`.
-  - `initBattle([friendly, enemy])`.
-  - `page.viewport(1280, 720)`.
-  - `render(<BattleViewer />)`.
-- **Assertions**:
-  1. Query all `<line>` elements with a `marker-end` attribute. At least 2 exist.
-  2. At least one line has `marker-end` attribute containing `"circle-friendly"`.
-  3. At least one line has `marker-end` attribute containing `"diamond-enemy"`.
-  4. `document.getElementById("circle-friendly")` is not null.
-  5. `document.getElementById("diamond-enemy")` is not null.
-  6. No line has `marker-end` containing both `"circle"` and `"diamond"` (sanity check: each line uses exactly one marker).
-- **Justification**: The faction-based marker branching in `getMarkerEnd()` is a conditional code path (`faction === "friendly" ? circle : diamond`). If the condition is inverted or the marker IDs swapped, jsdom attribute tests would still pass (they only check strings), but this test validates the full reference chain.
-- **Implementation notes**:
-  - Using `createMoveAction` from `rule-evaluations-test-helpers` is the cleanest approach. It creates a move-type action with `type: "move"` and the correct skill structure.
-  - Both characters need move actions with `ticksRemaining >= 0` for the intent selector to include them.
-  - The friendly vs. enemy distinction comes from each character's `faction` property, which the `selectIntentData` selector propagates to `IntentData.faction`, which `IntentLine` uses to call `getMarkerEnd(type, faction)`.
-  - [REVIEW CHANGE] Preview intent note: `createCharacter` adds default skills (Light Punch, Move, Heavy Punch). Since both characters have `currentAction` set, they are not idle, so `selectIntentData` will NOT compute preview decisions for them. However, if `createCharacter` is used with `skills: []` override for either character, ensure `currentAction` is still set or the character won't produce any intent. The current design is correct as written.
-
----
-
-## File 2: `src/components/BattleViewer/Token.browser.test.tsx` (EXTEND)
-
-Add to existing describe block or create sibling describe: `"Token - Enemy Stripe Pattern (Browser)"`
-
-### Test 6: `enemy token has SVG pattern definition with diagonal stripe`
-
-- **File**: `src/components/BattleViewer/Token.browser.test.tsx`
-- **Type**: integration
-- **Verifies**: Enemy tokens render a `<pattern>` element with `patternTransform="rotate(45)"` and the diamond `<path>` references it via a valid `fill="url(#stripe-enemy-...)"` URL that resolves to an existing pattern in the DOM.
-- **Why jsdom cannot test this**: jsdom parses SVG `<pattern>` elements as DOM nodes but cannot render them. This test validates the pattern exists in the real SVG DOM and the `fill` URL reference chain is valid (the referenced pattern ID exists in the document). Additionally, `patternTransform` is a rendering instruction that only takes effect in a real browser.
-- **Setup**:
-  - Reuse the existing `beforeEach` from `Token.browser.test.tsx` (clears game state, removes theme attribute).
-  - Create an enemy character at `{q: 2, r: 0}` with `id: "enemy-stripe"`, `faction: "enemy"`.
-  - Create a friendly character at `{q: 0, r: 0}` (needed for valid battle state).
-  - `initBattle([friendly, enemy])`.
-  - `page.viewport(1280, 720)`.
-  - `render(<BattleViewer />)`.
-- **Assertions**:
-  1. `document.querySelector('pattern[id^="stripe-enemy-"]')` is not null (at least one enemy stripe pattern exists).
-  2. The pattern element has `patternTransform` attribute containing `"rotate(45)"`.
-  3. The pattern element has `width` attribute equal to `"4"`.
-  4. The pattern element has `height` attribute equal to `"4"`.
-  5. The pattern element has `patternUnits` attribute equal to `"userSpaceOnUse"`.
-  6. Query the enemy token via `screen.getByTestId("token-enemy-stripe")`, then find the `<path>` with `className` containing `shape`. Its `fill` attribute starts with `"url(#stripe-enemy-"`.
-  7. Extract the pattern ID from the `fill` attribute URL (parse between `#` and `)`). `document.getElementById(extractedId)` is not null (the referenced pattern exists).
-- **Justification**: The enemy stripe pattern is a colorblind accessibility feature. If the pattern definition is removed or the fill URL reference breaks, enemy tokens lose their visual faction distinction for colorblind users. jsdom tests cannot validate the fill URL reference chain.
-- **Implementation notes**:
-  - The pattern ID is `stripe-enemy-${id}`, so for `id: "enemy-stripe"` it would be `stripe-enemy-enemy-stripe`.
-  - [REVIEW CHANGE] To find the diamond `<path>`, query within the token `<g>` for path elements. The diamond path is the one with a `d` attribute (not the HP bar rects). CSS Modules will mangle `styles.shape` to something like `_shape_xxxxx`, so query with `[class*="shape"]` within the token. Alternatively, simply query for `path[d]` within the token `<g>` since only the diamond has a `d` attribute among the token's children.
-  - Pattern ID extraction regex: `/url\(#(.+?)\)/` to capture the ID.
-
----
-
-## File 3: `src/styles/theme.browser.test.tsx` (EXTEND)
-
-Add to existing describe block: `"Theme CSS Variable Resolution (Browser)"`
-
-### Test 7: `WhiffOverlay color-mix() inline fill resolves to semi-transparent color`
-
-- **File**: `src/styles/theme.browser.test.tsx`
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
 - **Type**: unit
-- **Verifies**: The CSS expression `color-mix(in srgb, var(--action-attack) 20%, transparent)` used by WhiffOverlay for whiff polygon fills resolves to a semi-transparent color in the browser, not a raw CSS function string.
-- **Why jsdom cannot test this**: jsdom cannot resolve `color-mix()` functions, nor can it resolve nested `var()` within `color-mix()`. The fill would remain as the raw function text `"color-mix(in srgb, var(--action-attack) 20%, transparent)"` in jsdom.
+- **Verifies**: Tooltip with `role="tooltip"` appears in the DOM after a 150ms delay following mouseenter on the skill name element.
 - **Setup**:
-  - No component rendering needed. Uses probe element pattern.
-  - Theme CSS is imported at file level (already imported in `theme.browser.test.tsx`).
-  - Default dark theme (restored by existing `beforeEach`).
-  - Uses the existing `resolveColorVar()` and `parseColor()` helpers already defined in `theme.browser.test.tsx`.
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="light-punch">Light Punch</SkillNameWithTooltip>`.
+  - Create user instance with `advanceTimers: vi.advanceTimersByTime`.
+- **Actions**:
+  1. Assert `screen.queryByRole("tooltip")` returns `null` (no tooltip initially).
+  2. Hover over the element containing text "Light Punch" using `user.hover(screen.getByText("Light Punch"))`.
+  3. Advance timers by 100ms. Assert tooltip is still NOT present (`screen.queryByRole("tooltip")` is `null`).
+  4. Advance timers by 50ms more (total 150ms). Assert tooltip IS present (`screen.getByRole("tooltip")` exists).
 - **Assertions**:
-  For attack color-mix:
-  1. Create a probe div with `background-color: color-mix(in srgb, var(--action-attack) 20%, transparent)`. Read `getComputedStyle(probe).backgroundColor`.
-  2. The resolved value does not contain `"color-mix"` (browser resolved it).
-  3. The resolved value does not contain `"var("` (CSS variable was substituted).
-  4. Parse the resolved color with `parseColor()`. Alpha channel is approximately 0.2 (tolerance +/- 0.05).
-  5. RGB channels approximate `#d55e00` (213, 94, 0) with tolerance +/- 5.
-
-  For heal color-mix: 6. Create a probe div with `background-color: color-mix(in srgb, var(--action-heal) 20%, transparent)`. Read resolved value. 7. Parse color. Alpha channel is approximately 0.2 (tolerance +/- 0.05). 8. RGB channels approximate `#009e73` (0, 158, 115) with tolerance +/- 5.
-
-- **Justification**: WhiffOverlay applies `color-mix(in srgb, ${fillColor} 20%, transparent)` as an inline SVG fill. If the browser cannot resolve this expression (or if the CSS variable is missing), whiff indicators become invisible or show incorrect colors. This test validates the exact CSS expression without requiring the complexity of setting up whiff events through the game engine.
-- **Implementation notes**:
-  - The probe element approach differs slightly from `resolveColorVar()`: instead of `var(${name})`, use the full `color-mix(...)` expression as `background-color`. Create a dedicated inline probe rather than using the existing `resolveColorVar` helper.
-  - Code pattern:
-    ```
-    const probe = document.createElement("div");
-    probe.style.backgroundColor = "color-mix(in srgb, var(--action-attack) 20%, transparent)";
-    document.documentElement.appendChild(probe);
-    const resolved = getComputedStyle(probe).backgroundColor;
-    probe.remove();
-    ```
-  - Chromium may return `color(srgb r g b / a)` format rather than `rgba()`. The existing `parseColor()` in `theme.browser.test.tsx` already handles both formats.
-  - Test both attack and heal color variants because WhiffOverlay uses both (line 31-33 in WhiffOverlay.tsx: conditional on `data.actionType`).
+  1. Before hover: `expect(screen.queryByRole("tooltip")).toBeNull()`
+  2. At 100ms: `expect(screen.queryByRole("tooltip")).toBeNull()`
+  3. At 150ms: `expect(screen.getByRole("tooltip")).toBeInTheDocument()`
+- **Justification**: Validates the 150ms appear delay requirement. Without this test, the delay could be omitted or set to the wrong value, causing tooltip flicker when traversing skill lists.
 
 ---
 
-## File 4: `src/components/BattleViewer/CharacterTooltip.browser.test.tsx` (EXTEND)
+### Test 2: Shows correct stats for attack skill (Light Punch)
 
-Add new describe block: `"CharacterTooltip - Fade-in Animation (Browser)"`
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: unit
+- **Verifies**: Tooltip for Light Punch displays actionType, tickCost, range, and damage; does NOT display healing, distance, cooldown, or behaviors.
+- **Setup**:
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="light-punch">Light Punch</SkillNameWithTooltip>`.
+  - Hover and advance timers by 150ms to show tooltip.
+- **Actions**:
+  1. Hover over "Light Punch" text.
+  2. Advance timers 150ms.
+  3. Query the tooltip element.
+- **Assertions**:
+  1. Tooltip contains text matching "attack" (the actionType).
+  2. Tooltip contains text matching "0" for tick cost (Light Punch tickCost is 0). Use a label-value pattern to disambiguate: look for text matching `/cost/i` within the tooltip, then verify the associated value is "0 ticks" or just "0". More specifically: `expect(screen.getByRole("tooltip")).toHaveTextContent(/attack/i)`.
+  3. Tooltip contains text matching `/range/i` with value "1".
+  4. Tooltip contains text matching `/damage/i` with value "10".
+  5. Tooltip does NOT contain text matching `/healing/i`.
+  6. Tooltip does NOT contain text matching `/distance/i`.
+  7. Tooltip does NOT contain text matching `/cooldown/i`.
+  8. Tooltip does NOT contain text matching `/behaviors/i`.
+- **Justification**: Verifies the conditional stat display logic for the most common skill type (attack). Ensures optional stats are omitted when undefined.
 
-### Test 8: `tooltip has active fade-in animation properties`
+---
 
-- **File**: `src/components/BattleViewer/CharacterTooltip.browser.test.tsx`
+### Test 3: Shows correct stats for heal skill (Heal)
+
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: unit
+- **Verifies**: Tooltip for Heal displays actionType, tickCost, range, and healing; does NOT display damage, distance, cooldown, or behaviors.
+- **Setup**:
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="heal">Heal</SkillNameWithTooltip>`.
+  - Hover and advance timers by 150ms.
+- **Assertions**:
+  1. `expect(tooltip).toHaveTextContent(/heal/i)` (actionType).
+  2. Tooltip contains text matching `/cost/i` with associated value for tickCost 2 (e.g., "2 ticks" or "2").
+  3. Tooltip contains `/range/i` with value "5".
+  4. Tooltip contains `/healing/i` with value "25".
+  5. Tooltip does NOT contain `/damage/i`.
+  6. Tooltip does NOT contain `/distance/i`.
+  7. Tooltip does NOT contain `/cooldown/i`.
+  8. Tooltip does NOT contain `/behaviors/i`.
+- **Justification**: Validates conditional display for a non-attack, non-move skill. Ensures healing stat appears and damage stat does not.
+
+---
+
+### Test 4: Shows correct stats for move skill (Move)
+
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: unit
+- **Verifies**: Tooltip for Move displays actionType, tickCost, range, distance, cooldown, and behaviors; does NOT display damage or healing.
+- **Setup**:
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="move-towards">Move</SkillNameWithTooltip>`.
+  - Hover and advance timers by 150ms.
+- **Assertions**:
+  1. Tooltip contains `/move/i` (actionType).
+  2. Tooltip contains cost value "1" (tickCost 1).
+  3. Tooltip contains range value "1".
+  4. Tooltip contains `/distance/i` with value "1".
+  5. Tooltip contains `/cooldown/i` with value "1" (Move has cooldown: 1 in registry).
+  6. Tooltip contains `/behaviors/i` with text including "towards" and "away".
+  7. Tooltip does NOT contain `/damage/i`.
+  8. Tooltip does NOT contain `/healing/i`.
+- **Justification**: Validates display for the movement skill type, which has the most optional fields (distance, behaviors, cooldown). Also confirms behaviors are rendered as a joined list.
+
+---
+
+### Test 5: Shows cooldown for Heavy Punch
+
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: unit
+- **Verifies**: Tooltip for Heavy Punch displays the cooldown value when the skill definition includes a cooldown field.
+- **Setup**:
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="heavy-punch">Heavy Punch</SkillNameWithTooltip>`.
+  - Hover and advance timers by 150ms.
+- **Assertions**:
+  1. Tooltip contains `/cooldown/i` with value "3" (Heavy Punch cooldown is 3).
+  2. Tooltip contains `/damage/i` with value "25".
+  3. Tooltip contains `/attack/i` (actionType).
+  4. Tooltip contains cost value "2" (tickCost).
+  5. Tooltip contains range value "2".
+- **Justification**: Specifically validates the cooldown conditional display. Heavy Punch is the simplest skill that has a cooldown.
+
+---
+
+### Test 6: Shows damage: 0 for Kick (defined but zero)
+
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: unit
+- **Verifies**: When a skill has `damage: 0` (defined but zero), the tooltip displays "Damage" with value "0" rather than omitting it. This is the `damage: 0` edge case resolved in the plan.
+- **Setup**:
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="kick">Kick</SkillNameWithTooltip>`.
+  - Hover and advance timers by 150ms.
+- **Assertions**:
+  1. Tooltip contains `/damage/i` (the label is present because `damage` is defined, even though it is 0).
+  2. Tooltip text content includes "0" in the context of the damage row.
+  3. Tooltip contains `/interrupt/i` (actionType).
+  4. Tooltip contains `/cooldown/i` with value "4".
+  5. Tooltip does NOT contain `/healing/i`.
+  6. Tooltip does NOT contain `/distance/i`.
+  7. Tooltip does NOT contain `/behaviors/i`.
+- **Justification**: This is a critical edge case. The plan explicitly resolved that `damage: 0` should be shown because it is defined (present on the object). A naive implementation using `if (damage)` instead of `if (damage !== undefined)` would incorrectly omit it. This test catches that bug.
+
+---
+
+### Test 7: Tooltip disappears on mouse leave
+
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: unit
+- **Verifies**: Tooltip is removed from the DOM immediately when the mouse leaves the skill name element (no leave delay).
+- **Setup**:
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="light-punch">Light Punch</SkillNameWithTooltip>`.
+  - Hover and advance timers by 150ms to show the tooltip.
+- **Actions**:
+  1. Confirm tooltip is visible: `screen.getByRole("tooltip")`.
+  2. Unhover the element using `user.unhover(screen.getByText("Light Punch"))`.
+- **Assertions**:
+  1. After unhover: `expect(screen.queryByRole("tooltip")).toBeNull()`.
+- **Justification**: Validates the "no leave delay" requirement. The tooltip is non-interactive, so it must disappear immediately. If a leave delay were mistakenly added, this test would fail.
+
+---
+
+### Test 8: Tooltip appears on keyboard focus
+
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: unit
+- **Verifies**: Tooltip appears after the 150ms delay when the skill name element receives keyboard focus (via Tab key or programmatic `.focus()`).
+- **Setup**:
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="light-punch">Light Punch</SkillNameWithTooltip>`.
+- **Actions**:
+  1. Tab into the skill name element using `user.tab()` (the `<span tabindex="0">` should receive focus).
+  2. Advance timers by 150ms.
+- **Assertions**:
+  1. `expect(screen.getByRole("tooltip")).toBeInTheDocument()`.
+- **Justification**: WCAG 2.2 SC 1.4.13 requires that content shown on hover is also available on focus. This test ensures keyboard users get the same tooltip experience.
+
+---
+
+### Test 9: Tooltip disappears on blur
+
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: unit
+- **Verifies**: Tooltip is removed from the DOM when the skill name element loses keyboard focus.
+- **Setup**:
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="light-punch">Light Punch</SkillNameWithTooltip>`.
+  - Tab to focus and advance timers 150ms to show tooltip.
+- **Actions**:
+  1. Confirm tooltip is visible.
+  2. Tab away from the element using `user.tab()` (focus moves to next element or body).
+- **Assertions**:
+  1. `expect(screen.queryByRole("tooltip")).toBeNull()`.
+- **Justification**: Completes the keyboard accessibility story. Without blur handling, the tooltip would persist after navigating away, violating WCAG 1.4.13 dismissal requirements.
+
+---
+
+### Test 10: Accessibility wiring (aria-describedby links to tooltip id)
+
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: unit
+- **Verifies**: The anchor `<span>` has an `aria-describedby` attribute whose value matches the `id` attribute on the tooltip element.
+- **Setup**:
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="light-punch">Light Punch</SkillNameWithTooltip>`.
+  - Hover and advance timers 150ms to show tooltip.
+- **Actions**:
+  1. Get the anchor element: `screen.getByText("Light Punch")`.
+  2. Get the tooltip element: `screen.getByRole("tooltip")`.
+  3. Read `aria-describedby` from anchor and `id` from tooltip.
+- **Assertions**:
+  1. `const anchor = screen.getByText("Light Punch");`
+  2. `const tooltip = screen.getByRole("tooltip");`
+  3. `expect(anchor).toHaveAttribute("aria-describedby", tooltip.id)`.
+  4. `expect(tooltip.id).toBeTruthy()` (id is not empty).
+- **Justification**: Accessibility is a project requirement. The `aria-describedby` linkage is how screen readers associate the tooltip content with the trigger element. Without this test, the wiring could be broken or the ids could mismatch.
+
+---
+
+### Test 11: Works in SkillRow context (integration)
+
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
 - **Type**: integration
-- **Verifies**: The tooltip's `@keyframes fadeIn` CSS animation properties are applied by the real CSS engine: animation is active (name is not `"none"`), duration is 150ms, timing function is `ease-out`, fill mode is `forwards`.
-- **Why jsdom cannot test this**: jsdom does not compute CSS animation properties from stylesheets. `getComputedStyle(el).animationName` always returns `"none"` in jsdom regardless of CSS rules applied. This is the same jsdom limitation that motivated the Token animation browser test in Phase 3.
+- **Verifies**: When `SkillNameWithTooltip` is integrated into `SkillRow`, hovering the skill name within a SkillRow shows the tooltip with correct stats.
 - **Setup**:
-  - Reuse the existing `beforeEach` from `CharacterTooltip.browser.test.tsx` (clears game state).
-  - Create a character and a target using `createCharacter` and `createTarget` from `rule-evaluations-test-helpers`.
-  - `initBattle([character, target])`.
-  - Create an anchor rect: `new DOMRect(200, 200, 40, 40)`.
-  - Render `<CharacterTooltip characterId={character.id} anchorRect={anchorRect} onMouseEnter={() => {}} onMouseLeave={() => {}} />`.
-  - Query `screen.getByRole("tooltip")`.
+  - Fake timers enabled.
+  - Create a skill using `createSkill({ id: "light-punch", name: "Light Punch" })`.
+  - Create a character using `createCharacter({ id: "char1", skills: [skill] })`.
+  - Render `<SkillRow skill={skill} character={character} index={0} isFirst={false} isLast={false} />`.
+- **Actions**:
+  1. Find the "Light Punch" text: `screen.getByText("Light Punch")`.
+  2. Hover over it.
+  3. Advance timers by 150ms.
 - **Assertions**:
-  1. `getComputedStyle(tooltip).animationName` is not `"none"` (CSS Modules will mangle the keyframe name, so do NOT check exact name -- just verify it is active).
-  2. `getComputedStyle(tooltip).animationDuration` is `"0.15s"` (browsers normalize 150ms to 0.15s).
-  3. `getComputedStyle(tooltip).animationTimingFunction` is `"ease-out"`.
-  4. `getComputedStyle(tooltip).animationFillMode` is `"forwards"`.
-- **Justification**: The fade-in animation is the tooltip's entrance effect (`opacity: 0` to `opacity: 1` over 150ms). If the CSS Module fails to process the `@keyframes fadeIn` rule or the animation shorthand is malformed, the tooltip would appear without animation (opacity stuck at 0 if fill-mode is missing, or no transition at all). This test catches regressions in the animation declaration.
-- **Implementation notes**:
-  - This follows the exact same pattern as Token.browser.test.tsx Test 3 (`selected token has active animation`) which checks `animationName`, `animationDuration`, `animationTimingFunction`, and `animationIterationCount`.
-  - The tooltip animation is `animation: fadeIn 150ms ease-out forwards` (from `CharacterTooltip.module.css` line 17). Unlike the token's infinite animation, this is a one-shot animation with `forwards` fill mode.
-  - `animationDuration` normalization: browsers report `"0.15s"` for `150ms`. Accept either `"0.15s"` or `"150ms"` for robustness, but expect `"0.15s"` based on Chromium behavior.
-  - The tooltip renders immediately when the component mounts (it is not triggered by hover in this test). The animation properties should be present from the initial render.
-  - Import note: `CharacterTooltip.browser.test.tsx` already imports `CharacterTooltip`, `useGameStore`, `createCharacter`, and `createTarget`. The new describe block can reuse these.
+  1. `expect(screen.getByRole("tooltip")).toBeInTheDocument()`.
+  2. Tooltip contains `/damage/i` with value "10" (Light Punch stats).
+  3. Tooltip contains `/attack/i` (actionType).
+- **Justification**: Verifies the integration site works correctly. SkillRow wraps the name in `<h3>`, and the tooltip component sits inside that `<h3>`. This test catches DOM structure issues that unit tests of the isolated component would miss (e.g., event propagation problems from the `<h3>` wrapper).
 
 ---
 
-## Summary
+### Test 12: Works in Inventory context (integration)
 
-| #   | Test Name                                                               | File                              | Type        | jsdom Gap                      |
-| --- | ----------------------------------------------------------------------- | --------------------------------- | ----------- | ------------------------------ |
-| 1   | all four marker definitions exist in rendered SVG defs                  | IntentOverlay.browser.test.tsx    | integration | SVG marker rendering context   |
-| 2   | marker CSS variables resolve to correct action colors                   | IntentOverlay.browser.test.tsx    | integration | CSS custom property resolution |
-| 3   | intent line with marker-end produces non-zero visual extent             | IntentOverlay.browser.test.tsx    | integration | SVG getBoundingClientRect      |
-| 4   | attack intent uses arrowhead marker, heal uses cross marker             | IntentOverlay.browser.test.tsx    | integration | marker-end reference chain     |
-| 5   | friendly and enemy movement intents use different markers               | IntentOverlay.browser.test.tsx    | integration | marker-end reference chain     |
-| 6   | enemy token has SVG pattern definition with diagonal stripe             | Token.browser.test.tsx            | integration | SVG pattern fill reference     |
-| 7   | WhiffOverlay color-mix() inline fill resolves to semi-transparent color | theme.browser.test.tsx            | unit        | color-mix() + var() resolution |
-| 8   | tooltip has active fade-in animation properties                         | CharacterTooltip.browser.test.tsx | integration | CSS animation properties       |
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: integration
+- **Verifies**: When `SkillNameWithTooltip` is integrated into PriorityTab's inventory section, hovering a skill name in the inventory shows the tooltip with correct stats.
+- **Setup**:
+  - Fake timers enabled.
+  - Reset game store: `useGameStore.getState().actions.reset()`.
+  - Create a character with only Move skill: `const moveSkill = createSkill({ id: "move-towards", name: "Move", behavior: "towards" })`.
+  - Create character and init battle: `const char1 = createCharacter({ id: "char1", skills: [moveSkill] })`.
+  - `useGameStore.getState().actions.initBattle([char1])`.
+  - `useGameStore.getState().actions.selectCharacter("char1")`.
+  - Render `<PriorityTab />`.
+- **Actions**:
+  1. Locate the inventory's "Light Punch" text. Since "Light Punch" may appear in the inventory section, find the text in the inventory context. Use `screen.getByText("Light Punch")` -- there should be exactly one since Light Punch is not assigned to the character and appears only in the inventory.
+  2. Hover over it.
+  3. Advance timers by 150ms.
+- **Assertions**:
+  1. `expect(screen.getByRole("tooltip")).toBeInTheDocument()`.
+  2. Tooltip contains `/attack/i` (actionType for Light Punch).
+  3. Tooltip contains `/damage/i` (Light Punch has damage: 10).
+- **Justification**: Verifies the second integration site works correctly. PriorityTab's inventory uses a different wrapper element (`<span>`) than SkillRow (`<h3>`). This test catches issues specific to the inventory rendering context.
 
-**Total: 8 new browser tests (5 new file + 1 extend + 1 extend + 1 extend)**
+---
 
-Expected outcome: Brings browser test count from 22 to 30. All existing 1470 tests (1448 unit + 22 browser) continue to pass.
+## Supplementary Test: Graceful degradation for unknown skill ID
+
+### Test 13: Renders children without tooltip for unknown skill ID
+
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: unit
+- **Verifies**: When `getSkillDefinition` returns `undefined` for an unknown skill ID, the component renders children normally and no tooltip appears on hover.
+- **Setup**:
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="nonexistent-skill">Unknown Skill</SkillNameWithTooltip>`.
+- **Actions**:
+  1. Assert "Unknown Skill" text is rendered.
+  2. Hover over "Unknown Skill" text.
+  3. Advance timers by 150ms.
+- **Assertions**:
+  1. `expect(screen.getByText("Unknown Skill")).toBeInTheDocument()` (children rendered).
+  2. `expect(screen.queryByRole("tooltip")).toBeNull()` (no tooltip appears because no skill definition exists).
+- **Justification**: The plan specifies graceful degradation for unknown skill IDs. Without this test, the component could throw an error or render a broken tooltip when given an invalid ID.
+
+---
+
+## Supplementary Test: Timer cleanup on rapid hover/unhover
+
+### Test 14: Rapid hover then unhover cancels pending tooltip
+
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: unit
+- **Verifies**: If the user hovers and then unhovers before the 150ms delay elapses, the tooltip never appears (timer is cleared).
+- **Setup**:
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="light-punch">Light Punch</SkillNameWithTooltip>`.
+- **Actions**:
+  1. Hover over "Light Punch".
+  2. Advance timers by 100ms (less than 150ms).
+  3. Unhover.
+  4. Advance timers by 100ms more (total 200ms, well past the original 150ms threshold).
+- **Assertions**:
+  1. `expect(screen.queryByRole("tooltip")).toBeNull()` (tooltip never appeared because the timer was cleared on mouseleave).
+- **Justification**: Prevents tooltip flicker. If the timer is not properly cleared on mouseleave, the tooltip would appear even after the user moved away, causing a disorienting flash.
+
+---
+
+## Supplementary Test: Escape key dismissal (WCAG 2.2 SC 1.4.13)
+
+### Test 15: Escape key dismisses visible tooltip
+
+- **File**: `src/components/CharacterPanel/SkillNameWithTooltip.test.tsx`
+- **Type**: unit
+- **Verifies**: Pressing Escape while the tooltip is visible dismisses it immediately. WCAG 2.2 SC 1.4.13 requires that content triggered by hover/focus is "dismissible" -- Escape is the standard keyboard dismissal mechanism. The requirements constraints section explicitly lists "dismissible via Escape or mouse leave/blur".
+- **Setup**:
+  - Fake timers enabled.
+  - Render `<SkillNameWithTooltip skillId="light-punch">Light Punch</SkillNameWithTooltip>`.
+  - Tab to focus the skill name element.
+  - Advance timers by 150ms to show the tooltip.
+- **Actions**:
+  1. Confirm tooltip is visible: `screen.getByRole("tooltip")`.
+  2. Press Escape using `user.keyboard("{Escape}")`.
+- **Assertions**:
+  1. `expect(screen.queryByRole("tooltip")).toBeNull()` (tooltip dismissed by Escape).
+  2. `expect(screen.getByText("Light Punch")).toHaveFocus()` (focus remains on the anchor -- Escape dismisses tooltip but does not move focus).
+- **Justification**: WCAG 2.2 SC 1.4.13 requires that additional content triggered by hover or focus is dismissible without moving pointer or focus. Escape key is the standard mechanism. Without this test, a user who triggers a tooltip via keyboard focus would have no way to dismiss it without tabbing away, which moves focus.
+
+---
+
+## Test Organization Summary
+
+```
+describe("SkillNameWithTooltip", () => {
+  // Timer setup: beforeEach(vi.useFakeTimers), afterEach(vi.useRealTimers)
+
+  describe("Tooltip visibility", () => {
+    it("appears after 150ms hover delay")           // Test 1
+    it("disappears on mouse leave")                  // Test 7
+    it("appears on keyboard focus")                  // Test 8
+    it("disappears on blur")                         // Test 9
+    it("rapid hover/unhover cancels pending tooltip") // Test 14
+  })
+
+  describe("Stat display", () => {
+    it("shows correct stats for attack skill")       // Test 2 (Light Punch)
+    it("shows correct stats for heal skill")         // Test 3 (Heal)
+    it("shows correct stats for move skill")         // Test 4 (Move)
+    it("shows cooldown for Heavy Punch")             // Test 5
+    it("shows damage: 0 for Kick")                   // Test 6
+  })
+
+  describe("Accessibility", () => {
+    it("aria-describedby links anchor to tooltip")   // Test 10
+    it("Escape key dismisses visible tooltip")        // Test 15
+  })
+
+  describe("Graceful degradation", () => {
+    it("renders children without tooltip for unknown skill ID") // Test 13
+  })
+
+  describe("Integration", () => {
+    it("works in SkillRow context")                  // Test 11
+    it("works in Inventory context")                 // Test 12
+  })
+})
+```
+
+## Implementation Notes for Coder
+
+1. **Timer pattern**: Always wrap `vi.advanceTimersByTime()` calls in `act()` when the timer callback triggers React state updates. Use `await act(async () => { vi.advanceTimersByTime(150); })`.
+
+2. **userEvent with fake timers**: Pass `{ advanceTimers: vi.advanceTimersByTime }` to `userEvent.setup()` so that `user.hover()`, `user.tab()`, etc. properly interact with fake timers.
+
+3. **Portal assertions**: `screen.getByRole("tooltip")` finds portal-rendered tooltips because `screen` queries the entire document, not just the render container. No special `within()` queries needed.
+
+4. **Tooltip text matching**: Use `toHaveTextContent` on the tooltip element for content assertions. For example: `expect(screen.getByRole("tooltip")).toHaveTextContent(/damage/i)`. For negation: `expect(screen.getByRole("tooltip").textContent).not.toMatch(/healing/i)`.
+
+5. **Integration tests (Tests 11-12)**: These test the real SkillRow and PriorityTab components. They import and render the actual components, not mocked versions. The tooltip should appear within those components after hover + delay.
+
+6. **Store cleanup for integration tests**: Tests 11-12 that render PriorityTab must call `useGameStore.getState().actions.reset()` in `beforeEach` to ensure clean game state.
+
+7. **No positioning assertions**: Positioning tests (viewport flip, clamping) are intentionally excluded. They depend on `getBoundingClientRect()` which returns zeros in jsdom. Positioning behavior is deferred to browser tests if needed.

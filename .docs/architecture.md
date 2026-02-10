@@ -63,14 +63,14 @@ src/
 
 ## Hex Grid Architecture
 
-The grid system uses axial coordinates {q, r} with flat-top hexagonal orientation (ADR-007).
+The grid system uses axial coordinates {q, r} with pointy-top hex orientation creating flat-top board shape (ADR-007).
 
 - **Coordinate system**: Axial {q, r}. Third cube coordinate derived as s = -q - r.
 - **Map shape**: Hexagonal boundary with radius 5. Validity: `max(|q|, |r|, |q+r|) <= 5`.
 - **Total hexes**: 91 (for radius 5)
 - **Distance**: `hexDistance(a, b)` = `max(|dq|, |dr|, |dq+dr|)`. Uniform cost (all neighbors distance 1).
 - **Neighbors**: 6 directions: E(1,0), W(-1,0), SE(0,1), NW(0,-1), NE(1,-1), SW(-1,1)
-- **Pixel conversion**: `hexToPixel()` for rendering, `pixelToHex()` for input (flat-top formulas)
+- **Pixel conversion**: `hexToPixel()` for rendering, `pixelToHex()` for input (pointy-top formulas)
 - **Tiebreaking**: Lower R coordinate first, then lower Q coordinate (consistent across selectors and movement)
 - **Key module**: `src/engine/hex.ts` provides all hex math utilities
 
@@ -134,9 +134,11 @@ CharacterPanel (container, character selector)
 └── PriorityTab (skill list + inventory section)
     ├── SkillRow (config mode: enable/disable checkbox, reorder, dropdowns)
     │   │        (battle mode: evaluation indicators shown alongside config controls)
+    │   ├── SkillNameWithTooltip (portal tooltip showing skill stats on hover/focus)
     │   ├── SkillRowActions (unassign, remove, duplicate buttons)
     │   └── TriggerDropdown (scope + condition dropdowns, value input)
     └── Inventory section (hidden when both factions present: assignable skills with Assign buttons)
+        └── SkillNameWithTooltip (same component, shows skill stats in inventory rows)
 ```
 
 ### Inline Evaluation Display

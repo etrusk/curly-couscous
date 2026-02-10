@@ -33,6 +33,9 @@ export default defineConfig({
             ".archive",
             "src/**/*.browser.test.{ts,tsx}",
           ],
+          fakeTimers: {
+            shouldAdvanceTime: true,
+          },
         },
       },
       {

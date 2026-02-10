@@ -44,6 +44,7 @@ SkillRow displays a single skill in a character's priority list. It has two visu
 - Font: weight `500`, color `var(--text-primary)`, min-width `100px`
 - Battle mode: font-size `0.85rem`, min-width `auto`
 - Cooldown badge inline: `0.75rem`, color `var(--text-muted)`, margin-left `0.5em`, weight normal
+- **Tooltip on hover/focus**: Wrapped in `SkillNameWithTooltip` component. Shows portal-rendered tooltip with skill stats (action type, tick cost, range, plus optional damage/healing/distance/cooldown/behaviors). 150ms appear delay, immediate dismiss. Positioned below by default, flips above if insufficient space. See `patterns/portal-tooltip-positioning.md`.
 
 ### 5. Trigger Group (auto width, flex)
 
@@ -135,3 +136,4 @@ SkillRow displays a single skill in a character's priority list. It has two visu
 - Priority buttons are standard `<button>` elements with disabled states
 - Trigger NOT toggle: `aria-label="Toggle NOT modifier for [skillName]"`, `aria-pressed`
 - Focus indicators via browser defaults on native form elements
+- Skill name tooltip: `role="tooltip"`, linked via `aria-describedby`, keyboard-accessible (`tabindex="0"` on skill name span, shows on focus, dismissible via Escape key per WCAG 2.2 SC 1.4.13)

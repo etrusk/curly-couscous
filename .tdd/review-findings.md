@@ -1,71 +1,56 @@
-# Phase 4 Browser Tests - Review Findings
+# Review Findings: SkillNameWithTooltip
 
-**Reviewer**: tdd-reviewer | **Date**: 2026-02-09 | **Verdict**: PASS
+**Reviewer**: tdd-reviewer | **Date**: 2026-02-10 | **Verdict**: PASS
 
 ## Quality Gates
 
-- TypeScript: PASS (no errors)
-- ESLint: PASS (no warnings)
-- Tests: PASS (1478/1478, 1448 unit + 30 browser)
+| Gate              | Status |
+| ----------------- | ------ |
+| Tests (1452/1452) | PASS   |
+| TypeScript        | PASS   |
+| ESLint            | PASS   |
 
-## Coverage Check
+## Acceptance Criteria (11/11 met)
 
-All 8 planned tests implemented. No `.skip` or `.todo` found.
+All 11 acceptance criteria verified against the implementation:
 
-| #   | Test                                                              | File                              | Status |
-| --- | ----------------------------------------------------------------- | --------------------------------- | ------ |
-| 1   | all four marker definitions exist in rendered SVG defs            | IntentOverlay.browser.test.tsx    | OK     |
-| 2   | marker CSS variables resolve to correct action colors             | IntentOverlay.browser.test.tsx    | OK     |
-| 3   | intent line with marker-end produces non-zero visual extent       | IntentOverlay.browser.test.tsx    | OK     |
-| 4   | attack intent uses arrowhead marker, heal uses cross marker       | IntentOverlay.browser.test.tsx    | OK     |
-| 5   | friendly and enemy movement intents use different marker shapes   | IntentOverlay.browser.test.tsx    | OK     |
-| 6   | enemy token has SVG pattern definition with diagonal stripe       | Token.browser.test.tsx            | OK     |
-| 7   | WhiffOverlay color-mix() inline fill resolves to semi-transparent | theme.browser.test.tsx            | OK     |
-| 8   | tooltip has active fade-in animation properties                   | CharacterTooltip.browser.test.tsx | OK     |
+1. SkillRow tooltip on hover -- SkillRow.tsx line 190 wraps skill name with `SkillNameWithTooltip`
+2. Inventory tooltip on hover -- PriorityTab.tsx line 102 wraps inventory skill name
+3. Conditional stat display -- `!== undefined` checks at lines 140-168 correctly show defined stats and omit absent ones; `damage: 0` (Kick) is handled correctly
+4. 150ms hover delay -- `APPEAR_DELAY = 150` at line 21, tested at lines 28-56
+5. Immediate disappear on mouse leave -- `hide()` calls `setIsVisible(false)` directly
+6. Keyboard focus/blur -- `onFocus={show}` and `onBlur={hide}` at lines 101-102
+7. Portal rendering -- `createPortal(..., document.body)` at line 119
+8. Position below/flip above -- `useLayoutEffect` at lines 65-86 with vertical flip and horizontal clamp
+9. Design system compliance -- CSS uses `--surface-primary`, `--border-default`, `--radius-lg`, `--font-mono`, `--content-primary/secondary`, compact `0.5rem` padding
+10. Accessibility -- `role="tooltip"`, `aria-describedby`, `useId()` at lines 35-36, 104, 113
+11. Shared component -- Single `SkillNameWithTooltip` used in both SkillRow and PriorityTab
 
-## Critical Issues
+## Issues
 
-None.
+### MINOR: Dead CSS class `.anchor` (SkillNameWithTooltip.module.css line 6-8)
 
-## Non-Blocking Observations
+The `.anchor` class with `cursor: help` is defined but never referenced in the component. The anchor `<span>` receives `className={className}` from props, not `styles.anchor`. Either apply the class or remove it.
 
-### 1. MINOR: `resolveColorVar()` duplicated across 2 files
+### MINOR: Portal tooltip pattern doc is stale (`.docs/patterns/portal-tooltip-positioning.md`)
 
-`resolveColorVar()` is duplicated in `IntentOverlay.browser.test.tsx` (line 30) and `theme.browser.test.tsx` (line 48). This was an explicit design decision (Option A in test-designs.md) -- 6-line function, only 2 usages, extraction would be premature. Acceptable. If a Phase 5 adds a third usage, extraction to a shared browser test utility should occur.
+The "Related Files" section references `tooltip-positioning.ts` and `CharacterTooltip.tsx` which were removed in commit 7a4db95. The new `SkillNameWithTooltip` component is not listed. This is a documentation-only issue, out of scope for this task but worth noting.
 
-### 2. MINOR: `theme.browser.test.tsx` at 309 lines
+## Positive Observations
 
-Approaching 300-line flag threshold. Not urgent since it is a test file and the helper functions (`resolveColorVar`, `parseColor`, `setTheme`) naturally belong here. No action needed unless Phase 5 adds more tests to this file.
+- Correct use of `!== undefined` instead of truthiness check for `damage: 0` edge case
+- Clean separation: `TooltipContent` extracted as a sub-component for readability
+- Proper timer cleanup on unmount path (hide clears timer)
+- Escape key dismissal implemented for WCAG 2.2 SC 1.4.13
+- `pointer-events: none` on tooltip CSS prevents tooltip from intercepting mouse events
+- No security concerns (no user input rendered as HTML, no external data)
+- All files within size limits (component 173 lines, CSS 54 lines, tests 447 lines)
+- `vite.config.ts` change is appropriate: `shouldAdvanceTime: true` is scoped to unit test project and enables `userEvent` + `fakeTimers` interop
 
-### 3. MINOR: `parseColor` only used by 2 tests within theme file
+## Duplication Check
 
-`parseColor()` (lines 64-110, ~47 lines) is a substantial helper used by Test 5 (Phase 3) and Test 8 (Phase 4) in `theme.browser.test.tsx`. If it grows or is needed elsewhere, it would be a good extraction candidate. No action now.
+No duplicate tooltip implementations found. `createPortal` and `role="tooltip"` are only used in this new component (CharacterTooltip was previously removed).
 
-## Design Match Verification
+## Summary
 
-All 8 tests match the approved test designs in `.tdd/test-designs.md`:
-
-- Test setup patterns (beforeEach, viewport, createCharacter) are consistent
-- Assertion strategies match designs (probe element, getElementById, marker-end queries)
-- The heal action in Test 4 uses `scope: "ally"` (matching the design review fix from `"friendly"` to the correct TriggerScope)
-- Test 7 uses inline probe instead of `resolveColorVar` as designed
-- Test 8 checks all 4 animation properties as designed
-
-## Spec Alignment
-
-- Marker IDs match spec (arrowhead-attack, cross-heal, circle-friendly, diamond-enemy)
-- Action colors match Okabe-Ito palette (#d55e00, #009e73, #0072b2)
-- Faction marker differentiation (circle=friendly, diamond=enemy for movement) matches spec
-- WhiffOverlay 20% opacity matches spec's "Opacity: 0.2"
-- Tooltip fadeIn animation matches CharacterTooltip.module.css declaration
-
-## Pattern Compliance
-
-- `.browser.test.tsx` naming convention: followed
-- CSS variable probe element pattern: correctly applied
-- beforeEach cleanup pattern: consistent with existing browser tests
-- Co-location: test files adjacent to source components
-
-## Conclusion
-
-No critical issues. Ready for SYNC_DOCS.
+Implementation is clean, well-tested (15 tests covering all acceptance criteria), and follows project patterns. Two MINOR issues found (dead CSS class, stale pattern doc). No CRITICAL or IMPORTANT issues. Recommend approval.

@@ -1,0 +1,49 @@
+/**
+ * Styles for SkillNameWithTooltip component.
+ * Compact tooltip for displaying skill stats on hover/focus.
+ */
+
+.tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: 220px;
+  width: max-content;
+  padding: 0.5rem;
+  background-color: var(--surface-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--content-primary);
+  pointer-events: none;
+  opacity: 0;
+  animation: fadeIn 150ms ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.125rem 0;
+}
+
+.label {
+  color: var(--content-secondary);
+  white-space: nowrap;
+}
+
+.value {
+  color: var(--content-primary);
+  font-weight: 500;
+  text-align: right;
+}

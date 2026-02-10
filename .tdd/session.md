@@ -24,7 +24,7 @@ Create a reusable `SkillNameWithTooltip` component with portal-rendered tooltip 
 
 ## Current Phase
 
-SYNC_DOCS → COMPLETE (all documentation updated)
+COMMIT → COMPLETE (b5bad5c pushed to main)
 
 ## Phase History
 
@@ -39,8 +39,8 @@ SYNC_DOCS → COMPLETE (all documentation updated)
 ## Context Metrics
 
 Orchestrator: ~15K/300K (5%)
-Cumulative agent tokens: ~297K
-Agent invocations: 8
+Cumulative agent tokens: ~304K
+Agent invocations: 9
 Compactions: 0
 
 ### Agent History
@@ -55,6 +55,7 @@ Compactions: 0
 | 6   | tdd-coder         | IMPLEMENT    | 18        | ~100K  | 45    | -        | COMPLETE | Component + CSS + integrations; fakeTimers config fix; all 15 pass                        |
 | 7   | tdd-reviewer      | REVIEW       | 5         | ~25K   | 18    | 100s     | COMPLETE | PASS: 0 critical, 0 important, 2 minor (dead CSS class, stale pattern doc)                |
 | 8   | tdd-doc-syncer    | SYNC_DOCS    | 4         | ~16K   | 16    | 99s      | COMPLETE | Updated current-task, architecture, spec, skill-row visual spec, priority-tab visual spec |
+| 9   | tdd-committer     | COMMIT       | 4         | ~7K    | 10    | 45s      | COMPLETE | b5bad5c pushed to main, version 0.21.2 → 0.22.0                                           |
 
 ### Action Log
 
@@ -111,6 +112,10 @@ Compactions: 0
 - 2 minor issues: dead .anchor CSS class (unused), stale pattern doc (out of scope)
 
 #### #8 tdd-doc-syncer (SYNC_DOCS)
+
+- Clean run
+
+#### #9 tdd-committer (COMMIT)
 
 - Clean run
 

@@ -20,6 +20,13 @@ lessons:
     category: "ui-styling"
     summary: "CSS variable names can be misleading; always verify actual values across all theme modes before use"
     file: "lesson-003-verify-css-variables-across-themes.md"
+
+  - id: "004"
+    title: "fakeTimers requires shouldAdvanceTime for userEvent compatibility"
+    date: "2026-02-10"
+    category: "testing"
+    summary: "vi.useFakeTimers() blocks userEvent.hover/click unless shouldAdvanceTime:true is set in vitest config"
+    file: "lesson-004-faketimers-userevent-compat.md"
 ---
 
 # Lessons Learned Index
@@ -33,6 +40,7 @@ This directory captures important lessons from implementation work to prevent re
 - **Specification:** 001
 - **Implementation:** 002
 - **UI/Styling:** 003
+- **Testing:** 004
 
 ## Usage
 
@@ -47,7 +55,7 @@ Agents should:
 When documenting a new lesson:
 
 1. Create new file: `.docs/lessons-learned/lesson-NNN-[descriptive-slug].md`
-2. Use next sequential ID (current: 004)
+2. Use next sequential ID (current: 005)
 3. Include: Date, Context, Lesson, Impact sections
 4. Update YAML frontmatter in this index
 5. Choose appropriate category: specification, implementation, ui-styling, testing, architecture, performance, security

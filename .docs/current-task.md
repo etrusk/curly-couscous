@@ -21,4 +21,9 @@
 
 - 2026-02-09: Phase 3 browser tests for CSS variable resolution and Token visual feedback (COMPLETE, TDD/Claude Code) - Added 12 browser tests across 2 files. All 1470 tests pass (1448 unit + 22 browser), all quality gates pass.
 
+## Priority Next Tasks (from TDD session)
+
+- [ ] Update CLAUDE.md version from 0.21.2 to 0.22.0 (found during: stacked labels, date: 2026-02-10)
+- [ ] Review unstaged .claude/commands/tdd-spec.md modifications (found during: stacked labels, date: 2026-02-10)
+
 ## Next Steps

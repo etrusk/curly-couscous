@@ -17,6 +17,8 @@ Structured conversation to agree on scope before implementation. Output: `.tdd/r
 
 Read `.docs/spec.md` and `.docs/architecture.md` for project context. Scan `.docs/lessons-learned/index.md` YAML frontmatter for lessons matching the task's domain — mention applicable ones as constraints or risks.
 
+Identify the task's domain (engine, UI/styling, testing, state). Read domain-relevant docs from `.docs/` — e.g., UI tasks require `ui-ux-guidelines.md` and applicable `visual-specs/*.md`. Follow `CLAUDE.md`: "Agents MUST read relevant `.docs/` files before making changes."
+
 Present your understanding of the request:
 
 - **Goal**: What needs to be done (1-2 sentences)
@@ -39,7 +41,9 @@ If the request is already clear and detailed, say so and skip to step 4.
 
 ### 3. Explore Approaches (if multiple valid options exist)
 
-Present 2-3 approaches with concrete trade-offs:
+Before presenting, validate each candidate approach against the docs read in Step 1. Cite which design principles/constraints each approach satisfies or violates. Discard approaches that violate documented constraints.
+
+Present 2-3 validated approaches with concrete trade-offs:
 
 ```
 Option A: [name]

@@ -18,6 +18,18 @@ version: 4.0.0
 
 ---
 
+## Meta-Housekeeping Timer
+
+At session start, read `.docs/last-meta-review.txt`. If the file is missing or the date inside is >30 days ago, output:
+
+> ⏰ Monthly meta-review due. Review or "skip" to proceed.
+
+On either review completion or skip, write today's date (YYYY-MM-DD) to `.docs/last-meta-review.txt` and log a one-line summary to `.docs/meta-review-log.md`.
+
+If ≤30 days, proceed without mention.
+
+---
+
 ## Configuration
 
 ```yaml

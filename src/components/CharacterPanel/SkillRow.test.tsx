@@ -660,7 +660,7 @@ describe("SkillRow", () => {
       expect(screen.getByText("FILTER")).toBeInTheDocument();
     });
 
-    it("does not show label for behavior select", () => {
+    it("shows BEHAVIOR label for behavior select", () => {
       const skill = createSkill({
         id: "move-towards",
         name: "Move",
@@ -678,10 +678,9 @@ describe("SkillRow", () => {
         />,
       );
 
-      // Precondition: behavior select IS rendered
+      // Precondition: behavior select IS rendered with label
       expect(screen.getByLabelText(/behavior.*move/i)).toBeInTheDocument();
-      // No BEHAVIOR label should exist
-      expect(screen.queryByText("BEHAVIOR")).not.toBeInTheDocument();
+      expect(screen.getByText("BEHAVIOR")).toBeInTheDocument();
     });
   });
 });

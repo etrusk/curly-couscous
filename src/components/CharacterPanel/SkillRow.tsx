@@ -153,14 +153,6 @@ export function SkillRow({
         .join(" ")}
       data-mode={evaluation ? "battle" : undefined}
     >
-      {evalDisplay && (
-        <span
-          className={styles.statusIcon}
-          aria-label={evalDisplay.statusLabel}
-        >
-          {evalDisplay.statusIcon}
-        </span>
-      )}
       <label className={styles.enableCheckbox}>
         <input
           type="checkbox"
@@ -169,6 +161,14 @@ export function SkillRow({
           aria-label={`Enable ${skill.name}`}
         />
       </label>
+      {evalDisplay && (
+        <span
+          className={styles.statusIcon}
+          aria-label={evalDisplay.statusLabel}
+        >
+          {evalDisplay.statusIcon}
+        </span>
+      )}
       <div className={styles.priorityControls}>
         <button
           onClick={() => moveSkillUp(character.id, index)}
@@ -186,45 +186,49 @@ export function SkillRow({
         </button>
       </div>
 
-      <h3 className={styles.skillName}>
-        <SkillNameWithTooltip skillId={skill.id}>
-          {skill.name}
-        </SkillNameWithTooltip>
-      </h3>
-      {skill.cooldownRemaining != null && skill.cooldownRemaining > 0 && (
-        <span className={styles.cooldownBadge}>
-          CD: {skill.cooldownRemaining}
-        </span>
-      )}
+      <span className={styles.nameCell}>
+        <h3 className={styles.skillName}>
+          <SkillNameWithTooltip skillId={skill.id}>
+            {skill.name}
+          </SkillNameWithTooltip>
+        </h3>
+        {skill.cooldownRemaining != null && skill.cooldownRemaining > 0 && (
+          <span className={styles.cooldownBadge}>
+            CD: {skill.cooldownRemaining}
+          </span>
+        )}
+      </span>
 
-      {evaluation?.status === "selected" && evaluation.resolvedTarget && (
-        <span className={styles.target}>
-          →{" "}
-          {evaluation.resolvedTarget.faction === "friendly"
-            ? "Friendly"
-            : "Enemy"}{" "}
-          {(() => {
-            const factionChars = allCharacters
-              .filter((c) => c.faction === evaluation.resolvedTarget!.faction)
-              .sort((a, b) => a.slotPosition - b.slotPosition);
-            const factionIndex = factionChars.findIndex(
-              (c) => c.id === evaluation.resolvedTarget!.id,
-            );
-            const letterIndex =
-              factionIndex >= 0
-                ? factionIndex
-                : evaluation.resolvedTarget.slotPosition - 1;
-            return String.fromCharCode(65 + letterIndex);
-          })()}
-        </span>
-      )}
-      {evaluation?.status === "rejected" && evaluation.rejectionReason && (
-        <span className={styles.rejectionReason}>
-          {formatRejectionReason(evaluation.rejectionReason)}
-        </span>
-      )}
+      <span className={styles.evalCell}>
+        {evaluation?.status === "selected" && evaluation.resolvedTarget && (
+          <span className={styles.target}>
+            →{" "}
+            {evaluation.resolvedTarget.faction === "friendly"
+              ? "Friendly"
+              : "Enemy"}{" "}
+            {(() => {
+              const factionChars = allCharacters
+                .filter((c) => c.faction === evaluation.resolvedTarget!.faction)
+                .sort((a, b) => a.slotPosition - b.slotPosition);
+              const factionIndex = factionChars.findIndex(
+                (c) => c.id === evaluation.resolvedTarget!.id,
+              );
+              const letterIndex =
+                factionIndex >= 0
+                  ? factionIndex
+                  : evaluation.resolvedTarget.slotPosition - 1;
+              return String.fromCharCode(65 + letterIndex);
+            })()}
+          </span>
+        )}
+        {evaluation?.status === "rejected" && evaluation.rejectionReason && (
+          <span className={styles.rejectionReason}>
+            {formatRejectionReason(evaluation.rejectionReason)}
+          </span>
+        )}
+      </span>
 
-      <div className={styles.fieldGroup}>
+      <div className={`${styles.fieldGroup} ${styles.triggerField}`}>
         <span className={styles.fieldLabel}>TRIGGER</span>
         <div className={styles.triggerGroup}>
           <TriggerDropdown
@@ -236,7 +240,7 @@ export function SkillRow({
         </div>
       </div>
 
-      <div className={styles.fieldGroup}>
+      <div className={`${styles.fieldGroup} ${styles.targetField}`}>
         <span className={styles.fieldLabel}>TARGET</span>
         <select
           value={skill.target}
@@ -250,7 +254,7 @@ export function SkillRow({
         </select>
       </div>
 
-      <div className={styles.fieldGroup}>
+      <div className={`${styles.fieldGroup} ${styles.selectorField}`}>
         <span className={styles.fieldLabel}>SELECTOR</span>
         <select
           value={skill.criterion}
@@ -267,7 +271,7 @@ export function SkillRow({
         </select>
       </div>
 
-      <div className={styles.fieldGroup}>
+      <div className={`${styles.fieldGroup} ${styles.filterField}`}>
         <span className={styles.fieldLabel}>FILTER</span>
         {skill.filter ? (
           <span className={styles.filterGroup}>
@@ -306,29 +310,36 @@ export function SkillRow({
         )}
       </div>
 
-      {skillDef && skillDef.behaviors.length > 1 && (
-        <select
-          value={skill.behavior}
-          onChange={handleBehaviorChange}
-          className={styles.select}
-          aria-label={`Behavior for ${skill.name}`}
-        >
-          {skillDef.behaviors.map((b) => (
-            <option key={b} value={b}>
-              {b.charAt(0).toUpperCase() + b.slice(1)}
-            </option>
-          ))}
-        </select>
-      )}
+      <span className={`${styles.fieldGroup} ${styles.behaviorField}`}>
+        {skillDef && skillDef.behaviors.length > 1 && (
+          <>
+            <span className={styles.fieldLabel}>BEHAVIOR</span>
+            <select
+              value={skill.behavior}
+              onChange={handleBehaviorChange}
+              className={styles.select}
+              aria-label={`Behavior for ${skill.name}`}
+            >
+              {skillDef.behaviors.map((b) => (
+                <option key={b} value={b}>
+                  {b.charAt(0).toUpperCase() + b.slice(1)}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
+      </span>
 
-      <SkillRowActions
-        skill={skill}
-        character={character}
-        skillDef={skillDef}
-        canDuplicate={canDuplicate}
-        isDuplicate={isDuplicate}
-        isInnate={isInnate}
-      />
+      <span className={styles.actionsCell}>
+        <SkillRowActions
+          skill={skill}
+          character={character}
+          skillDef={skillDef}
+          canDuplicate={canDuplicate}
+          isDuplicate={isDuplicate}
+          isInnate={isInnate}
+        />
+      </span>
     </div>
   );
 }

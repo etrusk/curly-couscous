@@ -2,7 +2,7 @@
 
 > General rules for all components. LLM agents MUST read this file before any UI/styling work.
 > Component-specific visual specs live in `.docs/visual-specs/`.
-> Last verified: 2026-02-09
+> Last verified: 2026-02-11
 
 ## Design Principles
 
@@ -260,10 +260,24 @@ overflow: hidden;
 ### Interactive Row
 
 ```css
-/* SkillRow.module.css → .skillRow */
-display: flex;
+/* SkillRow.module.css → .skillRow (12-column grid) */
+display: grid;
+grid-template-columns:
+  /* 1: checkbox    */
+  auto
+  /* 2: status icon */ 1.5rem
+  /* 3: priority    */ auto
+  /* 4: name        */ 9rem
+  /* 5: eval        */ 12rem
+  /* 6: trigger     */ auto
+  /* 7: target      */ auto
+  /* 8: selector    */ auto
+  /* 9: filter      */ auto
+  /* 10: behavior   */ minmax(0, auto)
+  /* 11: spacer     */ 1fr
+  /* 12: actions    */ auto;
 align-items: center;
-gap: 0.5rem;
+column-gap: 0.5rem;
 padding: 0.5rem;
 background: var(--surface-secondary);
 border: 1px solid var(--border);
@@ -271,8 +285,12 @@ border-radius: var(--radius-md);
 
 /* Battle mode compact variant */
 .skillRow.battleMode {
+  grid-template-columns: auto 1.5rem auto 7.5rem 10rem auto auto auto auto minmax(
+      0,
+      auto
+    ) 1fr auto;
   padding: 0.25rem 0.5rem;
-  gap: 0.35rem;
+  column-gap: 0.35rem;
   font-size: 0.85rem;
 }
 ```

@@ -31,7 +31,8 @@ Before exploration, read:
 3. **Architecture**: `.docs/architecture.md`
 4. **Patterns**: `.docs/patterns/index.md`
 5. **Decisions**: `.docs/decisions/index.md`
-6. **Visual design** (UI tasks): `.docs/ui-ux-guidelines.md` and relevant `.docs/visual-specs/*.md` for affected components
+6. **Lessons learned**: `.docs/lessons-learned/index.md` — scan YAML frontmatter for lessons matching the task's category or domain. Only read specific `lesson-NNN-*.md` files if their summary appears relevant. Include applicable lessons in exploration output.
+7. **Visual design** (UI tasks): `.docs/ui-ux-guidelines.md` and relevant `.docs/visual-specs/*.md` for affected components
 
 ## Exploration Protocol
 
@@ -71,6 +72,10 @@ Write findings to `.tdd/exploration.md`:
 ## Dependencies
 
 - [what this task depends on]
+
+## Applicable Lessons
+
+- [lesson ID] - [how it applies to this task, or "None found"]
 
 ## Constraints Discovered
 

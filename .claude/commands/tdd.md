@@ -348,7 +348,12 @@ phases:
     agent: tdd-explorer
     budget: tdd-explorer
     inputs:
-      [".docs/spec.md", ".docs/architecture.md", ".docs/patterns/index.md"]
+      [
+        ".docs/spec.md",
+        ".docs/architecture.md",
+        ".docs/patterns/index.md",
+        ".docs/lessons-learned/index.md",
+      ]
     outputs: [".tdd/exploration.md"]
     next: PLAN
 

@@ -15,7 +15,7 @@ Structured conversation to agree on scope before implementation. Output: `.tdd/r
 
 ### 1. State Understanding
 
-Read `.docs/spec.md` and `.docs/architecture.md` for project context.
+Read `.docs/spec.md` and `.docs/architecture.md` for project context. Scan `.docs/lessons-learned/index.md` YAML frontmatter for lessons matching the task's domain — mention applicable ones as constraints or risks.
 
 Present your understanding of the request:
 

@@ -334,6 +334,28 @@
   grid-column: 10;
 }
 
+.notToggle {
+  padding: 0.15rem 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.notToggle:hover {
+  background: var(--surface-hover);
+}
+
+.notToggleActive {
+  background: var(--health-low);
+  color: var(--text-on-faction);
+  border-color: var(--health-low);
+}
+
 .actionsCell {
   grid-column: 12;
   display: flex;

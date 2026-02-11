@@ -3,7 +3,8 @@
  * Controlled component: receives a Trigger and calls back with the new Trigger on changes.
  */
 
-import type { Trigger } from "../../engine/types";
+import type { Trigger, ConditionQualifier } from "../../engine/types";
+import { QualifierSelect } from "./QualifierSelect";
 import styles from "./TriggerDropdown.module.css";
 
 interface TriggerDropdownProps {
@@ -67,6 +68,15 @@ export function TriggerDropdown({
     onTriggerChange({ ...trigger, negated: !trigger.negated });
   };
 
+  const handleQualifierChange = (qualifier: ConditionQualifier | undefined) => {
+    if (qualifier === undefined) {
+      const { qualifier: _, ...rest } = trigger;
+      onTriggerChange(rest);
+    } else {
+      onTriggerChange({ ...trigger, qualifier });
+    }
+  };
+
   const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const parsed = parseInt(e.target.value, 10);
     if (isNaN(parsed)) return;
@@ -120,6 +130,15 @@ export function TriggerDropdown({
           onChange={handleValueChange}
           className={styles.input}
           aria-label={`Trigger value for ${skillName}`}
+        />
+      )}
+
+      {trigger.condition === "channeling" && (
+        <QualifierSelect
+          value={trigger.qualifier}
+          onChange={handleQualifierChange}
+          ariaLabel={`Qualifier for ${skillName}`}
+          className={styles.select}
         />
       )}
 

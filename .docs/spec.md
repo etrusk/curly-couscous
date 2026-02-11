@@ -310,6 +310,7 @@ Filters use the same `ConditionType` and shared condition evaluator as triggers,
 | ---------------- | -------------------------------------------------------------------------- |
 | `hp_below`       | Target's current HP below `conditionValue`% of maxHp (strict less-than)    |
 | `hp_above`       | Target's current HP above `conditionValue`% of maxHp (strict greater-than) |
+| `in_range`       | Target within `conditionValue` hexes of evaluator                          |
 | `channeling`     | Target has a pending action (optional qualifier narrows to specific skill) |
 | `idle`           | Target has no pending action                                               |
 | `targeting_me`   | Target's action targets the evaluator's cell                               |

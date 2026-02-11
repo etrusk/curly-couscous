@@ -13,13 +13,13 @@
 
 ## Recent Completions
 
-- 2026-02-11: SkillRow 12-Column CSS Grid Layout (COMPLETE, TDD/Claude Code) - Converted SkillRow from flex to 12-column CSS grid. Checkbox/status/priority/name(9rem)/eval(12rem)/trigger/target/selector/filter/behavior(minmax(0,auto))/spacer(1fr)/actions. All grid children have explicit grid-column assignments. Behavior select now wrapped in .fieldGroup with BEHAVIOR label. Battle mode uses compact column widths (7.5rem/10rem). All 1458 tests pass, all quality gates pass.
+- 2026-02-11: Skill Expansion UI Gaps -- Filter Conditions, Filter NOT, Qualifier Selector (COMPLETE, TDD/Claude Code) - Expanded filter dropdown from 2 to 7 conditions. Added filter NOT toggle (same pattern as trigger NOT). Added qualifier selector for channeling condition in both filter and trigger. Extracted FilterControls.tsx (177 lines) and QualifierSelect.tsx (55 lines) from SkillRow. 25 new tests across 3 files, 1482 total passing, all quality gates pass.
 
-- 2026-02-10: Stacked Text Labels for SkillRow (COMPLETE, TDD/Claude Code) - Added "TRIGGER", "TARGET", "SELECTOR", "FILTER" labels above SkillRow control groups using .fieldGroup/.fieldLabel CSS pattern. Battle mode scales labels to 0.55rem. 6 tests added, 1458 total passing, all quality gates pass.
+- 2026-02-11: SkillRow 12-Column CSS Grid Layout (COMPLETE, TDD/Claude Code) - Converted SkillRow from flex to 12-column CSS grid. All grid children have explicit grid-column assignments. Behavior select wrapped in .fieldGroup with BEHAVIOR label. All 1458 tests pass, all quality gates pass.
 
-- 2026-02-10: Skill Name Tooltips (COMPLETE, TDD/Claude Code) - Created SkillNameWithTooltip component with portal-rendered tooltips showing skill stats on hover/focus. Integrated into SkillRow and PriorityTab inventory. 15 tests, all quality gates pass.
+- 2026-02-10: Stacked Text Labels for SkillRow (COMPLETE, TDD/Claude Code) - Added "TRIGGER", "TARGET", "SELECTOR", "FILTER" labels above SkillRow control groups using .fieldGroup/.fieldLabel CSS pattern. 6 tests added, 1458 total passing, all quality gates pass.
 
-- 2026-02-09: Phase 4 browser tests for SVG markers and DOM-dependent behaviors (COMPLETE, TDD/Claude Code) - Added 8 browser tests across 4 files. All 1478 tests pass (1448 unit + 30 browser), all quality gates pass.
+- 2026-02-10: Skill Name Tooltips (COMPLETE, TDD/Claude Code) - Created SkillNameWithTooltip component with portal-rendered tooltips showing skill stats on hover/focus. 15 tests, all quality gates pass.
 
 ## Priority Next Tasks (from TDD session)
 

@@ -1,7 +1,7 @@
 # SkillRow Visual Specification
 
 > Extracted from: `src/components/CharacterPanel/SkillRow.tsx` + `SkillRow.module.css`
-> Last verified: 2026-02-11
+> Last verified: 2026-02-11 (filter expansion + NOT toggle + qualifier select)
 
 ## Overview
 
@@ -167,10 +167,45 @@ The checkbox (col 1) appears BEFORE the status icon (col 2) in DOM order. This i
 ### 9. Filter Group (col 9, auto width) -- wrapped in `.fieldGroup` with "FILTER" label
 
 - Container: `display: inline-flex; align-items: center; gap: 0.25rem`
-- Contains filter condition select + value input when filter exists
-- Add filter button: ghost button (dashed border)
+- Rendered by `FilterControls` component (extracted from SkillRow)
+- Contains (when filter is active): NOT toggle, condition select (7 options), value input (conditional), qualifier select (conditional), remove button
+- Add filter button: ghost button (dashed border) when no filter set
 - Remove filter button: `0.15rem 0.35rem` padding, `0.75rem` font, hover goes danger (`--health-low`)
 - `grid-column: 9`
+
+**Filter Condition Select** (7 options):
+
+| Value            | Display Text   | Has Value Input  | Has Qualifier |
+| ---------------- | -------------- | ---------------- | ------------- |
+| `hp_below`       | HP below       | Yes (default 50) | No            |
+| `hp_above`       | HP above       | Yes (default 50) | No            |
+| `in_range`       | In range       | Yes (default 3)  | No            |
+| `channeling`     | Channeling     | No               | Yes           |
+| `idle`           | Idle           | No               | No            |
+| `targeting_me`   | Cell targeted  | No               | No            |
+| `targeting_ally` | Targeting ally | No               | No            |
+
+**Filter NOT Toggle:**
+
+- Same visual pattern as trigger NOT toggle in TriggerDropdown
+- Padding: `0.15rem 0.35rem`, font-size: `0.7rem`, font-weight: `600`, uppercase
+- Default: `border: 1px solid var(--border)`, `background: transparent`, `color: var(--text-secondary)`
+- Hover: `background: var(--surface-hover)`
+- Active (negated): `background: var(--health-low)`, `color: var(--text-on-faction)`, `border-color: var(--health-low)`
+- CSS classes: `.notToggle` / `.notToggleActive` in `SkillRow.module.css` (duplicated from TriggerDropdown)
+- `aria-label="Toggle NOT modifier for filter on {skillName}"`, `aria-pressed`
+- Only visible when filter is active (not shown with ghost "+ Filter" button)
+
+**Qualifier Select** (channeling condition only):
+
+- Rendered by shared `QualifierSelect` component (used by both FilterControls and TriggerDropdown)
+- Standard `.select` styling, same as condition select
+- Options: `(any)` (clears qualifier), then two `<optgroup>` sections:
+  - "Action Type": attack, move, heal, interrupt, charge
+  - "Skill": all entries from SKILL_REGISTRY (light-punch, heavy-punch, ranged-attack, heal, kick, dash, charge, move-towards)
+- Value encoding: `type:id` format (e.g., `"action:heal"`, `"skill:light-punch"`)
+- `aria-label="Filter qualifier for {skillName}"`
+- Only rendered when filter condition is `channeling`
 
 ### 10. Behavior Select (col 10, minmax(0, auto)) -- wrapped in `.fieldGroup` with "BEHAVIOR" label
 
@@ -250,7 +285,10 @@ Each of five control groups (Trigger, Target, Selector, Filter, Behavior) is wra
 - **Config mode (no battle)**: Shows enable checkbox, priority controls, all dropdowns, action buttons. No status icon or evaluation display.
 - **Battle mode (active battle)**: Shows all config controls plus evaluation indicators. Status icon appears. Target/rejection reason shown based on evaluation. Row compact sizing applied.
 - **Cooldown active**: Cooldown badge appears after skill name. Row opacity `0.6`.
-- **Has filter**: Filter group visible with condition select, value input, remove button.
+- **Has filter**: Filter group visible with NOT toggle, condition select (7 options), conditional value input, conditional qualifier select, remove button.
+- **Has filter (value condition)**: Numeric input shown for `hp_below`, `hp_above`, `in_range`.
+- **Has filter (channeling)**: Qualifier select shown with action type and skill optgroups.
+- **Has filter (negated)**: NOT toggle highlighted with `--health-low` background.
 - **No filter**: "Add Filter" ghost button shown.
 - **Multi-behavior skill**: Behavior select appears inside `.fieldGroup` with "BEHAVIOR" label.
 - **Innate skill**: No Unassign button.
@@ -258,21 +296,26 @@ Each of five control groups (Trigger, Target, Selector, Filter, Behavior) is wra
 
 ## Token Mapping
 
-| Property              | Token                 | Resolved Value (dark)    |
-| --------------------- | --------------------- | ------------------------ |
-| Row background        | `--surface-secondary` | `#1e1e1e`                |
-| Row border            | `--border`            | `rgba(255,255,255,0.12)` |
-| Row border-radius     | `--radius-md`         | `4px`                    |
-| Skill name color      | `--text-primary`      | `rgba(255,255,255,0.87)` |
-| Select background     | `--surface-primary`   | `#2a2a2a`                |
-| Select border         | `--border`            | `rgba(255,255,255,0.12)` |
-| Selected status color | `--health-high`       | `#4caf50`                |
-| Rejected status color | `--health-low`        | `#f44336`                |
-| Skipped text color    | `--text-secondary`    | `rgba(255,255,255,0.6)`  |
-| Target display color  | `--accent-primary`    | `#00a8ff`                |
-| Rejection color       | `--health-low`        | `#f44336`                |
-| Cooldown badge color  | `--text-muted`        | `rgba(255,255,255,0.38)` |
-| Field label color     | `--text-secondary`    | `rgba(255,255,255,0.6)`  |
+| Property               | Token                 | Resolved Value (dark)    |
+| ---------------------- | --------------------- | ------------------------ |
+| Row background         | `--surface-secondary` | `#1e1e1e`                |
+| Row border             | `--border`            | `rgba(255,255,255,0.12)` |
+| Row border-radius      | `--radius-md`         | `4px`                    |
+| Skill name color       | `--text-primary`      | `rgba(255,255,255,0.87)` |
+| Select background      | `--surface-primary`   | `#2a2a2a`                |
+| Select border          | `--border`            | `rgba(255,255,255,0.12)` |
+| Selected status color  | `--health-high`       | `#4caf50`                |
+| Rejected status color  | `--health-low`        | `#f44336`                |
+| Skipped text color     | `--text-secondary`    | `rgba(255,255,255,0.6)`  |
+| Target display color   | `--accent-primary`    | `#00a8ff`                |
+| Rejection color        | `--health-low`        | `#f44336`                |
+| Cooldown badge color   | `--text-muted`        | `rgba(255,255,255,0.38)` |
+| Field label color      | `--text-secondary`    | `rgba(255,255,255,0.6)`  |
+| NOT toggle border      | `--border`            | `rgba(255,255,255,0.12)` |
+| NOT toggle text        | `--text-secondary`    | `rgba(255,255,255,0.6)`  |
+| NOT toggle hover bg    | `--surface-hover`     | (theme-dependent)        |
+| NOT toggle active bg   | `--health-low`        | `#f44336`                |
+| NOT toggle active text | `--text-on-faction`   | `#ffffff`                |
 
 ## Accessibility
 
@@ -280,5 +323,8 @@ Each of five control groups (Trigger, Target, Selector, Filter, Behavior) is wra
 - All selects have `aria-label` attributes
 - Priority buttons are standard `<button>` elements with disabled states
 - Trigger NOT toggle: `aria-label="Toggle NOT modifier for [skillName]"`, `aria-pressed`
+- Filter NOT toggle: `aria-label="Toggle NOT modifier for filter on [skillName]"`, `aria-pressed`
+- Filter qualifier select: `aria-label="Filter qualifier for [skillName]"`
+- Trigger qualifier select: `aria-label="Qualifier for [skillName]"`
 - Focus indicators via browser defaults on native form elements
 - Skill name tooltip: `role="tooltip"`, linked via `aria-describedby`, keyboard-accessible (`tabindex="0"` on skill name span, shows on focus, dismissible via Escape key per WCAG 2.2 SC 1.4.13)

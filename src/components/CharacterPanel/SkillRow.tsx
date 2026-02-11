@@ -2,16 +2,12 @@
  * SkillRow - Displays a single skill in priority list.
  */
 
-import type {
-  Character,
-  Skill,
-  Trigger,
-  ConditionType,
-} from "../../engine/types";
+import type { Character, Skill, Trigger } from "../../engine/types";
 import { useGameStore, selectActions } from "../../stores/gameStore";
 import { MAX_SKILL_SLOTS } from "../../stores/gameStore-constants";
 import { getSkillDefinition } from "../../engine/skill-registry";
 import { TriggerDropdown } from "./TriggerDropdown";
+import { FilterControls } from "./FilterControls";
 import { SkillRowActions } from "./SkillRowActions";
 import { SkillNameWithTooltip } from "./SkillNameWithTooltip";
 import styles from "./SkillRow.module.css";
@@ -70,36 +66,6 @@ export function SkillRow({
   const handleBehaviorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     updateSkill(character.id, skill.instanceId, {
       behavior: e.target.value,
-    });
-  };
-
-  const handleAddFilter = () => {
-    updateSkill(character.id, skill.instanceId, {
-      filter: { condition: "hp_below", conditionValue: 50 },
-    });
-  };
-
-  const handleFilterTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const filterType = e.target.value as ConditionType;
-    updateSkill(character.id, skill.instanceId, {
-      filter: {
-        condition: filterType,
-        conditionValue: skill.filter?.conditionValue ?? 50,
-      },
-    });
-  };
-
-  const handleFilterValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const parsed = parseInt(e.target.value, 10);
-    if (isNaN(parsed)) return;
-    updateSkill(character.id, skill.instanceId, {
-      filter: { condition: skill.filter!.condition, conditionValue: parsed },
-    });
-  };
-
-  const handleRemoveFilter = () => {
-    updateSkill(character.id, skill.instanceId, {
-      filter: undefined,
     });
   };
 
@@ -271,44 +237,7 @@ export function SkillRow({
         </select>
       </div>
 
-      <div className={`${styles.fieldGroup} ${styles.filterField}`}>
-        <span className={styles.fieldLabel}>FILTER</span>
-        {skill.filter ? (
-          <span className={styles.filterGroup}>
-            <select
-              value={skill.filter.condition}
-              onChange={handleFilterTypeChange}
-              className={styles.select}
-              aria-label={`Filter type for ${skill.name}`}
-            >
-              <option value="hp_below">HP below</option>
-              <option value="hp_above">HP above</option>
-            </select>
-            <input
-              type="number"
-              defaultValue={skill.filter.conditionValue}
-              onChange={handleFilterValueChange}
-              className={styles.input}
-              aria-label={`Filter value for ${skill.name}`}
-            />
-            <button
-              onClick={handleRemoveFilter}
-              className={styles.removeFilterBtn}
-              aria-label={`Remove filter for ${skill.name}`}
-            >
-              x
-            </button>
-          </span>
-        ) : (
-          <button
-            onClick={handleAddFilter}
-            className={styles.addFilterBtn}
-            aria-label={`Add filter for ${skill.name}`}
-          >
-            + Filter
-          </button>
-        )}
-      </div>
+      <FilterControls skill={skill} characterId={character.id} />
 
       <span className={`${styles.fieldGroup} ${styles.behaviorField}`}>
         {skillDef && skillDef.behaviors.length > 1 && (

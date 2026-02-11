@@ -1,11 +1,29 @@
 /**
  * Movement destination calculation with tiebreaking rules.
  * Used by the decision phase to compute where a character should move.
+ *
+ * Scoring and comparison logic is in movement-scoring.ts.
  */
 
 import { Character, Position, positionsEqual } from "./types";
-import { findPath, positionKey } from "./pathfinding";
-import { hexDistance, getHexNeighbors } from "./hex";
+import { findPath } from "./pathfinding";
+import { getHexNeighbors } from "./hex";
+import {
+  buildObstacleSet,
+  compareAwayMode,
+  compareTowardsMode,
+  computePluralCandidateScore,
+  selectBestCandidate,
+} from "./movement-scoring";
+
+// Re-export scoring utilities for external consumers
+export {
+  countEscapeRoutes,
+  calculateCandidateScore,
+  compareTowardsMode,
+  compareAwayMode,
+  selectBestCandidate,
+} from "./movement-scoring";
 
 /**
  * Compute move destination with tiebreaking rules for 6-direction hex movement.
@@ -111,43 +129,6 @@ export function computeMultiStepDestination(
 }
 
 /**
- * Build set of obstacle positions from characters, excluding specified IDs.
- * Typically excludes mover and target to allow pathfinding to reach the target.
- */
-function buildObstacleSet(
-  characters: Character[],
-  ...excludeIds: string[]
-): Set<string> {
-  const excludeSet = new Set(excludeIds);
-  const obstacles = new Set<string>();
-  for (const c of characters) {
-    if (!excludeSet.has(c.id)) {
-      obstacles.add(positionKey(c.position));
-    }
-  }
-  return obstacles;
-}
-
-/**
- * Count escape routes (unblocked adjacent hex cells) from a position.
- * Used for away-mode scoring to prefer positions with more mobility.
- * Returns 0-6 for hex grids (was 0-8 for square grids).
- */
-export function countEscapeRoutes(
-  position: Position,
-  obstacles: Set<string>,
-): number {
-  const neighbors = getHexNeighbors(position);
-  let count = 0;
-  for (const neighbor of neighbors) {
-    if (!obstacles.has(positionKey(neighbor))) {
-      count++;
-    }
-  }
-  return count;
-}
-
-/**
  * Generate valid candidate positions for movement.
  */
 export function generateValidCandidates(
@@ -176,174 +157,59 @@ export function generateValidCandidates(
   return candidates;
 }
 
-interface CandidateScore {
-  distance: number;
-  absDq: number;
-  absDr: number;
-  r: number;
-  q: number;
-  escapeRoutes: number; // Count of unblocked adjacent hex cells (0-6)
-}
-
 /**
- * Calculate candidate score for tiebreaking comparison.
+ * Compute move destination for plural targets (enemies/allies groups).
+ *
+ * Away mode: maximizes min(distance to each target) * escapeRoutes
+ * Towards mode: minimizes average distance to all targets
+ *
+ * Uses candidate scoring (not A* pathfinding) for both modes,
+ * since there is no single goal position for A*.
+ *
+ * @param mover - Character that is moving
+ * @param targets - Target group (all enemies or all allies)
+ * @param mode - Movement mode ('towards' or 'away')
+ * @param allCharacters - All characters on the battlefield
+ * @returns Destination position (1 cell away from mover)
  */
-export function calculateCandidateScore(
-  candidate: Position,
-  target: Position,
-  obstacles?: Set<string>,
-): CandidateScore {
-  const resultDq = target.q - candidate.q;
-  const resultDr = target.r - candidate.r;
-  const distance = hexDistance(candidate, target);
-
-  const escapeRoutes = obstacles ? countEscapeRoutes(candidate, obstacles) : 6; // Default: assume open space when no obstacles provided
-
-  return {
-    distance,
-    absDq: Math.abs(resultDq),
-    absDr: Math.abs(resultDr),
-    r: candidate.r,
-    q: candidate.q,
-    escapeRoutes,
-  };
-}
-
-/**
- * Compare two candidates for "towards" mode.
- */
-export function compareTowardsMode(
-  candidateScore: CandidateScore,
-  bestScore: CandidateScore,
-): boolean {
-  // Primary comparison: distance (minimize)
-  if (candidateScore.distance < bestScore.distance) {
-    return true;
-  }
-  if (candidateScore.distance > bestScore.distance) {
-    return false;
-  }
-
-  // Secondary: absDq (minimize)
-  if (candidateScore.absDq < bestScore.absDq) {
-    return true;
-  }
-  if (candidateScore.absDq > bestScore.absDq) {
-    return false;
-  }
-
-  // Tertiary: absDr (minimize)
-  if (candidateScore.absDr < bestScore.absDr) {
-    return true;
-  }
-  if (candidateScore.absDr > bestScore.absDr) {
-    return false;
-  }
-
-  // Quaternary: r coordinate (minimize)
-  if (candidateScore.r < bestScore.r) {
-    return true;
-  }
-  if (candidateScore.r > bestScore.r) {
-    return false;
-  }
-
-  // Quinary: q coordinate (minimize)
-  if (candidateScore.q < bestScore.q) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Compare two candidates for "away" mode.
- */
-export function compareAwayMode(
-  candidateScore: CandidateScore,
-  bestScore: CandidateScore,
-): boolean {
-  // Primary comparison: multiplicative score (distance * escapeRoutes)
-  const candidateComposite =
-    candidateScore.distance * candidateScore.escapeRoutes;
-  const bestComposite = bestScore.distance * bestScore.escapeRoutes;
-
-  if (candidateComposite > bestComposite) {
-    return true;
-  }
-  if (candidateComposite < bestComposite) {
-    return false;
-  }
-
-  // Tiebreakers (when composite scores are equal):
-  // Secondary: maximize distance (prefer farther from threat)
-  if (candidateScore.distance > bestScore.distance) {
-    return true;
-  }
-  if (candidateScore.distance < bestScore.distance) {
-    return false;
-  }
-
-  // Tertiary: maximize absDq
-  if (candidateScore.absDq > bestScore.absDq) {
-    return true;
-  }
-  if (candidateScore.absDq < bestScore.absDq) {
-    return false;
-  }
-
-  // Quaternary: maximize absDr
-  if (candidateScore.absDr > bestScore.absDr) {
-    return true;
-  }
-  if (candidateScore.absDr < bestScore.absDr) {
-    return false;
-  }
-
-  // Quinary: minimize r
-  if (candidateScore.r < bestScore.r) {
-    return true;
-  }
-  if (candidateScore.r > bestScore.r) {
-    return false;
-  }
-
-  // Senary: minimize q
-  if (candidateScore.q < bestScore.q) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Select the best candidate based on tiebreaking hierarchy.
- */
-export function selectBestCandidate(
-  candidates: Position[],
-  target: Character,
+export function computePluralMoveDestination(
+  mover: Character,
+  targets: Character[],
   mode: "towards" | "away",
-  allCharacters?: Character[],
-  moverId?: string,
+  allCharacters: Character[],
 ): Position {
-  // Build obstacle set for escape route counting (away mode only)
+  // Empty group: stay in place
+  if (targets.length === 0) {
+    return mover.position;
+  }
+
+  const candidates = generateValidCandidates(mover, allCharacters, mode);
+
+  if (candidates.length === 0) {
+    return mover.position;
+  }
+
+  // Build obstacle set excluding mover and ALL targets (Lesson 002)
+  const excludeIds = [mover.id, ...targets.map((t) => t.id)];
   const obstacles =
-    mode === "away" && allCharacters && moverId
-      ? buildObstacleSet(allCharacters, moverId)
+    mode === "away"
+      ? buildObstacleSet(allCharacters, ...excludeIds)
       : undefined;
 
   let bestCandidate: Position = candidates[0]!;
-  let bestScore = calculateCandidateScore(
+  let bestScore = computePluralCandidateScore(
     bestCandidate,
-    target.position,
+    targets,
+    mode,
     obstacles,
   );
 
   for (let i = 1; i < candidates.length; i++) {
     const candidate = candidates[i]!;
-    const candidateScore = calculateCandidateScore(
+    const candidateScore = computePluralCandidateScore(
       candidate,
-      target.position,
+      targets,
+      mode,
       obstacles,
     );
 
@@ -359,4 +225,46 @@ export function selectBestCandidate(
   }
 
   return bestCandidate;
+}
+
+/**
+ * Compute multi-step move destination for plural targets.
+ * Iterates single steps using computePluralMoveDestination,
+ * creating a virtual mover at each intermediate position.
+ * Stops early if stuck.
+ *
+ * @param mover - Character that is moving
+ * @param targets - Target group (all enemies or all allies)
+ * @param mode - Movement mode ('towards' or 'away')
+ * @param allCharacters - All characters on the battlefield
+ * @param distance - Number of steps to take (defaults to 1)
+ * @returns Final destination position after all steps
+ */
+export function computeMultiStepPluralDestination(
+  mover: Character,
+  targets: Character[],
+  mode: "towards" | "away",
+  allCharacters: Character[],
+  distance: number = 1,
+): Position {
+  let currentPosition = mover.position;
+
+  for (let step = 0; step < distance; step++) {
+    const virtualMover = { ...mover, position: currentPosition };
+    const nextPosition = computePluralMoveDestination(
+      virtualMover,
+      targets,
+      mode,
+      allCharacters,
+    );
+
+    // If stuck (returned same position), stop
+    if (positionsEqual(nextPosition, currentPosition)) {
+      break;
+    }
+
+    currentPosition = nextPosition;
+  }
+
+  return currentPosition;
 }

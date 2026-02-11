@@ -12,6 +12,7 @@ import {
   SkillEvaluationResult,
   CharacterEvaluationResult,
   hexDistance,
+  isPluralTarget,
 } from "./types";
 import { evaluateTrigger } from "./triggers";
 import { evaluateTargetCriterion, hasCandidates } from "./selectors";
@@ -20,6 +21,7 @@ import {
   getActionType,
   createSkillAction,
   createIdleAction,
+  createPluralMoveAction,
 } from "./game-actions";
 
 /**
@@ -59,6 +61,27 @@ export interface Decision {
 }
 
 /**
+ * Build the target group for plural targets.
+ * For "enemies": all living characters of the opposing faction.
+ * For "allies": all living same-faction characters, excluding self.
+ */
+function buildTargetGroup(
+  target: "enemies" | "allies",
+  evaluator: Character,
+  allCharacters: Character[],
+): Character[] {
+  if (target === "enemies") {
+    return allCharacters.filter(
+      (c) => c.faction !== evaluator.faction && c.hp > 0,
+    );
+  }
+  // allies (excluding self)
+  return allCharacters.filter(
+    (c) => c.faction === evaluator.faction && c.id !== evaluator.id && c.hp > 0,
+  );
+}
+
+/**
  * Evaluate a single skill for execution eligibility.
  * Returns an action if the skill can be executed, null otherwise.
  */
@@ -91,6 +114,19 @@ function tryExecuteSkill(
   // Check trigger
   if (!evaluateTrigger(skill.trigger, character, allCharacters)) {
     return null;
+  }
+
+  // Plural targets: build group and validate
+  if (isPluralTarget(skill.target)) {
+    const actionType = getActionType(skill);
+    if (actionType !== "move") {
+      return null; // Plural targets only valid for movement
+    }
+    const group = buildTargetGroup(skill.target, character, allCharacters);
+    if (group.length === 0) {
+      return null; // No targets
+    }
+    return createPluralMoveAction(skill, character, group, tick, allCharacters);
   }
 
   // Build candidate filter if skill has a filter and is not self-targeting
@@ -221,6 +257,19 @@ function evaluateSingleSkill(
       rejectionReason: "trigger_failed",
       failedTrigger: skill.trigger,
     };
+  }
+
+  // Plural targets: validate and evaluate
+  if (isPluralTarget(skill.target)) {
+    const actionType = getActionType(skill);
+    if (actionType !== "move") {
+      return { skill, status: "rejected", rejectionReason: "no_target" };
+    }
+    const group = buildTargetGroup(skill.target, character, allCharacters);
+    if (group.length === 0) {
+      return { skill, status: "rejected", rejectionReason: "no_target" };
+    }
+    return { skill, status: "selected" };
   }
 
   // Build candidate filter if skill has a filter and is not self-targeting

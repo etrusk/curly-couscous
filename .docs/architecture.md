@@ -14,7 +14,7 @@
 - **Pure Game Engine**: Core game logic in `/src/engine/` with no React dependencies
 - **Centralized Skill Registry**: All skill definitions in `src/engine/skill-registry.ts` (ADR-005)
 - **Hexagonal Grid System**: Axial coordinates {q, r}, pointy-top hex orientation (flat-top board shape), radius 5 (ADR-007)
-- **Data-Driven Targeting**: Target + criterion pairs, trigger (unified scope + condition), and skill filters as declarative data interfaces (not functions)
+- **Data-Driven Targeting**: Target + criterion pairs (singular targets), plural target groups (movement only), trigger (unified scope + condition), and skill filters as declarative data interfaces (not functions)
 - **Shared Condition Evaluator**: `evaluateConditionForCandidate()` in `triggers.ts` used by both trigger evaluation (existential: `pool.some()`) and filter evaluation (per-element: `pool.filter()`)
 - **Command Pattern**: State mutations via named actions for history/undo support
 - **CSS Custom Property Theming**: Theme switching via `:root` data attributes with two-block + high-contrast pattern (ADR-021). `:root` uses `light-dark()` for ~43 theme-dependent variables and `color-mix()` for derived alpha tokens; `[data-theme="light"]` sets only `color-scheme: light`; `[data-theme="high-contrast"]` retains full overrides with `color-mix()` for bg tokens. Terminal overlay semantic tokens (`--ground`, `--surface`, `--border`, `--text-*`, `--accent`, `--danger`, `--success`, `--radius-*`, `--font-mono`) coexist with legacy tokens as an independent layer (ADR-019).
@@ -35,7 +35,8 @@ src/
 │   ├── hex.ts        # Hex grid utilities: distance, neighbors, validation, pixel conversion
 │   ├── game.ts       # Core tick processing (barrel exports)
 │   ├── game-core.ts  # Tick processing: healing → interrupts → charges → movement → combat (ADR-010)
-│   ├── game-movement.ts # Move destination calculation with hex tiebreaking
+│   ├── game-movement.ts # Move destination calculation (singular + plural targets) with hex tiebreaking
+│   ├── movement-scoring.ts # Candidate scoring functions extracted from game-movement (ADR-024)
 │   ├── combat.ts     # Attack resolution, damage calculation, WhiffEvent emission on miss
 │   ├── healing.ts    # Heal resolution, HP restoration (ADR-006), WhiffEvent emission on miss
 │   ├── interrupt.ts  # Interrupt resolution, action cancellation

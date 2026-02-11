@@ -243,11 +243,15 @@ Each skill specifies a **target** (which group to select from) and a **criterion
 
 **Targets:**
 
-| Target  | Description                          |
-| ------- | ------------------------------------ |
-| `enemy` | Select from living enemy characters  |
-| `ally`  | Select from living allies (not self) |
-| `self`  | Target self (ignores criterion)      |
+| Target    | Description                                                               |
+| --------- | ------------------------------------------------------------------------- |
+| `enemy`   | Select from living enemy characters                                       |
+| `ally`    | Select from living allies (not self)                                      |
+| `self`    | Target self (ignores criterion)                                           |
+| `enemies` | All living enemies as a group (movement only, no criterion)               |
+| `allies`  | All living allies excluding self as a group (movement only, no criterion) |
+
+**Plural targets** (`enemies`, `allies`) reference entire groups rather than selecting a single character via criterion. They are valid only for movement behaviors (towards/away). Criterion and filters are bypassed -- criterion returns `null`, filters are skipped. Non-movement skills with plural targets are rejected. Empty groups cause the character to stay in place.
 
 **Criteria:**
 
@@ -259,7 +263,7 @@ Each skill specifies a **target** (which group to select from) and a **criterion
 | `highest_hp`          | Highest current HP                                     |
 | `most_enemies_nearby` | Most enemies within 2 hexes of candidate (AoE-optimal) |
 
-3 targets x 5 criteria = 15 combinations, but `self` target always returns the evaluator regardless of criterion.
+3 singular targets x 5 criteria = 15 combinations, but `self` target always returns the evaluator regardless of criterion. Plural targets (2) bypass criteria entirely.
 
 **`most_enemies_nearby` details:** Counts enemies (evaluator's opposing faction) within a hardcoded 2-hex radius of each candidate. The candidate itself is excluded from its own nearby count (prevents self-counting when targeting enemies). Ties broken by position (lower R, then lower Q). Works with both enemy and ally target pools.
 
@@ -363,11 +367,15 @@ Hex distance: `max(|dq|, |dr|, |dq+dr|)` (equivalent to `(|dq| + |dr| + |dq+dr|)
 
 Skills with a `distance` field specify how many hexes to move per use. Move has `distance: 1` (single-step), Dash has `distance: 2` (multi-step). Skills without a `distance` field default to 1.
 
-**Multi-step movement:** Skills with `distance > 1` use `computeMultiStepDestination()`, which wraps the single-step `computeMoveDestination()` in an iterative loop. Each step independently applies pathfinding (towards) or best-hex selection (away) using the original character positions as obstacles (decision-phase snapshot model). If any step is blocked, the character stops at the last reachable position (partial movement).
+**Multi-step movement:** Skills with `distance > 1` use `computeMultiStepDestination()` (singular targets) or `computeMultiStepPluralDestination()` (plural targets), which wrap the corresponding single-step function in an iterative loop. Each step independently applies pathfinding or best-hex selection using the original character positions as obstacles (decision-phase snapshot model). If any step is blocked, the character stops at the last reachable position (partial movement).
 
-**Towards mode:** Uses A\* pathfinding on the hex grid to find the optimal path around obstacles (other characters). All hex moves cost 1.0, producing natural paths without diagonal bias. When no path exists, the character stays in place.
+**Towards mode (singular target):** Uses A\* pathfinding on the hex grid to find the optimal path around obstacles (other characters). All hex moves cost 1.0, producing natural paths without diagonal bias. When no path exists, the character stays in place.
 
-**Away mode:** Uses single-step maximization with escape route weighting. Each candidate position is scored using a composite formula: `distance_from_target * escape_routes`, where escape routes are the count of unblocked adjacent hexes (0-6). This naturally penalizes vertex positions (3 routes) and edge positions (4 routes) compared to interior positions (6 routes), preventing AI from getting trapped when fleeing.
+**Towards mode (plural target):** Uses candidate scoring (not A\*) to minimize average hex distance to all group members (centroid approximation without coordinate averaging, avoids off-grid positions). A\* is unsuitable for plural targets because it requires a single goal position. The nearest target in the group provides dq/dr values for positional tiebreaking.
+
+**Away mode (singular target):** Uses single-step maximization with escape route weighting. Each candidate position is scored using a composite formula: `distance_from_target * escape_routes`, where escape routes are the count of unblocked adjacent hexes (0-6). This naturally penalizes vertex positions (3 routes) and edge positions (4 routes) compared to interior positions (6 routes), preventing AI from getting trapped when fleeing.
+
+**Away mode (plural target):** Same escape-route-weighted scoring as singular away mode, but `distance` is the minimum distance to any target in the group (maximizing distance from the nearest threat). The nearest target provides dq/dr values for tiebreaking. The same comparator (`compareAwayMode`) is reused by constructing `CandidateScore` objects with aggregated distance values.
 
 Tiebreaking hierarchy (when composite scores are equal):
 

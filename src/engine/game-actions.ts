@@ -7,6 +7,8 @@ import { Skill, Character, Action, Position } from "./types";
 import {
   computeMoveDestination,
   computeMultiStepDestination,
+  computePluralMoveDestination,
+  computeMultiStepPluralDestination,
 } from "./game-movement";
 
 /**
@@ -111,6 +113,52 @@ export function createSkillAction(
     skill,
     targetCell,
     targetCharacter,
+    startedAtTick: tick,
+    resolvesAtTick: tick + skill.tickCost,
+  };
+}
+
+/**
+ * Create move action for plural targets (enemies/allies groups).
+ *
+ * @param skill - Move skill with plural target
+ * @param character - Character executing the skill
+ * @param targets - Target group (all enemies or all allies)
+ * @param tick - Current tick
+ * @param allCharacters - All characters on the battlefield
+ * @returns Move action with computed targetCell
+ */
+export function createPluralMoveAction(
+  skill: Skill,
+  character: Character,
+  targets: Character[],
+  tick: number,
+  allCharacters: Character[],
+): Action {
+  const distance = skill.distance ?? 1;
+  let targetCell: Position;
+  if (distance > 1) {
+    targetCell = computeMultiStepPluralDestination(
+      character,
+      targets,
+      skill.behavior as "towards" | "away",
+      allCharacters,
+      distance,
+    );
+  } else {
+    targetCell = computePluralMoveDestination(
+      character,
+      targets,
+      skill.behavior as "towards" | "away",
+      allCharacters,
+    );
+  }
+
+  return {
+    type: "move",
+    skill,
+    targetCell,
+    targetCharacter: null,
     startedAtTick: tick,
     resolvesAtTick: tick + skill.tickCost,
   };

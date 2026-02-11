@@ -3,7 +3,14 @@
  * Pure TypeScript - no React dependencies.
  */
 
-import { Character, hexDistance, Position, Target, Criterion } from "./types";
+import {
+  Character,
+  hexDistance,
+  Position,
+  Target,
+  Criterion,
+  isPluralTarget,
+} from "./types";
 
 /**
  * Tie-breaking comparison: compares by R coordinate, then Q coordinate.
@@ -78,6 +85,11 @@ export function evaluateTargetCriterion(
   // Self target always returns evaluator, ignoring criterion
   if (target === "self") {
     return evaluator;
+  }
+
+  // Plural targets don't use criterion-based selection
+  if (isPluralTarget(target)) {
+    return null;
   }
 
   // Filter candidates based on target type
@@ -179,6 +191,8 @@ export function hasCandidates(
   allCharacters: Character[],
 ): boolean {
   if (target === "self") return true;
+
+  if (isPluralTarget(target)) return true;
 
   if (target === "enemy") {
     return allCharacters.some(

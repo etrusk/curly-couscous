@@ -134,3 +134,53 @@ describe("evaluateTargetCriterion - target+criterion combinations", () => {
     ).toBeNull();
   });
 });
+
+describe("evaluateTargetCriterion - plural targets", () => {
+  it("returns null for enemies target", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 0, r: 0 },
+    });
+    const enemy = createCharacter({
+      id: "enemy",
+      faction: "enemy",
+      position: { q: 1, r: 0 },
+      hp: 100,
+    });
+    const allCharacters = [evaluator, enemy];
+
+    const result = evaluateTargetCriterion(
+      "enemies",
+      "nearest",
+      evaluator,
+      allCharacters,
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it("returns null for allies target", () => {
+    const evaluator = createCharacter({
+      id: "eval",
+      faction: "friendly",
+      position: { q: 0, r: 0 },
+    });
+    const ally = createCharacter({
+      id: "ally",
+      faction: "friendly",
+      position: { q: 1, r: 0 },
+      hp: 80,
+    });
+    const allCharacters = [evaluator, ally];
+
+    const result = evaluateTargetCriterion(
+      "allies",
+      "lowest_hp",
+      evaluator,
+      allCharacters,
+    );
+
+    expect(result).toBeNull();
+  });
+});

@@ -122,7 +122,13 @@ export interface Trigger {
 /**
  * Target specifies which group to select from.
  */
-export type Target = "enemy" | "ally" | "self";
+export type Target = "enemy" | "ally" | "self" | "enemies" | "allies";
+
+export const PLURAL_TARGETS = ["enemies", "allies"] as const;
+
+export function isPluralTarget(target: Target): target is "enemies" | "allies" {
+  return target === "enemies" || target === "allies";
+}
 
 /**
  * Criterion specifies how to select within the target group.

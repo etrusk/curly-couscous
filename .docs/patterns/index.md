@@ -8,12 +8,13 @@ LLM-optimized index of implementation patterns successfully applied in this code
 
 ## Patterns
 
-| Pattern                    | Description                                                  | File                                                             |
-| -------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------- |
-| Bidirectional Line Offset  | Perpendicular offset for overlapping bidirectional SVG lines | [bidirectional-line-offset.md](./bidirectional-line-offset.md)   |
-| Portal Tooltip Positioning | Smart viewport-aware tooltips with portal rendering          | [portal-tooltip-positioning.md](./portal-tooltip-positioning.md) |
-| Browser Test Convention    | `.browser.test.tsx` naming for Vitest Browser Mode tests     | (inline, see ADR-022)                                            |
-| CSS Variable Probe Element | Probe element technique for resolving CSS custom properties  | [css-variable-probe-element.md](./css-variable-probe-element.md) |
+| Pattern                    | Description                                                                        | File                                                             |
+| -------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Bidirectional Line Offset  | Perpendicular offset for overlapping bidirectional SVG lines                       | [bidirectional-line-offset.md](./bidirectional-line-offset.md)   |
+| Portal Tooltip Positioning | Smart viewport-aware tooltips with portal rendering                                | [portal-tooltip-positioning.md](./portal-tooltip-positioning.md) |
+| Browser Test Convention    | `.browser.test.tsx` naming for Vitest Browser Mode tests                           | (inline, see ADR-022)                                            |
+| CSS Variable Probe Element | Probe element technique for resolving CSS custom properties                        | [css-variable-probe-element.md](./css-variable-probe-element.md) |
+| Scoring Module Extraction  | Extract candidate scoring into separate module when host file nears 400-line limit | (inline, see ADR-024)                                            |
 
 **Note**: Progressive disclosure patterns (collapsible sections, nested tooltips) are documented as design principles in `spec.md` rather than implementation patterns.
 

@@ -90,6 +90,16 @@ npm run lint
 npm run type-check
 ```
 
+### File Size Gate (MANDATORY)
+
+After all tests pass, before reporting COMPLETE, count lines in every modified/created source file:
+
+```bash
+wc -l <file1> <file2> ...
+```
+
+If ANY file exceeds 400 lines, you MUST extract before completing. Do not defer to review.
+
 ## Browser Verification (UI changes only)
 
 For IMPLEMENT phase with UI changes:

@@ -42,6 +42,15 @@ Before ANY planning work, you MUST read:
 4. Verify plan aligns with spec, architecture, patterns, and decisions
 5. **When a plan involves configuring or integrating a dependency**: Before writing config snippets, verify the API against the actually-installed package version. Run `npm ls <package>` or check `node_modules/<package>/package.json` for the version, then read `node_modules/<package>/README.md` or relevant source files to confirm the config format. Do NOT rely on training data for rapidly-evolving tool APIs (Vitest, ESLint, Vite, Playwright, etc.).
 
+## Handler Completeness Rule
+
+When a plan modifies a component's state-mutation handlers:
+
+- ALWAYS enumerate every handler that touches the same state object (e.g., all handlers that call `updateSkill` with `filter:`)
+- For each handler, specify whether it needs changes and WHY (new fields to preserve, new conditions to handle)
+- If an existing handler is NOT listed, explicitly state "no changes needed" with rationale
+- Pay special attention to spread-vs-construct: any handler that builds a state object from scratch risks dropping fields added by other handlers in the same task
+
 ## Spec Alignment Check
 
 Before finalizing any plan, verify:

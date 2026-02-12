@@ -47,9 +47,9 @@ describe("PriorityTab", () => {
 
       render(<PriorityTab />);
 
-      // Trigger dropdown
+      // Trigger ghost button (Move defaults to always = unconditional)
       expect(
-        screen.getByRole("combobox", { name: /trigger for move/i }),
+        screen.getByRole("button", { name: /add condition for move/i }),
       ).toBeInTheDocument();
 
       // Target dropdown
@@ -169,6 +169,12 @@ describe("PriorityTab", () => {
 
       render(<PriorityTab />);
 
+      // Two-state model: click "+ Condition" ghost button to activate trigger
+      await user.click(
+        screen.getByRole("button", { name: /add condition for punch/i }),
+      );
+
+      // Now select hp_below from the condition dropdown
       const triggerDropdown = screen.getByRole("combobox", {
         name: /trigger for punch/i,
       });
@@ -233,7 +239,7 @@ describe("PriorityTab", () => {
       expect(updatedChar.skills[0]?.criterion).toBe("lowest_hp");
     });
 
-    it("criterion disabled when target is self", () => {
+    it("criterion hidden when target is self", () => {
       const skill1 = createSkill({
         id: "skill1",
         name: "Buff",
@@ -245,8 +251,10 @@ describe("PriorityTab", () => {
 
       render(<PriorityTab />);
 
-      const criterionDropdown = screen.getByLabelText(/criterion.*buff/i);
-      expect(criterionDropdown).toBeDisabled();
+      // Criterion is hidden (not rendered) when target is self
+      expect(
+        screen.queryByLabelText(/criterion.*buff/i),
+      ).not.toBeInTheDocument();
     });
 
     it("behavior dropdown shown only for Move skills", () => {

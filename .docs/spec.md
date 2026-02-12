@@ -1,5 +1,7 @@
 # Project Specification
 
+> **Living document.** Reflects current implementation. Task-specific requirements (`.tdd/requirements.md`) take precedence when they conflict; the doc-syncer phase reconciles after completion.
+
 ## Project Overview
 
 Tick-based auto battler with priority-based skill system (gambit system like FFXII).
@@ -263,7 +265,7 @@ Each skill specifies a **target** (which group to select from) and a **criterion
 | `highest_hp`          | Highest current HP                                     |
 | `most_enemies_nearby` | Most enemies within 2 hexes of candidate (AoE-optimal) |
 
-3 singular targets x 5 criteria = 15 combinations, but `self` target always returns the evaluator regardless of criterion. Plural targets (2) bypass criteria entirely.
+3 singular targets x 5 criteria = 15 combinations, but `self` target always returns the evaluator regardless of criterion. Plural targets (2) bypass criteria entirely. When target is `self`, the UI hides the SELECTOR (criterion) dropdown and FILTER controls entirely, since they have no effect on self-targeting skills.
 
 **`most_enemies_nearby` details:** Counts enemies (evaluator's opposing faction) within a hardcoded 2-hex radius of each candidate. The candidate itself is excluded from its own nearby count (prevents self-counting when targeting enemies). Ties broken by position (lower R, then lower Q). Works with both enemy and ally target pools.
 
@@ -280,6 +282,8 @@ Each skill has exactly one trigger that must pass for the skill to activate. Tri
 - **conditionValue** (optional number): Threshold for conditions that need one (range distance, HP percentage)
 - **qualifier** (`ConditionQualifier`, optional): Narrows condition matching (e.g., channeling a specific skill). Structure: `{ type: "action" | "skill", id: string }`
 - **negated** (optional boolean): When true, inverts the condition result
+
+**UI model (two-state triggers):** The trigger UI uses a two-state model. Skills are either unconditional (`condition: "always"`, shown as a `+ Condition` ghost button) or conditional (any non-always condition, shown with full trigger controls). "Always" is not a selectable option in the condition dropdown. The store representation is unchanged: unconditional skills have `trigger: { scope: "enemy", condition: "always" }`. Each non-always condition defines which scopes are valid via `CONDITION_SCOPE_RULES` in `TriggerDropdown.tsx` (e.g., `targeting_me` and `targeting_ally` imply `scope: "enemy"` and hide the scope dropdown). When the condition changes, scope auto-resets if the current scope is not valid for the new condition.
 
 **Condition types:**
 

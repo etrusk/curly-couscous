@@ -1,444 +1,425 @@
-# Implementation Plan: Plural Target Scopes (`enemies` / `allies`)
+# Implementation Plan: Two-State Trigger Model
 
 ## Overview
 
-Add `"enemies"` and `"allies"` to the `Target` type. These plural targets reference entire groups (all living enemies or allies) rather than selecting a single character via criterion. They are meaningful only for movement behaviors and enable spatial reasoning against groups -- e.g., "move away from all enemies" maximizes minimum distance from every enemy.
-
-## Implementation Order
-
-Execute in this order. Each step builds on the previous one.
-
-### Step 1: Type Definitions (`src/engine/types.ts`)
-
-**Line 125** -- Extend the `Target` union:
-
-```typescript
-export type Target = "enemy" | "ally" | "self" | "enemies" | "allies";
-```
-
-Add constants and type guard below the `Target` type:
-
-```typescript
-export const PLURAL_TARGETS = ["enemies", "allies"] as const;
-
-export function isPluralTarget(target: Target): target is "enemies" | "allies" {
-  return target === "enemies" || target === "allies";
-}
-```
-
-**Rationale**: Adding to the union triggers TypeScript exhaustive switch errors in `selectors.ts` (line 166 `default: never`), providing a compile-time safety net for all call sites.
-
-**Impact**: Compile errors will appear in `selectors.ts` `evaluateTargetCriterion` and `hasCandidates` until those are updated (Steps 2-3).
+Three parts: (1) TriggerDropdown two-state model with condition-scoped scopes, (2) SkillRow target=self hiding, (3) existing test updates. UI-only change -- no engine, type, or store action modifications.
 
 ---
 
-### Step 2: Selector Guard (`src/engine/selectors.ts`)
+## Step 1: Add CONDITION_SCOPE_RULES constant to TriggerDropdown.tsx
 
-**`evaluateTargetCriterion()` (line 71)** -- Add early return for plural targets immediately after the `self` guard:
+**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.tsx`
+
+Add after the `VALUE_CONDITIONS` constant (line 24), before `getDefaultValue`:
 
 ```typescript
-// Plural targets don't use criterion-based selection
-if (isPluralTarget(target)) {
-  return null;
+import type { ConditionType, TriggerScope } from "../../engine/types";
+
+interface ConditionScopeRule {
+  showScope: boolean;
+  validScopes: TriggerScope[];
+  impliedScope?: TriggerScope;
 }
+
+const CONDITION_SCOPE_RULES: Record<
+  Exclude<ConditionType, "always">,
+  ConditionScopeRule
+> = {
+  in_range: { showScope: true, validScopes: ["enemy", "ally"] },
+  hp_below: { showScope: true, validScopes: ["self", "ally", "enemy"] },
+  hp_above: { showScope: true, validScopes: ["self", "ally", "enemy"] },
+  channeling: { showScope: true, validScopes: ["enemy", "ally"] },
+  idle: { showScope: true, validScopes: ["enemy", "ally"] },
+  targeting_me: {
+    showScope: false,
+    validScopes: ["enemy"],
+    impliedScope: "enemy",
+  },
+  targeting_ally: {
+    showScope: false,
+    validScopes: ["enemy"],
+    impliedScope: "enemy",
+  },
+};
 ```
 
-**`hasCandidates()` (line 176)** -- Add case for plural targets. Per requirements, `hasCandidates` is only called to distinguish `filter_failed` from `no_target`, and plural targets skip filters entirely. However, for type safety with the exhaustive pattern, add a branch:
-
-```typescript
-if (isPluralTarget(target)) return true;
-```
-
-This prevents the exhaustive `if/else` chain from falling through and keeps the function consistent. The branch is effectively unreachable in current usage since plural targets skip the filter path that calls `hasCandidates`.
-
-**Import**: Add `isPluralTarget` to the import from `./types`.
-
-**File impact**: +5 lines (selectors.ts is 193 lines, becomes ~198).
+**Estimated lines added**: ~20
 
 ---
 
-### Step 3: Plural Movement Computation (`src/engine/game-movement.ts`)
+## Step 2: Refactor TriggerDropdown rendering to two-state model
 
-Add a new exported function `computePluralMoveDestination`. This is the core new logic.
+**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.tsx`
 
-**Function signature**:
+### Changes to make:
 
-```typescript
-export function computePluralMoveDestination(
-  mover: Character,
-  targets: Character[],
-  mode: "towards" | "away",
-  allCharacters: Character[],
-): Position;
-```
+1. **Add `handleAddCondition` handler** -- sets trigger to `{ scope: "enemy", condition: "in_range", conditionValue: 1 }` via `onTriggerChange`.
 
-**Behavior by mode**:
+2. **Add `handleRemoveCondition` handler** -- sets trigger to `{ scope: "enemy", condition: "always" }` via `onTriggerChange`.
 
-**Away mode** (`mode === "away"`):
+3. **Modify `handleConditionChange`**:
+   - Remove the `always` branch (no longer possible to select "always" from dropdown).
+   - After determining the new trigger shape, look up `CONDITION_SCOPE_RULES[newCondition]` and check if `trigger.scope` is in `validScopes`. If not, reset scope to `validScopes[0]`. If the rule has `impliedScope`, set scope to that value.
+   - Always preserve `negated` when switching between non-always conditions.
 
-- Generate valid candidates via existing `generateValidCandidates(mover, allCharacters, "away")`
-- For each candidate, compute a **plural score** where `distance` = `Math.min(...hexDistance(candidate, each target.position))` (minimum distance to any target in group)
-- Escape routes computed from existing `countEscapeRoutes`
-- Composite score: `minDistance * escapeRoutes` (same formula as singular away mode)
-- Tiebreak hierarchy: same as `compareAwayMode` -- maximize composite, then maximize distance, then maximize |dq|, then maximize |dr|, then minimize r, then minimize q
-- Reuse `compareAwayMode()` directly by constructing `CandidateScore` objects where `distance` is set to `minDistance`
-- The `absDq` and `absDr` fields need aggregation too -- use the target that produced `minDistance` (the "nearest threat") as the reference for dq/dr tiebreaking
+4. **Replace the render return** with a two-branch structure:
 
-**Towards mode** (`mode === "towards"`):
+```tsx
+// When condition is "always": render ghost button only
+if (trigger.condition === "always") {
+  return (
+    <button
+      type="button"
+      onClick={handleAddCondition}
+      className={styles.addConditionBtn}
+      aria-label={`Add condition for ${skillName}`}
+    >
+      + Condition
+    </button>
+  );
+}
 
-- Generate valid candidates via `generateValidCandidates(mover, allCharacters, "towards")`
-- For each candidate, compute `distance` = average of `hexDistance(candidate, each target.position)` (centroid approximation without actual coordinate averaging, avoids off-grid positions)
-- Composite: just the average distance (no escape routes in towards mode)
-- Tiebreak: reuse `compareTowardsMode()` by constructing `CandidateScore` with `distance` = average distance, and `absDq`/`absDr` computed against the nearest target in the group
-- **Obstacle exclusion**: Build obstacle set excluding mover and ALL targets (per Lesson 002)
-- Note: towards mode does NOT use A* pathfinding for plural targets. A* requires a single goal position. Instead, use the candidate-scoring approach (same as away mode but with minimize semantics). This is a design decision justified by the centroid approximation -- there is no single "correct" path to all targets simultaneously.
+// When condition is non-always: render active trigger controls
+const rule = CONDITION_SCOPE_RULES[trigger.condition];
 
-**Edge cases**:
+return (
+  <span className={styles.triggerControl}>
+    {/* NOT toggle */}
+    <button type="button" onClick={handleNotToggle} ...>NOT</button>
 
-- `targets.length === 0`: return `mover.position` (stay put)
-- `targets.length === 1`: behavior should be identical to singular `computeMoveDestination`. Verified by test #5 in the test plan.
+    {/* Scope dropdown -- only when rule.showScope */}
+    {rule.showScope && (
+      <select value={trigger.scope} onChange={handleScopeChange} ...>
+        {rule.validScopes.map(s => <option key={s} value={s}>...</option>)}
+      </select>
+    )}
 
-**Implementation detail -- scoring**:
+    {/* Condition dropdown -- 7 options, no "always" */}
+    <select value={trigger.condition} onChange={handleConditionChange} ...>
+      <option value="in_range">In range</option>
+      <option value="hp_below">HP below</option>
+      <option value="hp_above">HP above</option>
+      <option value="targeting_me">Cell targeted</option>
+      <option value="channeling">Channeling</option>
+      <option value="idle">Idle</option>
+      <option value="targeting_ally">Targeting ally</option>
+    </select>
 
-For each candidate position, build a `CandidateScore`:
+    {/* Value input -- unchanged condition */}
+    {hasValue && <input .../>}
 
-```typescript
-// Away: use min distance to any target
-// Towards: use average distance to all targets
-const distances = targets.map((t) => hexDistance(candidate, t.position));
-const aggregateDistance =
-  mode === "away"
-    ? Math.min(...distances)
-    : distances.reduce((a, b) => a + b, 0) / distances.length;
+    {/* Qualifier select -- unchanged condition */}
+    {trigger.condition === "channeling" && <QualifierSelect .../>}
 
-// Find nearest target for dq/dr tiebreaking
-const nearestTarget = targets.reduce((nearest, t) =>
-  hexDistance(candidate, t.position) < hexDistance(candidate, nearest.position)
-    ? t
-    : nearest,
+    {/* Remove button -- always shown (replaces onRemove-gated logic) */}
+    <button onClick={handleRemoveCondition} className={styles.removeBtn}
+      aria-label={`Remove condition for ${skillName}`}>x</button>
+  </span>
 );
-const score: CandidateScore = calculateCandidateScore(
-  candidate,
-  nearestTarget.position,
-  obstacles,
-);
-// Override distance with aggregate
-score.distance = aggregateDistance;
 ```
 
-Wait -- `CandidateScore.distance` is a `number` that `calculateCandidateScore` computes via `hexDistance`. We cannot just override it because the object is freshly constructed. Better approach: construct the score manually to avoid a double-compute:
+5. **Props interface**: `onRemove` prop remains for AND trigger future use but is no longer the primary removal mechanism. The `x` button in the active state calls `handleRemoveCondition` (resets to always). The `onRemove` prop is only used for AND trigger's second trigger removal. When `onRemove` is provided, render a second remove button with the existing "Remove second trigger" aria-label, OR simply call `onRemove` from the `x` button instead of `handleRemoveCondition`. **Decision**: When `onRemove` is provided (triggerIndex > 0), the `x` button calls `onRemove` instead of `handleRemoveCondition`. When `onRemove` is NOT provided (primary trigger), the `x` button calls `handleRemoveCondition`. This preserves backward compatibility for future AND trigger support.
 
-```typescript
-function computePluralCandidateScore(
-  candidate: Position,
-  targets: Character[],
-  mode: "towards" | "away",
-  obstacles?: Set<string>,
-): CandidateScore {
-  const distances = targets.map((t) => hexDistance(candidate, t.position));
-  const aggregateDistance =
-    mode === "away"
-      ? Math.min(...distances)
-      : distances.reduce((a, b) => a + b, 0) / distances.length;
+6. **Scope dropdown label capitalization**: Map scope values to display text: `enemy` -> `Enemy`, `ally` -> `Ally`, `self` -> `Self`.
 
-  // Use nearest target for positional tiebreaking (dq, dr)
-  let nearestIdx = 0;
-  let nearestDist = distances[0]!;
-  for (let i = 1; i < distances.length; i++) {
-    if (distances[i]! < nearestDist) {
-      nearestDist = distances[i]!;
-      nearestIdx = i;
-    }
-  }
-  const nearestTarget = targets[nearestIdx]!;
+### Estimated final file size
 
-  const resultDq = nearestTarget.position.q - candidate.q;
-  const resultDr = nearestTarget.position.r - candidate.r;
-  const escapeRoutes = obstacles ? countEscapeRoutes(candidate, obstacles) : 6;
-
-  return {
-    distance: aggregateDistance,
-    absDq: Math.abs(resultDq),
-    absDr: Math.abs(resultDr),
-    r: candidate.r,
-    q: candidate.q,
-    escapeRoutes,
-  };
-}
-```
-
-This helper is private (not exported). The public `computePluralMoveDestination` uses it + the existing `compareAwayMode`/`compareTowardsMode` comparators in a selection loop identical to `selectBestCandidate`.
-
-**Multi-step support**: Add `computeMultiStepPluralDestination` following the exact same pattern as existing `computeMultiStepDestination` (ADR-017):
-
-```typescript
-export function computeMultiStepPluralDestination(
-  mover: Character,
-  targets: Character[],
-  mode: "towards" | "away",
-  allCharacters: Character[],
-  distance: number = 1,
-): Position;
-```
-
-Iterates single steps using `computePluralMoveDestination`, creating a virtual mover at each intermediate position. Stops early if stuck.
-
-**File impact estimate**: `computePluralCandidateScore` (~20 lines) + `computePluralMoveDestination` (~25 lines) + `computeMultiStepPluralDestination` (~15 lines) = ~60 lines. File goes from 362 to ~422. **This exceeds the 400-line budget.** See Risk Mitigation below.
+Current: 156 lines. After changes: ~195 lines (well under 400).
 
 ---
 
-### Step 4: Decision Logic (`src/engine/game-decisions.ts`)
+## Step 3: Add ghost button CSS to TriggerDropdown.module.css
 
-**`tryExecuteSkill()` (line 66)** -- Add plural target branch after the trigger check (line 94) and before the filter/criterion path:
+**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.module.css`
 
-```typescript
-// Plural targets: build group and validate
-if (isPluralTarget(skill.target)) {
-  const actionType = getActionType(skill);
-  if (actionType !== "move") {
-    return null; // Plural targets only valid for movement
-  }
-  const group = buildTargetGroup(skill.target, character, allCharacters);
-  if (group.length === 0) {
-    return null; // No targets
-  }
-  return createPluralMoveAction(skill, character, group, tick, allCharacters);
+Add `.addConditionBtn` class following the ghost button pattern from `ui-ux-guidelines.md`:
+
+```css
+.addConditionBtn {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.addConditionBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
 }
 ```
 
-**`evaluateSingleSkill()` (line 196)** -- Mirror the same branch for UI evaluation results. Insert after trigger check:
+**Note**: This duplicates `.addTriggerBtn` from SkillRow.module.css, which is acceptable per ADR-023 (duplicate VALUE_CONDITIONS precedent). The existing `.addTriggerBtn` in SkillRow.module.css remains unused and can be removed in a separate cleanup, or kept for future AND trigger `+ AND` button.
 
-```typescript
-if (isPluralTarget(skill.target)) {
-  const actionType = getActionType(skill);
-  if (actionType !== "move") {
-    return { skill, status: "rejected", rejectionReason: "no_target" };
-  }
-  const group = buildTargetGroup(skill.target, character, allCharacters);
-  if (group.length === 0) {
-    return { skill, status: "rejected", rejectionReason: "no_target" };
-  }
-  return { skill, status: "selected", target: null };
-}
+**Estimated lines added**: ~14. File goes from 63 to ~77 lines.
+
+---
+
+## Step 4: SkillRow target=self conditional rendering
+
+**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.tsx`
+
+### Changes:
+
+1. **Wrap SELECTOR fieldGroup** (lines 223-238) in a conditional:
+
+```tsx
+{skill.target !== "self" && (
+  <div className={`${styles.fieldGroup} ${styles.selectorField}`}>
+    <span className={styles.fieldLabel}>SELECTOR</span>
+    <select ... disabled={skill.target === "self"} ...>
+      ...
+    </select>
+  </div>
+)}
 ```
 
-Note: `SkillEvaluationResult` currently has `target?: Character`. For plural targets, target is not a single character. Setting `target: null` or omitting it is acceptable since the UI just shows "-> [target name]" and plural targets have no single target to display. The `target` field is optional in the type, so omitting it works.
+Remove the now-unnecessary `disabled={skill.target === "self"}` since it will never be rendered when target is self.
 
-**New helper** (private, in `game-decisions.ts`):
+2. **Wrap FilterControls** (line 240) in a conditional:
 
-```typescript
-function buildTargetGroup(
-  target: "enemies" | "allies",
-  evaluator: Character,
-  allCharacters: Character[],
-): Character[] {
-  if (target === "enemies") {
-    return allCharacters.filter(
-      (c) => c.faction !== evaluator.faction && c.hp > 0,
-    );
-  }
-  // allies (excluding self)
-  return allCharacters.filter(
-    (c) => c.faction === evaluator.faction && c.id !== evaluator.id && c.hp > 0,
+```tsx
+{
+  skill.target !== "self" && (
+    <FilterControls skill={skill} characterId={character.id} />
   );
 }
 ```
 
-**Filter bypass**: The existing filter guard `skill.filter && skill.target !== "self"` on lines 97-101 and 227-231 is bypassed because the plural target branch returns before reaching the filter logic. The early return ensures filters are never evaluated for plural targets.
+The filter and selector config remain in the store -- only rendering is suppressed.
 
-**Import additions**: `isPluralTarget` from `./types`, `createPluralMoveAction` from `./game-actions`.
+### Estimated impact
 
-**File impact**: +25 lines (game-decisions.ts is 333 lines, becomes ~358).
+Removes ~2 lines, adds ~4 lines of wrapping. File stays at ~289 lines, well under 400.
 
 ---
 
-### Step 5: Action Creation (`src/engine/game-actions.ts`)
+## Step 5: Update existing tests that will break
 
-Add a new exported function for plural move action creation:
+### 5a. TriggerDropdown.test.tsx (378 lines)
+
+**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.test.tsx`
+
+Tests that will **break** and how to fix:
+
+| #   | Test Name                                                                           | Current Trigger         | Why Breaks                                             | Fix                                                                                           |
+| --- | ----------------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| 1   | "hides value input for non-value triggers" (line 71)                                | `condition: "always"`   | Now renders ghost button, no spinbutton query target   | Change trigger to `condition: "targeting_me"` (non-value, non-always)                         |
+| 2   | "calls onTriggerChange when condition changes" (line 80)                            | `condition: "always"`   | No condition dropdown rendered -- ghost button instead | Change trigger to `condition: "in_range", conditionValue: 3` and select a different condition |
+| 3   | "calls onTriggerChange with hp defaults on condition change" (line 98)              | `condition: "always"`   | Same -- no dropdown                                    | Change trigger to `condition: "in_range", conditionValue: 3` and select `hp_below`            |
+| 4   | "renders trigger type dropdown with correct value" (line 32)                        | `condition: "hp_below"` | Asserts "Always" option exists                         | Remove the `Always` option assertion; change to assert 7 options without Always               |
+| 5   | "strips value when changing to non-value trigger" (line 249)                        | Selects "always"        | "Always" option no longer exists                       | Change to select `targeting_me` instead; update expected callback                             |
+| 6   | "renders all 8 condition options" (line 268)                                        | `condition: "hp_below"` | Asserts "Always" option, expects 8                     | Change to assert 7 options, remove "Always" assertion                                         |
+| 7   | "calls onTriggerChange with correct shape when selecting channeling" (line 311)     | `condition: "always"`   | No dropdown                                            | Change trigger to `condition: "in_range", conditionValue: 3`                                  |
+| 8   | "calls onTriggerChange with correct shape when selecting idle" (line 328)           | `condition: "always"`   | No dropdown                                            | Change trigger to `condition: "in_range", conditionValue: 3`                                  |
+| 9   | "calls onTriggerChange with correct shape when selecting targeting_ally" (line 344) | `condition: "always"`   | No dropdown                                            | Change trigger to `condition: "in_range", conditionValue: 3`                                  |
+
+**Additional scope-related test updates** (these may also need fixing due to scope dropdown changes):
+
+| #   | Test Name                                                    | Issue                                                                          | Fix                                                                                       |
+| --- | ------------------------------------------------------------ | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| 10  | "preserves negated field on condition change" (line 207)     | Scope is "self" but switches to "in_range" which does not allow "self"         | The expected callback should show scope reset to "enemy" (first valid scope for in_range) |
+| 11  | "strips value when changing to non-value trigger" (line 249) | After fix (#5), changing to targeting_me should set scope to "enemy" (implied) | Update expected scope in callback                                                         |
+
+**Tests that will NOT break** (already use non-always conditions):
+
+- "renders value input for value-based triggers" -- uses `hp_below`
+- "calls onTriggerChange when value changes" -- uses `hp_below`
+- "shows remove button when onRemove provided" -- uses `hp_below`
+- "calls onRemove when remove button clicked" -- uses `hp_below`
+- "hides remove button when onRemove not provided" -- uses `hp_below`
+- "preserves negated field on value change" -- uses `hp_below`
+- "handles empty value input without propagating NaN" -- uses `hp_below`
+- "unique aria-labels include trigger index" -- uses `hp_below`
+- "does not render value input for channeling/idle/targeting_ally" -- uses non-always
+- "preserves negated field when switching to a new condition" (line 360) -- uses `hp_below`
+
+### 5b. TriggerDropdown-not-toggle.test.tsx (156 lines)
+
+**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx`
+
+| #   | Test Name                                                     | Why Breaks                                                                                                                                                                          | Fix                                                                                                                                                                                             |
+| --- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | "NOT toggle hidden for always trigger" (line 34)              | Still correct -- ghost button renders instead of NOT toggle. But the test also implicitly expects scope/condition dropdowns. It queries for NOT toggle absence which is still true. | **No break** -- test only queries `queryByRole("button", { name: /toggle not/i })` which will still be absent in ghost button state. Keep as-is.                                                |
+| 2   | "switching to always clears negated from callback" (line 128) | Selects "always" from dropdown -- option no longer exists                                                                                                                           | **Rewrite**: Instead of selecting "always", click the `x` remove button. Assert `onTriggerChange` was called with `{ scope: "enemy", condition: "always" }` and that `negated` is absent/falsy. |
+
+### 5c. TriggerDropdown-qualifier.test.tsx (141 lines)
+
+**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown-qualifier.test.tsx`
+
+No tests will break. All tests use `condition: "channeling"` which renders in active state. The qualifier dropdown tests do not interact with "always" or scope dropdown visibility.
+
+### 5d. SkillRow.test.tsx (686 lines)
+
+**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.test.tsx`
+
+Tests that will **break**:
+
+| #   | Test Name                                                              | Why Breaks                                                                                                                                                                                                                         | Fix                                                                                                                                    |
+| --- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | "shows all config controls" (line 16)                                  | Queries `getByRole("combobox", { name: /trigger for light punch/i })` -- Light Punch has default trigger `always`, so ghost button renders, no combobox                                                                            | Change assertion: instead of expecting combobox, expect ghost button `getByRole("button", { name: /add condition for light punch/i })` |
+| 2   | "shows config controls alongside evaluation in battle mode" (line 141) | Same -- queries trigger combobox for Light Punch with always trigger                                                                                                                                                               | Same fix as #1                                                                                                                         |
+| 3   | "shows all four labels in battle mode" (line 642)                      | Tests `TRIGGER`, `TARGET`, `SELECTOR`, `FILTER` labels. TRIGGER label will still render. But `SELECTOR` will render since Light Punch's target is "enemy". **No break** -- all labels should still appear for enemy-target skills. |
+
+**Tests that will NOT break for target=self changes**: No existing tests render with `target: "self"` and check for SELECTOR/FILTER presence, so no breakage from the target=self hiding.
+
+### 5e. SkillRow-filter-not-toggle.test.tsx (389 lines)
+
+No tests will break. All filter tests use `createSkill` with default `target: "enemy"`, so FilterControls will still render.
+
+---
+
+## Step 6: Write new tests
+
+### 6a. New file: TriggerDropdown-two-state.test.tsx
+
+**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown-two-state.test.tsx`
+
+New tests to write (following `renderDropdown` helper pattern):
+
+**Two-state model tests:**
+
+1. Ghost button renders when `condition === "always"` -- assert `+ Condition` button visible, no combobox, no NOT toggle
+2. Clicking `+ Condition` calls `onTriggerChange` with `{ scope: "enemy", condition: "in_range", conditionValue: 1 }`
+3. Active state renders condition dropdown with 7 options (no "Always")
+4. Active state renders `x` remove button
+5. Clicking `x` calls `onTriggerChange` with `{ scope: "enemy", condition: "always" }` (negated absent)
+6. Clicking `x` on negated trigger resets negated (callback has no negated field)
+
+**Condition-scoped scope tests:** 7. `in_range` shows scope dropdown with Enemy, Ally (no Self) 8. `hp_below` shows scope dropdown with Self, Ally, Enemy 9. `targeting_me` hides scope dropdown entirely 10. `targeting_ally` hides scope dropdown entirely 11. Changing condition from `hp_below` (scope=self) to `channeling` resets scope to "enemy" (self not valid for channeling) 12. Changing condition from `hp_below` (scope=self) to `targeting_me` sets scope to "enemy" (implied) 13. Changing condition from `in_range` to `hp_below` preserves scope "enemy" (still valid) 14. Implied scope conditions store correct scope value in callback
+
+**Estimated lines**: ~200-250
+
+### 6b. New file: SkillRow-target-self.test.tsx
+
+**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow-target-self.test.tsx`
+
+New tests to write:
+
+1. When `target: "self"`, SELECTOR fieldGroup is not rendered -- no criterion combobox
+2. When `target: "self"`, FILTER section is not rendered -- no `+ Filter` button, no filter controls
+3. When `target: "self"` with existing filter, filter fieldGroup not rendered
+4. When `target: "enemy"`, SELECTOR and FILTER are both rendered
+5. (Store interaction) Change target from enemy to self -> SELECTOR and FILTER disappear
+6. (Store interaction) Change target from self to enemy -> SELECTOR and FILTER reappear with prior config
+
+**Estimated lines**: ~120-150
+
+### 6c. New tests in existing files (optional, if scope allows)
+
+Registry default trigger rendering tests could go in SkillRow.test.tsx or a new file:
+
+- Kick (defaultTrigger: channeling) renders with active trigger controls (condition dropdown visible)
+- Light Punch (no defaultTrigger) renders with `+ Condition` button
+
+These can be added to `SkillRow.test.tsx` if it stays under ~750 lines, or a new `SkillRow-trigger-defaults.test.tsx`.
+
+---
+
+## Implementation Order
+
+1. **Step 1**: CONDITION_SCOPE_RULES constant (pure data, no UI impact)
+2. **Step 3**: CSS for ghost button (no UI impact until TSX changes)
+3. **Step 2**: TriggerDropdown two-state refactor (breaks existing tests)
+4. **Step 5**: Fix broken existing tests (restore green)
+5. **Step 6a**: New TriggerDropdown two-state tests
+6. **Step 4**: SkillRow target=self hiding
+7. **Step 6b**: New SkillRow target=self tests
+8. **Step 6c**: Registry default trigger tests (if time permits)
+
+---
+
+## CONDITION_SCOPE_RULES Definition (canonical)
 
 ```typescript
-export function createPluralMoveAction(
-  skill: Skill,
-  character: Character,
-  targets: Character[],
-  tick: number,
-  allCharacters: Character[],
-): Action {
-  const distance = skill.distance ?? 1;
-  let targetCell: Position;
-  if (distance > 1) {
-    targetCell = computeMultiStepPluralDestination(
-      character,
-      targets,
-      skill.behavior as "towards" | "away",
-      allCharacters,
-      distance,
-    );
-  } else {
-    targetCell = computePluralMoveDestination(
-      character,
-      targets,
-      skill.behavior as "towards" | "away",
-      allCharacters,
-    );
-  }
-
-  return {
-    type: "move",
-    skill,
-    targetCell,
-    targetCharacter: null,
-    startedAtTick: tick,
-    resolvesAtTick: tick + skill.tickCost,
-  };
-}
+const CONDITION_SCOPE_RULES: Record<
+  Exclude<ConditionType, "always">,
+  ConditionScopeRule
+> = {
+  in_range: { showScope: true, validScopes: ["enemy", "ally"] },
+  hp_below: { showScope: true, validScopes: ["self", "ally", "enemy"] },
+  hp_above: { showScope: true, validScopes: ["self", "ally", "enemy"] },
+  channeling: { showScope: true, validScopes: ["enemy", "ally"] },
+  idle: { showScope: true, validScopes: ["enemy", "ally"] },
+  targeting_me: {
+    showScope: false,
+    validScopes: ["enemy"],
+    impliedScope: "enemy",
+  },
+  targeting_ally: {
+    showScope: false,
+    validScopes: ["enemy"],
+    impliedScope: "enemy",
+  },
+};
 ```
 
-**Import additions**: `computePluralMoveDestination`, `computeMultiStepPluralDestination` from `./game-movement`.
-
-**File impact**: +25 lines (game-actions.ts is 117 lines, becomes ~142).
+This is the **single source of truth** for what the UI allows. Exported as a named export for test assertions if needed, or kept as a module-level constant.
 
 ---
 
-### Step 6: Store Selector (`src/stores/gameStore-selectors.ts`)
+## CSS Changes Summary
 
-**`selectMovementTargetData` (line 303)** -- This selector calls `evaluateTargetCriterion` which will now return `null` for plural targets. The existing `if (!target || target.id === character.id) return null;` guard on line 341 already handles this -- plural target move skills will produce no targeting line.
+| File                         | Change                            | Lines |
+| ---------------------------- | --------------------------------- | ----- |
+| `TriggerDropdown.module.css` | Add `.addConditionBtn` + `:hover` | +14   |
+| `SkillRow.module.css`        | No changes                        | 0     |
 
-This is acceptable behavior for the engine-only scope of this task. UI targeting line support for plural targets is out of scope (deferred to the UI task).
-
-**No code changes needed** in this file for this task.
-
----
-
-## File Change Summary
-
-| File                                | Current Lines | Change | New Lines | Notes                                                    |
-| ----------------------------------- | ------------- | ------ | --------- | -------------------------------------------------------- |
-| `src/engine/types.ts`               | ~136          | +6     | ~142      | Target union + isPluralTarget + PLURAL_TARGETS           |
-| `src/engine/selectors.ts`           | 193           | +5     | ~198      | Guards in evaluateTargetCriterion + hasCandidates        |
-| `src/engine/game-movement.ts`       | 362           | +60    | ~422      | **OVER BUDGET** -- see mitigation                        |
-| `src/engine/game-decisions.ts`      | 333           | +25    | ~358      | Plural branches in tryExecuteSkill + evaluateSingleSkill |
-| `src/engine/game-actions.ts`        | 117           | +25    | ~142      | createPluralMoveAction                                   |
-| `src/stores/gameStore-selectors.ts` | ~358          | 0      | ~358      | No changes (existing guard handles it)                   |
-
-### Test Files (new tests only)
-
-| File                                | Tests Added                                       |
-| ----------------------------------- | ------------------------------------------------- |
-| `src/engine/game-movement.test.ts`  | 6 tests (plural movement)                         |
-| `src/engine/selectors.test.ts`      | 2 tests (evaluateTargetCriterion null for plural) |
-| `src/engine/game-decisions.test.ts` | 3 tests (integration)                             |
+The existing `.addTriggerBtn` in SkillRow.module.css is unused and stays as-is (future AND trigger use).
 
 ---
 
-## Risk Mitigation: 400-Line Budget for `game-movement.ts`
+## File Size Check
 
-**Problem**: `game-movement.ts` is 362 lines. Adding ~60 lines of plural movement logic brings it to ~422, exceeding the 400-line constraint.
-
-**Mitigation strategy**: Extract `selectBestCandidate`, `calculateCandidateScore`, `compareAwayMode`, `compareTowardsMode`, and the new `computePluralCandidateScore` into a new `src/engine/movement-scoring.ts` file.
-
-This extraction is justified because:
-
-1. These functions form a cohesive scoring module used by both singular and plural movement
-2. They have no dependencies on other `game-movement.ts` internals except `countEscapeRoutes` and `buildObstacleSet` (which are also extractable)
-3. The extraction creates a clean API boundary: `game-movement.ts` owns movement strategy (towards/away/plural routing), `movement-scoring.ts` owns candidate evaluation
-
-**Extracted file** (`src/engine/movement-scoring.ts`, ~120 lines):
-
-- `CandidateScore` interface
-- `calculateCandidateScore()` (exported)
-- `computePluralCandidateScore()` (exported)
-- `compareTowardsMode()` (exported)
-- `compareAwayMode()` (exported)
-- `selectBestCandidate()` (exported)
-- `selectBestPluralCandidate()` (exported, new -- identical loop to selectBestCandidate but uses computePluralCandidateScore)
-- `countEscapeRoutes()` (exported, moved from game-movement.ts)
-- `buildObstacleSet()` (exported, moved from game-movement.ts)
-
-**Resulting file sizes**:
-
-- `game-movement.ts`: ~362 - 180 (extracted) + 40 (new plural functions) = ~222 lines
-- `movement-scoring.ts`: ~180 + 30 (new plural scoring) = ~210 lines
-
-Both well under 400. The extraction is a refactor that does not change behavior -- existing tests pass without modification because the public API of `game-movement.ts` re-exports or delegates to the new file.
-
-**Alternative** (if extraction is considered too large for this task): Keep everything in `game-movement.ts` by making `computePluralMoveDestination` more compact. The function can inline the scoring loop (~15 lines instead of a separate helper), bringing the total addition to ~45 lines (362 + 45 = 407). This is only 7 lines over; a minor code tightening pass (removing blank lines, combining declarations) could bring it under. However, extraction is the cleaner long-term approach.
-
-**Recommendation**: Perform the extraction. It keeps both files well under budget and creates better separation of concerns. The extraction should happen as the first sub-step of Step 3, before adding plural logic, so that the refactor can be verified against existing tests before new code is added.
+| File                                      | Current Lines         | After Changes                          | Under 400?                 |
+| ----------------------------------------- | --------------------- | -------------------------------------- | -------------------------- |
+| `TriggerDropdown.tsx`                     | 156                   | ~195                                   | Yes                        |
+| `TriggerDropdown.module.css`              | 63                    | ~77                                    | Yes                        |
+| `SkillRow.tsx`                            | 287                   | ~289                                   | Yes                        |
+| `SkillRow.module.css`                     | 366                   | 366                                    | Yes                        |
+| `TriggerDropdown.test.tsx`                | 378                   | ~370 (fewer always-related assertions) | Yes                        |
+| `TriggerDropdown-not-toggle.test.tsx`     | 156                   | ~160                                   | Yes                        |
+| `TriggerDropdown-qualifier.test.tsx`      | 141                   | 141                                    | Yes                        |
+| `SkillRow.test.tsx`                       | 686 (eslint disabled) | ~690                                   | Over 400, but pre-existing |
+| New: `TriggerDropdown-two-state.test.tsx` | 0                     | ~220                                   | Yes                        |
+| New: `SkillRow-target-self.test.tsx`      | 0                     | ~140                                   | Yes                        |
 
 ---
 
-## How Existing Infrastructure Is Reused
+## Risk Assessment
 
-| Existing Function           | Reuse for Plural Targets                                          |
-| --------------------------- | ----------------------------------------------------------------- |
-| `generateValidCandidates()` | Generates candidate hex positions identically for plural/singular |
-| `countEscapeRoutes()`       | Used in plural away-mode scoring (same escape route logic)        |
-| `compareAwayMode()`         | Used as-is for comparing plural candidate scores                  |
-| `compareTowardsMode()`      | Used as-is for comparing plural candidate scores                  |
-| `buildObstacleSet()`        | Used with all target IDs excluded (extended exclude list)         |
-| `hexDistance()`             | Computes per-target distances for aggregation                     |
-| `positionsEqual()`          | Stuck detection in multi-step loop                                |
+1. **Scope reset on condition change may surprise users**: When switching from `hp_below` (scope=self) to `in_range`, scope auto-resets to "enemy". This is correct per requirements but could feel unexpected. Mitigation: this is the intended UX behavior per spec.
 
-The key insight is that `compareAwayMode` and `compareTowardsMode` operate on `CandidateScore` objects. By constructing `CandidateScore` with aggregated distance values (min for away, average for towards), the existing comparators work unchanged. The tiebreak hierarchy is preserved exactly.
+2. **Tests querying by aria-label for trigger combobox**: Several tests across files use `getByRole("combobox", { name: /trigger for/i })`. With the two-state model, this query fails when trigger is "always". Mitigation: systematically fix every test that renders with "always" to either use a non-always condition or query for the ghost button.
 
----
+3. **Remove button aria-label change**: Current remove button (for AND triggers) says "Remove second trigger for X". The new primary `x` button needs a different label: "Remove condition for X". Tests checking for "Remove second trigger" use `triggerIndex: 1` and `onRemove` prop -- these should still work if the AND trigger remove button retains its label.
 
-## Test Strategy Alignment
+4. **FilterControls wrapping in fieldGroup**: FilterControls currently renders its own `<div className={fieldGroup filterField}>` wrapper (line 112 of FilterControls.tsx). Wrapping it in a conditional in SkillRow means the entire fieldGroup disappears, which is correct. The grid column 9 will simply be empty when target=self -- CSS Grid handles this gracefully with `auto` column sizing.
 
-Tests map directly to the test plan in `requirements.md`:
+5. **Scope dropdown dynamic options**: The scope dropdown now renders different options per condition. Tests that check for specific scope options need to be condition-aware. The current tests do not heavily test scope dropdown options, so risk is low.
 
-### Unit: `src/engine/game-movement.test.ts` (Tests 1-6)
-
-1. **Away + enemies**: Place mover between two enemies. Verify chosen hex maximizes `min(distance to each enemy) * escapeRoutes`. Setup: mover at (0,0), enemies at (-2,0) and (2,0). Expected: mover moves to hex that maximizes minimum distance from both.
-
-2. **Away + enemies surrounded**: Mover with enemies on three sides. Verify best escape direction is chosen (highest composite score among limited options). Setup: mover at (0,0), enemies at (1,0), (0,1), (-1,1). Expected: moves to best available hex away from cluster.
-
-3. **Towards + allies**: Isolated mover with ally group. Verify mover moves to hex that minimizes average distance to all allies. Setup: mover at (0,-4), allies at (0,0) and (1,0). Expected: mover steps toward the group.
-
-4. **Towards + allies already among group**: Mover surrounded by allies. Verify mover stays put or moves minimally (average distance already minimal). Setup: mover at (0,0), allies at (1,0), (-1,0), (0,1). Expected: stays at (0,0) or moves to equivalent position.
-
-5. **Single member group**: Plural target with one member produces same result as singular target with that member. Setup: identical scenarios, compare `computePluralMoveDestination([singleTarget])` vs `computeMoveDestination(singleTarget)`.
-
-6. **Empty group**: `computePluralMoveDestination(mover, [], mode, all)` returns `mover.position`.
-
-### Unit: `src/engine/selectors.test.ts` (Tests 7-8)
-
-7. `evaluateTargetCriterion("enemies", "nearest", evaluator, all)` returns `null`.
-8. `evaluateTargetCriterion("allies", "nearest", evaluator, all)` returns `null`.
-
-These are simple guard tests -- they verify the early return, not the scoring logic.
-
-### Integration: `src/engine/game-decisions.test.ts` (Tests 9-11)
-
-9. Full decision pipeline: character with Move skill `target: "enemies"`, `behavior: "away"`. Verify `computeDecisions` produces valid Action with type "move" and computed targetCell.
-
-10. Non-movement skill (attack) with `target: "enemies"` is rejected. Verify `evaluateSingleSkill` returns `rejectionReason: "no_target"`.
-
-11. All enemies dead + `target: "enemies"`. Verify rejection with `rejectionReason: "no_target"`.
+6. **Default value for `+ Condition`**: Requirements say "sensible default (e.g., `in_range`)". Using `{ scope: "enemy", condition: "in_range", conditionValue: 1 }` as the activation default. The `conditionValue: 1` matches Dash's default (adjacent range), which is the most common use case.
 
 ---
 
-## Spec Alignment Checklist
+## Spec Alignment Check
 
-- [x] Plan aligns with `.docs/spec.md` -- Target system extended (spec section "Targeting System"), movement modes preserved (spec section "Movement System")
-- [x] Approach consistent with `.docs/architecture.md` -- Pure engine logic, no React dependencies, data-driven targeting pattern maintained
-- [x] Patterns follow `.docs/patterns/index.md` -- No new UI patterns needed (engine-only task)
-- [x] No conflicts with `.docs/decisions/index.md` -- Follows ADR-017 (wrapper function pattern for multi-step), ADR-005 (skill registry uses Target type)
-- [x] Lesson 002 applied -- All plural targets excluded from obstacle set in pathfinding
-- [x] Lesson 001 applied -- Plural targets explicitly scoped to movement behaviors only
+- [x] Plan aligns with `.docs/spec.md` requirements -- trigger scope+condition model preserved, UI-only change
+- [x] Approach consistent with `.docs/architecture.md` -- controlled components, CSS modules, no engine changes
+- [x] Patterns follow `.docs/patterns/index.md` -- ghost button pattern, opacity hierarchy
+- [x] No conflicts with `.docs/decisions/index.md` -- ADR-023 allows CSS duplication, ADR-004 local state for UI
+- [x] UI tasks: Visual values match `.docs/ui-ux-guidelines.md` -- ghost button spec, compact spacing, native selects, aria-labels
+
+---
 
 ## New Decision
 
-**Decision**: Create `movement-scoring.ts` to extract scoring logic from `game-movement.ts`.
+**Decision**: `CONDITION_SCOPE_RULES` is kept as a local constant in `TriggerDropdown.tsx` rather than extracted to a shared config file.
 
-**Context**: `game-movement.ts` is at 362/400 lines. Adding plural movement logic would exceed the budget. Scoring functions (`calculateCandidateScore`, `compareAwayMode`, `compareTowardsMode`, `selectBestCandidate`, `countEscapeRoutes`, `buildObstacleSet`) form a cohesive unit that both singular and plural movement share.
+**Context**: Only TriggerDropdown needs this lookup. It follows the precedent of `VALUE_CONDITIONS` being local to TriggerDropdown (and duplicated as `FILTER_VALUE_CONDITIONS` in FilterControls per ADR-023).
 
-**Consequences**: Two files instead of one for movement logic. Clear separation of concerns (strategy vs scoring). Both files well under 400 lines. No behavior change for existing code. Recommend adding to `.docs/decisions/index.md` as ADR-024 after implementation.
+**Consequences**: If a future feature (e.g., tooltip showing valid trigger configurations) needs this data, it would need to import from TriggerDropdown or the constant would need extraction. Acceptable tradeoff for simplicity now.
 
-## Out of Scope (noted for future tasks)
-
-- UI changes: target dropdown options, criterion disabled state, targeting line rendering for plural targets
-- `selectMovementTargetData` adaptation for plural targets (targeting lines)
-- Spec/architecture doc updates
-- Trigger/filter changes (triggers evaluate independently of skill target field)
+Recommend adding to `.docs/decisions/index.md` as ADR-025 after implementation if the team decides it merits a formal ADR.

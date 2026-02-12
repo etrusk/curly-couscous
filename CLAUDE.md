@@ -6,7 +6,7 @@
 
 A turn-based auto-battler game built with React and TypeScript. Features AI-controlled characters with configurable behavior rules, visual battle simulation, and comprehensive rule evaluation transparency.
 
-**Version:** 0.24.0 (follows SemVer: MAJOR.MINOR.PATCH)
+**Version:** 0.25.0 (follows SemVer: MAJOR.MINOR.PATCH)
 
 ## Tech Stack
 
@@ -47,6 +47,8 @@ This project maintains documentation in `.docs/`:
 **Index files are lightweight pointers. Read specific detail files (e.g., `patterns/collapsible-section.md`) when needed.**
 
 **Agents MUST read relevant `.docs/` files before making changes.**
+
+`.docs/` reflects current implementation state. During active TDD workflows, `.tdd/requirements.md` is authoritative — if it conflicts with `.docs/`, follow the task requirements and the doc-syncer phase will update docs after completion.
 
 ### `.docs/current-task.md` Format
 

@@ -1,5 +1,7 @@
 # System Architecture
 
+> **Living document.** Reflects current implementation. Task-specific requirements (`.tdd/requirements.md`) take precedence when they conflict; the doc-syncer phase reconciles after completion.
+
 ## Tech Stack
 
 - Language: TypeScript 5.x (strict mode)
@@ -139,7 +141,8 @@ CharacterPanel (container, character selector)
     │   ├── SkillRowActions (unassign, remove, duplicate buttons)
     │   ├── FilterControls (filter condition select, value input, NOT toggle, qualifier)
     │   │   └── QualifierSelect (channeling qualifier dropdown with action/skill optgroups)
-    │   └── TriggerDropdown (scope + condition dropdowns, value input, NOT toggle)
+    │   └── TriggerDropdown (two-state: ghost button or scope + condition dropdowns, value input, NOT toggle)
+    │       │   CONDITION_SCOPE_RULES constant: per-condition valid scopes and scope dropdown visibility
     │       └── QualifierSelect (channeling qualifier dropdown, shared component)
     └── Inventory section (hidden when both factions present: assignable skills with Assign buttons)
         └── SkillNameWithTooltip (same component, shows skill stats in inventory rows)

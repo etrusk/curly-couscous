@@ -48,9 +48,9 @@ describe("PriorityTab - Evaluation Display (Store-Based Gating)", () => {
 
     // Evaluation indicator present (Selected because enemy is in range)
     expect(screen.getByLabelText("Selected")).toBeInTheDocument();
-    // Config dropdown still present alongside evaluations
+    // Trigger ghost button still present alongside evaluations (always = unconditional)
     expect(
-      screen.getByRole("combobox", { name: /trigger for light punch/i }),
+      screen.getByRole("button", { name: /add condition for light punch/i }),
     ).toBeInTheDocument();
     // Enable checkbox still present
     expect(
@@ -91,9 +91,9 @@ describe("PriorityTab - Evaluation Display (Store-Based Gating)", () => {
     expect(screen.queryByLabelText("Selected")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Rejected")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Skipped")).not.toBeInTheDocument();
-    // Config controls ARE present
+    // Config controls ARE present (trigger ghost button for always = unconditional)
     expect(
-      screen.getByRole("combobox", { name: /trigger for light punch/i }),
+      screen.getByRole("button", { name: /add condition for light punch/i }),
     ).toBeInTheDocument();
   });
 });

@@ -38,6 +38,14 @@ export function SkillRow({
     useGameStore(selectActions);
   const allCharacters = useGameStore((state) => state.gameState.characters);
 
+  // Read live skill from store for properties that change via handlers (e.g. target)
+  const liveSkill =
+    useGameStore((state) =>
+      state.gameState.characters
+        .find((c) => c.id === character.id)
+        ?.skills.find((s) => s.instanceId === skill.instanceId),
+    ) ?? skill;
+
   const skillDef = getSkillDefinition(skill.id);
 
   const handleTriggerUpdate = (newTrigger: Trigger) => {
@@ -209,7 +217,7 @@ export function SkillRow({
       <div className={`${styles.fieldGroup} ${styles.targetField}`}>
         <span className={styles.fieldLabel}>TARGET</span>
         <select
-          value={skill.target}
+          value={liveSkill.target}
           onChange={handleTargetChange}
           className={styles.select}
           aria-label={`Target for ${skill.name}`}
@@ -220,24 +228,27 @@ export function SkillRow({
         </select>
       </div>
 
-      <div className={`${styles.fieldGroup} ${styles.selectorField}`}>
-        <span className={styles.fieldLabel}>SELECTOR</span>
-        <select
-          value={skill.criterion}
-          onChange={handleCriterionChange}
-          disabled={skill.target === "self"}
-          className={styles.select}
-          aria-label={`Criterion for ${skill.name}`}
-        >
-          <option value="nearest">Nearest</option>
-          <option value="furthest">Furthest</option>
-          <option value="lowest_hp">Lowest HP</option>
-          <option value="highest_hp">Highest HP</option>
-          <option value="most_enemies_nearby">Most Enemies Nearby</option>
-        </select>
-      </div>
+      {liveSkill.target !== "self" && (
+        <div className={`${styles.fieldGroup} ${styles.selectorField}`}>
+          <span className={styles.fieldLabel}>SELECTOR</span>
+          <select
+            value={skill.criterion}
+            onChange={handleCriterionChange}
+            className={styles.select}
+            aria-label={`Criterion for ${skill.name}`}
+          >
+            <option value="nearest">Nearest</option>
+            <option value="furthest">Furthest</option>
+            <option value="lowest_hp">Lowest HP</option>
+            <option value="highest_hp">Highest HP</option>
+            <option value="most_enemies_nearby">Most Enemies Nearby</option>
+          </select>
+        </div>
+      )}
 
-      <FilterControls skill={skill} characterId={character.id} />
+      {liveSkill.target !== "self" && (
+        <FilterControls skill={skill} characterId={character.id} />
+      )}
 
       <span className={`${styles.fieldGroup} ${styles.behaviorField}`}>
         {skillDef && skillDef.behaviors.length > 1 && (

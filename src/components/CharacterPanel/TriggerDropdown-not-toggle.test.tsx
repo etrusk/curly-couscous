@@ -125,7 +125,7 @@ describe("Gap 3: NOT Toggle Modifier", () => {
     ).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("switching to always clears negated from callback", async () => {
+  it("clicking x remove clears negated from callback", async () => {
     const user = userEvent.setup();
     const onTriggerChange = vi.fn();
     render(
@@ -140,12 +140,13 @@ describe("Gap 3: NOT Toggle Modifier", () => {
         onTriggerChange={onTriggerChange}
       />,
     );
-    const select = screen.getByRole("combobox", {
-      name: "Trigger for Light Punch",
-    });
-    await user.selectOptions(select, "always");
+    await user.click(
+      screen.getByRole("button", {
+        name: /remove condition for light punch/i,
+      }),
+    );
     expect(onTriggerChange).toHaveBeenCalledWith({
-      scope: "self",
+      scope: "enemy",
       condition: "always",
     });
     const callArg = onTriggerChange.mock.calls[0]?.[0] as

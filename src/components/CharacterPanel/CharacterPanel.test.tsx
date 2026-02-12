@@ -71,8 +71,9 @@ describe("CharacterPanel", () => {
       render(<CharacterPanel />);
 
       expect(screen.getByText(/light punch/i)).toBeInTheDocument();
+      // Trigger ghost button visible (Light Punch defaults to always = unconditional)
       expect(
-        screen.getByRole("combobox", { name: /trigger for light punch/i }),
+        screen.getByRole("button", { name: /add condition for light punch/i }),
       ).toBeInTheDocument();
       expect(screen.queryByLabelText(/selected|rejected|skipped/i)).toBeNull();
     });
@@ -110,9 +111,9 @@ describe("CharacterPanel", () => {
 
       expect(screen.getByText(/light punch/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/selected|rejected/i)).toBeInTheDocument();
-      // Config controls remain visible alongside evaluation indicators
+      // Trigger ghost button visible (Light Punch defaults to always = unconditional)
       expect(
-        screen.getByRole("combobox", { name: /^Trigger for/i }),
+        screen.getByRole("button", { name: /add condition for light punch/i }),
       ).toBeInTheDocument();
     });
   });

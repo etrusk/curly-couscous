@@ -1,7 +1,7 @@
 # SkillRow Visual Specification
 
 > Extracted from: `src/components/CharacterPanel/SkillRow.tsx` + `SkillRow.module.css`
-> Last verified: 2026-02-11 (filter expansion + NOT toggle + qualifier select)
+> Last verified: 2026-02-12 (two-state trigger model + condition-scoped scopes + target=self hiding)
 
 ## Overview
 
@@ -149,10 +149,54 @@ The checkbox (col 1) appears BEFORE the status icon (col 2) in DOM order. This i
 
 - Container: `display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap`
 - Contains TriggerDropdown component(s)
+- **Two-state model**: Triggers are either absent (unconditional) or present (conditional):
+  - **Unconditional** (`condition === "always"`): Renders a `+ Condition` ghost button only. No dropdowns, no NOT toggle.
+  - **Conditional** (any non-always condition): Renders NOT toggle, condition dropdown (7 options), conditional scope dropdown, conditional value input, conditional qualifier select, and `x` remove button.
+- Clicking `+ Condition` activates with default `{ scope: "enemy", condition: "in_range", conditionValue: 1 }`
+- Clicking `x` removes the trigger, resetting to `{ scope: "enemy", condition: "always" }` and clearing `negated`
 - AND label between triggers: `0.75rem`, weight `600`, `--text-secondary`, uppercase
-- Add trigger button: ghost button style (dashed border)
 - Extra `margin-left: 0.5rem` for visual separation from eval column
 - `grid-column: 6`
+
+**`+ Condition` Ghost Button** (`.addConditionBtn` in `TriggerDropdown.module.css`):
+
+- Padding: `0.15rem 0.5rem`, font-size: `0.75rem`
+- Border: `1px dashed var(--border)`, background: `transparent`, color: `var(--text-secondary)`
+- Border-radius: `3px`, cursor: `pointer`
+- Hover: `background: var(--surface-hover)`, `color: var(--text-primary)`
+- `aria-label="Add condition for {skillName}"`
+
+**Condition Dropdown** (7 options, no "Always"):
+
+| Value            | Display Text   | Has Value Input  | Has Qualifier | Scope Dropdown |
+| ---------------- | -------------- | ---------------- | ------------- | -------------- |
+| `in_range`       | In range       | Yes (default 1)  | No            | Yes            |
+| `hp_below`       | HP below       | Yes (default 50) | No            | Yes            |
+| `hp_above`       | HP above       | Yes (default 50) | No            | Yes            |
+| `channeling`     | Channeling     | No               | Yes           | Yes            |
+| `idle`           | Idle           | No               | No            | Yes            |
+| `targeting_me`   | Cell targeted  | No               | No            | No (implied)   |
+| `targeting_ally` | Targeting ally | No               | No            | No (implied)   |
+
+**Condition-Scoped Scope Dropdown** (per `CONDITION_SCOPE_RULES` constant in `TriggerDropdown.tsx`):
+
+| Condition        | `showScope` | Valid Scopes      | Implied Scope |
+| ---------------- | ----------- | ----------------- | ------------- |
+| `in_range`       | true        | enemy, ally       | --            |
+| `hp_below`       | true        | self, ally, enemy | --            |
+| `hp_above`       | true        | self, ally, enemy | --            |
+| `channeling`     | true        | enemy, ally       | --            |
+| `idle`           | true        | enemy, ally       | --            |
+| `targeting_me`   | false       | enemy             | enemy         |
+| `targeting_ally` | false       | enemy             | enemy         |
+
+When condition changes, if current scope is not in new condition's `validScopes`, scope resets to `validScopes[0]`. Implied-scope conditions hide the scope dropdown but store the correct scope value.
+
+**Remove Button** (`x`):
+
+- Always shown when trigger is active (not gated on `onRemove` prop for primary trigger)
+- `aria-label="Remove condition for {skillName}"`
+- Same styling as filter remove button: `0.15rem 0.35rem` padding, `0.75rem` font, hover goes danger
 
 ### 7. Target Select (col 7, auto width) -- wrapped in `.fieldGroup` with "TARGET" label
 
@@ -162,12 +206,14 @@ The checkbox (col 1) appears BEFORE the status icon (col 2) in DOM order. This i
 ### 8. Selector Select (col 8, auto width) -- wrapped in `.fieldGroup` with "SELECTOR" label
 
 - Same styling as Target select
+- **Hidden when target is `self`**: Entire `.fieldGroup` is not rendered (grid column 8 left empty). Reappears when target changes back to `enemy` or `ally`.
 - `grid-column: 8`
 
 ### 9. Filter Group (col 9, auto width) -- wrapped in `.fieldGroup` with "FILTER" label
 
 - Container: `display: inline-flex; align-items: center; gap: 0.25rem`
 - Rendered by `FilterControls` component (extracted from SkillRow)
+- **Hidden when target is `self`**: Entire `FilterControls` (including its `.fieldGroup` wrapper) is not rendered (grid column 9 left empty). Reappears when target changes back to `enemy` or `ally`. Filter configuration is preserved in the store.
 - Contains (when filter is active): NOT toggle, condition select (7 options), value input (conditional), qualifier select (conditional), remove button
 - Add filter button: ghost button (dashed border) when no filter set
 - Remove filter button: `0.15rem 0.35rem` padding, `0.75rem` font, hover goes danger (`--health-low`)
@@ -285,11 +331,14 @@ Each of five control groups (Trigger, Target, Selector, Filter, Behavior) is wra
 - **Config mode (no battle)**: Shows enable checkbox, priority controls, all dropdowns, action buttons. No status icon or evaluation display.
 - **Battle mode (active battle)**: Shows all config controls plus evaluation indicators. Status icon appears. Target/rejection reason shown based on evaluation. Row compact sizing applied.
 - **Cooldown active**: Cooldown badge appears after skill name. Row opacity `0.6`.
+- **Has trigger (conditional)**: Trigger group shows NOT toggle, condition dropdown (7 options), conditional scope dropdown (per CONDITION_SCOPE_RULES), conditional value input, conditional qualifier select, and `x` remove button.
+- **No trigger (unconditional)**: `+ Condition` ghost button shown in trigger area.
 - **Has filter**: Filter group visible with NOT toggle, condition select (7 options), conditional value input, conditional qualifier select, remove button.
 - **Has filter (value condition)**: Numeric input shown for `hp_below`, `hp_above`, `in_range`.
 - **Has filter (channeling)**: Qualifier select shown with action type and skill optgroups.
 - **Has filter (negated)**: NOT toggle highlighted with `--health-low` background.
 - **No filter**: "Add Filter" ghost button shown.
+- **Target is `self`**: SELECTOR fieldGroup (col 8) and FILTER section (col 9) are hidden entirely (not rendered). Config preserved in store; controls reappear when target changes to `enemy` or `ally`.
 - **Multi-behavior skill**: Behavior select appears inside `.fieldGroup` with "BEHAVIOR" label.
 - **Innate skill**: No Unassign button.
 - **Duplicate instance**: Remove button shown.

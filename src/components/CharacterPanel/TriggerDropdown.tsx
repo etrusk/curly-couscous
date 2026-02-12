@@ -1,9 +1,18 @@
 /**
  * TriggerDropdown - Extracted sub-component for a single trigger dropdown + value input.
  * Controlled component: receives a Trigger and calls back with the new Trigger on changes.
+ *
+ * Two-state model:
+ * - When condition === "always": renders a "+ Condition" ghost button only
+ * - When condition is non-always: renders active trigger controls (scope, condition, value, etc.)
  */
 
-import type { Trigger, ConditionQualifier } from "../../engine/types";
+import type {
+  Trigger,
+  ConditionQualifier,
+  ConditionType,
+  TriggerScope,
+} from "../../engine/types";
 import { QualifierSelect } from "./QualifierSelect";
 import styles from "./TriggerDropdown.module.css";
 
@@ -15,18 +24,49 @@ interface TriggerDropdownProps {
   onRemove?: () => void;
 }
 
-import type { ConditionType } from "../../engine/types";
-
 const VALUE_CONDITIONS = new Set<ConditionType>([
   "hp_below",
   "hp_above",
   "in_range",
 ]);
 
+interface ConditionScopeRule {
+  showScope: boolean;
+  validScopes: TriggerScope[];
+  impliedScope?: TriggerScope;
+}
+
+const CONDITION_SCOPE_RULES: Record<
+  Exclude<ConditionType, "always">,
+  ConditionScopeRule
+> = {
+  in_range: { showScope: true, validScopes: ["enemy", "ally"] },
+  hp_below: { showScope: true, validScopes: ["self", "ally", "enemy"] },
+  hp_above: { showScope: true, validScopes: ["self", "ally", "enemy"] },
+  channeling: { showScope: true, validScopes: ["enemy", "ally"] },
+  idle: { showScope: true, validScopes: ["enemy", "ally"] },
+  targeting_me: {
+    showScope: false,
+    validScopes: ["enemy"],
+    impliedScope: "enemy",
+  },
+  targeting_ally: {
+    showScope: false,
+    validScopes: ["enemy"],
+    impliedScope: "enemy",
+  },
+};
+
 function getDefaultValue(condition: ConditionType): number {
   if (condition === "hp_below" || condition === "hp_above") return 50;
   return 3; // in_range
 }
+
+const SCOPE_LABELS: Record<TriggerScope, string> = {
+  enemy: "Enemy",
+  ally: "Ally",
+  self: "Self",
+};
 
 export function TriggerDropdown({
   trigger,
@@ -35,29 +75,50 @@ export function TriggerDropdown({
   onTriggerChange,
   onRemove,
 }: TriggerDropdownProps) {
-  const hasValue = VALUE_CONDITIONS.has(trigger.condition);
   const ariaLabel =
     triggerIndex === 0
       ? `Trigger for ${skillName}`
       : `Second trigger for ${skillName}`;
 
+  const handleAddCondition = () => {
+    onTriggerChange({
+      scope: "enemy",
+      condition: "in_range",
+      conditionValue: 1,
+    });
+  };
+
+  const handleRemoveCondition = () => {
+    onTriggerChange({ scope: "enemy", condition: "always" });
+  };
+
   const handleScopeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newScope = e.target.value as Trigger["scope"];
+    const newScope = e.target.value as TriggerScope;
     onTriggerChange({ ...trigger, scope: newScope });
   };
 
   const handleConditionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newCondition = e.target.value as ConditionType;
+    const newCondition = e.target.value as Exclude<ConditionType, "always">;
+    const rule = CONDITION_SCOPE_RULES[newCondition];
+
+    // Determine scope: use implied if available, preserve if valid, else reset
+    let newScope: TriggerScope = trigger.scope;
+    if (rule.impliedScope) {
+      newScope = rule.impliedScope;
+    } else if (!rule.validScopes.includes(trigger.scope)) {
+      newScope = rule.validScopes[0]!;
+    }
+
     const newTrigger: Trigger = VALUE_CONDITIONS.has(newCondition)
       ? {
-          scope: trigger.scope,
+          scope: newScope,
           condition: newCondition,
           conditionValue: getDefaultValue(newCondition),
         }
-      : { scope: trigger.scope, condition: newCondition };
+      : { scope: newScope, condition: newCondition };
 
-    // Preserve negated field if present, but clear it when switching to "always"
-    if (trigger.negated && newCondition !== "always") {
+    // Preserve negated field if present
+    if (trigger.negated) {
       newTrigger.negated = true;
     }
 
@@ -83,36 +144,57 @@ export function TriggerDropdown({
     onTriggerChange({ ...trigger, conditionValue: parsed });
   };
 
+  // Two-state: ghost button when unconditional
+  if (trigger.condition === "always") {
+    return (
+      <button
+        type="button"
+        onClick={handleAddCondition}
+        className={styles.addConditionBtn}
+        aria-label={`Add condition for ${skillName}`}
+      >
+        + Condition
+      </button>
+    );
+  }
+
+  // Active trigger controls
+  const rule = CONDITION_SCOPE_RULES[trigger.condition];
+  const hasValue = VALUE_CONDITIONS.has(trigger.condition);
+
   return (
     <span className={styles.triggerControl}>
-      {trigger.condition !== "always" && (
-        <button
-          type="button"
-          onClick={handleNotToggle}
-          className={`${styles.notToggle} ${trigger.negated ? styles.notToggleActive : ""}`}
-          aria-label={`Toggle NOT modifier for ${skillName}`}
-          aria-pressed={!!trigger.negated}
-        >
-          NOT
-        </button>
-      )}
-      <select
-        value={trigger.scope}
-        onChange={handleScopeChange}
-        className={styles.select}
-        aria-label={`Trigger scope for ${skillName}`}
+      <button
+        type="button"
+        onClick={handleNotToggle}
+        className={`${styles.notToggle} ${trigger.negated ? styles.notToggleActive : ""}`}
+        aria-label={`Toggle NOT modifier for ${skillName}`}
+        aria-pressed={!!trigger.negated}
       >
-        <option value="enemy">Enemy</option>
-        <option value="ally">Ally</option>
-        <option value="self">Self</option>
-      </select>
+        NOT
+      </button>
+
+      {rule.showScope && (
+        <select
+          value={trigger.scope}
+          onChange={handleScopeChange}
+          className={styles.select}
+          aria-label={`Trigger scope for ${skillName}`}
+        >
+          {rule.validScopes.map((s) => (
+            <option key={s} value={s}>
+              {SCOPE_LABELS[s]}
+            </option>
+          ))}
+        </select>
+      )}
+
       <select
         value={trigger.condition}
         onChange={handleConditionChange}
         className={styles.select}
         aria-label={ariaLabel}
       >
-        <option value="always">Always</option>
         <option value="in_range">In range</option>
         <option value="hp_below">HP below</option>
         <option value="hp_above">HP above</option>
@@ -142,15 +224,18 @@ export function TriggerDropdown({
         />
       )}
 
-      {onRemove && (
-        <button
-          onClick={onRemove}
-          className={styles.removeBtn}
-          aria-label={`Remove second trigger for ${skillName}`}
-        >
-          ×
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={onRemove ? onRemove : handleRemoveCondition}
+        className={styles.removeBtn}
+        aria-label={
+          onRemove
+            ? `Remove second trigger for ${skillName}`
+            : `Remove condition for ${skillName}`
+        }
+      >
+        x
+      </button>
     </span>
   );
 }

@@ -60,3 +60,18 @@
   color: var(--text-on-faction);
   border-color: var(--health-low);
 }
+
+.addConditionBtn {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.addConditionBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}

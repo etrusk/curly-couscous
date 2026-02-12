@@ -40,8 +40,11 @@ describe("TriggerDropdown", () => {
     });
     expect(select).toBeInTheDocument();
     expect(select).toHaveValue("hp_below");
-    // All 5 condition type options present
-    expect(screen.getByRole("option", { name: "Always" })).toBeInTheDocument();
+    // "Always" is NOT an option in the two-state model
+    expect(
+      screen.queryByRole("option", { name: "Always" }),
+    ).not.toBeInTheDocument();
+    // 7 condition options present (no Always)
     expect(
       screen.getByRole("option", { name: "In range" }),
     ).toBeInTheDocument();
@@ -68,7 +71,7 @@ describe("TriggerDropdown", () => {
   });
 
   it("hides value input for non-value triggers", () => {
-    renderDropdown({ scope: "enemy", condition: "always" });
+    renderDropdown({ scope: "enemy", condition: "targeting_me" });
     expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
   });
 
@@ -81,17 +84,18 @@ describe("TriggerDropdown", () => {
     const user = userEvent.setup();
     const { onTriggerChange } = renderDropdown({
       scope: "enemy",
-      condition: "always",
+      condition: "in_range",
+      conditionValue: 3,
     });
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",
     });
-    await user.selectOptions(select, "in_range");
+    await user.selectOptions(select, "hp_below");
     expect(onTriggerChange).toHaveBeenCalledTimes(1);
     expect(onTriggerChange).toHaveBeenCalledWith({
       scope: "enemy",
-      condition: "in_range",
-      conditionValue: 3,
+      condition: "hp_below",
+      conditionValue: 50,
     });
   });
 
@@ -99,7 +103,8 @@ describe("TriggerDropdown", () => {
     const user = userEvent.setup();
     const { onTriggerChange } = renderDropdown({
       scope: "enemy",
-      condition: "always",
+      condition: "in_range",
+      conditionValue: 3,
     });
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",
@@ -164,8 +169,10 @@ describe("TriggerDropdown", () => {
       condition: "hp_below",
       conditionValue: 50,
     });
+    // The AND trigger remove button ("Remove second trigger") should not be present.
+    // The primary "x" remove button ("Remove condition for") IS expected.
     expect(
-      screen.queryByRole("button", { name: /remove/i }),
+      screen.queryByRole("button", { name: /remove second trigger/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -216,9 +223,10 @@ describe("TriggerDropdown", () => {
       name: "Trigger for Light Punch",
     });
     await user.selectOptions(select, "in_range");
+    // Scope resets from "self" to "enemy" because in_range doesn't allow "self"
     expect(onTriggerChange).toHaveBeenCalledWith(
       expect.objectContaining({
-        scope: "self",
+        scope: "enemy",
         condition: "in_range",
         conditionValue: 3,
         negated: true,
@@ -256,22 +264,25 @@ describe("TriggerDropdown", () => {
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",
     });
-    await user.selectOptions(select, "always");
+    await user.selectOptions(select, "targeting_me");
     expect(onTriggerChange).toHaveBeenCalledWith({
-      scope: "self",
-      condition: "always",
+      scope: "enemy",
+      condition: "targeting_me",
     });
   });
 });
 
 describe("TriggerDropdown - new condition options", () => {
-  it("renders all 8 condition options", () => {
+  it("renders all 7 condition options (no Always)", () => {
     renderDropdown({
       scope: "self",
       condition: "hp_below",
       conditionValue: 50,
     });
-    expect(screen.getByRole("option", { name: "Always" })).toBeInTheDocument();
+    // "Always" is NOT an option in the two-state model
+    expect(
+      screen.queryByRole("option", { name: "Always" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("option", { name: "In range" }),
     ).toBeInTheDocument();
@@ -312,7 +323,8 @@ describe("TriggerDropdown - new condition options", () => {
     const user = userEvent.setup();
     const { onTriggerChange } = renderDropdown({
       scope: "enemy",
-      condition: "always",
+      condition: "in_range",
+      conditionValue: 3,
     });
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",
@@ -329,7 +341,8 @@ describe("TriggerDropdown - new condition options", () => {
     const user = userEvent.setup();
     const { onTriggerChange } = renderDropdown({
       scope: "enemy",
-      condition: "always",
+      condition: "in_range",
+      conditionValue: 3,
     });
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",
@@ -345,7 +358,8 @@ describe("TriggerDropdown - new condition options", () => {
     const user = userEvent.setup();
     const { onTriggerChange } = renderDropdown({
       scope: "enemy",
-      condition: "always",
+      condition: "in_range",
+      conditionValue: 3,
     });
     const select = screen.getByRole("combobox", {
       name: "Trigger for Light Punch",

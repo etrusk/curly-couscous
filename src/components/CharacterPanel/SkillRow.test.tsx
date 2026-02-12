@@ -35,9 +35,9 @@ describe("SkillRow", () => {
         screen.getByRole("button", { name: /move down/i }),
       ).toBeInTheDocument();
 
-      // Trigger dropdown visible
+      // Trigger ghost button visible (Light Punch defaults to always = unconditional)
       expect(
-        screen.getByRole("combobox", { name: /trigger for light punch/i }),
+        screen.getByRole("button", { name: /add condition for light punch/i }),
       ).toBeInTheDocument();
 
       // Target dropdown visible
@@ -167,9 +167,9 @@ describe("SkillRow", () => {
         screen.getByRole("button", { name: /move down/i }),
       ).toBeInTheDocument();
 
-      // Trigger dropdown still visible
+      // Trigger ghost button still visible (Light Punch defaults to always = unconditional)
       expect(
-        screen.getByRole("combobox", { name: /trigger for light punch/i }),
+        screen.getByRole("button", { name: /add condition for light punch/i }),
       ).toBeInTheDocument();
     });
   });

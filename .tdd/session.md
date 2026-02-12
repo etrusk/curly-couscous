@@ -2,132 +2,145 @@
 
 ## Task
 
-Add plural target scopes (`enemies` / `allies`) — enable spatial reasoning against groups for movement behaviors.
+Two-State Trigger Model: Replace the current "always-present scope + condition" trigger UI with a two-state model where triggers are either absent (unconditional) or present (conditional). Remove "Always" as a dropdown option. Condition-scoped scope dropdown. Hide selector/filter when target=self.
 
 ## Confirmed Scope
 
-Extend `Target` type with `"enemies"` and `"allies"`. Add `isPluralTarget()` guard and `PLURAL_TARGETS` constant. Add `computePluralMoveDestination()` in game-movement.ts. Branch decision logic for plural targets in game-decisions.ts. Guard `evaluateTargetCriterion` for plural targets. Files: types.ts, game-movement.ts, game-decisions.ts, game-actions.ts, selectors.ts, plus tests.
+UI-only changes to TriggerDropdown.tsx (two-state model + condition-scoped scopes), SkillRow.tsx (conditional rendering of selector/filter for target=self), new CONDITION_SCOPE_RULES constant. No engine, type, or store action changes. Visual spec update.
 
 ## Acceptance Criteria
 
-- [ ] `Target` type includes `"enemies"` and `"allies"` alongside existing values
-- [ ] `isPluralTarget()` type guard and `PLURAL_TARGETS` constant exported from `types.ts`
-- [ ] `evaluateTargetCriterion` returns `null` for plural targets (guard at top)
-- [ ] `computePluralMoveDestination()` correctly computes away destination: maximizes `min(distances to all targets) * escapeRoutes` with standard tiebreak hierarchy
-- [ ] `computePluralMoveDestination()` correctly computes towards destination: minimizes average distance to all targets (centroid approximation) with standard tiebreak hierarchy
-- [ ] Multi-step plural movement (Dash, distance > 1) iterates single steps using the plural function
-- [ ] Decision logic builds correct group for plural targets: `enemies` = all living enemies, `allies` = all living allies excluding self
-- [ ] Decision logic rejects plural target + non-movement actionType (rejected, not crash)
-- [ ] Decision logic rejects plural target when group is empty as `no_target`
-- [ ] Plural target + criterion set: criterion is silently ignored (no error)
-- [ ] Plural target with single group member produces identical behavior to singular target
-- [ ] Plural target with empty group: `computePluralMoveDestination` returns current position
-- [ ] Filters are skipped for plural targets (no candidate pool to narrow)
+- [x] Skills default to no trigger (unconditional). No trigger dropdowns render -- only a `+ Condition` ghost button in the trigger area
+- [x] Clicking `+ Condition` activates the trigger: condition dropdown appears with a sensible default (e.g., `in_range`), scope dropdown appears if the condition requires one, and a `x` remove button appears
+- [x] Clicking `x` removes the trigger entirely, returning to the unconditional `+ Condition` state. Negated flag resets to false
+- [x] "Always" is NOT an option in the condition dropdown. The 7 remaining conditions are: `in_range`, `hp_below`, `hp_above`, `channeling`, `idle`, `targeting_me`, `targeting_ally`
+- [x] The store representation: a skill with no trigger has `trigger: { scope: "enemy", condition: "always" }` (unchanged wire format). The UI interprets `condition: "always"` as "no trigger" and renders the `+ Condition` button
+- [x] Adding a condition via `+ Condition` sets the trigger to a non-always condition in the store. Removing via `x` sets it back to `{ scope: "enemy", condition: "always" }`
+- [x] Each condition defines which scopes are valid and whether the scope dropdown is shown at all (per CONDITION_SCOPE_RULES table)
+- [x] When the condition changes, if the current scope is not in the new condition's valid scopes, reset scope to the first valid scope for that condition
+- [x] When scope dropdown is hidden (implied scope), the store still holds the correct scope value
+- [ ] AND trigger follows the same condition-scoped scope rules (deferred -- no data model support)
+- [x] NOT toggle still works: appears when trigger is active, toggles `negated` flag
+- [x] Value input still appears for `in_range`, `hp_below`, `hp_above`
+- [x] Qualifier select still appears for `channeling` condition
+- [x] Trigger evaluation engine is UNCHANGED
+- [x] Skills loaded from existing state with `condition: "always"` render as unconditional
+- [x] Filter controls and filter behavior are UNCHANGED
+- [x] When target is set to `self`, the SELECTOR dropdown and its fieldGroup are hidden
+- [x] When target is set to `self`, the FILTER section is hidden entirely
+- [x] When target changes FROM `self` to `enemy`/`ally`, selector and filter controls reappear with prior configuration
+- [x] Skills from the registry with `defaultTrigger` (non-always) render with trigger active on assignment
+- [x] Skills with no `defaultTrigger` or `{ condition: "always" }` render with `+ Condition` button
+- [x] Manually removing a default trigger (clicking `x`) works
 
 ## Current Phase
 
-COMMIT
+EXPLORE (COMPLETE) -> PLAN (COMPLETE) -> DESIGN_TESTS (COMPLETE) -> TEST_DESIGN_REVIEW (COMPLETE) -> WRITE_TESTS (COMPLETE) -> IMPLEMENT (COMPLETE) -> REVIEW (COMPLETE) -> SYNC_DOCS (COMPLETE)
 
 ## Phase History
 
-- 2026-02-11 INIT → EXPLORE
-- 2026-02-11 EXPLORE → PLAN [6 exchanges, ~28K tokens]
-- 2026-02-11 PLAN → DESIGN_TESTS [6 exchanges, ~38K tokens]
-- 2026-02-11 DESIGN_TESTS → TEST_DESIGN_REVIEW [7 exchanges, ~35K tokens]
-- 2026-02-11 TEST_DESIGN_REVIEW → WRITE_TESTS [5 exchanges, ~20K tokens]
-- 2026-02-11 WRITE_TESTS → IMPLEMENT [12 exchanges, ~50K tokens]
-- 2026-02-11 IMPLEMENT → REVIEW [10 exchanges, ~55K tokens]
-- 2026-02-11 REVIEW → SYNC_DOCS [5 exchanges, ~28K tokens] (PASS, 0 critical)
-- 2026-02-11 SYNC_DOCS → COMMIT [3 exchanges, ~15K tokens]
+- 2026-02-12T00:00 INIT -> EXPLORE
+- 2026-02-12 EXPLORE COMPLETE. Findings in .tdd/exploration.md.
+- 2026-02-12 PLAN COMPLETE. Plan in .tdd/plan.md.
+- 2026-02-12 DESIGN_TESTS COMPLETE. Test designs in .tdd/test-designs.md. 14 TriggerDropdown tests + 6 SkillRow tests + 12 existing test update docs.
+- 2026-02-12 TEST_DESIGN_REVIEW COMPLETE. Added 3 new tests, 1 missing breaking test entry, minor corrections. Approved.
+- 2026-02-12 WRITE_TESTS COMPLETE. 3 new test files created (17+10+6=33 new tests), 4 existing test files updated (12 tests modified). 25 tests failing (RED), 1494 passing. TypeScript and ESLint clean.
+- 2026-02-12 IMPLEMENT COMPLETE. 3 source files modified, 4 additional upstream test files fixed (plan gap). All 1519 tests passing, TypeScript clean, ESLint clean.
 
 ## Context Metrics
 
-Orchestrator: ~55K/300K (18%)
-Cumulative agent tokens: 269K
+Orchestrator: ~15K/300K (~5%)
+Cumulative agent tokens: ~309K
 Agent invocations: 8
 Compactions: 0
 
 ### Agent History
 
-| #   | Agent             | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                                                                         |
-| --- | ----------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 1   | tdd-explorer      | EXPLORE            | 6         | ~28K   | 42    | 182s     | COMPLETE | Target type is simple union; scoring functions are single-target by design; filter/criterion bypass pattern exists for 'self' |
-| 2   | tdd-planner       | PLAN               | 6         | ~38K   | 22    | 179s     | COMPLETE | Extraction to movement-scoring.ts needed for 400-line budget; towards mode uses candidate scoring not A\*                     |
-| 3   | tdd-test-designer | DESIGN_TESTS       | 7         | ~35K   | 32    | 240s     | COMPLETE | 2 [VERIFY] markers for towards-mode details; AC-6 multi-step covered indirectly                                               |
-| 4   | tdd-test-reviewer | TEST_DESIGN_REVIEW | 5         | ~20K   | 16    | 300s     | COMPLETE | Fixed test 4 (broken assertion), fixed test 5 (removed fragile towards parity), added tests 7+13 for AC-6 and allies coverage |
-| 5   | tdd-coder         | WRITE_TESTS        | 12        | ~50K   | 53    | 400s     | COMPLETE | 6/13 tests pass incidentally against stubs; extracted plural tests to separate file for 400-line limit                        |
-| 6   | tdd-coder         | IMPLEMENT          | 10        | ~55K   | 30    | ~180s    | COMPLETE | All 13 new tests pass; extracted scoring to movement-scoring.ts; all quality gates pass                                       |
-| 7   | tdd-reviewer      | REVIEW             | 5         | ~28K   | 27    | 131s     | COMPLETE | PASS: 0 critical, 0 important, 3 minor; all 13 ACs verified                                                                   |
-| 8   | tdd-doc-syncer    | SYNC_DOCS          | 3         | ~15K   | 20    | 134s     | COMPLETE | Updated spec.md, architecture.md, current-task.md, patterns, created ADR-024                                                  |
+| #   | Agent             | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                                                |
+| --- | ----------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| 1   | tdd-explorer      | EXPLORE            | 6         | ~27K   | 35    | ~3min    | COMPLETE | Ghost button CSS exists unused; AND trigger deferred; 6-8 tests will break                           |
+| 2   | tdd-planner       | PLAN               | 7         | ~38K   | 20    | ~4min    | COMPLETE | 9 breaking tests identified across 3 files; 2 new test files planned; CONDITION_SCOPE_RULES designed |
+| 3   | tdd-test-designer | DESIGN_TESTS       | 5         | ~35K   | 16    | ~3.5min  | COMPLETE | 14+6 tests designed, 12 existing test updates documented, all 20 AC covered                          |
+| 4   | tdd-reviewer      | TEST_DESIGN_REVIEW | 5         | ~18K   | 18    | ~3min    | COMPLETE | +3 tests, +1 breaking test entry, approved                                                           |
+| 5   | tdd-coder         | WRITE_TESTS        | 12        | ~45K   | 30    | ~5min    | COMPLETE | 3 new test files, 4 updated test files, 25 failing/1494 passing                                      |
+| 6   | tdd-coder         | IMPLEMENT          | 14        | ~100K  | 35    | ~8min    | COMPLETE | 3 source files, 4 upstream test fixes; all 1519 tests green                                          |
+| 7   | tdd-reviewer      | REVIEW             | 7         | ~28K   | 25    | ~2.5min  | COMPLETE | APPROVED, 0 critical issues, 21/22 AC met (1 deferred)                                               |
+| 8   | tdd-doc-syncer    | SYNC_DOCS          | 4         | ~18K   | 16    | ~2.5min  | COMPLETE | Updated visual-specs, spec.md, current-task.md, architecture.md                                      |
 
 ### Action Log
 
 #### #1 tdd-explorer (EXPLORE)
 
-- Clean run
+- Ghost button CSS (.addTriggerBtn) already exists in SkillRow.module.css but is unused in TSX
+- AND trigger deferred -- no data model support (Skill.trigger is single Trigger field)
+- 6-8 existing TriggerDropdown tests will break due to always->ghost button change
+- FilterControls.tsx is direct pattern reference for two-state model
+- Selector currently only disabled for target=self, not hidden -- new implementation needed
 
 #### #2 tdd-planner (PLAN)
 
-- game-movement.ts at 362/400 lines requires extraction to movement-scoring.ts to stay under budget
+- Identified exactly 12 breaking tests across 3 test files
+- CONDITION_SCOPE_RULES designed with 7 entries covering all non-always conditions
+- Ghost button CSS needs own .addConditionBtn in TriggerDropdown.module.css (CSS module isolation)
+- SkillRow.test.tsx already at 686 lines -- new target=self tests go in separate file
 
 #### #3 tdd-test-designer (DESIGN_TESTS)
 
-- Towards-mode plural uses candidate scoring (not A\*), may diverge from singular for single-target parity test — flagged with [VERIFY]
-- generateValidCandidates towards-mode excludes stay-in-place by default — test 4 uses <= rather than ==
+- Clean run
 
-#### #4 tdd-test-reviewer (TEST_DESIGN_REVIEW)
+#### #4 tdd-reviewer (TEST_DESIGN_REVIEW)
 
-- Fixed test 4: original adjacent-ally setup made assertion impossible (all candidates worsen avg distance when stay excluded); redesigned with symmetric allies at distance 2
-- Fixed test 5: removed towards-mode parity assertion (A\* vs candidate scoring are different algorithms)
-- Added test 7: dedicated multi-step plural movement test for AC-6
-- Added test 13: allies target integration test for buildTargetGroup allies branch
-- Resolved both [VERIFY] markers with clear rationale
+- Added `idle` scope test (was the only showScope:true condition without a dedicated test)
+- Added condition-change-to-implied-scope test (plan item 12 missing from designs)
+- Added scope-preservation-when-valid test (plan item 13 missing from designs)
+- Found missing breaking test: "hides remove button when onRemove not provided" will break because primary trigger now has `x` remove button
+- All other test designs verified correct against codebase patterns and requirements
 
 #### #5 tdd-coder (WRITE_TESTS)
 
-- Extracted plural movement tests to separate file (game-movement-plural.test.ts) due to 400-line limit on game-movement.test.ts
-- 6 of 13 new tests pass incidentally against stubs (fallthrough behavior in evaluateTargetCriterion and stub returning mover position)
+- Split TriggerDropdown-two-state.test.tsx into two files (two-state 238 lines + scope-rules 256 lines) to stay under 400-line limit
+- 4 new tests already pass against current implementation (hp_below scope, scope preservation, value input visibility, default trigger rendering)
 
 #### #6 tdd-coder (IMPLEMENT)
 
-- Extracted scoring functions (CandidateScore, calculateCandidateScore, compareAwayMode, compareTowardsMode, selectBestCandidate, countEscapeRoutes, buildObstacleSet) to movement-scoring.ts (274 lines)
-- Added computePluralCandidateScore to movement-scoring.ts for aggregate distance scoring
-- Implemented computePluralMoveDestination and computeMultiStepPluralDestination in game-movement.ts (268 lines, down from 389 with stubs)
-- Added isPluralTarget guards in selectors.ts evaluateTargetCriterion and hasCandidates
-- Added buildTargetGroup helper and plural branches in game-decisions.ts tryExecuteSkill and evaluateSingleSkill
-- Added createPluralMoveAction in game-actions.ts
-- Fixed unused import (hexDistance in game-movement.ts) caught by type-check
-- All quality gates pass: 1495 tests green, TypeScript clean, ESLint clean
+- Plan gap: 4 upstream test files broke that were not identified in the plan (CharacterPanel.test.tsx, PriorityTab-config.test.tsx, PriorityTab-battle.test.tsx, PriorityTab-evaluation.test.tsx)
+- Fixed 8 test assertions across 4 upstream files: combobox queries -> ghost button queries, criterion disabled -> criterion hidden
+- Added `liveSkill` store subscription to SkillRow for dynamic target changes (self -> enemy transitions)
+- `liveSkill` only used for target conditional; original `skill` prop still passed to FilterControls to avoid stale store state in unit tests
 
 #### #7 tdd-reviewer (REVIEW)
 
-- Clean run
-
-#### #8 tdd-doc-syncer (SYNC_DOCS)
-
-- Clean run
+- Clean run — APPROVED with 0 critical/important issues
+- 2 minor observations: unused .addTriggerBtn CSS class in SkillRow.module.css, visual-spec update deferred to doc-syncer
 
 ## Files Touched
 
-- `.tdd/test-designs.md` (created — 11 test designs, reviewed and expanded to 13 tests across 3 files)
-- `.tdd/session.md` (updated)
-- `src/engine/types.ts` (modified — added "enemies"/"allies" to Target, isPluralTarget, PLURAL_TARGETS)
-- `src/engine/game-movement.ts` (modified — refactored: extracted scoring to movement-scoring.ts, implemented computePluralMoveDestination, computeMultiStepPluralDestination)
-- `src/engine/movement-scoring.ts` (created — extracted scoring functions from game-movement.ts, added computePluralCandidateScore)
-- `src/engine/game-decisions.ts` (modified — added plural target branches in tryExecuteSkill and evaluateSingleSkill, added buildTargetGroup helper)
-- `src/engine/game-actions.ts` (modified — added createPluralMoveAction function)
-- `src/engine/selectors.ts` (modified — added isPluralTarget guards in evaluateTargetCriterion and hasCandidates)
-- `src/engine/game-movement-plural.test.ts` (created — 7 tests for plural movement)
-- `src/engine/selectors-target-criterion.test.ts` (modified — added 2 tests for plural target null guard)
-- `src/engine/game-decisions-move-destination-basic.test.ts` (modified — added 4 integration tests for plural target pipeline)
+- .tdd/session.md (created, updated)
+- .tdd/requirements.md (pre-existing)
+- .tdd/exploration.md (created)
+- .tdd/plan.md (created)
+- .tdd/test-designs.md (created)
+- src/components/CharacterPanel/TriggerDropdown-two-state.test.tsx (CREATED - 238 lines, 8 tests)
+- src/components/CharacterPanel/TriggerDropdown-scope-rules.test.tsx (CREATED - 256 lines, 10 tests)
+- src/components/CharacterPanel/SkillRow-target-self.test.tsx (CREATED - 187 lines, 6 tests)
+- src/components/CharacterPanel/TriggerDropdown.test.tsx (UPDATED - 392 lines, 9 tests modified)
+- src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx (UPDATED - 157 lines, 1 test rewritten)
+- src/components/CharacterPanel/SkillRow.test.tsx (UPDATED - 686 lines, 2 tests modified)
+- **src/components/CharacterPanel/TriggerDropdown.tsx** (MODIFIED - 229 lines) -- two-state model + CONDITION_SCOPE_RULES
+- **src/components/CharacterPanel/TriggerDropdown.module.css** (MODIFIED - 77 lines) -- .addConditionBtn ghost button styles
+- **src/components/CharacterPanel/SkillRow.tsx** (MODIFIED - 297 lines) -- target=self hides selector/filter, liveSkill store sub
+- src/components/CharacterPanel/CharacterPanel.test.tsx (UPDATED - 153 lines) -- combobox -> ghost button query
+- src/components/CharacterPanel/PriorityTab-config.test.tsx (UPDATED - 315 lines) -- ghost button, criterion hidden
+- src/components/CharacterPanel/PriorityTab-battle.test.tsx (UPDATED - 373 lines) -- combobox -> ghost button query
+- src/components/CharacterPanel/PriorityTab-evaluation.test.tsx (UPDATED - 99 lines) -- combobox -> ghost button query
 
 ## Browser Verification
 
-Status: N/A
+Status: HUMAN_VERIFY PASSED (manual verification)
 
 ## Human Approval
 
-Status: N/A (non-UI task)
+Status: APPROVED
 
 ## Blockers
 
@@ -137,12 +150,10 @@ Status: N/A (non-UI task)
 
 Count: 1
 
-### Review #1 (tdd-reviewer)
+### Review #1 -- APPROVED
 
-- Verdict: PASS
-- Critical: 0
-- Important: 0
-- Minor: 3 (non-blocking)
-- All 13 ACs verified
-- All quality gates pass (1495 tests, TypeScript clean, ESLint clean)
-- See `.tdd/review-findings.md` for details
+- Critical issues: 0
+- Important issues: 0
+- Minor observations: 2 (unused CSS class, visual-spec update deferred to doc-syncer)
+- All quality gates: PASS (1519 tests, TypeScript clean, ESLint clean)
+- Verdict: APPROVED -- ready for commit

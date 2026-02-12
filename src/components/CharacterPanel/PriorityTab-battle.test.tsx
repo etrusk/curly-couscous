@@ -362,8 +362,9 @@ describe("PriorityTab", () => {
       expect(screen.queryByLabelText("Skipped")).not.toBeInTheDocument();
 
       // Config controls should be present
+      // Trigger ghost button visible (Light Punch defaults to always = unconditional)
       expect(
-        screen.getByRole("combobox", { name: /trigger for light punch/i }),
+        screen.getByRole("button", { name: /add condition for light punch/i }),
       ).toBeInTheDocument();
       expect(screen.getByLabelText(/target.*light punch/i)).toBeInTheDocument();
       expect(

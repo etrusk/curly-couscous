@@ -2,6 +2,7 @@
 
 > General rules for all components. LLM agents MUST read this file before any UI/styling work.
 > Component-specific visual specs live in `.docs/visual-specs/`.
+> **Living document.** Task-specific requirements (`.tdd/requirements.md`) take precedence when they conflict.
 > Last verified: 2026-02-11
 
 ## Design Principles
@@ -285,10 +286,9 @@ border-radius: var(--radius-md);
 
 /* Battle mode compact variant */
 .skillRow.battleMode {
-  grid-template-columns: auto 1.5rem auto 7.5rem 10rem auto auto auto auto minmax(
-      0,
-      auto
-    ) 1fr auto;
+  grid-template-columns:
+    auto 1.5rem auto 7.5rem 10rem auto auto auto auto minmax(0, auto)
+    1fr auto;
   padding: 0.25rem 0.5rem;
   column-gap: 0.35rem;
   font-size: 0.85rem;

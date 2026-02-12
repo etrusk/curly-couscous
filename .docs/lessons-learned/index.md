@@ -27,6 +27,13 @@ lessons:
     category: "testing"
     summary: "vi.useFakeTimers() blocks userEvent.hover/click unless shouldAdvanceTime:true is set in vitest config"
     file: "lesson-004-faketimers-userevent-compat.md"
+
+  - id: "005"
+    title: "Tests masking bugs by manually aligning state"
+    date: "2026-02-12"
+    category: "testing"
+    summary: "Tests that manually construct state instead of simulating producer output can mask off-by-one and invariant bugs"
+    file: "lesson-005-tests-masking-bugs-with-aligned-state.md"
 ---
 
 # Lessons Learned Index
@@ -40,7 +47,7 @@ This directory captures important lessons from implementation work to prevent re
 - **Specification:** 001
 - **Implementation:** 002
 - **UI/Styling:** 003
-- **Testing:** 004
+- **Testing:** 004, 005
 
 ## Usage
 
@@ -55,7 +62,7 @@ Agents should:
 When documenting a new lesson:
 
 1. Create new file: `.docs/lessons-learned/lesson-NNN-[descriptive-slug].md`
-2. Use next sequential ID (current: 005)
+2. Use next sequential ID (current: 006)
 3. Include: Date, Context, Lesson, Impact sections
 4. Update YAML frontmatter in this index
 5. Choose appropriate category: specification, implementation, ui-styling, testing, architecture, performance, security

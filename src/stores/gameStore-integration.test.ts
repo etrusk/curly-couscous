@@ -34,17 +34,41 @@ describe("selectRecentDamageEvents", () => {
     expect(result).toEqual([]);
   });
 
-  it("filters damage events by current tick", () => {
+  it("returns empty array when tick is 0", () => {
+    const char1 = createCharacter({ id: "char1" });
+    useGameStore.getState().actions.initBattle([char1]);
+
+    // Add damage event at tick 0 while store tick is also 0
+    const damageEvent: DamageEvent = {
+      type: "damage",
+      tick: 0,
+      sourceId: "char1",
+      targetId: "char1",
+      damage: 10,
+      resultingHp: 90,
+    };
+    useGameStore.getState().actions.addEvent(damageEvent);
+
+    // Precondition: store tick is 0
+    expect(useGameStore.getState().gameState.tick).toBe(0);
+
+    const result = selectRecentDamageEvents(useGameStore.getState());
+
+    // At tick 0, no resolution has occurred, so no events should be returned
+    expect(result).toEqual([]);
+  });
+
+  it("filters damage events by just-resolved tick", () => {
     const char1 = createCharacter({ id: "char1" });
     const char2 = createCharacter({ id: "char2" });
     useGameStore.getState().actions.initBattle([char1, char2]);
 
-    // Advance to tick 1
+    // Simulate post-processTick state: store tick is 2, events stamped at 1
     useGameStore.setState((state) => {
-      state.gameState.tick = 1;
+      state.gameState.tick = 2;
     });
 
-    // Add damage event at tick 1
+    // Add damage event at tick 1 (the just-resolved tick)
     const damageEvent: DamageEvent = {
       type: "damage",
       tick: 1,
@@ -61,12 +85,12 @@ describe("selectRecentDamageEvents", () => {
     expect(result[0]).toEqual(damageEvent);
   });
 
-  it("excludes damage from previous ticks", () => {
+  it("excludes events from other ticks", () => {
     const char1 = createCharacter({ id: "char1" });
     const char2 = createCharacter({ id: "char2" });
     useGameStore.getState().actions.initBattle([char1, char2]);
 
-    // Add damage event at tick 0
+    // Add damage event at tick 0 (old, from a previous resolution)
     const oldDamageEvent: DamageEvent = {
       type: "damage",
       tick: 0,
@@ -77,12 +101,12 @@ describe("selectRecentDamageEvents", () => {
     };
     useGameStore.getState().actions.addEvent(oldDamageEvent);
 
-    // Advance to tick 1
+    // Simulate post-processTick state: store tick is 2
     useGameStore.setState((state) => {
-      state.gameState.tick = 1;
+      state.gameState.tick = 2;
     });
 
-    // Add damage event at tick 1
+    // Add damage event at tick 1 (the just-resolved tick)
     const currentDamageEvent: DamageEvent = {
       type: "damage",
       tick: 1,
@@ -93,16 +117,34 @@ describe("selectRecentDamageEvents", () => {
     };
     useGameStore.getState().actions.addEvent(currentDamageEvent);
 
+    // Add damage event at tick 2 (current store tick -- not yet resolved;
+    // regression guard against old e.tick === tick bug)
+    const futureDamageEvent: DamageEvent = {
+      type: "damage",
+      tick: 2,
+      sourceId: "char1",
+      targetId: "char2",
+      damage: 5,
+      resultingHp: 85,
+    };
+    useGameStore.getState().actions.addEvent(futureDamageEvent);
+
     const result = selectRecentDamageEvents(useGameStore.getState());
 
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual(currentDamageEvent);
     expect(result[0]!.tick).toBe(1);
+    expect(result).not.toContainEqual(oldDamageEvent);
+    expect(result).not.toContainEqual(futureDamageEvent);
   });
 
   it("excludes non-damage events", () => {
     const char1 = createCharacter({ id: "char1" });
     useGameStore.getState().actions.initBattle([char1]);
+
+    // Simulate post-processTick state: store tick is 1, events at tick 0
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     // Add various event types at tick 0
     const movementEvent: GameEvent = {
@@ -516,16 +558,16 @@ describe("selectRecentWhiffEvents", () => {
     useGameStore.getState().actions.reset();
   });
 
-  it("returns whiff events for current tick", () => {
+  it("returns whiff events for just-resolved tick", () => {
     const char1 = createCharacter({ id: "char1" });
     useGameStore.getState().actions.initBattle([char1]);
 
-    // Set tick to 1
+    // Simulate post-processTick state: store tick is 2, events stamped at 1
     useGameStore.setState((state) => {
-      state.gameState.tick = 1;
+      state.gameState.tick = 2;
     });
 
-    // Add a whiff event at tick 1
+    // Add a whiff event at tick 1 (the just-resolved tick)
     const whiffEvent = {
       type: "whiff" as const,
       tick: 1,
@@ -545,7 +587,7 @@ describe("selectRecentWhiffEvents", () => {
     const char1 = createCharacter({ id: "char1" });
     useGameStore.getState().actions.initBattle([char1]);
 
-    // Add whiff event at tick 0
+    // Add whiff event at tick 0 (old event)
     useGameStore.getState().actions.addEvent({
       type: "whiff" as const,
       tick: 0,
@@ -554,12 +596,12 @@ describe("selectRecentWhiffEvents", () => {
       targetCell: { q: 1, r: 0 },
     });
 
-    // Advance to tick 1
+    // Simulate post-processTick state: store tick is 2
     useGameStore.setState((state) => {
-      state.gameState.tick = 1;
+      state.gameState.tick = 2;
     });
 
-    // Add whiff event at tick 1
+    // Add whiff event at tick 1 (the just-resolved tick)
     useGameStore.getState().actions.addEvent({
       type: "whiff" as const,
       tick: 1,
@@ -568,10 +610,21 @@ describe("selectRecentWhiffEvents", () => {
       targetCell: { q: 2, r: 0 },
     });
 
+    // Add whiff event at tick 2 (current store tick -- not yet resolved;
+    // regression guard against old e.tick === tick bug)
+    useGameStore.getState().actions.addEvent({
+      type: "whiff" as const,
+      tick: 2,
+      sourceId: "char1",
+      actionType: "attack" as const,
+      targetCell: { q: 3, r: 0 },
+    });
+
     const result = selectRecentWhiffEvents(useGameStore.getState());
 
     expect(result).toHaveLength(1);
     expect(result[0]!.tick).toBe(1);
+    expect(result.some((e) => e.tick === 2)).toBe(false);
   });
 
   it("returns empty array when no whiff events exist", () => {
@@ -580,6 +633,28 @@ describe("selectRecentWhiffEvents", () => {
 
     const result = selectRecentWhiffEvents(useGameStore.getState());
 
+    expect(result).toEqual([]);
+  });
+
+  it("returns empty array when tick is 0", () => {
+    const char1 = createCharacter({ id: "char1" });
+    useGameStore.getState().actions.initBattle([char1]);
+
+    // Add whiff event at tick 0 while store tick is also 0
+    useGameStore.getState().actions.addEvent({
+      type: "whiff" as const,
+      tick: 0,
+      sourceId: "char1",
+      actionType: "attack" as const,
+      targetCell: { q: 1, r: 0 },
+    });
+
+    // Precondition: store tick is 0
+    expect(useGameStore.getState().gameState.tick).toBe(0);
+
+    const result = selectRecentWhiffEvents(useGameStore.getState());
+
+    // At tick 0, no resolution has occurred, so no events should be returned
     expect(result).toEqual([]);
   });
 });

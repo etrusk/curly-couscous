@@ -354,6 +354,8 @@ Battle progresses in discrete ticks. Tick 0 is initial state.
 
 **Important:** Characters cannot react to same-tick enemy decisions. All decisions are made against game state at tick start.
 
+**Tick offset invariant:** After `processTick` resolves tick N, `state.tick` is incremented to N+1. Events emitted during resolution are stamped with tick N. UI selectors that display "just-resolved" events (e.g., `selectRecentDamageEvents`, `selectRecentWhiffEvents`) must filter `e.tick === state.tick - 1`. At `state.tick === 0` (initial state, no resolution yet), these selectors return empty arrays.
+
 ### Grid System
 
 Hexagonal grid using axial coordinates {q, r} with pointy-top hex orientation creating flat-top board shape (ADR-007).

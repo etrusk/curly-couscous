@@ -51,6 +51,11 @@ describe("DamageOverlay", () => {
     const char2 = createCharacter("char2", "enemy", { q: 3, r: 1 });
     useGameStore.getState().actions.initBattle([char1, char2]);
 
+    // Simulate post-processTick state: tick is ahead of event timestamps
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
+
     // Add damage event
     const damageEvent: DamageEvent = {
       type: "damage",
@@ -79,6 +84,11 @@ describe("DamageOverlay", () => {
     const char2 = createCharacter("char2", "enemy", { q: 1, r: 0 });
     useGameStore.getState().actions.initBattle([char1, char2]);
 
+    // Simulate post-processTick state: tick is ahead of event timestamps
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
+
     // Add damage event
     const damageEvent: DamageEvent = {
       type: "damage",
@@ -101,6 +111,11 @@ describe("DamageOverlay", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     const char2 = createCharacter("char2", "enemy", { q: 1, r: 0 });
     useGameStore.getState().actions.initBattle([char1, char2]);
+
+    // Simulate post-processTick state: tick is ahead of event timestamps
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     // Friendly attacks enemy
     const damageEvent: DamageEvent = {
@@ -125,6 +140,11 @@ describe("DamageOverlay", () => {
     const char2 = createCharacter("char2", "friendly", { q: 1, r: 0 });
     useGameStore.getState().actions.initBattle([char1, char2]);
 
+    // Simulate post-processTick state: tick is ahead of event timestamps
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
+
     // Enemy attacks friendly
     const damageEvent: DamageEvent = {
       type: "damage",
@@ -148,6 +168,11 @@ describe("DamageOverlay", () => {
     const char2 = createCharacter("char2", "friendly", { q: 1, r: 0 });
     const char3 = createCharacter("char3", "enemy", { q: 3, r: 1 });
     useGameStore.getState().actions.initBattle([char1, char2, char3]);
+
+    // Simulate post-processTick state: tick is ahead of event timestamps
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     // Both friendlies attack same enemy
     const damage1: DamageEvent = {
@@ -212,6 +237,11 @@ describe("DamageOverlay", () => {
     const char2 = createCharacter("char2", "enemy", { q: 1, r: 0 });
     useGameStore.getState().actions.initBattle([char1, char2]);
 
+    // Simulate post-processTick state: tick is ahead of event timestamps
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
+
     const damageEvent: DamageEvent = {
       type: "damage",
       tick: 0,
@@ -232,6 +262,11 @@ describe("DamageOverlay", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     const char2 = createCharacter("char2", "enemy", { q: 1, r: 0 });
     useGameStore.getState().actions.initBattle([char1, char2]);
+
+    // Simulate post-processTick state: tick is ahead of event timestamps
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     const damageEvent: DamageEvent = {
       type: "damage",

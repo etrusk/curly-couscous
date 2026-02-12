@@ -52,6 +52,11 @@ describe("WhiffOverlay", () => {
     const char2 = createCharacter("char2", "enemy", { q: 3, r: 0 });
     useGameStore.getState().actions.initBattle([char1, char2]);
 
+    // Simulate post-processTick state: tick is ahead of event timestamps
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
+
     // Add whiff event at tick 0
     useGameStore.getState().actions.addEvent({
       type: "whiff" as const,
@@ -72,6 +77,11 @@ describe("WhiffOverlay", () => {
   it("attack whiff fill uses color-mix with action-attack color", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     useGameStore.getState().actions.initBattle([char1]);
+
+    // Simulate post-processTick state: tick is ahead of event timestamps
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     useGameStore.getState().actions.addEvent({
       type: "whiff" as const,
@@ -95,6 +105,11 @@ describe("WhiffOverlay", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     useGameStore.getState().actions.initBattle([char1]);
 
+    // Simulate post-processTick state: tick is ahead of event timestamps
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
+
     useGameStore.getState().actions.addEvent({
       type: "whiff" as const,
       tick: 0,
@@ -116,6 +131,11 @@ describe("WhiffOverlay", () => {
   it("whiff polygons have no opacity attribute", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     useGameStore.getState().actions.initBattle([char1]);
+
+    // Simulate post-processTick state: tick is ahead of event timestamps
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     useGameStore.getState().actions.addEvent({
       type: "whiff" as const,

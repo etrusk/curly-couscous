@@ -43,6 +43,11 @@ describe("useWhiffIndicators", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     useGameStore.getState().actions.initBattle([char1]);
 
+    // Simulate post-processTick state: store tick is 1, events at tick 0
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
+
     // Add whiff event at tick 0
     useGameStore.getState().actions.addEvent({
       type: "whiff" as const,
@@ -64,6 +69,11 @@ describe("useWhiffIndicators", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     const char2 = createCharacter("char2", "friendly", { q: 1, r: 0 });
     useGameStore.getState().actions.initBattle([char1, char2]);
+
+    // Simulate post-processTick state: store tick is 1, events at tick 0
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     // Two whiff events on same cell, different action types
     useGameStore.getState().actions.addEvent({
@@ -91,6 +101,11 @@ describe("useWhiffIndicators", () => {
   it("handles multiple cells independently", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     useGameStore.getState().actions.initBattle([char1]);
+
+    // Simulate post-processTick state: store tick is 1, events at tick 0
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     // Whiff events on different cells
     useGameStore.getState().actions.addEvent({

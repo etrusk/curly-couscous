@@ -2,145 +2,117 @@
 
 ## Task
 
-Two-State Trigger Model: Replace the current "always-present scope + condition" trigger UI with a two-state model where triggers are either absent (unconditional) or present (conditional). Remove "Always" as a dropdown option. Condition-scoped scope dropdown. Hide selector/filter when target=self.
+Fix off-by-one in whiff/damage event selectors — `selectRecentWhiffEvents` and `selectRecentDamageEvents` filter `e.tick === tick` but after `processTick` the store's tick is already incremented, so selectors never match.
 
 ## Confirmed Scope
 
-UI-only changes to TriggerDropdown.tsx (two-state model + condition-scoped scopes), SkillRow.tsx (conditional rendering of selector/filter for target=self), new CONDITION_SCOPE_RULES constant. No engine, type, or store action changes. Visual spec update.
+Fix both selectors in `gameStore-selectors.ts` to filter `e.tick === tick - 1`. Add comments explaining rationale. Update integration tests to use realistic post-`processTick` state. Check `useWhiffIndicators.test.ts` and `useDamageNumbers.test.ts` for manually aligned tick values.
 
 ## Acceptance Criteria
 
-- [x] Skills default to no trigger (unconditional). No trigger dropdowns render -- only a `+ Condition` ghost button in the trigger area
-- [x] Clicking `+ Condition` activates the trigger: condition dropdown appears with a sensible default (e.g., `in_range`), scope dropdown appears if the condition requires one, and a `x` remove button appears
-- [x] Clicking `x` removes the trigger entirely, returning to the unconditional `+ Condition` state. Negated flag resets to false
-- [x] "Always" is NOT an option in the condition dropdown. The 7 remaining conditions are: `in_range`, `hp_below`, `hp_above`, `channeling`, `idle`, `targeting_me`, `targeting_ally`
-- [x] The store representation: a skill with no trigger has `trigger: { scope: "enemy", condition: "always" }` (unchanged wire format). The UI interprets `condition: "always"` as "no trigger" and renders the `+ Condition` button
-- [x] Adding a condition via `+ Condition` sets the trigger to a non-always condition in the store. Removing via `x` sets it back to `{ scope: "enemy", condition: "always" }`
-- [x] Each condition defines which scopes are valid and whether the scope dropdown is shown at all (per CONDITION_SCOPE_RULES table)
-- [x] When the condition changes, if the current scope is not in the new condition's valid scopes, reset scope to the first valid scope for that condition
-- [x] When scope dropdown is hidden (implied scope), the store still holds the correct scope value
-- [ ] AND trigger follows the same condition-scoped scope rules (deferred -- no data model support)
-- [x] NOT toggle still works: appears when trigger is active, toggles `negated` flag
-- [x] Value input still appears for `in_range`, `hp_below`, `hp_above`
-- [x] Qualifier select still appears for `channeling` condition
-- [x] Trigger evaluation engine is UNCHANGED
-- [x] Skills loaded from existing state with `condition: "always"` render as unconditional
-- [x] Filter controls and filter behavior are UNCHANGED
-- [x] When target is set to `self`, the SELECTOR dropdown and its fieldGroup are hidden
-- [x] When target is set to `self`, the FILTER section is hidden entirely
-- [x] When target changes FROM `self` to `enemy`/`ally`, selector and filter controls reappear with prior configuration
-- [x] Skills from the registry with `defaultTrigger` (non-always) render with trigger active on assignment
-- [x] Skills with no `defaultTrigger` or `{ condition: "always" }` render with `+ Condition` button
-- [x] Manually removing a default trigger (clicking `x`) works
+- [ ] `selectRecentWhiffEvents` returns whiff events from the just-resolved tick (filters `e.tick === tick - 1`)
+- [ ] `selectRecentDamageEvents` returns damage events from the just-resolved tick (filters `e.tick === tick - 1`)
+- [ ] Both selectors return empty arrays when `tick === 0` (no resolved tick yet)
+- [ ] Integration tests use realistic post-`processTick` state (tick is one ahead of event timestamps), not manually aligned tick+event combinations that mask the bug
+- [ ] Each selector has a brief comment explaining the `tick - 1` rationale to prevent future "fix-back"
 
 ## Current Phase
 
-EXPLORE (COMPLETE) -> PLAN (COMPLETE) -> DESIGN_TESTS (COMPLETE) -> TEST_DESIGN_REVIEW (COMPLETE) -> WRITE_TESTS (COMPLETE) -> IMPLEMENT (COMPLETE) -> REVIEW (COMPLETE) -> SYNC_DOCS (COMPLETE)
+COMMIT (ready for commit)
 
 ## Phase History
 
-- 2026-02-12T00:00 INIT -> EXPLORE
-- 2026-02-12 EXPLORE COMPLETE. Findings in .tdd/exploration.md.
-- 2026-02-12 PLAN COMPLETE. Plan in .tdd/plan.md.
-- 2026-02-12 DESIGN_TESTS COMPLETE. Test designs in .tdd/test-designs.md. 14 TriggerDropdown tests + 6 SkillRow tests + 12 existing test update docs.
-- 2026-02-12 TEST_DESIGN_REVIEW COMPLETE. Added 3 new tests, 1 missing breaking test entry, minor corrections. Approved.
-- 2026-02-12 WRITE_TESTS COMPLETE. 3 new test files created (17+10+6=33 new tests), 4 existing test files updated (12 tests modified). 25 tests failing (RED), 1494 passing. TypeScript and ESLint clean.
-- 2026-02-12 IMPLEMENT COMPLETE. 3 source files modified, 4 additional upstream test files fixed (plan gap). All 1519 tests passing, TypeScript clean, ESLint clean.
+- 2026-02-12 INIT → EXPLORE
+- 2026-02-12 EXPLORE → PLAN [6 exchanges, ~28K tokens]
+- 2026-02-12 PLAN → DESIGN_TESTS [4 exchanges, ~32K tokens]
+- 2026-02-12 DESIGN_TESTS → TEST_DESIGN_REVIEW [3 exchanges, ~40K tokens]
+- 2026-02-12 TEST_DESIGN_REVIEW → IMPLEMENT_TESTS [4 exchanges, ~18K tokens]
+- 2026-02-12 WRITE_TESTS complete [5 exchanges, ~45K tokens] -- 16 tests fail (red), 4 baselines pass
+- 2026-02-12 IMPLEMENT complete [8 exchanges, ~40K tokens] -- all 1521 tests pass (green), all quality gates pass
+- 2026-02-12 REVIEW → SYNC_DOCS [4 exchanges, ~25K tokens] -- PASS, no issues
+- 2026-02-12 SYNC_DOCS → COMMIT [4 exchanges, ~18K tokens]
 
 ## Context Metrics
 
-Orchestrator: ~15K/300K (~5%)
-Cumulative agent tokens: ~309K
+Orchestrator: ~32K/300K (11%)
+Cumulative agent tokens: ~246K
 Agent invocations: 8
-Compactions: 0
 
 ### Agent History
 
-| #   | Agent             | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                                                |
-| --- | ----------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| 1   | tdd-explorer      | EXPLORE            | 6         | ~27K   | 35    | ~3min    | COMPLETE | Ghost button CSS exists unused; AND trigger deferred; 6-8 tests will break                           |
-| 2   | tdd-planner       | PLAN               | 7         | ~38K   | 20    | ~4min    | COMPLETE | 9 breaking tests identified across 3 files; 2 new test files planned; CONDITION_SCOPE_RULES designed |
-| 3   | tdd-test-designer | DESIGN_TESTS       | 5         | ~35K   | 16    | ~3.5min  | COMPLETE | 14+6 tests designed, 12 existing test updates documented, all 20 AC covered                          |
-| 4   | tdd-reviewer      | TEST_DESIGN_REVIEW | 5         | ~18K   | 18    | ~3min    | COMPLETE | +3 tests, +1 breaking test entry, approved                                                           |
-| 5   | tdd-coder         | WRITE_TESTS        | 12        | ~45K   | 30    | ~5min    | COMPLETE | 3 new test files, 4 updated test files, 25 failing/1494 passing                                      |
-| 6   | tdd-coder         | IMPLEMENT          | 14        | ~100K  | 35    | ~8min    | COMPLETE | 3 source files, 4 upstream test fixes; all 1519 tests green                                          |
-| 7   | tdd-reviewer      | REVIEW             | 7         | ~28K   | 25    | ~2.5min  | COMPLETE | APPROVED, 0 critical issues, 21/22 AC met (1 deferred)                                               |
-| 8   | tdd-doc-syncer    | SYNC_DOCS          | 4         | ~18K   | 16    | ~2.5min  | COMPLETE | Updated visual-specs, spec.md, current-task.md, architecture.md                                      |
+| #   | Agent             | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                 |
+| --- | ----------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | --------------------------------------------------------------------- |
+| 1   | tdd-explorer      | EXPLORE            | 6         | ~28K   | 24    | 133s     | COMPLETE | Discovered useDamageNumbers.test.ts also affected                     |
+| 2   | tdd-planner       | PLAN               | 4         | ~32K   | 12    | 95s      | COMPLETE | Confirmed scope expansion for useDamageNumbers.test.ts                |
+| 3   | tdd-test-designer | DESIGN_TESTS       | 3         | ~40K   | 11    | -        | COMPLETE | 16 tests designed (14 updated, 2 new) across 4 files                  |
+| 4   | tdd-test-reviewer | TEST_DESIGN_REVIEW | 4         | ~18K   | 10    | -        | COMPLETE | Strengthened 2 exclusion tests with future-tick regression guard      |
+| 5   | tdd-coder         | WRITE_TESTS        | 5         | ~45K   | 22    | -        | COMPLETE | 16 tests fail (red), 4 baselines pass, 3 files modified               |
+| 6   | tdd-coder         | IMPLEMENT          | 8         | ~40K   | 26    | 292s     | COMPLETE | All 1521 pass, found 2 extra test files (DamageOverlay, WhiffOverlay) |
+| 7   | tdd-reviewer      | REVIEW             | 4         | ~25K   | 16    | 99s      | COMPLETE | PASS — all 5 AC met, no issues                                        |
+| 8   | tdd-doc-syncer    | SYNC_DOCS          | 4         | ~18K   | 16    | 137s     | COMPLETE | Updated spec.md, current-task.md, added lesson-005                    |
 
 ### Action Log
 
 #### #1 tdd-explorer (EXPLORE)
 
-- Ghost button CSS (.addTriggerBtn) already exists in SkillRow.module.css but is unused in TSX
-- AND trigger deferred -- no data model support (Skill.trigger is single Trigger field)
-- 6-8 existing TriggerDropdown tests will break due to always->ghost button change
-- FilterControls.tsx is direct pattern reference for two-state model
-- Selector currently only disabled for target=self, not hidden -- new implementation needed
+- Discovered useDamageNumbers.test.ts (7 tests) is also affected but not in requirements scope
+- All existing tests mask the bug by manually aligning tick values instead of using processTick
 
 #### #2 tdd-planner (PLAN)
 
-- Identified exactly 12 breaking tests across 3 test files
-- CONDITION_SCOPE_RULES designed with 7 entries covering all non-always conditions
-- Ghost button CSS needs own .addConditionBtn in TriggerDropdown.module.css (CSS module isolation)
-- SkillRow.test.tsx already at 686 lines -- new target=self tests go in separate file
+- Confirmed useDamageNumbers.test.ts must be added to scope (6 tests will break without update)
+- All test changes are mechanical: set store tick to event tick + 1
 
 #### #3 tdd-test-designer (DESIGN_TESTS)
 
-- Clean run
+- Designed 16 tests across 4 files: 14 updated, 2 new (tick === 0 guard tests)
+- All test updates follow same pattern: set store tick = event tick + 1 after initBattle
+- 4 tests unchanged (empty-events baselines that pass regardless of tick logic)
 
-#### #4 tdd-reviewer (TEST_DESIGN_REVIEW)
+#### #4 tdd-test-reviewer (TEST_DESIGN_REVIEW)
 
-- Added `idle` scope test (was the only showScope:true condition without a dedicated test)
-- Added condition-change-to-implied-scope test (plan item 12 missing from designs)
-- Added scope-preservation-when-valid test (plan item 13 missing from designs)
-- Found missing breaking test: "hides remove button when onRemove not provided" will break because primary trigger now has `x` remove button
-- All other test designs verified correct against codebase patterns and requirements
+- Strengthened both "excludes events from other ticks" tests (damage + whiff) by adding an event at the current store tick (tick 2) to verify the old `e.tick === tick` bug would have matched it but the fix correctly excludes it
+- All other test designs confirmed sound: coverage, edge cases, spec alignment, no redundancy
+- No other gaps found
 
 #### #5 tdd-coder (WRITE_TESTS)
 
-- Split TriggerDropdown-two-state.test.tsx into two files (two-state 238 lines + scope-rules 256 lines) to stay under 400-line limit
-- 4 new tests already pass against current implementation (hp_below scope, scope preservation, value input visibility, default trigger rendering)
+- Clean run
 
 #### #6 tdd-coder (IMPLEMENT)
 
-- Plan gap: 4 upstream test files broke that were not identified in the plan (CharacterPanel.test.tsx, PriorityTab-config.test.tsx, PriorityTab-battle.test.tsx, PriorityTab-evaluation.test.tsx)
-- Fixed 8 test assertions across 4 upstream files: combobox queries -> ghost button queries, criterion disabled -> criterion hidden
-- Added `liveSkill` store subscription to SkillRow for dynamic target changes (self -> enemy transitions)
-- `liveSkill` only used for target conditional; original `skill` prop still passed to FilterControls to avoid stale store state in unit tests
+- DamageOverlay.test.tsx (7 tests) and WhiffOverlay.test.tsx (4 tests) were missed by the plan/explorer phase but also had the same bug-masking tick alignment pattern. Fixed with the same mechanical change.
+- gameStore-selectors.ts is at 492 lines (exceeds 400-line limit) — pre-existing, logged as unrelated issue to current-task.md
 
 #### #7 tdd-reviewer (REVIEW)
 
-- Clean run — APPROVED with 0 critical/important issues
-- 2 minor observations: unused .addTriggerBtn CSS class in SkillRow.module.css, visual-spec update deferred to doc-syncer
+- Clean run — PASS verdict, all acceptance criteria met
+
+#### #8 tdd-doc-syncer (SYNC_DOCS)
+
+- Added tick offset invariant to spec.md
+- Created lesson-005 about tests masking bugs with manually aligned state
+- Updated current-task.md with completion entry
 
 ## Files Touched
 
-- .tdd/session.md (created, updated)
-- .tdd/requirements.md (pre-existing)
-- .tdd/exploration.md (created)
-- .tdd/plan.md (created)
-- .tdd/test-designs.md (created)
-- src/components/CharacterPanel/TriggerDropdown-two-state.test.tsx (CREATED - 238 lines, 8 tests)
-- src/components/CharacterPanel/TriggerDropdown-scope-rules.test.tsx (CREATED - 256 lines, 10 tests)
-- src/components/CharacterPanel/SkillRow-target-self.test.tsx (CREATED - 187 lines, 6 tests)
-- src/components/CharacterPanel/TriggerDropdown.test.tsx (UPDATED - 392 lines, 9 tests modified)
-- src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx (UPDATED - 157 lines, 1 test rewritten)
-- src/components/CharacterPanel/SkillRow.test.tsx (UPDATED - 686 lines, 2 tests modified)
-- **src/components/CharacterPanel/TriggerDropdown.tsx** (MODIFIED - 229 lines) -- two-state model + CONDITION_SCOPE_RULES
-- **src/components/CharacterPanel/TriggerDropdown.module.css** (MODIFIED - 77 lines) -- .addConditionBtn ghost button styles
-- **src/components/CharacterPanel/SkillRow.tsx** (MODIFIED - 297 lines) -- target=self hides selector/filter, liveSkill store sub
-- src/components/CharacterPanel/CharacterPanel.test.tsx (UPDATED - 153 lines) -- combobox -> ghost button query
-- src/components/CharacterPanel/PriorityTab-config.test.tsx (UPDATED - 315 lines) -- ghost button, criterion hidden
-- src/components/CharacterPanel/PriorityTab-battle.test.tsx (UPDATED - 373 lines) -- combobox -> ghost button query
-- src/components/CharacterPanel/PriorityTab-evaluation.test.tsx (UPDATED - 99 lines) -- combobox -> ghost button query
+- `.tdd/exploration.md` (created)
+- `.tdd/plan.md` (created)
+- `.tdd/test-designs.md` (created)
+- `src/stores/gameStore-integration.test.ts` (updated: 4 tests modified, 2 new tests added)
+- `src/components/BattleViewer/hooks/useWhiffIndicators.test.ts` (updated: 3 tests modified)
+- `src/components/BattleViewer/hooks/useDamageNumbers.test.ts` (updated: 6 tests modified)
+- `src/stores/gameStore-selectors.ts` (bug fix: both selectors updated with tick-1 filter + tick===0 guard + JSDoc)
+- `src/components/BattleViewer/DamageOverlay.test.tsx` (updated: 7 tests fixed for tick alignment -- missed by plan)
+- `src/components/BattleViewer/WhiffOverlay.test.tsx` (updated: 4 tests fixed for tick alignment -- missed by plan)
 
 ## Browser Verification
 
-Status: HUMAN_VERIFY PASSED (manual verification)
+Status: N/A (non-UI bug fix)
 
 ## Human Approval
 
-Status: APPROVED
+Status: N/A (non-UI task)
 
 ## Blockers
 
@@ -150,10 +122,6 @@ Status: APPROVED
 
 Count: 1
 
-### Review #1 -- APPROVED
+### Review #1 (2026-02-12)
 
-- Critical issues: 0
-- Important issues: 0
-- Minor observations: 2 (unused CSS class, visual-spec update deferred to doc-syncer)
-- All quality gates: PASS (1519 tests, TypeScript clean, ESLint clean)
-- Verdict: APPROVED -- ready for commit
+**Verdict**: PASS -- no issues found. All 5 acceptance criteria met. All quality gates pass (1521 tests, ESLint clean, TypeScript clean). Ready for commit.

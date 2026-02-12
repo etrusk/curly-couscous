@@ -256,25 +256,31 @@ export const selectIntentData = (state: GameStore): IntentData[] => {
 };
 
 /**
- * Select damage events from current tick only.
+ * Select damage events from the just-resolved tick.
+ * After `processTick`, `state.tick` represents the *next* tick to process,
+ * so events from the just-resolved tick are stamped at `tick - 1`.
  * Simple filter - no grouping or enrichment.
  * Used by useDamageNumbers hook for damage display.
  */
 export const selectRecentDamageEvents = (state: GameStore): DamageEvent[] => {
   const { history, tick } = state.gameState;
+  if (tick === 0) return [];
   return history.filter(
-    (e): e is DamageEvent => e.type === "damage" && e.tick === tick,
+    (e): e is DamageEvent => e.type === "damage" && e.tick === tick - 1,
   );
 };
 
 /**
- * Select whiff events from current tick only.
+ * Select whiff events from the just-resolved tick.
+ * After `processTick`, `state.tick` represents the *next* tick to process,
+ * so events from the just-resolved tick are stamped at `tick - 1`.
  * Used by useWhiffIndicators hook for whiff display.
  */
 export const selectRecentWhiffEvents = (state: GameStore): WhiffEvent[] => {
   const { history, tick } = state.gameState;
+  if (tick === 0) return [];
   return history.filter(
-    (e): e is WhiffEvent => e.type === "whiff" && e.tick === tick,
+    (e): e is WhiffEvent => e.type === "whiff" && e.tick === tick - 1,
   );
 };
 

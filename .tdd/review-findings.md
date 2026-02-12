@@ -1,65 +1,47 @@
-# Review Findings: Two-State Trigger Model
+# Review Findings: Fix off-by-one in whiff/damage event selectors
 
-Date: 2026-02-12
+**Reviewer**: tdd-reviewer | **Date**: 2026-02-12 | **Verdict**: PASS
+
+## Source Fix (gameStore-selectors.ts, lines 258-285)
+
+Both selectors correctly implement:
+
+- `tick === 0` early guard returning `[]`
+- Filter `e.tick === tick - 1` (was `e.tick === tick`)
+- JSDoc comment explaining the tick-1 rationale
+
+No remaining instances of the old `e.tick === tick` pattern in the codebase (verified via grep).
+
+## Test Quality
+
+All 5 test files use realistic post-processTick tick alignment (store tick = event tick + 1):
+
+- **gameStore-integration.test.ts**: Uses `setState` to set tick to 2, events at tick 1. Includes tick-0 guard tests and future-tick regression guards.
+- **useWhiffIndicators.test.ts**: Sets tick to 1 via `setState`, events at tick 0.
+- **useDamageNumbers.test.ts**: Same pattern, 6 tests updated.
+- **DamageOverlay.test.tsx**: 7 tests with consistent "Simulate post-processTick state" comments.
+- **WhiffOverlay.test.tsx**: 4 tests with same pattern.
+
+The "excludes events from other ticks" tests (both damage and whiff) include a future-tick event at `tick === 2` to guard against the old `e.tick === tick` bug regressing.
+
+## Acceptance Criteria
+
+1. `selectRecentWhiffEvents` filters `e.tick === tick - 1` -- PASS
+2. `selectRecentDamageEvents` filters `e.tick === tick - 1` -- PASS
+3. Both return `[]` when `tick === 0` -- PASS
+4. Tests use realistic post-processTick alignment -- PASS
+5. Explanatory JSDoc comments present -- PASS
 
 ## Quality Gates
 
-- Tests: 1519 passing, 0 failing, 0 skipped -- PASS
-- TypeScript: PASS (no errors)
-- ESLint: PASS (no warnings)
+- Tests: 1521 passed, 0 failed, 0 skipped -- PASS
+- ESLint: clean -- PASS
+- TypeScript: clean -- PASS
 
-## Checklist
+## Pre-existing Issue (not blocking)
 
-### 1. Spec Compliance -- PASS
+MINOR: `gameStore-selectors.ts` is 492 lines (exceeds 400-line limit). Already logged by the coder as a pre-existing issue.
 
-21 of 22 acceptance criteria met. 1 deferred (AND trigger -- no data model support, correctly marked deferred in session.md and requirements.md assumptions). All core two-state behaviors, condition-scoped scope rules, target=self hiding, and default trigger rendering implemented as specified.
+## Issues Found
 
-### 2. Pattern Compliance -- PASS
-
-- CSS modules used for all new styles (`.addConditionBtn` in `TriggerDropdown.module.css`)
-- Native `<select>` elements only, no custom dropdowns
-- Ghost button follows documented pattern: `dashed border`, `transparent bg`, `--text-secondary` color, `--surface-hover` on hover
-- Compact spacing: `0.15rem 0.5rem` padding, `0.75rem` font on ghost button
-- `aria-label` on all new interactive elements: ghost button, remove button, scope select
-
-### 3. Code Quality -- PASS
-
-Clean implementation. `CONDITION_SCOPE_RULES` constant is well-typed with `Record<Exclude<ConditionType, "always">, ConditionScopeRule>`. Two-branch render is easy to follow. `handleConditionChange` correctly handles implied scope, invalid scope reset, and scope preservation. No unnecessary abstractions.
-
-### 4. File Size -- PASS
-
-All files under 400 lines: TriggerDropdown.tsx (229), TriggerDropdown.module.css (77), SkillRow.tsx (297). Test files: 238, 256, 187 -- all under 400.
-
-### 5. Scope Boundaries -- PASS
-
-No modifications to `triggers.ts`, `types.ts`, `game-decisions.ts`, or `FilterControls.tsx`. Only `TriggerDropdown.tsx`, `TriggerDropdown.module.css`, and `SkillRow.tsx` source files modified.
-
-### 6. Test Coverage -- PASS
-
-33 new tests across 3 files covering: ghost button rendering, activation, removal, negation reset, NOT toggle visibility, default trigger rendering, per-condition scope options (5 conditions tested), scope reset on invalid, implied scope, scope preservation, value input visibility, target=self hiding (selector + filter), dynamic target changes (both directions), filter config round-trip preservation. 12 existing tests updated across 4 files.
-
-### 7. Accessibility -- PASS
-
-`aria-label` on ghost button (`Add condition for {name}`), remove button (`Remove condition for {name}`), scope select (`Trigger scope for {name}`). `aria-pressed` on NOT toggle. AND trigger remove button retains distinct label (`Remove second trigger for {name}`).
-
-### 8. CSS Variables / Theme -- PASS
-
-All new CSS uses theme tokens: `--border`, `--text-secondary`, `--text-primary`, `--surface-hover`. No hardcoded colors. These tokens work across all three themes via `light-dark()` and high-contrast overrides.
-
-### 9. Security -- PASS
-
-No injection risks. Condition values cast via `as` from `<select>` options (all options are hardcoded string literals). Number input parsed with `parseInt` and `NaN` guard.
-
-### 10. Store Subscription -- PASS
-
-`liveSkill` selector uses `.find()` returning an existing Immer object reference (not a new object), so Zustand's default `Object.is` equality works correctly. Only `liveSkill.target` is read for conditional rendering. Original `skill` prop still used for FilterControls and other fields, avoiding stale state in tests without store initialization.
-
-## Non-Blocking Observations
-
-MINOR: `.addTriggerBtn` in `SkillRow.module.css` (lines 155-168) is now unused CSS. Acceptable per plan -- reserved for future AND trigger `+ AND` button.
-
-MINOR: `visual-specs/skill-row.md` not yet updated to reflect the two-state trigger model. This belongs in the doc-syncer phase per project workflow.
-
-## Verdict
-
-**APPROVED** -- No critical or important issues found. All quality gates pass. Implementation matches spec, plan, and project patterns.
+None.

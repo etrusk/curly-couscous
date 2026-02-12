@@ -49,6 +49,7 @@ When a task involves removing, renaming, or changing the interface of a componen
 - Use Grep to find ALL references to the affected identifier across the codebase (e.g., `grep 'mode=' --type ts` for a prop removal)
 - Do NOT rely on manually browsing known files — unknown consumers will be missed
 - List every file that references the affected interface under "Relevant Files", even if no logic change is needed (test files with render calls count)
+- **Transitive test impact**: When a component's rendered output changes (e.g., dropdown becomes a button), also search for test files of PARENT components that render the changed component. These tests often assert on child component output (e.g., querying for a combobox that no longer exists). Use Grep to find test files importing or rendering the parent component (e.g., `grep '<SkillRow' --glob '*.test.*'`)
 
 ## Output
 

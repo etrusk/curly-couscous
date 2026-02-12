@@ -46,6 +46,11 @@ describe("useDamageNumbers", () => {
     const char2 = createCharacter("char2", "enemy", { q: 1, r: 4 });
     useGameStore.getState().actions.initBattle([char1, char2]);
 
+    // Simulate post-processTick state: store tick is 1, events at tick 0
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
+
     // Add damage event at tick 0
     const damageEvent: DamageEvent = {
       type: "damage",
@@ -67,6 +72,11 @@ describe("useDamageNumbers", () => {
     const char1 = createCharacter("char1", "friendly", { q: 0, r: 0 });
     const char2 = createCharacter("char2", "enemy", { q: 1, r: 1 });
     useGameStore.getState().actions.initBattle([char1, char2]);
+
+    // Simulate post-processTick state: store tick is 1, events at tick 0
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     // Add damage event at tick 0
     const damageEvent: DamageEvent = {
@@ -91,6 +101,11 @@ describe("useDamageNumbers", () => {
     const char2 = createCharacter("char2", "friendly", { q: 1, r: 0 });
     const char3 = createCharacter("char3", "enemy", { q: 2, r: 3 });
     useGameStore.getState().actions.initBattle([char1, char2, char3]);
+
+    // Simulate post-processTick state: store tick is 1, events at tick 0
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     // Both char1 and char2 attack char3
     const damage1: DamageEvent = {
@@ -125,6 +140,11 @@ describe("useDamageNumbers", () => {
     const char3 = createCharacter("char3", "enemy", { q: 2, r: 3 });
     useGameStore.getState().actions.initBattle([char1, char2, char3]);
 
+    // Simulate post-processTick state: store tick is 1, events at tick 0
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
+
     // Add two damage events
     const damage1: DamageEvent = {
       type: "damage",
@@ -156,6 +176,11 @@ describe("useDamageNumbers", () => {
     const char2 = createCharacter("char2", "enemy", { q: 1, r: 0 });
     const char3 = createCharacter("char3", "enemy", { q: 2, r: 3 });
     useGameStore.getState().actions.initBattle([char1, char2, char3]);
+
+    // Simulate post-processTick state: store tick is 1, events at tick 0
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     // Multiple attacks on char3
     const damage1: DamageEvent = {
@@ -192,6 +217,11 @@ describe("useDamageNumbers", () => {
     const char2 = createCharacter("char2", "enemy", { q: 2, r: 3 });
     const char3 = createCharacter("char3", "enemy", { q: 3, r: 2 });
     useGameStore.getState().actions.initBattle([char1, char2, char3]);
+
+    // Simulate post-processTick state: store tick is 1, events at tick 0
+    useGameStore.setState((state) => {
+      state.gameState.tick = 1;
+    });
 
     // char1 attacks both enemies
     const damage1: DamageEvent = {

@@ -1,425 +1,116 @@
-# Implementation Plan: Two-State Trigger Model
-
-## Overview
-
-Three parts: (1) TriggerDropdown two-state model with condition-scoped scopes, (2) SkillRow target=self hiding, (3) existing test updates. UI-only change -- no engine, type, or store action modifications.
-
----
-
-## Step 1: Add CONDITION_SCOPE_RULES constant to TriggerDropdown.tsx
-
-**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.tsx`
-
-Add after the `VALUE_CONDITIONS` constant (line 24), before `getDefaultValue`:
-
-```typescript
-import type { ConditionType, TriggerScope } from "../../engine/types";
-
-interface ConditionScopeRule {
-  showScope: boolean;
-  validScopes: TriggerScope[];
-  impliedScope?: TriggerScope;
-}
-
-const CONDITION_SCOPE_RULES: Record<
-  Exclude<ConditionType, "always">,
-  ConditionScopeRule
-> = {
-  in_range: { showScope: true, validScopes: ["enemy", "ally"] },
-  hp_below: { showScope: true, validScopes: ["self", "ally", "enemy"] },
-  hp_above: { showScope: true, validScopes: ["self", "ally", "enemy"] },
-  channeling: { showScope: true, validScopes: ["enemy", "ally"] },
-  idle: { showScope: true, validScopes: ["enemy", "ally"] },
-  targeting_me: {
-    showScope: false,
-    validScopes: ["enemy"],
-    impliedScope: "enemy",
-  },
-  targeting_ally: {
-    showScope: false,
-    validScopes: ["enemy"],
-    impliedScope: "enemy",
-  },
-};
-```
-
-**Estimated lines added**: ~20
-
----
-
-## Step 2: Refactor TriggerDropdown rendering to two-state model
-
-**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.tsx`
-
-### Changes to make:
-
-1. **Add `handleAddCondition` handler** -- sets trigger to `{ scope: "enemy", condition: "in_range", conditionValue: 1 }` via `onTriggerChange`.
-
-2. **Add `handleRemoveCondition` handler** -- sets trigger to `{ scope: "enemy", condition: "always" }` via `onTriggerChange`.
-
-3. **Modify `handleConditionChange`**:
-   - Remove the `always` branch (no longer possible to select "always" from dropdown).
-   - After determining the new trigger shape, look up `CONDITION_SCOPE_RULES[newCondition]` and check if `trigger.scope` is in `validScopes`. If not, reset scope to `validScopes[0]`. If the rule has `impliedScope`, set scope to that value.
-   - Always preserve `negated` when switching between non-always conditions.
+# Implementation Plan: Fix off-by-one in whiff/damage event selectors
 
-4. **Replace the render return** with a two-branch structure:
+## Bug Summary
 
-```tsx
-// When condition is "always": render ghost button only
-if (trigger.condition === "always") {
-  return (
-    <button
-      type="button"
-      onClick={handleAddCondition}
-      className={styles.addConditionBtn}
-      aria-label={`Add condition for ${skillName}`}
-    >
-      + Condition
-    </button>
-  );
-}
+`selectRecentWhiffEvents` and `selectRecentDamageEvents` filter `e.tick === tick`, but after `processTick` the store's `tick` is already incremented to N+1 while events are stamped at N. Both selectors always return empty arrays in real usage.
 
-// When condition is non-always: render active trigger controls
-const rule = CONDITION_SCOPE_RULES[trigger.condition];
+## Changes
 
-return (
-  <span className={styles.triggerControl}>
-    {/* NOT toggle */}
-    <button type="button" onClick={handleNotToggle} ...>NOT</button>
+### 1. Fix selectors in `src/stores/gameStore-selectors.ts`
 
-    {/* Scope dropdown -- only when rule.showScope */}
-    {rule.showScope && (
-      <select value={trigger.scope} onChange={handleScopeChange} ...>
-        {rule.validScopes.map(s => <option key={s} value={s}>...</option>)}
-      </select>
-    )}
+**Lines 263-279.** Two changes:
 
-    {/* Condition dropdown -- 7 options, no "always" */}
-    <select value={trigger.condition} onChange={handleConditionChange} ...>
-      <option value="in_range">In range</option>
-      <option value="hp_below">HP below</option>
-      <option value="hp_above">HP above</option>
-      <option value="targeting_me">Cell targeted</option>
-      <option value="channeling">Channeling</option>
-      <option value="idle">Idle</option>
-      <option value="targeting_ally">Targeting ally</option>
-    </select>
+**selectRecentDamageEvents (line 263):**
 
-    {/* Value input -- unchanged condition */}
-    {hasValue && <input .../>}
+- Add early return: `if (tick === 0) return [];` (no resolved tick yet)
+- Change filter from `e.tick === tick` to `e.tick === tick - 1`
+- Update JSDoc comment to explain: after `processTick`, `state.tick` is the _next_ tick to process; events from the just-resolved tick are at `tick - 1`
 
-    {/* Qualifier select -- unchanged condition */}
-    {trigger.condition === "channeling" && <QualifierSelect .../>}
+**selectRecentWhiffEvents (line 274):**
 
-    {/* Remove button -- always shown (replaces onRemove-gated logic) */}
-    <button onClick={handleRemoveCondition} className={styles.removeBtn}
-      aria-label={`Remove condition for ${skillName}`}>x</button>
-  </span>
-);
-```
+- Same pattern: early return for `tick === 0`, filter `e.tick === tick - 1`
+- Same explanatory comment
 
-5. **Props interface**: `onRemove` prop remains for AND trigger future use but is no longer the primary removal mechanism. The `x` button in the active state calls `handleRemoveCondition` (resets to always). The `onRemove` prop is only used for AND trigger's second trigger removal. When `onRemove` is provided, render a second remove button with the existing "Remove second trigger" aria-label, OR simply call `onRemove` from the `x` button instead of `handleRemoveCondition`. **Decision**: When `onRemove` is provided (triggerIndex > 0), the `x` button calls `onRemove` instead of `handleRemoveCondition`. When `onRemove` is NOT provided (primary trigger), the `x` button calls `handleRemoveCondition`. This preserves backward compatibility for future AND trigger support.
+### 2. Update integration tests in `src/stores/gameStore-integration.test.ts`
 
-6. **Scope dropdown label capitalization**: Map scope values to display text: `enemy` -> `Enemy`, `ally` -> `Ally`, `self` -> `Self`.
+All tests currently mask the bug by manually aligning store tick and event tick values. Restructure to simulate realistic post-`processTick` state where store tick = event tick + 1.
 
-### Estimated final file size
+**`selectRecentDamageEvents` describe block (lines 22-140), 4 tests:**
 
-Current: 156 lines. After changes: ~195 lines (well under 400).
+- **"returns empty array when no damage events"** (line 28): No change needed (already returns empty).
 
----
+- **"filters damage events by current tick"** (line 37): Change store tick from 1 to 2. Keep event tick at 1. This simulates post-processTick where tick was incremented from 1 to 2 after stamping events at 1. Assertion: selector returns the event.
 
-## Step 3: Add ghost button CSS to TriggerDropdown.module.css
+- **"excludes damage from previous ticks"** (line 64): Change store tick from 1 to 2. Keep `currentDamageEvent.tick = 1` and `oldDamageEvent.tick = 0`. Selector should return only the tick-1 event (tick=1). Assertion: result has length 1 with `tick === 1`.
 
-**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.module.css`
+- **"excludes non-damage events"** (line 103): Currently at tick 0 with events at tick 0. Change store tick to 1. Keep events at tick 0. Selector returns only the damage event at tick 0 (matching `tick - 1 = 0`).
 
-Add `.addConditionBtn` class following the ghost button pattern from `ui-ux-guidelines.md`:
+- **Add new test: "returns empty array when tick is 0"**: Verify the `tick === 0` guard. Set store tick to 0, add damage event at tick 0, verify selector returns `[]`.
 
-```css
-.addConditionBtn {
-  padding: 0.15rem 0.5rem;
-  font-size: 0.75rem;
-  border: 1px dashed var(--border);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-radius: 3px;
-}
+**`selectRecentWhiffEvents` describe block (lines 514-585), 3 tests:**
 
-.addConditionBtn:hover {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-}
-```
+- **"returns whiff events for current tick"** (line 519): Change store tick from 1 to 2. Keep event tick at 1. Selector returns the event.
 
-**Note**: This duplicates `.addTriggerBtn` from SkillRow.module.css, which is acceptable per ADR-023 (duplicate VALUE_CONDITIONS precedent). The existing `.addTriggerBtn` in SkillRow.module.css remains unused and can be removed in a separate cleanup, or kept for future AND trigger `+ AND` button.
+- **"excludes whiff events from other ticks"** (line 544): Change store tick from 1 to 2. Keep current event tick at 1, old event tick at 0. Selector returns only the tick-1 event.
 
-**Estimated lines added**: ~14. File goes from 63 to ~77 lines.
+- **"returns empty array when no whiff events exist"** (line 577): No change needed.
 
----
+- **Add new test: "returns empty array when tick is 0"**: Same pattern as damage selector test.
 
-## Step 4: SkillRow target=self conditional rendering
+### 3. Update hook tests in `src/components/BattleViewer/hooks/useWhiffIndicators.test.ts`
 
-**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.tsx`
+All 4 tests add events at `tick: 0` while the store is also at tick 0. After the fix, `tick - 1 = -1` will not match `event.tick = 0`, so these tests will break.
 
-### Changes:
+**Fix for all tests with events:** Set store tick to 1 after `initBattle` but before adding events. Keep event ticks at 0. This simulates the post-processTick state.
 
-1. **Wrap SELECTOR fieldGroup** (lines 223-238) in a conditional:
+- **"returns empty array when no whiff events"** (line 33): No change needed (no events added).
+- **"transforms whiff events into display data..."** (line 42): Add `useGameStore.setState` to set tick to 1 before adding event at tick 0.
+- **"deduplicates whiffs on same cell..."** (line 63): Same -- set tick to 1 before adding events.
+- **"handles multiple cells independently"** (line 91): Same -- set tick to 1 before adding events.
 
-```tsx
-{skill.target !== "self" && (
-  <div className={`${styles.fieldGroup} ${styles.selectorField}`}>
-    <span className={styles.fieldLabel}>SELECTOR</span>
-    <select ... disabled={skill.target === "self"} ...>
-      ...
-    </select>
-  </div>
-)}
-```
+### 4. Update hook tests in `src/components/BattleViewer/hooks/useDamageNumbers.test.ts`
 
-Remove the now-unnecessary `disabled={skill.target === "self"}` since it will never be rendered when target is self.
+Same pattern as whiff indicators tests. All 7 tests add events at `tick: 0` while store tick is 0.
 
-2. **Wrap FilterControls** (line 240) in a conditional:
+**Note:** This file was not in the original requirements scope but was identified during EXPLORE as affected. The explorer recommended adding it to scope. All tests will break without this update.
 
-```tsx
-{
-  skill.target !== "self" && (
-    <FilterControls skill={skill} characterId={character.id} />
-  );
-}
-```
+- **"returns empty array when no damage events"** (line 35): No change needed (no events added).
+- **"returns DamageNumberData with correct targetPosition"** (line 44): Set tick to 1 before adding event at tick 0.
+- **"includes attackerFaction from TokenData"** (line 66): Set tick to 1 before adding event at tick 0.
+- **"groups multiple damages by same target"** (line 89): Set tick to 1 before adding events at tick 0.
+- **"calculates totalDamage correctly..."** (line 122): Set tick to 1 before adding events at tick 0.
+- **"preserves individual damage entries..."** (line 154): Set tick to 1 before adding events at tick 0.
+- **"handles multiple targets independently"** (line 190): Set tick to 1 before adding events at tick 0.
 
-The filter and selector config remain in the store -- only rendering is suppressed.
+## Scope Expansion Justification
 
-### Estimated impact
+`useDamageNumbers.test.ts` is added to scope because all 6 of its event-based tests will fail after the selector fix. Without updating these tests, `npm run test` will report 6 failures. This is a mechanical change (set tick to 1 before events), not a behavioral change.
 
-Removes ~2 lines, adds ~4 lines of wrapping. File stays at ~289 lines, well under 400.
+## Files Modified (exhaustive list)
 
----
+| File                                                           | Change Type | Lines Affected                                    |
+| -------------------------------------------------------------- | ----------- | ------------------------------------------------- |
+| `src/stores/gameStore-selectors.ts`                            | Bug fix     | Lines 258-279 (both selectors + comments)         |
+| `src/stores/gameStore-integration.test.ts`                     | Test update | Lines 22-140, 514-585 (tick values + 2 new tests) |
+| `src/components/BattleViewer/hooks/useWhiffIndicators.test.ts` | Test update | 3 tests: add tick=1 setState calls                |
+| `src/components/BattleViewer/hooks/useDamageNumbers.test.ts`   | Test update | 6 tests: add tick=1 setState calls                |
 
-## Step 5: Update existing tests that will break
-
-### 5a. TriggerDropdown.test.tsx (378 lines)
-
-**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.test.tsx`
-
-Tests that will **break** and how to fix:
-
-| #   | Test Name                                                                           | Current Trigger         | Why Breaks                                             | Fix                                                                                           |
-| --- | ----------------------------------------------------------------------------------- | ----------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| 1   | "hides value input for non-value triggers" (line 71)                                | `condition: "always"`   | Now renders ghost button, no spinbutton query target   | Change trigger to `condition: "targeting_me"` (non-value, non-always)                         |
-| 2   | "calls onTriggerChange when condition changes" (line 80)                            | `condition: "always"`   | No condition dropdown rendered -- ghost button instead | Change trigger to `condition: "in_range", conditionValue: 3` and select a different condition |
-| 3   | "calls onTriggerChange with hp defaults on condition change" (line 98)              | `condition: "always"`   | Same -- no dropdown                                    | Change trigger to `condition: "in_range", conditionValue: 3` and select `hp_below`            |
-| 4   | "renders trigger type dropdown with correct value" (line 32)                        | `condition: "hp_below"` | Asserts "Always" option exists                         | Remove the `Always` option assertion; change to assert 7 options without Always               |
-| 5   | "strips value when changing to non-value trigger" (line 249)                        | Selects "always"        | "Always" option no longer exists                       | Change to select `targeting_me` instead; update expected callback                             |
-| 6   | "renders all 8 condition options" (line 268)                                        | `condition: "hp_below"` | Asserts "Always" option, expects 8                     | Change to assert 7 options, remove "Always" assertion                                         |
-| 7   | "calls onTriggerChange with correct shape when selecting channeling" (line 311)     | `condition: "always"`   | No dropdown                                            | Change trigger to `condition: "in_range", conditionValue: 3`                                  |
-| 8   | "calls onTriggerChange with correct shape when selecting idle" (line 328)           | `condition: "always"`   | No dropdown                                            | Change trigger to `condition: "in_range", conditionValue: 3`                                  |
-| 9   | "calls onTriggerChange with correct shape when selecting targeting_ally" (line 344) | `condition: "always"`   | No dropdown                                            | Change trigger to `condition: "in_range", conditionValue: 3`                                  |
-
-**Additional scope-related test updates** (these may also need fixing due to scope dropdown changes):
-
-| #   | Test Name                                                    | Issue                                                                          | Fix                                                                                       |
-| --- | ------------------------------------------------------------ | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| 10  | "preserves negated field on condition change" (line 207)     | Scope is "self" but switches to "in_range" which does not allow "self"         | The expected callback should show scope reset to "enemy" (first valid scope for in_range) |
-| 11  | "strips value when changing to non-value trigger" (line 249) | After fix (#5), changing to targeting_me should set scope to "enemy" (implied) | Update expected scope in callback                                                         |
-
-**Tests that will NOT break** (already use non-always conditions):
-
-- "renders value input for value-based triggers" -- uses `hp_below`
-- "calls onTriggerChange when value changes" -- uses `hp_below`
-- "shows remove button when onRemove provided" -- uses `hp_below`
-- "calls onRemove when remove button clicked" -- uses `hp_below`
-- "hides remove button when onRemove not provided" -- uses `hp_below`
-- "preserves negated field on value change" -- uses `hp_below`
-- "handles empty value input without propagating NaN" -- uses `hp_below`
-- "unique aria-labels include trigger index" -- uses `hp_below`
-- "does not render value input for channeling/idle/targeting_ally" -- uses non-always
-- "preserves negated field when switching to a new condition" (line 360) -- uses `hp_below`
-
-### 5b. TriggerDropdown-not-toggle.test.tsx (156 lines)
-
-**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx`
-
-| #   | Test Name                                                     | Why Breaks                                                                                                                                                                          | Fix                                                                                                                                                                                             |
-| --- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | "NOT toggle hidden for always trigger" (line 34)              | Still correct -- ghost button renders instead of NOT toggle. But the test also implicitly expects scope/condition dropdowns. It queries for NOT toggle absence which is still true. | **No break** -- test only queries `queryByRole("button", { name: /toggle not/i })` which will still be absent in ghost button state. Keep as-is.                                                |
-| 2   | "switching to always clears negated from callback" (line 128) | Selects "always" from dropdown -- option no longer exists                                                                                                                           | **Rewrite**: Instead of selecting "always", click the `x` remove button. Assert `onTriggerChange` was called with `{ scope: "enemy", condition: "always" }` and that `negated` is absent/falsy. |
-
-### 5c. TriggerDropdown-qualifier.test.tsx (141 lines)
-
-**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown-qualifier.test.tsx`
-
-No tests will break. All tests use `condition: "channeling"` which renders in active state. The qualifier dropdown tests do not interact with "always" or scope dropdown visibility.
-
-### 5d. SkillRow.test.tsx (686 lines)
-
-**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.test.tsx`
-
-Tests that will **break**:
-
-| #   | Test Name                                                              | Why Breaks                                                                                                                                                                                                                         | Fix                                                                                                                                    |
-| --- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | "shows all config controls" (line 16)                                  | Queries `getByRole("combobox", { name: /trigger for light punch/i })` -- Light Punch has default trigger `always`, so ghost button renders, no combobox                                                                            | Change assertion: instead of expecting combobox, expect ghost button `getByRole("button", { name: /add condition for light punch/i })` |
-| 2   | "shows config controls alongside evaluation in battle mode" (line 141) | Same -- queries trigger combobox for Light Punch with always trigger                                                                                                                                                               | Same fix as #1                                                                                                                         |
-| 3   | "shows all four labels in battle mode" (line 642)                      | Tests `TRIGGER`, `TARGET`, `SELECTOR`, `FILTER` labels. TRIGGER label will still render. But `SELECTOR` will render since Light Punch's target is "enemy". **No break** -- all labels should still appear for enemy-target skills. |
-
-**Tests that will NOT break for target=self changes**: No existing tests render with `target: "self"` and check for SELECTOR/FILTER presence, so no breakage from the target=self hiding.
-
-### 5e. SkillRow-filter-not-toggle.test.tsx (389 lines)
-
-No tests will break. All filter tests use `createSkill` with default `target: "enemy"`, so FilterControls will still render.
-
----
-
-## Step 6: Write new tests
-
-### 6a. New file: TriggerDropdown-two-state.test.tsx
-
-**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown-two-state.test.tsx`
-
-New tests to write (following `renderDropdown` helper pattern):
-
-**Two-state model tests:**
-
-1. Ghost button renders when `condition === "always"` -- assert `+ Condition` button visible, no combobox, no NOT toggle
-2. Clicking `+ Condition` calls `onTriggerChange` with `{ scope: "enemy", condition: "in_range", conditionValue: 1 }`
-3. Active state renders condition dropdown with 7 options (no "Always")
-4. Active state renders `x` remove button
-5. Clicking `x` calls `onTriggerChange` with `{ scope: "enemy", condition: "always" }` (negated absent)
-6. Clicking `x` on negated trigger resets negated (callback has no negated field)
-
-**Condition-scoped scope tests:** 7. `in_range` shows scope dropdown with Enemy, Ally (no Self) 8. `hp_below` shows scope dropdown with Self, Ally, Enemy 9. `targeting_me` hides scope dropdown entirely 10. `targeting_ally` hides scope dropdown entirely 11. Changing condition from `hp_below` (scope=self) to `channeling` resets scope to "enemy" (self not valid for channeling) 12. Changing condition from `hp_below` (scope=self) to `targeting_me` sets scope to "enemy" (implied) 13. Changing condition from `in_range` to `hp_below` preserves scope "enemy" (still valid) 14. Implied scope conditions store correct scope value in callback
-
-**Estimated lines**: ~200-250
-
-### 6b. New file: SkillRow-target-self.test.tsx
-
-**File**: `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow-target-self.test.tsx`
-
-New tests to write:
-
-1. When `target: "self"`, SELECTOR fieldGroup is not rendered -- no criterion combobox
-2. When `target: "self"`, FILTER section is not rendered -- no `+ Filter` button, no filter controls
-3. When `target: "self"` with existing filter, filter fieldGroup not rendered
-4. When `target: "enemy"`, SELECTOR and FILTER are both rendered
-5. (Store interaction) Change target from enemy to self -> SELECTOR and FILTER disappear
-6. (Store interaction) Change target from self to enemy -> SELECTOR and FILTER reappear with prior config
-
-**Estimated lines**: ~120-150
-
-### 6c. New tests in existing files (optional, if scope allows)
-
-Registry default trigger rendering tests could go in SkillRow.test.tsx or a new file:
-
-- Kick (defaultTrigger: channeling) renders with active trigger controls (condition dropdown visible)
-- Light Punch (no defaultTrigger) renders with `+ Condition` button
-
-These can be added to `SkillRow.test.tsx` if it stays under ~750 lines, or a new `SkillRow-trigger-defaults.test.tsx`.
-
----
+**Total: 4 files.** No new files created. No files deleted.
 
 ## Implementation Order
 
-1. **Step 1**: CONDITION_SCOPE_RULES constant (pure data, no UI impact)
-2. **Step 3**: CSS for ghost button (no UI impact until TSX changes)
-3. **Step 2**: TriggerDropdown two-state refactor (breaks existing tests)
-4. **Step 5**: Fix broken existing tests (restore green)
-5. **Step 6a**: New TriggerDropdown two-state tests
-6. **Step 4**: SkillRow target=self hiding
-7. **Step 6b**: New SkillRow target=self tests
-8. **Step 6c**: Registry default trigger tests (if time permits)
+1. Fix selectors (source of truth)
+2. Update integration tests (most thorough coverage of the fix)
+3. Update useWhiffIndicators.test.ts
+4. Update useDamageNumbers.test.ts
+5. Run `npm run test` to verify all tests pass
 
----
+## Risks and Tradeoffs
 
-## CONDITION_SCOPE_RULES Definition (canonical)
+**Risk: Other consumers of these selectors.** Mitigated -- the explorer confirmed only `useWhiffIndicators` and `useDamageNumbers` consume these selectors. No other call sites exist.
 
-```typescript
-const CONDITION_SCOPE_RULES: Record<
-  Exclude<ConditionType, "always">,
-  ConditionScopeRule
-> = {
-  in_range: { showScope: true, validScopes: ["enemy", "ally"] },
-  hp_below: { showScope: true, validScopes: ["self", "ally", "enemy"] },
-  hp_above: { showScope: true, validScopes: ["self", "ally", "enemy"] },
-  channeling: { showScope: true, validScopes: ["enemy", "ally"] },
-  idle: { showScope: true, validScopes: ["enemy", "ally"] },
-  targeting_me: {
-    showScope: false,
-    validScopes: ["enemy"],
-    impliedScope: "enemy",
-  },
-  targeting_ally: {
-    showScope: false,
-    validScopes: ["enemy"],
-    impliedScope: "enemy",
-  },
-};
-```
+**Tradeoff: Explicit `tick === 0` guard vs. natural no-match.** The plan uses an explicit early return for clarity and self-documentation, even though `tick - 1 = -1` would naturally produce empty results. This matches the requirements ("both selectors return empty arrays when tick === 0").
 
-This is the **single source of truth** for what the UI allows. Exported as a named export for test assertions if needed, or kept as a module-level constant.
-
----
-
-## CSS Changes Summary
-
-| File                         | Change                            | Lines |
-| ---------------------------- | --------------------------------- | ----- |
-| `TriggerDropdown.module.css` | Add `.addConditionBtn` + `:hover` | +14   |
-| `SkillRow.module.css`        | No changes                        | 0     |
-
-The existing `.addTriggerBtn` in SkillRow.module.css is unused and stays as-is (future AND trigger use).
-
----
-
-## File Size Check
-
-| File                                      | Current Lines         | After Changes                          | Under 400?                 |
-| ----------------------------------------- | --------------------- | -------------------------------------- | -------------------------- |
-| `TriggerDropdown.tsx`                     | 156                   | ~195                                   | Yes                        |
-| `TriggerDropdown.module.css`              | 63                    | ~77                                    | Yes                        |
-| `SkillRow.tsx`                            | 287                   | ~289                                   | Yes                        |
-| `SkillRow.module.css`                     | 366                   | 366                                    | Yes                        |
-| `TriggerDropdown.test.tsx`                | 378                   | ~370 (fewer always-related assertions) | Yes                        |
-| `TriggerDropdown-not-toggle.test.tsx`     | 156                   | ~160                                   | Yes                        |
-| `TriggerDropdown-qualifier.test.tsx`      | 141                   | 141                                    | Yes                        |
-| `SkillRow.test.tsx`                       | 686 (eslint disabled) | ~690                                   | Over 400, but pre-existing |
-| New: `TriggerDropdown-two-state.test.tsx` | 0                     | ~220                                   | Yes                        |
-| New: `SkillRow-target-self.test.tsx`      | 0                     | ~140                                   | Yes                        |
-
----
-
-## Risk Assessment
-
-1. **Scope reset on condition change may surprise users**: When switching from `hp_below` (scope=self) to `in_range`, scope auto-resets to "enemy". This is correct per requirements but could feel unexpected. Mitigation: this is the intended UX behavior per spec.
-
-2. **Tests querying by aria-label for trigger combobox**: Several tests across files use `getByRole("combobox", { name: /trigger for/i })`. With the two-state model, this query fails when trigger is "always". Mitigation: systematically fix every test that renders with "always" to either use a non-always condition or query for the ghost button.
-
-3. **Remove button aria-label change**: Current remove button (for AND triggers) says "Remove second trigger for X". The new primary `x` button needs a different label: "Remove condition for X". Tests checking for "Remove second trigger" use `triggerIndex: 1` and `onRemove` prop -- these should still work if the AND trigger remove button retains its label.
-
-4. **FilterControls wrapping in fieldGroup**: FilterControls currently renders its own `<div className={fieldGroup filterField}>` wrapper (line 112 of FilterControls.tsx). Wrapping it in a conditional in SkillRow means the entire fieldGroup disappears, which is correct. The grid column 9 will simply be empty when target=self -- CSS Grid handles this gracefully with `auto` column sizing.
-
-5. **Scope dropdown dynamic options**: The scope dropdown now renders different options per condition. Tests that check for specific scope options need to be condition-aware. The current tests do not heavily test scope dropdown options, so risk is low.
-
-6. **Default value for `+ Condition`**: Requirements say "sensible default (e.g., `in_range`)". Using `{ scope: "enemy", condition: "in_range", conditionValue: 1 }` as the activation default. The `conditionValue: 1` matches Dash's default (adjacent range), which is the most common use case.
-
----
+**Tradeoff: Scope expansion.** Adding `useDamageNumbers.test.ts` was not in original requirements but is necessary to prevent test failures. This is a minimal, mechanical change.
 
 ## Spec Alignment Check
 
-- [x] Plan aligns with `.docs/spec.md` requirements -- trigger scope+condition model preserved, UI-only change
-- [x] Approach consistent with `.docs/architecture.md` -- controlled components, CSS modules, no engine changes
-- [x] Patterns follow `.docs/patterns/index.md` -- ghost button pattern, opacity hierarchy
-- [x] No conflicts with `.docs/decisions/index.md` -- ADR-023 allows CSS duplication, ADR-004 local state for UI
-- [x] UI tasks: Visual values match `.docs/ui-ux-guidelines.md` -- ghost button spec, compact spacing, native selects, aria-labels
+- [x] Plan aligns with `.docs/spec.md` requirements (whiff/damage selectors serve WhiffOverlay and DamageOverlay display)
+- [x] Approach consistent with `.docs/architecture.md` (selectors remain pure functions, no engine changes)
+- [x] Patterns follow `.docs/patterns/index.md` (selector-based subscriptions pattern preserved)
+- [x] No conflicts with `.docs/decisions/index.md` (no ADRs govern selector tick logic)
+- [x] No UI changes -- not a visual task
 
----
+## No New Decisions
 
-## New Decision
-
-**Decision**: `CONDITION_SCOPE_RULES` is kept as a local constant in `TriggerDropdown.tsx` rather than extracted to a shared config file.
-
-**Context**: Only TriggerDropdown needs this lookup. It follows the precedent of `VALUE_CONDITIONS` being local to TriggerDropdown (and duplicated as `FILTER_VALUE_CONDITIONS` in FilterControls per ADR-023).
-
-**Consequences**: If a future feature (e.g., tooltip showing valid trigger configurations) needs this data, it would need to import from TriggerDropdown or the constant would need extraction. Acceptable tradeoff for simplicity now.
-
-Recommend adding to `.docs/decisions/index.md` as ADR-025 after implementation if the team decides it merits a formal ADR.
+This fix does not introduce any new architectural decisions. It corrects existing behavior to match the documented tick lifecycle invariant (`lastResolvedTick = tick - 1`).

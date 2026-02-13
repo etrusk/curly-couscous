@@ -51,6 +51,7 @@ Use this exact format for each test:
 
 ## Design Principles
 
+- **Acceptance criteria coverage**: Before finalizing, cross-reference every acceptance criterion from `.tdd/session.md` (or `.tdd/plan.md`) against your test list. Each criterion must map to at least one test assertion. If a criterion has no corresponding test, add one or document why testing it is infeasible.
 - **Do not assume environment defaults**: When test behavior depends on viewport size, container dimensions, timing, or other environment characteristics, either (a) explicitly set the value in setup (e.g., `page.viewport(1280, 720)`), or (b) mark the assumption with "[VERIFY]" so the coder knows to confirm it. Do not assume default values based on general browser knowledge — test runners, iframes, and headless modes often differ.
 
 ## Handoff Protocol

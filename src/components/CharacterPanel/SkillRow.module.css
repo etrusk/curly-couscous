@@ -7,10 +7,10 @@
     /* 3: priority    */ auto
     /* 4: name        */ 9rem
     /* 5: eval        */ 12rem
-    /* 6: trigger     */ auto
-    /* 7: target      */ auto
-    /* 8: selector    */ auto
-    /* 9: filter      */ auto
+    /* 6: trigger     */ minmax(0, auto)
+    /* 7: target      */ minmax(0, auto)
+    /* 8: selector    */ minmax(0, auto)
+    /* 9: filter      */ minmax(0, auto)
     /* 10: behavior   */ minmax(0, auto)
     /* 11: spacer     */ 1fr
     /* 12: actions    */ auto;
@@ -24,18 +24,19 @@
 
 .skillRow.battleMode {
   grid-template-columns:
+    /* 1: checkbox    */
     auto
-    1.5rem
-    auto
-    7.5rem
-    10rem
-    auto
-    auto
-    auto
-    auto
-    minmax(0, auto)
-    1fr
-    auto;
+    /* 2: status icon */ 1.5rem
+    /* 3: priority    */ auto
+    /* 4: name        */ 7.5rem
+    /* 5: eval        */ 10rem
+    /* 6: trigger     */ minmax(0, auto)
+    /* 7: target      */ minmax(0, auto)
+    /* 8: selector    */ minmax(0, auto)
+    /* 9: filter      */ minmax(0, auto)
+    /* 10: behavior   */ minmax(0, auto)
+    /* 11: spacer     */ 1fr
+    /* 12: actions    */ auto;
   column-gap: 0.35rem;
   padding: 0.25rem 0.5rem;
   font-size: 0.85rem;
@@ -229,6 +230,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  flex-wrap: wrap;
 }
 
 .addFilterBtn {

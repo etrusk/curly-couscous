@@ -1,41 +1,38 @@
-# TDD Spec: Fix off-by-one in whiff/damage event selectors
+# TDD Spec: Fix SkillRow grid overflow for complex trigger/filter conditions
 
-Created: 2026-02-12
+Created: 2026-02-13
 
 ## Goal
 
-Fix `selectRecentWhiffEvents` and `selectRecentDamageEvents` selectors which filter `e.tick === tick`, but after `processTick` the store's `tick` has already been incremented to the _next_ tick. Events stamped during resolution carry the pre-increment tick value, so the selectors never match and both `WhiffOverlay` and `DamageOverlay` render nothing.
+Fix the SkillRow grid layout overflow that occurs when trigger and/or filter columns contain complex conditions (e.g., Channeling with qualifier). The root cause is CSS `auto` grid tracks enforcing `min-width: auto`, preventing columns 6-9 from shrinking below their content's intrinsic minimum size. The `1fr` spacer collapses first, then content overflows into adjacent columns.
 
 ## Acceptance Criteria
 
-- [ ] `selectRecentWhiffEvents` returns whiff events from the just-resolved tick (filters `e.tick === tick - 1`)
-- [ ] `selectRecentDamageEvents` returns damage events from the just-resolved tick (filters `e.tick === tick - 1`)
-- [ ] Both selectors return empty arrays when `tick === 0` (no resolved tick yet)
-- [ ] Integration tests use realistic post-`processTick` state (tick is one ahead of event timestamps), not manually aligned tick+event combinations that mask the bug
-- [ ] Each selector has a brief comment explaining the `tick - 1` rationale to prevent future "fix-back"
+- [ ] Columns 6-9 (trigger, target, selector, filter) use `minmax(0, auto)` instead of `auto` in both config and battle mode grid templates
+- [ ] `.triggerControl` (TriggerDropdown.module.css) has `flex-wrap: wrap` so trigger controls wrap to a second line when column is constrained
+- [ ] `.filterGroup` (SkillRow.module.css) has `flex-wrap: wrap` so filter controls wrap to a second line when column is constrained
+- [ ] Visual verification: trigger with "NOT Enemy Channeling (any)" does not overflow into adjacent columns
+- [ ] Visual verification: filter with "NOT Channeling (any)" does not overflow into adjacent columns
+- [ ] Visual verification: both trigger AND filter set to Channeling with qualifiers simultaneously renders without overflow
+- [ ] No regressions: simple trigger/filter conditions (e.g., "In range 1", "HP below 50") still render on a single line without unnecessary wrapping
+- [ ] `.docs/visual-specs/skill-row.md` grid template documentation updated to reflect `minmax(0, auto)` for columns 6-9
 
 ## Approach
 
-Change both selectors to filter `e.tick === tick - 1`. Add a comment explaining that after `processTick`, `state.tick` represents the next tick to process, so events from the just-resolved tick are at `tick - 1`. Update integration tests to reflect realistic post-`processTick` state.
+Change grid track sizing for columns 6-9 from `auto` to `minmax(0, auto)` in both `.skillRow` and `.skillRow.battleMode` grid templates. Add `flex-wrap: wrap` to `.triggerControl` and `.filterGroup` containers so their inline-flex children wrap gracefully when the grid column shrinks. No panel width changes needed.
 
 ## Scope Boundaries
 
-- In scope:
-  - `src/stores/gameStore-selectors.ts` — fix both selectors, add comments
-  - `src/stores/gameStore-integration.test.ts` — update whiff and damage event selector tests to use realistic tick state
-  - `src/components/BattleViewer/hooks/useWhiffIndicators.test.ts` — update if tests use manually aligned tick values
-- Out of scope:
-  - Engine tick lifecycle (`game-core.ts`) — tick increment on return is correct behavior
-  - `WhiffOverlay` / `DamageOverlay` components — no changes needed, they consume selector data correctly
-  - `GameState` type — no new fields
+- In scope: `SkillRow.module.css` (grid templates + filterGroup), `TriggerDropdown.module.css` (triggerControl), `.docs/visual-specs/skill-row.md`, `.docs/ui-ux-guidelines.md` (Interactive Row snippet)
+- Out of scope: panel width ratios in `App.css`, battle mode column 10 (already `minmax(0, auto)`), any refactoring of trigger/filter components
 
 ## Assumptions
 
-- The relationship `lastResolvedTick = tick - 1` is always true after `processTick`; no scenario exists where events are stamped at a tick other than `tick - 1`
-- Damage numbers are also not displaying (same bug), though this may not have been noticed if battles resolve quickly
+- The existing `flex-wrap: wrap` on `.triggerGroup` is sufficient for wrapping multiple TriggerDropdown instances; only `.triggerControl` (individual trigger controls) needs wrapping added
+- Wrapped controls in a two-line layout will be visually acceptable at typical viewport widths (1400px+); if not, a complementary panel widen can be considered separately
 
 ## Constraints
 
-- Must not change engine's tick lifecycle contract
-- Selectors must remain pure functions (no side effects)
-- Existing tests that pass for correct reasons must continue to pass
+- Lesson #003 (verify CSS variable semantics across themes): verify the fix renders correctly in dark theme (primary dev theme)
+- Keep changes minimal — this is a targeted CSS fix, not a layout redesign
+- Column 10 (behavior) already uses `minmax(0, auto)` — this change makes columns 6-9 consistent with it

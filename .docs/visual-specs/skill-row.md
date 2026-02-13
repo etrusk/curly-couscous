@@ -1,7 +1,7 @@
 # SkillRow Visual Specification
 
 > Extracted from: `src/components/CharacterPanel/SkillRow.tsx` + `SkillRow.module.css`
-> Last verified: 2026-02-12 (two-state trigger model + condition-scoped scopes + target=self hiding)
+> Last verified: 2026-02-13 (grid overflow fix for complex trigger/filter conditions)
 
 ## Overview
 
@@ -12,11 +12,11 @@ SkillRow displays a single skill in a character's priority list. It has two visu
 - Display: `grid` with 12-column template
 - Grid template (config):
   ```
-  auto 1.5rem auto 9rem 12rem auto auto auto auto minmax(0,auto) 1fr auto
+  auto 1.5rem auto 9rem 12rem minmax(0,auto) minmax(0,auto) minmax(0,auto) minmax(0,auto) minmax(0,auto) 1fr auto
   ```
 - Grid template (battle):
   ```
-  auto 1.5rem auto 7.5rem 10rem auto auto auto auto minmax(0,auto) 1fr auto
+  auto 1.5rem auto 7.5rem 10rem minmax(0,auto) minmax(0,auto) minmax(0,auto) minmax(0,auto) minmax(0,auto) 1fr auto
   ```
 - Align-items: `center`
 - Padding: `0.5rem` (config) / `0.25rem 0.5rem` (battle)
@@ -34,10 +34,10 @@ SkillRow displays a single skill in a character's priority list. It has two visu
 | 3   | priority | `auto`            | Up/Down priority buttons                                          | `.priorityControls` |
 | 4   | name     | `9rem`            | `.nameCell` wrapper: skill name + cooldown badge                  | `.nameCell`         |
 | 5   | eval     | `12rem`           | `.evalCell` wrapper: target display, rejection reason             | `.evalCell`         |
-| 6   | trigger  | `auto`            | TRIGGER fieldGroup                                                | `.triggerField`     |
-| 7   | target   | `auto`            | TARGET fieldGroup                                                 | `.targetField`      |
-| 8   | selector | `auto`            | SELECTOR fieldGroup                                               | `.selectorField`    |
-| 9   | filter   | `auto`            | FILTER fieldGroup                                                 | `.filterField`      |
+| 6   | trigger  | `minmax(0, auto)` | TRIGGER fieldGroup                                                | `.triggerField`     |
+| 7   | target   | `minmax(0, auto)` | TARGET fieldGroup                                                 | `.targetField`      |
+| 8   | selector | `minmax(0, auto)` | SELECTOR fieldGroup                                               | `.selectorField`    |
+| 9   | filter   | `minmax(0, auto)` | FILTER fieldGroup                                                 | `.filterField`      |
 | 10  | behavior | `minmax(0, auto)` | BEHAVIOR fieldGroup (conditional, only for multi-behavior skills) | `.behaviorField`    |
 | 11  | spacer   | `1fr`             | Empty spacer pushing actions to the right                         | (no element)        |
 | 12  | actions  | `auto`            | `.actionsCell` wrapper: SkillRowActions buttons (right-aligned)   | `.actionsCell`      |
@@ -88,7 +88,7 @@ All grid children have explicit `grid-column` CSS assignments to prevent CSS Gri
 - **Name (col 4, `9rem`)**: Sized for "Ranged Attack" plus ~20% headroom.
 - **Eval (col 5, `12rem`)**: Sized for "Filter condition not met" plus ~20% headroom.
 - **Battle mode** reduces name to `7.5rem` and eval to `10rem` for compact fit.
-- **Columns 6-9 (`auto`)**: Each wraps a `.fieldGroup` div with a stacked label; auto-sizing lets content drive width.
+- **Columns 6-9 (`minmax(0, auto)`)**: Each wraps a `.fieldGroup` div with a stacked label; `minmax(0, auto)` lets content drive width while allowing columns to shrink below their intrinsic minimum when space is constrained, preventing overflow into adjacent columns.
 - **Column 10 (`minmax(0, auto)`)**: Conditional content; `minmax(0, auto)` collapses to 0 when behavior select is absent.
 - **Column 11 (`1fr`)**: Spacer absorbs remaining space, pushing actions to the right edge.
 
@@ -211,7 +211,7 @@ When condition changes, if current scope is not in new condition's `validScopes`
 
 ### 9. Filter Group (col 9, auto width) -- wrapped in `.fieldGroup` with "FILTER" label
 
-- Container: `display: inline-flex; align-items: center; gap: 0.25rem`
+- Container: `display: inline-flex; align-items: center; gap: 0.25rem; flex-wrap: wrap`
 - Rendered by `FilterControls` component (extracted from SkillRow)
 - **Hidden when target is `self`**: Entire `FilterControls` (including its `.fieldGroup` wrapper) is not rendered (grid column 9 left empty). Reappears when target changes back to `enemy` or `ally`. Filter configuration is preserved in the store.
 - Contains (when filter is active): NOT toggle, condition select (7 options), value input (conditional), qualifier select (conditional), remove button

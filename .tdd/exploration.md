@@ -2,64 +2,139 @@
 
 ## Task Understanding
 
-Fix an off-by-one bug in `selectRecentWhiffEvents` and `selectRecentDamageEvents` selectors. Both selectors filter `e.tick === tick`, but after `processTick` the store's `tick` has already been incremented to the next tick (N+1), while events were stamped with the pre-increment tick value (N). The selectors therefore never match any events, causing `WhiffOverlay` and `DamageOverlay` to render nothing.
-
-**Root cause chain:**
-
-1. Engine `processTick(state)` in `src/engine/game-core.ts` (line 36) receives state with `tick = N`
-2. Events (damage, whiff, death, etc.) are stamped with `tick` parameter value N (see `combat.ts` lines 74, 87)
-3. Engine returns `newState` with `tick: state.tick + 1` (line 116 of game-core.ts)
-4. Store action `processTick` sets `state.gameState.tick = result.state.tick` (line 170 of gameStore.ts), so store tick becomes N+1
-5. Selectors filter `e.tick === tick` where `tick` is now N+1, but events have `tick = N` -- no match
-
-**Fix:** Change both selectors to filter `e.tick === tick - 1`. Add guard for `tick === 0` (return empty array).
+Fix SkillRow grid overflow when trigger (col 6) and filter (col 9) columns contain complex conditions such as "NOT Enemy Channeling (any)". The root cause is that CSS `auto` grid tracks enforce `min-width: auto` on grid items, preventing columns 6-9 from shrinking below their intrinsic minimum content width. When content is wide enough, the `1fr` spacer (col 11) collapses first, then content overflows. The fix is to change columns 6-9 from `auto` to `minmax(0, auto)` and add `flex-wrap: wrap` on the inline-flex containers inside those columns.
 
 ## Relevant Files
 
-### Files to modify (in scope)
+### Files to Modify (CSS)
 
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors.ts` (lines 263-279) - Contains both buggy selectors: `selectRecentDamageEvents` (line 263) and `selectRecentWhiffEvents` (line 274). Both filter `e.tick === tick` which should be `e.tick === tick - 1`.
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-integration.test.ts` (lines 22-140, 514-585) - Contains tests for `selectRecentDamageEvents` and `selectRecentWhiffEvents`. Tests currently manually set tick values aligned with event tick values (e.g., `tick = 1, event.tick = 1`), which masks the real-world off-by-one since `processTick` would have left `tick` at 2 for events stamped at 1.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/hooks/useWhiffIndicators.test.ts` - Tests add events at `tick: 0` and never advance tick, so they work by accident (both store tick and event tick are 0). After the fix (`tick - 1` = -1 at tick 0), these tests will need updating: either advance tick to 1 and stamp events at 0, or set tick to 1 to simulate post-processTick state.
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css` (lines 1-16) - `.skillRow` grid-template-columns: columns 6-9 are `auto`, need `minmax(0, auto)`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css` (lines 25-38) - `.skillRow.battleMode` grid-template-columns: columns 6-9 are `auto`, need `minmax(0, auto)`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css` (lines 228-232) - `.filterGroup`: currently `display: inline-flex` with no `flex-wrap`, needs `flex-wrap: wrap`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.module.css` (lines 1-5) - `.triggerControl`: currently `display: inline-flex` with no `flex-wrap`, needs `flex-wrap: wrap`
 
-### Files to understand (out of scope, no changes needed)
+### Files to Update (Documentation)
 
-- `/home/bob/Projects/auto-battler/src/engine/game-core.ts` - Engine tick processing. Line 116: `tick: state.tick + 1` -- this is the increment that causes the off-by-one relative to event stamps. **Not changing this; it is correct behavior.**
-- `/home/bob/Projects/auto-battler/src/engine/combat.ts` - Stamps damage events (line 87) and whiff events (line 74) with `tick` parameter (the pre-increment value). **Not changing this.**
-- `/home/bob/Projects/auto-battler/src/engine/healing.ts` - Also stamps whiff events with tick parameter (for heal whiffs). Same pattern as combat.ts.
-- `/home/bob/Projects/auto-battler/src/stores/gameStore.ts` - Store `processTick` action (line 153): calls `engineProcessTick`, then assigns `result.state.tick` to `state.gameState.tick`. This is where the tick advances past event stamps.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/hooks/useWhiffIndicators.ts` - Hook consuming `selectRecentWhiffEvents`. No changes needed; it correctly transforms whatever the selector returns.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/hooks/useDamageNumbers.ts` - Hook consuming `selectRecentDamageEvents`. No changes needed.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/hooks/useDamageNumbers.test.ts` - Tests add events at `tick: 0` and never advance tick. Same pattern as useWhiffIndicators.test.ts. **May need updating** if the tick-0 guard (`tick === 0` returns empty array) applies. Worth checking during planning.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/WhiffOverlay.tsx` - Renders whiff indicators from `useWhiffIndicators`. No changes needed.
-- `/home/bob/Projects/auto-battler/src/components/BattleViewer/DamageOverlay.tsx` - Renders damage numbers from `useDamageNumbers`. No changes needed.
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-test-helpers.ts` - Test helpers for creating characters and skills.
+- `/home/bob/Projects/auto-battler/.docs/visual-specs/skill-row.md` - Grid template documentation (lines 13-19 for templates, line 91 for column sizing rationale) needs `minmax(0, auto)` for columns 6-9
+- `/home/bob/Projects/auto-battler/.docs/ui-ux-guidelines.md` - Interactive Row pattern snippet (lines 266-295) needs `minmax(0, auto)` for columns 6-9
+
+### Files for Reference (No Changes)
+
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/FilterControls.tsx` - Uses `styles.filterGroup` class (line 115), renders filter controls as `<span>` children
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.tsx` - Uses `styles.triggerControl` class (line 166), renders trigger controls as inline children
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css` (line 276) - `.fieldGroup` already has `min-width: 0` which is good -- it allows the fieldGroup itself to shrink within the grid cell
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.module.css` (lines 140-145) - `.triggerGroup` already has `flex-wrap: wrap` -- this wraps multiple TriggerDropdown instances but does NOT wrap controls within a single trigger
+
+### Test Files (May Need Verification)
+
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow.test.tsx`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow-filter.test.tsx`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow-filter-not-toggle.test.tsx`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow-target-self.test.tsx`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/SkillRow-actions.test.tsx`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown.test.tsx`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown-qualifier.test.tsx`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown-not-toggle.test.tsx`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown-two-state.test.tsx`
+- `/home/bob/Projects/auto-battler/src/components/CharacterPanel/TriggerDropdown-scope-rules.test.tsx`
+
+## Current Values
+
+### `.skillRow` grid-template-columns (config mode, lines 3-16)
+
+```css
+grid-template-columns:
+  /* 1: checkbox    */
+  auto
+  /* 2: status icon */ 1.5rem
+  /* 3: priority    */ auto
+  /* 4: name        */ 9rem
+  /* 5: eval        */ 12rem
+  /* 6: trigger     */ auto /* <-- change to minmax(0, auto) */
+  /* 7: target      */ auto /* <-- change to minmax(0, auto) */
+  /* 8: selector    */ auto /* <-- change to minmax(0, auto) */
+  /* 9: filter      */ auto /* <-- change to minmax(0, auto) */
+  /* 10: behavior   */ minmax(0, auto) /* already correct */
+  /* 11: spacer     */ 1fr
+  /* 12: actions    */ auto;
+```
+
+### `.skillRow.battleMode` grid-template-columns (lines 26-38)
+
+```css
+grid-template-columns:
+  auto /* 1: checkbox */
+  1.5rem /* 2: status icon */
+  auto /* 3: priority */
+  7.5rem /* 4: name */
+  10rem /* 5: eval */
+  auto /* 6: trigger -- change to minmax(0, auto) */
+  auto /* 7: target -- change to minmax(0, auto) */
+  auto /* 8: selector -- change to minmax(0, auto) */
+  auto /* 9: filter -- change to minmax(0, auto) */
+  minmax(0, auto) /* 10: behavior -- already correct */
+  1fr /* 11: spacer */
+  auto; /* 12: actions */
+```
+
+### `.triggerControl` (TriggerDropdown.module.css, lines 1-5)
+
+```css
+.triggerControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  /* needs: flex-wrap: wrap; */
+}
+```
+
+### `.filterGroup` (SkillRow.module.css, lines 228-232)
+
+```css
+.filterGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  /* needs: flex-wrap: wrap; */
+}
+```
+
+### `.fieldGroup` (SkillRow.module.css, lines 276-281)
+
+```css
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0; /* already allows shrinking -- good */
+}
+```
 
 ## Existing Patterns
 
-- **Selector-based subscriptions** - Zustand selectors are pure functions of `GameStore` state. Both affected selectors follow this pattern correctly; only the filter logic is wrong.
-- **Event history filtering** - Events are appended to `state.gameState.history` array. Selectors filter by `type` and `tick` to get events for the current display tick. The "current tick" concept needs redefining as "just-resolved tick" (`tick - 1`).
-- **Test pattern for selectors** - Integration tests use `useGameStore.setState()` to manually set tick values and `actions.addEvent()` to inject events. This bypass of `processTick` is what allowed the bug to go undetected -- tests manually aligned tick and event values rather than using realistic post-`processTick` state.
+- **Row Density** - The SkillRow uses compact spacing (0.5rem padding/gap in config, 0.25rem/0.35rem in battle). The fix preserves this.
+- **`minmax(0, auto)` pattern** - Already used on column 10 (behavior). This change extends it to columns 6-9 for consistency. The pattern allows a column to grow to fit content but can shrink to 0 when space is constrained.
+- **`min-width: 0` on flex/grid children** - `.fieldGroup` already has `min-width: 0`, which is the flex-item equivalent of `minmax(0, auto)` for grid tracks. This ensures field groups can actually shrink.
+- **`flex-wrap: wrap`** - Already used on `.triggerGroup` (the container for multiple TriggerDropdown instances). The same pattern needs to be applied to the individual control containers.
 
 ## Dependencies
 
-- The fix depends on the invariant that `lastResolvedTick = tick - 1` is always true after `processTick`. This is guaranteed by `game-core.ts` line 116 (`tick: state.tick + 1`).
-- The `tick === 0` guard depends on the fact that at tick 0 no resolution has occurred yet, so there are no events to show.
+- `.fieldGroup` already has `min-width: 0` (line 280 of SkillRow.module.css) -- this is required for the `minmax(0, auto)` grid track change to propagate shrinking through to the flex children. Without it, the flex container would still refuse to shrink.
+- FilterControls renders `.filterGroup` as a `<span>` with `inline-flex` -- adding `flex-wrap: wrap` is safe because `<span>` children are all inline elements (buttons, selects, inputs).
+- TriggerDropdown renders `.triggerControl` as a `<span>` with `inline-flex` -- same situation as FilterControls.
 
 ## Applicable Lessons
 
-- None of the existing lessons (001-004) directly apply to this off-by-one bug. However, lesson 001 ("Scope behavioral specs by mode/context") is tangentially relevant: the selector spec should clarify that "current tick" means "just-resolved tick" not "store's current tick value."
+- **Lesson 003** - "Verify CSS variable semantics across all theme modes." Applies here: after the CSS change, visual verification in dark theme (the primary dev theme) is needed to confirm no layout regressions. The requirements doc explicitly calls this out as a constraint.
 
 ## Constraints Discovered
 
-1. **tick === 0 edge case:** At tick 0, `tick - 1 = -1`. No events will ever have `tick: -1`, so the filter naturally returns empty array. An explicit `tick === 0` guard (returning `[]` early) is cleaner and more self-documenting but functionally equivalent.
-2. **useDamageNumbers.test.ts impact:** All 7 tests in `useDamageNumbers.test.ts` add events at `tick: 0` while the store tick is also 0. After the fix, these tests will return empty arrays since `tick - 1 = -1` will not match `event.tick = 0`. These tests will need to either set store tick to 1 (simulating post-processTick) or be restructured. **This file was NOT listed in the requirements scope** but IS affected.
-3. **useWhiffIndicators.test.ts impact:** Same pattern -- all 4 tests add events at `tick: 0` with store tick at 0. All will break after the fix.
-4. **Selectors must remain pure functions** -- no side effects, no mutable state.
-5. **Max 400 lines per file** -- `gameStore-selectors.ts` is 487 lines but already exists in this state; no new extraction needed for this task.
+- **Only CSS changes needed**: No TypeScript/JSX changes required. The fix is purely CSS: 2 grid template changes, 2 `flex-wrap` additions, and 2 documentation updates.
+- **Column 10 precedent**: Column 10 already uses `minmax(0, auto)`, so this is extending an established pattern rather than introducing a new one.
+- **`flex-wrap` visual impact**: When controls wrap to a second line, the row height will increase. This is acceptable -- it prevents overflow, which is worse. The wrapping only occurs when the column is actually constrained (complex conditions at narrower viewports or when many columns are populated simultaneously).
+- **No test changes expected**: This is a CSS-only change. Existing tests use Testing Library (DOM queries, not layout assertions), so they should not be affected. However, test suite should be run to confirm no breakage.
+- **Battle mode column comments**: The `.skillRow.battleMode` grid template (lines 26-38) has NO inline comments -- values are just listed as bare numbers. The implementation should add comments to match the config mode style for clarity, or at minimum apply the `minmax(0, auto)` values correctly.
 
 ## Open Questions
 
-1. **Should `useDamageNumbers.test.ts` be updated too?** It is not listed in the requirements scope, but all its tests will break after the selector fix since they add events at `tick: 0` while the store is also at tick 0. The requirements only list `useWhiffIndicators.test.ts`, but the same bug pattern exists in `useDamageNumbers.test.ts`. **Recommendation: add it to scope.**
-2. **Guard style for tick === 0:** Should the selectors use an explicit early return (`if (tick === 0) return []`) or rely on the natural `tick - 1 = -1` never matching? The requirements say "both selectors return empty arrays when tick === 0" suggesting an explicit guard is expected.
-3. **Should the `selectRecentDamageEvents` tests in gameStore-integration.test.ts that use `useGameStore.setState` to manually set tick remain as unit-style tests, or should they be converted to use `processTick` for more realistic testing?** The requirements say "use realistic post-processTick state" but the existing tests cover different concerns (type filtering, tick filtering). A mix of both styles may be appropriate.
+- **None**: The task is well-scoped with clear acceptance criteria. The requirements document identifies all files in scope and the exact changes needed. No ambiguity requiring planning-phase resolution.

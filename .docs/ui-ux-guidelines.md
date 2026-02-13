@@ -270,10 +270,10 @@ grid-template-columns:
   /* 3: priority    */ auto
   /* 4: name        */ 9rem
   /* 5: eval        */ 12rem
-  /* 6: trigger     */ auto
-  /* 7: target      */ auto
-  /* 8: selector    */ auto
-  /* 9: filter      */ auto
+  /* 6: trigger     */ minmax(0, auto)
+  /* 7: target      */ minmax(0, auto)
+  /* 8: selector    */ minmax(0, auto)
+  /* 9: filter      */ minmax(0, auto)
   /* 10: behavior   */ minmax(0, auto)
   /* 11: spacer     */ 1fr
   /* 12: actions    */ auto;
@@ -287,7 +287,10 @@ border-radius: var(--radius-md);
 /* Battle mode compact variant */
 .skillRow.battleMode {
   grid-template-columns:
-    auto 1.5rem auto 7.5rem 10rem auto auto auto auto minmax(0, auto)
+    auto 1.5rem auto 7.5rem 10rem minmax(0, auto) minmax(0, auto) minmax(
+      0,
+      auto
+    ) minmax(0, auto) minmax(0, auto)
     1fr auto;
   padding: 0.25rem 0.5rem;
   column-gap: 0.35rem;

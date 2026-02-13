@@ -6,7 +6,7 @@
 
 - Language: TypeScript 5.x (strict mode)
 - Framework: React 19+
-- State Management: Zustand + Immer middleware
+- State Management: Zustand + Immer middleware + DevTools middleware (dev-only, `name: 'curly-couscous'`)
 - Build Tool: Vite 7 + React Compiler (babel-plugin-react-compiler for automatic memoization, ADR-020)
 - Testing: Vitest + React Testing Library + @testing-library/user-event + Vitest Browser Mode (Playwright, ADR-022)
 - Styling: CSS Modules + CSS Custom Properties (terminal overlay tokens + legacy tokens, `light-dark()` + `color-mix()` theming, ADR-021)
@@ -18,7 +18,7 @@
 - **Hexagonal Grid System**: Axial coordinates {q, r}, pointy-top hex orientation (flat-top board shape), radius 5 (ADR-007)
 - **Data-Driven Targeting**: Target + criterion pairs (singular targets), plural target groups (movement only), trigger (unified scope + condition), and skill filters as declarative data interfaces (not functions)
 - **Shared Condition Evaluator**: `evaluateConditionForCandidate()` in `triggers.ts` used by both trigger evaluation (existential: `pool.some()`) and filter evaluation (per-element: `pool.filter()`)
-- **Command Pattern**: State mutations via named actions for history/undo support
+- **Command Pattern**: State mutations via named actions for history/undo support. All 18 store actions pass descriptive action name strings to `set()` for Redux DevTools timeline labeling.
 - **CSS Custom Property Theming**: Theme switching via `:root` data attributes with two-block + high-contrast pattern (ADR-021). `:root` uses `light-dark()` for ~43 theme-dependent variables and `color-mix()` for derived alpha tokens; `[data-theme="light"]` sets only `color-scheme: light`; `[data-theme="high-contrast"]` retains full overrides with `color-mix()` for bg tokens. Terminal overlay semantic tokens (`--ground`, `--surface`, `--border`, `--text-*`, `--accent`, `--danger`, `--success`, `--radius-*`, `--font-mono`) coexist with legacy tokens as an independent layer (ADR-019).
 - **Functional Components with Hooks**: Custom hooks for shared logic
 - **Selector-based Subscriptions**: Zustand selectors for fine-grained re-renders
@@ -50,7 +50,7 @@ src/
 │   ├── triggers.ts   # Trigger condition evaluation + shared evaluateConditionForCandidate()
 │   └── skill-registry.ts # Centralized skill definitions (ADR-005)
 ├── stores/           # Zustand stores
-│   └── gameStore.ts  # Game state + selectors (BattleViewer selectors included, e.g., selectRecentWhiffEvents)
+│   └── gameStore.ts  # Game state + selectors (devtools + immer middleware, BattleViewer selectors included, e.g., selectRecentWhiffEvents)
 #   Future stores (planned):
 #   ├── uiStore.ts    # UI state (selected, modes, visibility)
 #   └── accessibilityStore.ts

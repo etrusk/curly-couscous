@@ -13,11 +13,11 @@
 
 ## Recent Completions
 
+- 2026-02-13: Add Zustand DevTools middleware (COMPLETE, TDD/Claude Code) - Wrapped `useGameStore` with `devtools(immer(...))` middleware, configured with `name: 'curly-couscous'` and `enabled: import.meta.env.DEV`. Added action name strings to all 18 `set()` calls for labeled actions in Redux DevTools timeline. Created project `README.md` with install/run/debugging instructions. 6 new tests, 1527 total passing, all quality gates pass. 3 files modified (1 source, 1 test, 1 README).
+
 - 2026-02-13: Fix SkillRow grid overflow for complex trigger/filter conditions (COMPLETE, TDD/Claude Code) - Pure CSS fix: changed grid columns 6-9 from `auto` to `minmax(0, auto)` in both config and battle mode templates, added `flex-wrap: wrap` to `.triggerControl` and `.filterGroup` containers. Prevents overflow when complex conditions (e.g., "NOT Enemy Channeling (any)") are set. 4 CSS edits across 2 files, 2 doc updates. 1521 tests passing, all quality gates pass. Human verified: wrapping works but is "clunky" -- potential future UX polish.
 
 - 2026-02-12: Fix off-by-one in whiff/damage event selectors (COMPLETE, TDD/Claude Code) - `selectRecentWhiffEvents` and `selectRecentDamageEvents` filtered `e.tick === tick` but post-`processTick` tick is N+1 while events stamped at N. Fixed to `e.tick === tick - 1` with `tick === 0` guard. Updated 5 test files to use realistic post-`processTick` tick alignment. 1521 tests passing, all quality gates pass. 6 files modified (1 source + 5 test).
-
-- 2026-02-12: Two-State Trigger Model (COMPLETE, TDD/Claude Code) - Replaced always-present trigger dropdowns with two-state model: unconditional (`+ Condition` ghost button) or conditional (full controls with `x` remove). Removed "Always" from condition dropdown (7 options). Added CONDITION_SCOPE_RULES constant for per-condition valid scopes. When target=self, SELECTOR and FILTER controls hidden (not just disabled). Uses `liveSkill` store subscription for dynamic target changes. 33 new tests across 3 files, 1519 total passing, all quality gates pass.
 
 ## Priority Next Tasks (from TDD session)
 

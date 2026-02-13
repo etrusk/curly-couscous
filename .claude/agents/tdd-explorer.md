@@ -51,6 +51,12 @@ When a task involves removing, renaming, or changing the interface of a componen
 - List every file that references the affected interface under "Relevant Files", even if no logic change is needed (test files with render calls count)
 - **Transitive test impact**: When a component's rendered output changes (e.g., dropdown becomes a button), also search for test files of PARENT components that render the changed component. These tests often assert on child component output (e.g., querying for a combobox that no longer exists). Use Grep to find test files importing or rendering the parent component (e.g., `grep '<SkillRow' --glob '*.test.*'`)
 
+When a task involves changing **behavioral semantics** (e.g., timing, offsets, state invariants) without changing an interface:
+
+- Grep for the affected state fields/values in ALL test files (e.g., `grep 'tick' --glob '*.test.*'` for a tick-offset fix)
+- Tests at any layer (unit, hook, component, integration) may manually construct the affected state — all such files are in scope
+- Do NOT stop at direct consumers; trace through hooks/utilities to the components that render them, since component-level tests often duplicate state setup patterns
+
 ## Output
 
 Write findings to `.tdd/exploration.md`:

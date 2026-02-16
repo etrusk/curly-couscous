@@ -66,26 +66,13 @@ export function processTick(state: GameState): TickResult {
   characters = chargeResult.updatedCharacters;
   events.push(...chargeResult.events);
 
-  // 4d. Collect IDs of characters whose actions already resolved in earlier stages
-  // (interrupt, charge) so they don't block movement at their positions.
-  const resolvedCharacterIds = new Set<string>();
-  for (const character of characters) {
-    if (
-      character.currentAction &&
-      (character.currentAction.type === "interrupt" ||
-        character.currentAction.type === "charge") &&
-      character.currentAction.resolvesAtTick <= state.tick
-    ) {
-      resolvedCharacterIds.add(character.id);
-    }
-  }
-
-  // 4e. Movement resolution (movement before combat enables dodge)
+  // 4d. Movement resolution (movement before combat enables dodge)
+  // Note: characters array already has post-charge positions from step 4c,
+  // so chargers naturally block at their new positions without exclusion.
   const movementResult = resolveMovement(
     characters,
     state.tick,
     state.rngState,
-    resolvedCharacterIds.size > 0 ? resolvedCharacterIds : undefined,
   );
   characters = movementResult.updatedCharacters;
   events.push(...movementResult.events);

@@ -65,25 +65,11 @@ export function nextRandom(state: number): {
  * for the entire tick, even if they're moving away. This prevents chain movement
  * exploits and matches the design spec: "decisions made against game state at tick start".
  *
- * Characters whose actions have already resolved in earlier pipeline stages
- * (e.g., interrupt, charge) can be excluded via resolvedCharacterIds, since
- * they are no longer actively participating in this tick's resolution.
- *
  * @param character - Character to check
  * @param position - Position to check for blocking
- * @param resolvedCharacterIds - Optional set of character IDs to exclude from blocking
  * @returns true if character blocks this position
  */
-function isBlocker(
-  character: Character,
-  position: Position,
-  resolvedCharacterIds?: Set<string>,
-): boolean {
-  // Skip characters whose actions already resolved in earlier pipeline stages
-  if (resolvedCharacterIds?.has(character.id)) {
-    return false;
-  }
-  // A character at a position always blocks that position (snapshot-based)
+function isBlocker(character: Character, position: Position): boolean {
   return positionsEqual(character.position, position);
 }
 
@@ -106,16 +92,12 @@ function isBlocker(
  * @param characters - All characters in the battle
  * @param tick - Current game tick (for event timestamps)
  * @param rngState - Current RNG state for deterministic collision resolution
- * @param resolvedCharacterIds - Optional set of character IDs whose actions already resolved
- *   in earlier pipeline stages (e.g., interrupt, charge). These characters are excluded from
- *   blocker checks to prevent already-resolved actions from blocking movement.
  * @returns MovementResult with updated characters, events, and new RNG state
  */
 export function resolveMovement(
   characters: Character[],
   tick: number,
   rngState: number,
-  resolvedCharacterIds?: Set<string>,
 ): MovementResult {
   // 1. Find all resolving movers (excluding hold actions)
   const movers = characters.filter((c) => {
@@ -183,9 +165,7 @@ export function resolveMovement(
     const targetCell = firstMover.currentAction!.targetCell;
 
     // Check for blockers at target
-    const blockers = characters.filter((c) =>
-      isBlocker(c, targetCell, resolvedCharacterIds),
-    );
+    const blockers = characters.filter((c) => isBlocker(c, targetCell));
 
     if (blockers.length > 0) {
       // Blocker wins - all movers stay in place

@@ -1,41 +1,89 @@
-# TDD Spec: Add Zustand DevTools Middleware
+# TDD Spec: Add Static Analysis Toolchain (Stryker, dependency-cruiser, knip)
 
-Created: 2026-02-13
+Created: 2026-02-16
 
 ## Goal
 
-Wrap the existing Zustand game store with `devtools` middleware to enable Redux DevTools browser extension integration. This provides state tree inspection, action history with diffs, and time-travel debugging — complementing the project's existing command pattern architecture. Dev-only; zero impact on production.
+Add three static analysis tools to the dev toolchain — Stryker Mutator (mutation testing), dependency-cruiser (module boundary enforcement), and knip (dead code detection) — plus consolidate scattered workflow timers into a single file. These tools close the gap between high line coverage (98.8%) and actual behavioral verification, enforce the layered architecture at CI time, and catch dead exports/dependencies that ESLint's within-file rules miss.
 
 ## Acceptance Criteria
 
-- [ ] `useGameStore` is wrapped with `devtools` middleware in the correct order: `devtools(immer(...))`
-- [ ] DevTools middleware is configured with `name: 'curly-couscous'` for identification
-- [ ] DevTools middleware is gated to dev mode only via `enabled: import.meta.env.DEV`
-- [ ] All existing store tests pass without modification (middleware is transparent)
-- [ ] Type safety is preserved — `GameStore` type works correctly with the added middleware layer
-- [ ] One integration test verifies the store is created successfully with devtools middleware (smoke test)
-- [ ] All 18 `set()` calls in `gameStore.ts` pass an action name as the third argument (e.g., `set(fn, false, 'initBattle')`) so actions appear with descriptive labels in the DevTools timeline instead of "anonymous"
-- [ ] Action names match the method name they appear in (e.g., `processTick`, `addCharacter`, `removeCharacter`)
-- [ ] A `README.md` exists at the project root with: project name, one-line description, how to install and run (`npm install`, `npm run dev`), and a "Debugging" section explaining how to access state via Redux DevTools (install extension, open DevTools, find the "curly-couscous" store, mentions time-travel and action diffs)
+### Stryker Mutator
+
+- [ ] `@stryker-mutator/core` and `@stryker-mutator/vitest-runner` installed as devDependencies
+- [ ] `stryker.config.json` configured to mutate full `src/` tree (excluding test files, test helpers, type-only files)
+- [ ] `npm run mutate` runs `stryker run --incremental` (fast, for `/tdd` workflow use)
+- [ ] `npm run mutate:full` runs `stryker run` (full cache reset, for periodic use)
+- [ ] No enforced thresholds initially — reporting only (HTML + clear-text reporters)
+- [ ] Stryker works with the dual Vitest project setup (unit + browser) in `vite.config.ts`
+- [ ] `.stryker-tmp/` added to `.gitignore`
+- [ ] `reports/` (Stryker HTML output) added to `.gitignore`
+- [ ] Incremental run (`npm run mutate`) integrated into `/tdd` workflow as a post-test step
+
+### dependency-cruiser
+
+- [ ] `dependency-cruiser` installed as devDependency
+- [ ] `.dependency-cruiser.cjs` config with these boundary rules:
+  - `src/engine/**` must NOT import from `react`, `react-dom`, `zustand`, `immer`, `src/components/**`, `src/stores/**`, `src/hooks/**`, `src/styles/**`
+  - `src/stores/**` must NOT import from `src/components/**`, `src/hooks/**`
+  - `src/hooks/**` must NOT import from `src/components/**`
+  - No circular dependencies (all of `src/`)
+- [ ] `npm run validate:deps` runs dependency-cruiser on `src/`
+- [ ] Wired into `lint-staged` in `package.json` (runs on every commit for staged `.ts`/`.tsx` files)
+
+### knip
+
+- [ ] `knip` installed as devDependency
+- [ ] `knip.json` config targeting `src/` with appropriate entry points and project files
+- [ ] `npm run knip` runs dead code/export/dependency analysis
+- [ ] Wired into `lint-staged` in `package.json` (runs on every commit)
+
+### Centralized Workflow Timers
+
+- [ ] New `.workflow-timestamps.json` file consolidating all periodic checks:
+  ```json
+  {
+    "deps-check": "2026-02-08T09:54:37Z",
+    "meta-review": "2026-02-10T00:00:00Z",
+    "mutation-test": null
+  }
+  ```
+- [ ] `.deps-check-timestamp` removed (migrated into centralized file)
+- [ ] `.docs/last-meta-review.txt` removed (migrated into centralized file)
+- [ ] All three timers use 14-day cadence
+- [ ] `CLAUDE.md` session start section updated: read `.workflow-timestamps.json`, report all overdue items at once
+- [ ] `/tdd` workflow (`.claude/commands/tdd.md`) updated: read meta-review timer from `.workflow-timestamps.json` instead of `.docs/last-meta-review.txt`
+
+### Documentation
+
+- [ ] `CLAUDE.md` key commands section updated with new npm scripts (`mutate`, `mutate:full`, `validate:deps`, `knip`)
+- [ ] `CLAUDE.md` session start section references `.workflow-timestamps.json` instead of `.deps-check-timestamp`
 
 ## Approach
 
-Three deliverables in `src/stores/gameStore.ts` and project root: (1) import `devtools` from `zustand/middleware` and wrap the existing `immer(...)` call with `devtools(...)` with config options; (2) add action name strings to all `set()` calls so the DevTools timeline shows descriptive labels; (3) create a minimal `README.md` with setup and debugging instructions.
+Install and configure three tools independently, then wire them into existing automation:
+
+1. Stryker: config + npm scripts + `/tdd` integration + timer entry
+2. dependency-cruiser: config with layered architecture rules + npm script + lint-staged
+3. knip: config + npm script + lint-staged
+4. Consolidate timers: migrate two existing files into `.workflow-timestamps.json`, update all consumers
 
 ## Scope Boundaries
 
-- In scope: Adding `devtools` middleware wrapper to `useGameStore` in `gameStore.ts`
-- In scope: Adding action name arguments to all `set()` calls in the store
-- In scope: Creating a minimal `README.md` with debugging instructions
-- Out of scope: In-app debug panel, custom state logging, or any UI changes
+- **In scope**: Package installation, config files, npm scripts, lint-staged wiring, `/tdd` workflow integration, timer consolidation, CLAUDE.md updates
+- **Out of scope**: Setting mutation score thresholds (baseline first), CI pipeline setup, fixing any issues the new tools discover (dead code, boundary violations, surviving mutants), changes to game engine/components/stores
 
 ## Assumptions
 
-- `zustand/middleware` exports `devtools` (it does — same package, no additional install needed)
-- `import.meta.env.DEV` is available via Vite and is `true` in dev, `false` in production builds
-- Redux DevTools browser extension is the user's responsibility to install
+- Stryker's `@stryker-mutator/vitest-runner` supports Vitest 4.x and the dual-project config. If it doesn't, we fall back to unit-project-only mutation testing and document the limitation.
+- dependency-cruiser and knip are fast enough for lint-staged without noticeably slowing commits. If either takes >5s on staged files, we move it to npm script only and document why.
+- The `/tdd` workflow file (`.claude/commands/tdd.md`) is the only consumer of `.docs/last-meta-review.txt`. If other files reference it, they need updating too.
 
 ## Constraints
 
-- Middleware ordering must be `devtools(immer(...))` — devtools must wrap immer, not the reverse, so devtools sees the final state after Immer produces it
-- No runtime cost in production (`enabled: false` means the middleware is a no-op)
+- All packages must exist on npm (verify before installing)
+- No changes to source code, tests, or game logic
+- Must maintain TypeScript strict mode compliance
+- Must not break existing pre-commit hook (`lint-staged` runs ESLint + Prettier)
+- Config files follow project convention (root-level dotfiles)
+- Lesson 005 context: Stryker is specifically valuable here because tests that manually construct state (rather than simulating producer output) will show as surviving mutants even with 98.8% line coverage

@@ -173,6 +173,18 @@ During battle phase, SkillRow shows evaluation indicators alongside config contr
 - All UI work must follow `.docs/ui-ux-guidelines.md`
 - Font: Fira Code / Cascadia Code / JetBrains Mono monospace stack only in game UI (`--font-mono`)
 
+## Static Analysis Toolchain
+
+Three static analysis tools enforce code quality beyond tests and linting:
+
+- **Stryker Mutator**: Mutation testing via `npm run mutate` (incremental, fast) and `npm run mutate:full` (clean baseline). Uses `@stryker-mutator/vitest-runner` against both unit and browser Vitest projects. Report-only (no enforced thresholds). Integrated into TDD workflow IMPLEMENT phase as a non-blocking post-test step.
+- **dependency-cruiser**: Module boundary enforcement via `npm run validate:deps`. Rules in `.dependency-cruiser.cjs` enforce engine isolation (no React/Zustand/components/stores/hooks/styles imports), store isolation (no components/hooks imports), hooks isolation (no components imports), and no circular dependencies. Wired into lint-staged for per-file checking on commit.
+- **knip**: Dead code, unused export, and unused dependency detection via `npm run knip`. Not wired into lint-staged (project-level analyzer that requires whole-project analysis; ADR-025).
+
+### Workflow Timers
+
+Periodic check timestamps are consolidated in `.workflow-timestamps.json` (gitignored, machine-specific). Three timers with 14-day cadence: `deps-check`, `meta-review`, `mutation-test`. Session start in CLAUDE.md reports all overdue items at once.
+
 ## Testing Guidelines
 
 - Unit tests for engine logic: Pure functions, no React

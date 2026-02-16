@@ -2,171 +2,172 @@
 
 ## Task Understanding
 
-Add Zustand DevTools middleware to the existing game store (`useGameStore`) to enable Redux DevTools browser extension integration. Three deliverables: (1) wrap `immer(...)` with `devtools(...)`, (2) add action name strings to all 18 `set()` calls, (3) create a root `README.md` with debugging instructions.
+Add three static analysis tools (Stryker Mutator, dependency-cruiser, knip) and consolidate two existing workflow timer files (`.deps-check-timestamp` and `.docs/last-meta-review.txt`) into a single `.workflow-timestamps.json` file. No source code changes -- only configuration, npm scripts, lint-staged wiring, and documentation updates.
 
 ## Relevant Files
 
-### Primary (will be modified)
+### Vitest/Vite Configuration
 
-- `/home/bob/Projects/auto-battler/src/stores/gameStore.ts` - The store file. Currently uses `create<GameStore>()(immer((set, get) => ({...})))`. Contains 18 `set()` calls, none of which currently pass an action name string. Needs `devtools` import from `zustand/middleware` and wrapping. Line 98: store creation. Line 9-10: existing imports.
-- `/home/bob/Projects/auto-battler/README.md` - Does NOT exist yet. Must be created with project info and debugging section.
+- `/home/bob/Projects/auto-battler/vite.config.ts` - Dual project setup: `unit` (jsdom, `*.test.{ts,tsx}`, excludes `*.browser.test.*`) and `browser` (Playwright/Chromium, `*.browser.test.{ts,tsx}`). Stryker's vitest-runner must work with this `test.projects` array structure. Key details:
+  - Unit project: jsdom environment, `setupFiles: ./src/test/setup.ts`, `fakeTimers: { shouldAdvanceTime: true }`
+  - Browser project: Playwright provider, headless Chromium, separate setup file `./src/test/setup.browser.ts`
+  - Both use `extends: true` (inherit root config)
+  - React Compiler babel plugin configured at root level
 
-### Types and Supporting Modules
+### Package Configuration
 
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-types.ts` - `GameStore` interface (87 lines). Defines all action signatures. No changes needed unless type inference breaks with devtools layer.
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-constants.ts` - `initialGameState`, `MAX_SKILL_SLOTS`, `HEX_RADIUS`, `positionKey`, `getNextCharacterIdCounter`. No changes needed.
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-helpers.ts` - `findNextAvailablePosition`, `calculateBattleStatus`. No changes needed.
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors.ts` - All selector functions. No changes needed.
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-test-helpers.ts` - `createCharacter`, `createSkill` test helpers.
+- `/home/bob/Projects/auto-battler/package.json` - Key observations:
+  - **Existing scripts**: `dev`, `build`, `build:verify`, `preview`, `test`, `test:unit`, `test:browser`, `test:watch`, `test:ui`, `test:critical`, `type-check`, `lint`, `format`, `security:check`, `security:scan`, `prepare`
+  - **No existing** `mutate`, `validate:deps`, or `knip` scripts
+  - **lint-staged config** (inline in package.json):
+    ```json
+    "lint-staged": {
+      "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+      "*.{json,md,css}": ["prettier --write"]
+    }
+    ```
+  - **Husky**: `"prepare": "husky"` script, `.husky/pre-commit` runs `npx lint-staged`
+  - **Version**: `0.26.0`, `"type": "module"`
+  - **Dependencies**: react, react-dom, immer, zustand
+  - **DevDependencies**: vitest 4.0.18, vite 7.3.1, typescript 5.9.3, eslint 9.39.2, prettier 3.8.1, husky 9.1.7, lint-staged 16.2.7, playwright 1.58.2, and various eslint/testing-library packages
 
-### Test Files (20 files - must all pass unchanged)
+### Project Structure (for dependency-cruiser boundaries)
 
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-integration.test.ts` - Engine-store integration tests. The new devtools smoke test could be added here or in a new dedicated file.
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-characters.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-debug-ui.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-helpers.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-reset.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-default-skills.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-evaluations.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-faction-skills.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-intent-filter.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-intent-preview.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-intent-targeting.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-intent-ticks.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-movement-intent.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-movement-target.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-selectors-movement-trigger.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-skills-duplication.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-skills-faction-exclusivity.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-skills.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/gameStore-slotPosition.test.ts`
-- `/home/bob/Projects/auto-battler/src/stores/accessibilityStore.test.ts`
+```
+src/
+  engine/       - Pure TypeScript game logic (NO React deps) -- ~40+ source files + tests
+  stores/       - Zustand stores (gameStore.ts, accessibilityStore.ts, types, constants, helpers)
+  hooks/        - Custom React hooks (useInterval.ts only)
+  components/   - React components (BattleViewer/, CharacterPanel/, RuleEvaluations/, etc.)
+  styles/       - CSS Modules + theme definitions (theme.css, tests)
+  test/         - Test setup files (setup.ts, setup.browser.ts)
+  utils/        - Utilities (letterMapping.ts only)
+```
 
-### Package Config
+Layered architecture rules from `.docs/architecture.md`:
 
-- `/home/bob/Projects/auto-battler/package.json` - zustand `^4.5.7`, immer `^10.2.0`. No additional dependencies needed (`devtools` is part of `zustand/middleware`).
+- `engine/` must NOT import from react, react-dom, zustand, immer, components, stores, hooks, styles
+- `stores/` must NOT import from components, hooks
+- `hooks/` must NOT import from components
+
+### Timer Files (to consolidate)
+
+- `/home/bob/Projects/auto-battler/.deps-check-timestamp` - Contains `2026-02-08T09:54:37Z` (ISO 8601 UTC). Referenced by:
+  - `CLAUDE.md` (Session Start section: read and check if >14 days)
+  - `.claude/commands/deps-check.md` (writes `date -u +%Y-%m-%dT%H:%M:%SZ` to this file)
+  - `.gitignore` (listed under `# Dependency check`)
+
+- `/home/bob/Projects/auto-battler/.docs/last-meta-review.txt` - Contains `2026-02-10` (YYYY-MM-DD, no time component). Referenced by:
+  - `.claude/commands/tdd.md` (Meta-Housekeeping Timer section: reads file, checks if >30 days, writes YYYY-MM-DD on completion)
+  - NOT in `.gitignore` (tracked in git)
+
+### Workflow Consumer Files
+
+- `/home/bob/Projects/auto-battler/CLAUDE.md` - Session Start section (lines 96-102):
+
+  ```
+  Read `.deps-check-timestamp` (repo root, ISO 8601 UTC date). Calculate days since that date.
+  If >14 days or file missing, print:
+  > **Dependency check overdue** ({N} days since last check). Run `/project:deps-check` to update.
+  ```
+
+  Also Key Commands section (lines ~27-36) listing `build`, `test`, `test:watch`, `lint`, `type-check`, `format`, `security:check`.
+
+- `/home/bob/Projects/auto-battler/.claude/commands/tdd.md` - Meta-Housekeeping Timer section (lines 22-27):
+
+  ```
+  At session start, read `.docs/last-meta-review.txt`. If the file is missing or the date inside
+  is >30 days ago, output: "Monthly meta-review due..."
+  On either review completion or skip, write today's date (YYYY-MM-DD) to `.docs/last-meta-review.txt`
+  ```
+
+- `/home/bob/Projects/auto-battler/.claude/commands/deps-check.md` - Post-Update section writes to `.deps-check-timestamp` (line 99).
+
+### .gitignore
+
+- `/home/bob/Projects/auto-battler/.gitignore` - Current entries include: `node_modules`, `dist`, `coverage`, `__screenshots__/`, `.env*`, `.claude/settings.local.json`, `CLAUDE.local.md`, `.deps-check-timestamp`. Needs additions:
+  - `.stryker-tmp/` (Stryker working directory)
+  - `reports/` (Stryker HTML output)
+  - `.workflow-timestamps.json` (replaces `.deps-check-timestamp` entry)
+
+### Test File Patterns
+
+- **Unit tests**: `*.test.ts` and `*.test.tsx` (no `*.spec.*` files exist in the project)
+- **Browser tests**: `*.browser.test.tsx` (3 files)
+- **Test helper files** (not tests, should be excluded from mutation):
+  - `src/engine/combat-test-helpers.ts`
+  - `src/engine/game-test-helpers.ts`
+  - `src/engine/selectors-test-helpers.ts`
+  - `src/engine/triggers-test-helpers.ts`
+  - `src/stores/gameStore-test-helpers.ts`
+  - `src/components/RuleEvaluations/rule-evaluations-test-helpers.ts`
+- **Test setup files**: `src/test/setup.ts`, `src/test/setup.browser.ts`
+
+### Type-Only / Constants Files
+
+- **No `.d.ts` files** exist in `src/`
+- Type-heavy files that should likely be excluded from Stryker (mostly type exports, minimal runtime code):
+  - `src/engine/types.ts` (396 lines -- mostly interfaces/types, but has a few runtime functions: `isPluralTarget`, `positionsEqual`, `isValidPosition`, `hexDistance`)
+  - `src/stores/gameStore-types.ts` (86 lines)
+  - `src/stores/gameStore-constants.ts` (57 lines)
 
 ## Existing Patterns
 
-### Store Creation Pattern
-
-Current pattern (line 98-99 of `gameStore.ts`):
-
-```typescript
-export const useGameStore = create<GameStore>()(
-  immer((set, get) => ({
-    // ...state and actions
-  })),
-);
-```
-
-Target pattern:
-
-```typescript
-export const useGameStore = create<GameStore>()(
-  devtools(
-    immer((set, get) => ({
-      // ...state and actions
-    })),
-    { name: "curly-couscous", enabled: import.meta.env.DEV },
-  ),
-);
-```
-
-### Import Pattern
-
-Current: `import { immer } from "zustand/middleware/immer";`
-New: `import { devtools } from "zustand/middleware";` (note: `devtools` is at `zustand/middleware`, NOT `zustand/middleware/devtools`)
-
-### set() Call Inventory (18 calls, all in gameStore.ts)
-
-Each `set()` call needs a third argument: action name string. The `set()` signature with devtools becomes `set(fn, replace?, actionName?)`.
-
-| #   | Line | Method Name                | Action Name to Add           |
-| --- | ---- | -------------------------- | ---------------------------- |
-| 1   | 115  | `initBattle`               | `'initBattle'`               |
-| 2   | 144  | `nextTick`                 | `'nextTick'`                 |
-| 3   | 154  | `processTick`              | `'processTick'`              |
-| 4   | 182  | `updateCharacter`          | `'updateCharacter'`          |
-| 5   | 190  | `addEvent`                 | `'addEvent'`                 |
-| 6   | 195  | `reset`                    | `'reset'`                    |
-| 7   | 218  | `selectCharacter`          | `'selectCharacter'`          |
-| 8   | 223  | `updateSkill`              | `'updateSkill'`              |
-| 9   | 238  | `moveSkillUp`              | `'moveSkillUp'`              |
-| 10  | 257  | `moveSkillDown`            | `'moveSkillDown'`            |
-| 11  | 276  | `assignSkillToCharacter`   | `'assignSkillToCharacter'`   |
-| 12  | 315  | `removeSkillFromCharacter` | `'removeSkillFromCharacter'` |
-| 13  | 351  | `duplicateSkill`           | `'duplicateSkill'`           |
-| 14  | 404  | `addCharacter`             | `'addCharacter'`             |
-| 15  | 456  | `removeCharacter`          | `'removeCharacter'`          |
-| 16  | 479  | `setSelectionMode`         | `'setSelectionMode'`         |
-| 17  | 485  | `addCharacterAtPosition`   | `'addCharacterAtPosition'`   |
-| 18  | 538  | `moveCharacter`            | `'moveCharacter'`            |
-
-### set() Call Signatures
-
-Two patterns exist:
-
-1. **Simple (15 calls):** `set((state) => { ... })` -- needs `set((state) => { ... }, false, 'actionName')`
-2. **Boolean-return (3 calls):** `addCharacter`, `addCharacterAtPosition`, `moveCharacter` use `let success; set((state) => { ... }); return success;` -- same change, just add `false, 'actionName'` args.
-
-The second argument (`false`) is the "replace" flag; `false` means merge (default behavior, same as omitting it). It must be explicitly passed when using the third argument.
-
-### Command Pattern (Architecture)
-
-Architecture doc notes "Command Pattern: State mutations via named actions for history/undo support." DevTools middleware directly complements this by exposing these actions in the Redux DevTools timeline.
+- **CSS Modules pattern** - Components use `*.module.css` co-located files
+- **Co-located tests** - Tests live alongside source files (e.g., `hex.test.ts` next to `hex.ts`)
+- **Test helper convention** - Helper files named `*-test-helpers.ts` (6 files)
+- **Browser test convention** - `*.browser.test.tsx` for real DOM tests (ADR-022)
+- **Inline lint-staged** - Config embedded in `package.json`, not a separate file
+- **Root-level dotfiles** - Config files follow project convention (`.gitignore`, `.deps-check-timestamp`)
+- **No existing `*.config.json` for tools** - ESLint uses flat config (implicit), Prettier likely defaults
 
 ## Dependencies
 
-- `zustand` `^4.5.7` (already installed) - `devtools` exported from `zustand/middleware`
-- Vite `import.meta.env.DEV` for dev-gating (already used by the project via Vite 7.3)
-- No new npm packages needed
+- **Stryker needs**: `@stryker-mutator/core`, `@stryker-mutator/vitest-runner` as devDependencies
+- **dependency-cruiser needs**: `dependency-cruiser` as devDependency
+- **knip needs**: `knip` as devDependency
+- **Stryker vitest-runner compatibility**: Must verify it supports Vitest 4.x and the `test.projects` dual-project config. The requirements note a fallback: if dual-project is not supported, use unit-project-only mutation testing.
+- **lint-staged additions**: dependency-cruiser and knip need to be wired into the existing `*.{ts,tsx}` lint-staged array
 
 ## Applicable Lessons
 
-- **Lesson 005** - "Tests masking bugs with aligned state" - Marginally relevant: the existing test suite manually constructs state. The middleware should be transparent, but this lesson reminds us to verify tests still exercise real store behavior rather than bypassing the middleware layer.
-- No other lessons directly apply (this is a middleware/tooling task, not UI/specification/pathfinding).
+- **Lesson 005** - "Tests masking bugs by manually aligning state" -- Directly relevant. The requirements note this: Stryker is specifically valuable because tests that manually construct state will show as surviving mutants even with 98.8% line coverage. This validates the tool's value proposition.
+- No other lessons from the index (001-004) are relevant to this tooling/configuration task.
 
 ## Constraints Discovered
 
-1. **Middleware ordering:** `devtools` MUST wrap `immer`, not vice versa. The zustand docs and type definitions confirm this pattern: `devtools(immer(...))`. This is because devtools needs to see the final (produced) state, not the draft.
+1. **Stryker + dual Vitest projects**: The `vite.config.ts` uses `test.projects` with two project definitions. Stryker's vitest-runner may need special config or may only support a single project. The requirements anticipate this and provide a fallback (unit-only mutation testing).
 
-2. **TypeScript generics:** The `create<GameStore>()` call uses the curried form. With devtools added, the type parameter should still work because zustand's type system uses `StoreMutatorIdentifier` chaining. The devtools type definition (`middleware/devtools.d.ts`) shows it preserves the inner type `T` and just adds `WithDevtools<S>` to `setState`. No changes to `GameStore` interface expected.
+2. **lint-staged performance**: dependency-cruiser and knip added to lint-staged must not noticeably slow commits (>5s threshold per requirements). If they do, they should be npm-script-only.
 
-3. **`set()` third argument:** The devtools middleware modifies `set` to accept an optional third argument (action name string or `{type: string}` object). Without devtools, the third argument is silently ignored by immer's `set`. With devtools, it labels the action in the timeline.
+3. **Timer format mismatch**: `.deps-check-timestamp` uses ISO 8601 with time (`2026-02-08T09:54:37Z`) while `.docs/last-meta-review.txt` uses date-only (`2026-02-10`). The consolidated `.workflow-timestamps.json` should standardize on ISO 8601 with time for all entries.
 
-4. **Test environment:** Redux DevTools extension will not be present in the test environment (jsdom/Node). The `devtools` middleware gracefully handles this -- when no extension is detected (or `enabled: false`), it acts as a passthrough. All 20+ existing test files should pass without modification.
+4. **Timer cadence change**: `.deps-check-timestamp` currently uses 14-day cadence in `CLAUDE.md`. `.docs/last-meta-review.txt` uses 30-day cadence in `tdd.md`. The requirements specify all three timers use 14-day cadence, so the meta-review cadence changes from 30 to 14 days.
 
-5. **File line limit:** `gameStore.ts` is currently 581 lines (already has an eslint-disable for `max-lines`). Adding devtools wrapper and action name strings will add ~20 lines. The file already exceeds the 400-line project limit with an existing TODO comment to extract skill actions.
+5. **`.workflow-timestamps.json` in .gitignore**: The existing `.deps-check-timestamp` is in `.gitignore`. The new consolidated file should also be in `.gitignore` (since timestamps are machine-specific). The old `.docs/last-meta-review.txt` is NOT in `.gitignore` (tracked). This is a semantic change worth noting.
 
-6. **`import.meta.env.DEV` in tests:** Vitest supports `import.meta.env.DEV` and it is `true` during test runs. The devtools middleware will be "enabled" in tests, but without the extension connected, it is a no-op.
+6. **deps-check.md also writes to `.deps-check-timestamp`**: The `deps-check` command (`.claude/commands/deps-check.md`, line 99) writes `date -u +%Y-%m-%dT%H:%M:%SZ > .deps-check-timestamp`. This must be updated to write to `.workflow-timestamps.json` instead.
 
-## DevTools Type Signature Reference
+7. **No changes to source code**: The requirements explicitly state no changes to source code, tests, or game logic. Only config files, scripts, and documentation.
 
-From `node_modules/zustand/middleware/devtools.d.ts`:
+8. **File line limit**: 400-line max per file is a project constraint, but config files should be well under this.
 
-```typescript
-export interface DevtoolsOptions extends Config {
-  name?: string;
-  enabled?: boolean;
-  anonymousActionType?: string;
-  store?: string;
-}
+9. **`stryker.config.json` naming**: The requirements specify `stryker.config.json` (not `stryker.config.mjs` or `.js`). Since the project is `"type": "module"`, a JSON config avoids ESM/CJS issues.
 
-export declare const devtools: Devtools;
-// Devtools type wraps StateCreator and adds ['zustand/devtools', never] to mutator chain
-```
-
-The `setState` is augmented to accept an optional action name:
-
-```typescript
-setState<A extends string | { type: string }>(...a: [...a: TakeTwo<Sa>, action?: A]): Sr;
-```
+10. **dependency-cruiser config naming**: Requirements specify `.dependency-cruiser.cjs`. The `.cjs` extension is needed because the project is `"type": "module"` and dependency-cruiser's config uses CommonJS `module.exports`.
 
 ## Open Questions
 
-1. **Smoke test location:** Should the devtools integration smoke test go in the existing `gameStore-integration.test.ts` or a new `gameStore-devtools.test.ts` file? The requirements say "one integration test verifies the store is created successfully with devtools middleware." Given the project's pattern of splitting test files by concern, a dedicated file may be cleaner.
+1. **Stryker vitest-runner dual-project support**: Does `@stryker-mutator/vitest-runner` work with Vitest's `test.projects` config? If not, can it be configured to target only the `unit` project? This should be verified during implementation.
 
-2. **Action name for boolean-return methods:** The `addCharacter`, `addCharacterAtPosition`, and `moveCharacter` methods each have a single `set()` call. The action name should just be the method name (e.g., `'addCharacter'`). No ambiguity here since each method has exactly one `set()` call.
+2. **knip entry points**: knip needs to know the project's entry points. The main entry is `src/main.tsx`. The test setup files (`src/test/setup.ts`, `src/test/setup.browser.ts`) and vite config should be auto-detected. Are there other entry points?
 
-3. **README.md content scope:** Requirements specify minimal content: project name, one-line description, install/run instructions, and a "Debugging" section. Should it reference any other project docs or keep it minimal? The requirements are clear -- keep it minimal.
+3. **dependency-cruiser on staged files only**: The `lint-staged` config runs commands on staged files only. `dependency-cruiser` typically validates the whole dependency graph. Running it on individual staged files may not catch all boundary violations (e.g., a new import in a staged file that pulls in a forbidden dependency). Need to verify if per-file invocation is sufficient or if the full `src/` scan is needed.
+
+4. **knip on staged files**: Similar to dependency-cruiser -- knip analyzes the whole project for dead exports/dependencies. Running on staged files alone may not be meaningful. May need to run on full project in lint-staged (or move to npm script only if too slow).
+
+5. **Stryker mutation scope**: The requirements say "mutate full `src/` tree (excluding test files, test helpers, type-only files)". Should `src/test/setup.ts` and `src/test/setup.browser.ts` also be excluded? They are test infrastructure. Should `src/main.tsx` be excluded (trivial React entry point)?
+
+6. **`.workflow-timestamps.json` initial creation**: When the file does not exist, all consumers need to handle graceful creation. The `CLAUDE.md` session start section already handles "file missing" case for `.deps-check-timestamp`.
+
+7. **Mutation testing in `/tdd` workflow**: The requirements say "Incremental run (`npm run mutate`) integrated into `/tdd` workflow as a post-test step." Where exactly in the TDD workflow does this go? After IMPLEMENT (post-green)? After REVIEW? The `tdd.md` state machine would need a new step or an addition to an existing phase.

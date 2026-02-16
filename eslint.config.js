@@ -104,6 +104,6 @@ export default tseslint.config(
     ...tseslint.configs.disableTypeChecked,
   },
   {
-    ignores: ['dist/**', 'node_modules/**', '.archive/**'],
+    ignores: ['dist/**', 'node_modules/**', '.archive/**', '.dependency-cruiser.cjs'],
   }
 );

@@ -20,13 +20,13 @@ version: 4.0.0
 
 ## Meta-Housekeeping Timer
 
-At session start, read `.docs/last-meta-review.txt`. If the file is missing or the date inside is >30 days ago, output:
+At session start, read `.workflow-timestamps.json` key `"meta-review"`. If the file is missing, the key is null, or the date is >14 days ago, output:
 
-> ⏰ Monthly meta-review due. Review or "skip" to proceed.
+> Meta-review due. Review or "skip" to proceed.
 
-On either review completion or skip, write today's date (YYYY-MM-DD) to `.docs/last-meta-review.txt` and log a one-line summary to `.docs/meta-review-log.md`.
+On either review completion or skip, update `"meta-review"` in `.workflow-timestamps.json` to current ISO 8601 UTC timestamp and log a one-line summary to `.docs/meta-review-log.md`.
 
-If ≤30 days, proceed without mention.
+If <=14 days, proceed without mention.
 
 ---
 
@@ -406,8 +406,9 @@ phases:
     actions:
       - Write code to pass tests
       - Run quality gates (lint, type-check)
+      - Run incremental mutation testing (npm run mutate) — non-blocking, report-only
       - UI changes: browser verification (MCP tools only)
-    gate_order: "tests pass (green) → lint → type-check → REVIEW"
+    gate_order: "tests pass (green) → lint → type-check → mutate (report-only) → REVIEW"
     next: REVIEW
 
   REVIEW:

@@ -95,8 +95,16 @@ Report any new vulnerabilities.
 
 ### Update Timestamp
 
+Update `"deps-check"` in `.workflow-timestamps.json` to current ISO 8601 UTC timestamp. If the file does not exist, create it:
+
 ```bash
-date -u +%Y-%m-%dT%H:%M:%SZ > .deps-check-timestamp
+node -e "
+const fs = require('fs');
+const f = '.workflow-timestamps.json';
+const data = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : {};
+data['deps-check'] = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+fs.writeFileSync(f, JSON.stringify(data, null, 2) + '\n');
+"
 ```
 
 ### Cleanup

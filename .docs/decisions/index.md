@@ -34,6 +34,7 @@ LLM-optimized index of significant architectural and design decisions.
 | ADR-022 | Vitest Browser Mode for Real DOM Testing                              | 2026-02-09 | Accepted                       | [adr-022-vitest-browser-mode.md](./adr-022-vitest-browser-mode.md)                     |
 | ADR-023 | Duplicate VALUE_CONDITIONS Between TriggerDropdown and FilterControls | 2026-02-11 | Accepted                       | (inline, no detail file)                                                               |
 | ADR-024 | Extract Scoring Functions to movement-scoring.ts                      | 2026-02-11 | Accepted                       | [adr-024-movement-scoring-extraction.md](./adr-024-movement-scoring-extraction.md)     |
+| ADR-025 | knip Excluded from lint-staged (Project-Level Analyzer)               | 2026-02-16 | Accepted                       | (inline, no detail file)                                                               |
 
 ## Adding New ADRs
 

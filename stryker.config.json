@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/core/schema/stryker-core.schema.json",
+  "testRunner": "vitest",
+  "mutate": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "!src/**/*.test.ts",
+    "!src/**/*.test.tsx",
+    "!src/**/*.browser.test.tsx",
+    "!src/**/*-test-helpers.ts",
+    "!src/test/**",
+    "!src/main.tsx"
+  ],
+  "reporters": ["html", "clear-text", "progress"],
+  "htmlReporter": {
+    "fileName": "reports/mutation/mutation.html"
+  },
+  "incremental": false,
+  "incrementalFile": ".stryker-tmp/incremental.json",
+  "concurrency": 4,
+  "tempDirName": ".stryker-tmp"
+}

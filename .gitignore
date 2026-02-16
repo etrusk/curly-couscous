@@ -42,6 +42,10 @@ build
 .claude/settings.local.json
 CLAUDE.local.md
 
-# Dependency check
-.deps-check-timestamp
+# Stryker
+.stryker-tmp/
+reports/
+
+# Workflow timers (machine-specific)
+.workflow-timestamps.json
 

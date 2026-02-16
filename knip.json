@@ -1,0 +1,17 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/main.tsx"],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignore": [
+    "src/**/*.test.{ts,tsx}",
+    "src/**/*.browser.test.{ts,tsx}",
+    "src/**/*-test-helpers.ts",
+    "src/test/**"
+  ],
+  "ignoreDependencies": [
+    "babel-plugin-react-compiler",
+    "@vitest/browser",
+    "@vitest/browser-playwright",
+    "playwright"
+  ]
+}

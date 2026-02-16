@@ -28,6 +28,10 @@ npm run lint          # Run ESLint with auto-fix
 npm run type-check    # TypeScript type checking
 npm run format        # Format with Prettier
 npm run security:check # Security scan (audit + lint with security rules)
+npm run mutate        # Incremental mutation testing (Stryker)
+npm run mutate:full   # Full mutation testing (no cache)
+npm run validate:deps # Validate module boundaries (dependency-cruiser)
+npm run knip          # Detect unused code/exports/dependencies
 ```
 
 ## Documentation Structure
@@ -95,11 +99,15 @@ Non-trivial tasks use `/tdd [task description]`:
 
 ## Session Start
 
-Read `.deps-check-timestamp` (repo root, ISO 8601 UTC date). Calculate days since that date. If >14 days or file missing, print:
+Read `.workflow-timestamps.json` (repo root). For each key, calculate days since value (ISO 8601 UTC). If file missing, treat all as overdue. Report all overdue items (>14 days or null) at once:
 
-> **Dependency check overdue** ({N} days since last check). Run `/project:deps-check` to update.
+> **Overdue workflow checks:**
+>
+> - **Dependency check** overdue ({N} days). Run `/project:deps-check`.
+> - **Meta-review** overdue ({N} days). Run `/tdd` to trigger.
+> - **Mutation testing** overdue ({N} days). Run `npm run mutate`.
 
-Then continue normal session setup.
+If none overdue, proceed without mention.
 
 ## Session State
 

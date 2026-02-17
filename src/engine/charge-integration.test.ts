@@ -290,8 +290,8 @@ describe("resolveCharges - integration", () => {
     );
     expect(updatedChargeTarget?.hp).toBe(80);
 
-    // 5. ChargeTarget moved after charge
-    expect(updatedChargeTarget?.position).toEqual({ q: 3, r: 0 });
+    // 5. ChargeTarget stays at {q:2,r:0} — move to {q:3,r:0} blocked by kicker (same-hex overlap prevention)
+    expect(updatedChargeTarget?.position).toEqual({ q: 2, r: 0 });
 
     // 6. Events include heal, interrupt, charge, movement, and damage events
     const eventTypes = tickResult.events.map((e) => e.type);

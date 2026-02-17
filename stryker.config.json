@@ -8,6 +8,7 @@
     "!src/**/*.test.tsx",
     "!src/**/*.browser.test.tsx",
     "!src/**/*-test-helpers.ts",
+    "!src/stores/gameStore.ts",
     "!src/test/**",
     "!src/main.tsx"
   ],

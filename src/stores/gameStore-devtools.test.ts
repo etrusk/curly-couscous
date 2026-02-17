@@ -71,18 +71,18 @@ describe("Action Name Labeling", () => {
   const source: string = readFileSync(gameStoreSourcePath, "utf-8");
 
   it("all 18 set() calls include action name strings", () => {
-    // Count all set((state) occurrences (the 18 set() calls)
-    const setCallMatches = source.match(/set\(\(state\)/g);
+    // Count all set( calls on their own line (Prettier multi-line format)
+    const setCallMatches = source.match(/\bset\(\s*$/gm);
     expect(setCallMatches).not.toBeNull();
     expect(setCallMatches!.length).toBe(18);
 
-    // Count all action name argument patterns: false, 'actionName')
-    const actionNameMatches = source.match(/false, '[a-zA-Z]+'\)/g);
-    expect(actionNameMatches).not.toBeNull();
-    expect(actionNameMatches!.length).toBe(18);
+    // Count all false/actionName pairs across lines (Prettier multi-line format)
+    const pairMatches = source.match(/false,\n\s*"[a-zA-Z]+"/g);
+    expect(pairMatches).not.toBeNull();
+    expect(pairMatches!.length).toBe(18);
 
     // Both counts must be equal (every set() call has an action name)
-    expect(setCallMatches!.length).toBe(actionNameMatches!.length);
+    expect(setCallMatches!.length).toBe(pairMatches!.length);
   });
 
   it("devtools middleware is configured with correct store name", () => {
@@ -122,7 +122,7 @@ describe("Action Name Labeling", () => {
       //
       // We look for the pattern: false, 'methodName') to exist in the source
       // and that it appears after the method declaration
-      const actionNamePattern = `false, '${methodName}')`;
+      const actionNamePattern = `false,\n            "${methodName}"`;
       expect(
         source.includes(actionNamePattern),
         `Expected action name '${methodName}' to be present in set() call for method ${methodName}`,

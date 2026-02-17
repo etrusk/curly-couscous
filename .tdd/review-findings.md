@@ -1,39 +1,56 @@
-# Review Findings: Static Analysis Toolchain + Timer Consolidation
+# Review Findings: Mutation Score Improvement -- movement-scoring.ts
 
-**Reviewer**: tdd-reviewer | **Date**: 2026-02-16 | **Verdict**: PASS
+**Reviewer**: tdd-reviewer | **Date**: 2026-02-17 | **Verdict**: APPROVED
 
 ## Summary
 
-Implementation matches plan and requirements. All acceptance criteria met (with documented knip lint-staged deviation). No source code modified. Quality gates pass.
+58 tests in `src/engine/movement-scoring.test.ts` (345 lines). Mutation score improved from 45% to 89.84% (target 80%). No production code changed. All 12 acceptance criteria satisfied. All quality gates pass.
 
-## Findings
+## Acceptance Criteria Verification
 
-### No CRITICAL Issues
+All 12 AC items verified as satisfied:
 
-### No IMPORTANT Issues
+- [x] AC1: compareTowardsMode -- 5 levels x 3 cases (wins/loses/tie) = 15 tests + 1 fallback
+- [x] AC2: compareAwayMode -- 6 levels x 3 cases = 18 tests + 1 arithmetic + 1 fallback
+- [x] AC3-4: Both comparators return false on all-equal input
+- [x] AC5: selectBestCandidate tested in both modes with tiebreaker resolution
+- [x] AC6: computePluralCandidateScore average (towards) and min (away)
+- [x] AC7: countEscapeRoutes with 0, 2, 6 obstacles + edge position
+- [x] AC8: buildObstacleSet with single and multiple exclude IDs
+- [x] AC9: calculateCandidateScore with and without obstacle set
+- [x] AC10: Mutation score 89.84% >= 80%
+- [x] AC11: All 1590 tests pass
+- [x] AC12: No production source changes (git diff clean)
 
-### MINOR Issues
+## Lesson 005 Compliance
 
-1. **MINOR: CLAUDE.md version string stale** -- `CLAUDE.md` line 9 shows `0.25.2` while `package.json` is `0.26.0`. Pre-existing issue, not introduced by this task. Should be addressed in SYNC_DOCS phase or flagged for next task.
+The `score()` helper defaults (`distance:3, absDq:1, absDr:1, q:0, r:0, escapeRoutes:6`) ensure all prior tiebreaker levels are genuinely tied at each test. Each test overrides only the target level's field(s). Verified that no test accidentally resolves at a prior level due to default inequality. The non-zero defaults (distance:3 instead of 0) also strengthen arithmetic mutation detection in away-mode composite calculations.
 
-## Checklist Verification
+## Duplication Check
 
-| Check                    | Status | Notes                                                                         |
-| ------------------------ | ------ | ----------------------------------------------------------------------------- |
-| Stryker config correct   | PASS   | Mutate patterns, reporters, no thresholds, incremental flag in script         |
-| dependency-cruiser rules | PASS   | All 10 boundary rules match architecture.md; circular deps enforced           |
-| knip config              | PASS   | Entry points, project files, ignoreDependencies for config-only packages      |
-| lint-staged wiring       | PASS   | depcruise added to ts/tsx; ESLint/Prettier preserved                          |
-| Timer consolidation      | PASS   | All 3 consumers updated; old files deleted; .gitignore updated                |
-| CLAUDE.md session start  | PASS   | Reads .workflow-timestamps.json, reports all overdue items                    |
-| CLAUDE.md key commands   | PASS   | All 4 new scripts listed (mutate, mutate:full, validate:deps, knip)           |
-| No source code changes   | PASS   | git diff on src/ empty                                                        |
-| ESLint ignores           | PASS   | .dependency-cruiser.cjs added to ignores                                      |
-| .gitignore               | PASS   | .stryker-tmp/, reports/, .workflow-timestamps.json added; old entry removed   |
-| Old timer files deleted  | PASS   | .deps-check-timestamp and .docs/last-meta-review.txt both deleted             |
-| No stale references      | PASS   | Only .tdd/ ephemeral files reference old timer filenames                      |
-| Quality gates            | PASS   | TS pass, ESLint pass, 1525/1527 tests pass (2 pre-existing devtools failures) |
+The existing `game-movement-escape-routes.test.ts` tests `compareAwayMode` and `calculateCandidateScore` at the integration level via `computeMoveDestination`. The new tests exercise these functions directly at the unit level with isolated tiebreaker cascades. Overlap is minimal and intentional -- different test goals (integration vs unit/mutation coverage).
 
-## Documented Deviation
+## Issues Found
 
-knip is NOT wired into lint-staged. Rationale accepted: knip is a project-level analyzer that cannot meaningfully run on individual staged files. Runs as `npm run knip` for periodic/CI use.
+### CRITICAL: None
+
+### IMPORTANT: None
+
+### MINOR
+
+1. **towards-L5-tie-is-fallback naming** (line 75): Name suggests a "tie" test but actually tests same q-values returning false (which IS the fallback). The name is slightly misleading vs the adjacent "all-equal-fallback" test which does the same thing with default values. Both tests are valid and kill different mutants (one with q:5 vs q:5, one with all defaults), so no functional issue.
+
+## Quality Gates
+
+- Tests: 58/58 PASS
+- TypeScript: Clean (pre-existing TS6133 in unrelated file)
+- ESLint: Clean on movement-scoring.test.ts
+- File size: 345 lines < 400 limit
+- Mutation score: 89.84% (167 killed, 19 survived, 0 NoCoverage)
+
+## Pattern Compliance
+
+- Co-located test file following `*.test.ts` convention
+- Vitest `describe/it/expect` structure
+- `createCharacter` helper from `game-test-helpers`
+- `score()` factory helper pattern consistent with codebase style

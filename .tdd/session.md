@@ -2,53 +2,26 @@
 
 ## Task
 
-Add Static Analysis Toolchain (Stryker, dependency-cruiser, knip) + Centralized Workflow Timers
+Mutation Score Improvement — movement-scoring.ts (Session 1/5)
 
 ## Confirmed Scope
 
-Install and configure three static analysis tools (Stryker Mutator, dependency-cruiser, knip) independently, then wire them into existing automation. Consolidate scattered workflow timers into a single `.workflow-timestamps.json` file. Update CLAUDE.md and /tdd workflow references. No changes to source code, tests, or game logic.
+Improve mutation score of `src/engine/movement-scoring.ts` from 45% to 80%+ by adding targeted unit tests. Write tests exercising all tiebreaker levels in `compareTowardsMode` and `compareAwayMode`, plus tests for `selectBestCandidate`, `computePluralCandidateScore`, `countEscapeRoutes`, `buildObstacleSet`, and `calculateCandidateScore`. No changes to production source code.
 
 ## Acceptance Criteria
 
-### Stryker Mutator
-
-- [x] `@stryker-mutator/core` and `@stryker-mutator/vitest-runner` installed as devDependencies
-- [x] `stryker.config.json` configured to mutate full `src/` tree (excluding test files, test helpers, type-only files)
-- [x] `npm run mutate` runs `stryker run --incremental` (fast, for `/tdd` workflow use)
-- [x] `npm run mutate:full` runs `stryker run` (full cache reset, for periodic use)
-- [x] No enforced thresholds initially — reporting only (HTML + clear-text reporters)
-- [x] Stryker works with the dual Vitest project setup (unit + browser) in `vite.config.ts`
-- [x] `.stryker-tmp/` added to `.gitignore`
-- [x] `reports/` (Stryker HTML output) added to `.gitignore`
-- [x] Incremental run (`npm run mutate`) integrated into `/tdd` workflow as a post-test step
-
-### dependency-cruiser
-
-- [x] `dependency-cruiser` installed as devDependency
-- [x] `.dependency-cruiser.cjs` config with boundary rules (engine isolation, store isolation, hooks isolation, no circular deps)
-- [x] `npm run validate:deps` runs dependency-cruiser on `src/`
-- [x] Wired into `lint-staged` in `package.json` (runs on every commit for staged `.ts`/`.tsx` files)
-
-### knip
-
-- [x] `knip` installed as devDependency
-- [x] `knip.json` config targeting `src/` with appropriate entry points and project files
-- [x] `npm run knip` runs dead code/export/dependency analysis
-- [ ] Wired into `lint-staged` in `package.json` — DEVIATION: knip is NOT wired into lint-staged per plan (project-level analyzer, cannot meaningfully run on individual staged files)
-
-### Centralized Workflow Timers
-
-- [x] New `.workflow-timestamps.json` file consolidating all periodic checks
-- [x] `.deps-check-timestamp` removed (migrated into centralized file)
-- [x] `.docs/last-meta-review.txt` removed (migrated into centralized file)
-- [x] All three timers use 14-day cadence
-- [x] `CLAUDE.md` session start section updated: read `.workflow-timestamps.json`, report all overdue items at once
-- [x] `/tdd` workflow updated: read meta-review timer from `.workflow-timestamps.json`
-
-### Documentation
-
-- [x] `CLAUDE.md` key commands section updated with new npm scripts
-- [x] `CLAUDE.md` session start section references `.workflow-timestamps.json`
+- [ ] `compareTowardsMode` has tests exercising all 5 tiebreaker levels: distance, absDq, absDr, r, q — each level must be tested with (a) candidate wins, (b) candidate loses, and (c) tie falls through to next level
+- [ ] `compareAwayMode` has tests exercising all 6 tiebreaker levels: composite (distance\*escapeRoutes), distance, absDq, absDr, r, q — same 3 cases per level
+- [ ] `compareTowardsMode` returns false when all fields are equal (final fallback)
+- [ ] `compareAwayMode` returns false when all fields are equal (final fallback)
+- [ ] `selectBestCandidate` tested in both "towards" and "away" modes with candidates that require tiebreaker resolution beyond the primary distance check
+- [ ] `computePluralCandidateScore` tested for both "towards" mode (average distance) and "away" mode (min distance) with multiple targets
+- [ ] `countEscapeRoutes` tested with varying obstacle configurations (0 obstacles, some obstacles, fully surrounded)
+- [ ] `buildObstacleSet` tested with exclude IDs (verifies exclusion works)
+- [ ] `calculateCandidateScore` tested with and without obstacle set (default escapeRoutes=6 when no obstacles)
+- [ ] `npm run mutate -- --mutate src/engine/movement-scoring.ts` reports >= 80% mutation score
+- [ ] All existing tests continue to pass
+- [ ] No changes to production source code
 
 ## Current Phase
 
@@ -56,73 +29,90 @@ COMMIT
 
 ## Phase History
 
-- 2026-02-16T00:00 INIT → EXPLORE
-- 2026-02-16T00:01 EXPLORE → PLAN [6 exchanges, ~28K tokens]
-- 2026-02-16T00:02 PLAN → IMPLEMENT [7 exchanges, ~35K tokens] [SKIPPED: DESIGN_TESTS → WRITE_TESTS — planner determined no tests needed (config-only task, no runtime source code)]
-- 2026-02-16T16:38 IMPLEMENT → REVIEW [10 exchanges, ~60K tokens]
-- 2026-02-16T16:40 REVIEW → SYNC_DOCS [5 exchanges, ~28K tokens] (PASS, 0 critical)
-- 2026-02-16T17:00 SYNC_DOCS → COMMIT [3 exchanges, ~15K tokens]
+- 2026-02-17T00:00 INIT → EXPLORE
+- 2026-02-17 EXPLORE → PLAN [7 exchanges, ~28K tokens]
+- 2026-02-17 PLAN → DESIGN_TESTS [5 exchanges, ~35K tokens]
+- 2026-02-17 DESIGN_TESTS → TEST_DESIGN_REVIEW [6 exchanges, ~38K tokens]
+- 2026-02-17 TEST_DESIGN_REVIEW → WRITE_TESTS [4 exchanges, ~18K tokens]
+- 2026-02-17 WRITE_TESTS → IMPLEMENT [6 exchanges, ~35K tokens]
+- 2026-02-17 IMPLEMENT → REVIEW [7 exchanges, ~45K tokens]
+- 2026-02-17 REVIEW → SYNC_DOCS [5 exchanges, ~25K tokens] (APPROVED, 0 critical)
+- 2026-02-17 SYNC_DOCS → COMMIT [4 exchanges, ~12K tokens]
 
 ## Context Metrics
 
-Orchestrator: ~40K/300K (13%)
-Cumulative agent tokens: 166K
-Agent invocations: 5
+Orchestrator: ~45K/300K (15%)
+Cumulative agent tokens: 236K
+Agent invocations: 8
 Compactions: 0
 
 ### Agent History
 
-| #   | Agent          | Phase     | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                                               |
-| --- | -------------- | --------- | --------- | ------ | ----- | -------- | -------- | --------------------------------------------------------------------------------------------------- |
-| 1   | tdd-explorer   | EXPLORE   | 6         | ~28K   | 25    | ~500s    | COMPLETE | Found deps-check.md as additional timer consumer; meta-review cadence change 30d→14d                |
-| 2   | tdd-planner    | PLAN      | 7         | ~35K   | 20    | ~693s    | COMPLETE | No tests needed (config-only); knip lint-staged deviation documented; Stryker dual-project strategy |
-| 3   | tdd-coder      | IMPLEMENT | 10        | ~60K   | 30    | —        | COMPLETE | ESLint fix for .cjs file; pre-existing devtools test failures                                       |
-| 4   | tdd-reviewer   | REVIEW    | 5         | ~28K   | 22    | ~123s    | COMPLETE | PASS; CLAUDE.md version mismatch (0.25.2 vs 0.26.0) pre-existing                                    |
-| 5   | tdd-doc-syncer | SYNC_DOCS | 3         | ~15K   | 12    | ~218s    | COMPLETE | Updated architecture.md, current-task.md, added ADR-025                                             |
+| #   | Agent             | Phase              | Exchanges | Tokens | Tools | Duration | Status   | Notes                                                                                                   |
+| --- | ----------------- | ------------------ | --------- | ------ | ----- | -------- | -------- | ------------------------------------------------------------------------------------------------------- |
+| 1   | tdd-explorer      | EXPLORE            | 7         | ~28K   | 34    | ~204s    | COMPLETE | 32 NoCoverage mutants in tiebreaker cascades; no existing test file; Lesson 005 applicable              |
+| 2   | tdd-planner       | PLAN               | 5         | ~35K   | 12    | ~120s    | COMPLETE | 57 tests planned across 7 describe blocks; score() helper for line budget; split strategy if >380 lines |
+| 3   | tdd-test-designer | DESIGN_TESTS       | 6         | ~38K   | 14    | ~3514s   | COMPLETE | Added away-L1-arithmetic test; corrected countEscapeRoutes obstacle count; full AC cross-reference      |
+| 4   | tdd-test-reviewer | TEST_DESIGN_REVIEW | 4         | ~18K   | 14    | --       | COMPLETE | Added nearest-target-not-first-index test; verified all 58 test values against source; approved         |
+| 5   | tdd-coder         | WRITE_TESTS        | 6         | ~35K   | 16    | ~182s    | COMPLETE | 58/58 tests passing; 345 lines; pre-existing TS error in devtools test                                  |
+| 6   | tdd-coder         | IMPLEMENT          | 7         | ~45K   | 14    | ~235s    | COMPLETE | Mutation score 89.84% (167 killed, 19 survived); all 1590 tests pass; all gates pass                    |
+| 7   | tdd-reviewer      | REVIEW             | 5         | ~25K   | 16    | ~454s    | COMPLETE | APPROVED; 0 critical, 0 important, 1 minor; all 12 AC satisfied                                         |
+| 8   | tdd-doc-syncer    | SYNC_DOCS          | 4         | ~12K   | 16    | ~119s    | COMPLETE | Updated current-task.md, requirements.md, workflow-timestamps.json                                      |
 
 ### Action Log
 
 #### #1 tdd-explorer (EXPLORE)
 
-- Discovered `.claude/commands/deps-check.md` as additional consumer of `.deps-check-timestamp` (not mentioned in requirements assumptions)
-- Timer cadence change: meta-review goes from 30 days to 14 days in consolidated file
-- No `.d.ts` files in `src/` — `types.ts` has runtime functions mixed with type exports
+- No existing movement-scoring.test.ts file — new file required
+- 32 NoCoverage mutants concentrated in compareTowardsMode (all 5 levels) and compareAwayMode (levels 3-6)
+- Existing pattern for direct CandidateScore construction found in game-movement-escape-routes.test.ts
+- Lesson 005 directly applicable — tiebreaker tests must force control through all prior levels
+- q comparison level has asymmetric structure (no explicit > check before return false)
 
 #### #2 tdd-planner (PLAN)
 
-- knip lint-staged deviation from requirements documented with rationale
-- Verified Stryker vitest-runner 9.5.1 supports vitest >=2.0.0 (project uses 4.0.18)
-- dependency-cruiser has no peer deps; knip requires typescript >=5.0.4 <7 (satisfied)
+- 57 tests planned across 7 describe blocks (compareTowardsMode 16, compareAwayMode 19, buildObstacleSet 4, countEscapeRoutes 4, calculateCandidateScore 4, selectBestCandidate 5, computePluralCandidateScore 5)
+- score() helper function to keep file within 400-line budget
+- Mutation kill strategy maps each (a)/(b)/(c) test to specific Stryker mutant types
+- Composite arithmetic mutation coverage via values where * differs from + (e.g., 5*4=20 vs 5+4=9)
+- File split contingency: compareAwayMode to separate file if >380 lines
 
-#### #3 tdd-coder (IMPLEMENT)
+#### #3 tdd-test-designer (DESIGN_TESTS)
 
-- Added .dependency-cruiser.cjs to ESLint ignores to fix `no-undef` error for CommonJS `module` global
-- Pre-existing test failures in gameStore-devtools.test.ts (2 tests) confirmed unrelated to this task
+- 57 test cases fully specified with exact setup values, expected results, and mutation targets
+- Verified all hex distance/neighbor calculations with manual computation
+- Added away-L1-arithmetic test (not in plan) to specifically kill `* to +` mutant with values where multiplication and addition give different orderings (2*3=6 > 5*1=5 but 2+3=5 < 5+1=6)
+- Corrected countEscapeRoutes some-obstacles test to use 2 obstacles (not 3) to distinguish from negation mutant
+- Complete acceptance criteria cross-reference table validates all 12 criteria have covering tests
+- Lesson 005 compliance verified: score() helper defaults tie all prior levels, each test overrides only target field(s)
 
-#### #4 tdd-reviewer (REVIEW)
+#### #4 tdd-test-reviewer (TEST_DESIGN_REVIEW)
 
-- Clean run
+- Verified all 57 test setups against source code (comparison directions, hex distance calculations, neighbor validity, composite arithmetic)
+- Found 1 gap: `nearest-target-for-dq-dr` has nearest target at index 0 (initial value of nearestIdx), so mutant removing `nearestIdx = i` assignment survives. Added `nearest-target-not-first-index` test with nearest at index 1.
+- Confirmed score() helper defaults (distance:3, absDq:1, absDr:1, escapeRoutes:6) are superior to plan defaults (distance:0) for arithmetic mutation detection
+- Confirmed Lesson 005 compliance across all tiebreaker tests
+- Confirmed all selectBestCandidate obstacle-building paths are covered
+- Confirmed edge-position test: (5,0) has exactly 3 valid neighbors within HEX_RADIUS=5
+- Total tests: 58 (was 57)
 
-#### #5 tdd-doc-syncer (SYNC_DOCS)
+#### #5 tdd-coder (WRITE_TESTS)
 
-- Added static analysis toolchain section to architecture.md
-- Added ADR-025 for knip lint-staged exclusion decision
-- Updated current-task.md with task completion
+- All 58 tests pass against existing production code (mutation score improvement, not new feature TDD)
+- File size 345 lines, well under 400-line limit
+- Pre-existing TypeScript error in gameStore-devtools.test.ts (unused variable, unrelated)
+
+#### #6 tdd-coder (IMPLEMENT - Quality Gates + Mutation Testing)
+
+- All 1590 tests pass across 160 test files (including 58 new movement-scoring tests)
+- Lint: Clean on movement-scoring.test.ts (stryker sandbox lint errors are artifacts, not source issues)
+- Type-check: Only pre-existing error in gameStore-devtools.test.ts (TS6133 unused variable)
+- Mutation score: **89.84%** (167 killed + 1 timeout, 19 survived, 0 NoCoverage) -- exceeds 80% target
+- 19 surviving mutants: BlockStatement/ConditionalExpression on "loses" guards (equivalent mutants -- removing the early return still produces correct final result via cascade), LogicalOperator on mode check (line 200), and boundary/arithmetic in computePluralCandidateScore (lines 254-262)
 
 ## Files Touched
 
-- stryker.config.json (created)
-- .dependency-cruiser.cjs (created)
-- knip.json (created)
-- .workflow-timestamps.json (created)
-- package.json (modified — devDependencies, scripts, lint-staged)
-- .gitignore (modified — Stryker dirs, workflow timestamps, removed old entry)
-- CLAUDE.md (modified — Session Start, Key Commands)
-- .claude/commands/tdd.md (modified — Meta-Housekeeping Timer, IMPLEMENT phase)
-- .claude/commands/deps-check.md (modified — Update Timestamp section)
-- eslint.config.js (modified — added .dependency-cruiser.cjs to ignores)
-- .deps-check-timestamp (deleted)
-- .docs/last-meta-review.txt (deleted)
+- `src/engine/movement-scoring.test.ts` (CREATED, 345 lines, 58 tests)
 
 ## Browser Verification
 
@@ -139,4 +129,12 @@ Status: N/A (non-UI task)
 ## Review Cycles
 
 Count: 1
-Verdict: PASS (0 critical, 0 important, 1 minor unrelated)
+
+### Review 1 — APPROVED
+
+- Verdict: APPROVED (0 critical, 0 important, 1 minor)
+- All 12 AC items satisfied
+- Lesson 005 compliance verified
+- No production code changes confirmed
+- Duplication check: minimal overlap with game-movement-escape-routes.test.ts (integration vs unit level)
+- Minor: towards-L5-tie-is-fallback naming slightly ambiguous but functionally correct

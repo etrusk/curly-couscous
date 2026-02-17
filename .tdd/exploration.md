@@ -2,172 +2,185 @@
 
 ## Task Understanding
 
-Add three static analysis tools (Stryker Mutator, dependency-cruiser, knip) and consolidate two existing workflow timer files (`.deps-check-timestamp` and `.docs/last-meta-review.txt`) into a single `.workflow-timestamps.json` file. No source code changes -- only configuration, npm scripts, lint-staged wiring, and documentation updates.
+Improve the mutation score of `src/engine/movement-scoring.ts` from 45% to 80%+ by adding targeted unit tests. The file contains tiebreaker comparison logic for movement candidate selection. No production source code changes are allowed -- this is a test-only task. This is session 1 of 5 targeting engine files with low mutation scores.
 
 ## Relevant Files
 
-### Vitest/Vite Configuration
+### Primary Target
 
-- `/home/bob/Projects/auto-battler/vite.config.ts` - Dual project setup: `unit` (jsdom, `*.test.{ts,tsx}`, excludes `*.browser.test.*`) and `browser` (Playwright/Chromium, `*.browser.test.{ts,tsx}`). Stryker's vitest-runner must work with this `test.projects` array structure. Key details:
-  - Unit project: jsdom environment, `setupFiles: ./src/test/setup.ts`, `fakeTimers: { shouldAdvanceTime: true }`
-  - Browser project: Playwright provider, headless Chromium, separate setup file `./src/test/setup.browser.ts`
-  - Both use `extends: true` (inherit root config)
-  - React Compiler babel plugin configured at root level
+- `/home/bob/Projects/auto-battler/src/engine/movement-scoring.ts` (274 lines) -- the file under test, contains all 7 exported functions plus 1 exported interface
 
-### Package Configuration
+### Type Definitions
 
-- `/home/bob/Projects/auto-battler/package.json` - Key observations:
-  - **Existing scripts**: `dev`, `build`, `build:verify`, `preview`, `test`, `test:unit`, `test:browser`, `test:watch`, `test:ui`, `test:critical`, `type-check`, `lint`, `format`, `security:check`, `security:scan`, `prepare`
-  - **No existing** `mutate`, `validate:deps`, or `knip` scripts
-  - **lint-staged config** (inline in package.json):
-    ```json
-    "lint-staged": {
-      "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
-      "*.{json,md,css}": ["prettier --write"]
-    }
-    ```
-  - **Husky**: `"prepare": "husky"` script, `.husky/pre-commit` runs `npx lint-staged`
-  - **Version**: `0.26.0`, `"type": "module"`
-  - **Dependencies**: react, react-dom, immer, zustand
-  - **DevDependencies**: vitest 4.0.18, vite 7.3.1, typescript 5.9.3, eslint 9.39.2, prettier 3.8.1, husky 9.1.7, lint-staged 16.2.7, playwright 1.58.2, and various eslint/testing-library packages
+- `/home/bob/Projects/auto-battler/src/engine/types.ts` -- `Character` and `Position` types used by scoring functions
+- `/home/bob/Projects/auto-battler/src/engine/hex.ts` -- `hexDistance`, `getHexNeighbors`, `HEX_DIRECTIONS` (6 directions), `HEX_RADIUS` (5) used internally by scoring functions
+- `/home/bob/Projects/auto-battler/src/engine/pathfinding.ts` -- `positionKey` function (format: `"q,r"`) used by `buildObstacleSet` and `countEscapeRoutes`
 
-### Project Structure (for dependency-cruiser boundaries)
+### Re-export Path
 
+- `/home/bob/Projects/auto-battler/src/engine/game-movement.ts` -- re-exports `countEscapeRoutes`, `calculateCandidateScore`, `compareTowardsMode`, `compareAwayMode`, `selectBestCandidate` from `movement-scoring.ts`
+
+### Existing Tests (indirect coverage only)
+
+- `/home/bob/Projects/auto-battler/src/engine/game-movement-escape-routes.test.ts` -- tests `compareAwayMode` (1 direct test: composite tiebreaker on distance), `calculateCandidateScore` (4 direct tests). Imports via `./game-movement` re-exports.
+- `/home/bob/Projects/auto-battler/src/engine/game-movement.test.ts` -- tests `countEscapeRoutes` (3 direct tests: interior=6, edge<6, vertex=3).
+- `/home/bob/Projects/auto-battler/src/engine/game-movement-plural.test.ts` -- exercises `computePluralCandidateScore` indirectly via `computePluralMoveDestination`.
+
+### No Existing Direct Test File
+
+- There is NO `src/engine/movement-scoring.test.ts`. A new test file must be created.
+
+### Test Helpers
+
+- `/home/bob/Projects/auto-battler/src/engine/game-test-helpers.ts` -- `createCharacter()` helper for building minimal `Character` objects
+
+### Mutation Testing Config
+
+- `/home/bob/Projects/auto-battler/stryker.config.json` -- uses `@stryker-mutator/vitest-runner`, `incremental: false`, output to `reports/mutation/mutation.html`, `concurrency: 4`
+
+## File Structure: movement-scoring.ts Exports
+
+```typescript
+// Type
+export interface CandidateScore {
+  distance: number; // hex distance to target
+  absDq: number; // |target.q - candidate.q|
+  absDr: number; // |target.r - candidate.r|
+  r: number; // candidate.r coordinate
+  q: number; // candidate.q coordinate
+  escapeRoutes: number; // unblocked adjacent hexes (0-6)
+}
+
+// Functions (7 exports)
+export function buildObstacleSet(
+  characters: Character[],
+  ...excludeIds: string[]
+): Set<string>;
+export function countEscapeRoutes(
+  position: Position,
+  obstacles: Set<string>,
+): number;
+export function calculateCandidateScore(
+  candidate: Position,
+  target: Position,
+  obstacles?: Set<string>,
+): CandidateScore;
+export function compareTowardsMode(
+  candidateScore: CandidateScore,
+  bestScore: CandidateScore,
+): boolean;
+export function compareAwayMode(
+  candidateScore: CandidateScore,
+  bestScore: CandidateScore,
+): boolean;
+export function selectBestCandidate(
+  candidates: Position[],
+  target: Character,
+  mode: "towards" | "away",
+  allCharacters?: Character[],
+  moverId?: string,
+): Position;
+export function computePluralCandidateScore(
+  candidate: Position,
+  targets: Character[],
+  mode: "towards" | "away",
+  obstacles?: Set<string>,
+): CandidateScore;
 ```
-src/
-  engine/       - Pure TypeScript game logic (NO React deps) -- ~40+ source files + tests
-  stores/       - Zustand stores (gameStore.ts, accessibilityStore.ts, types, constants, helpers)
-  hooks/        - Custom React hooks (useInterval.ts only)
-  components/   - React components (BattleViewer/, CharacterPanel/, RuleEvaluations/, etc.)
-  styles/       - CSS Modules + theme definitions (theme.css, tests)
-  test/         - Test setup files (setup.ts, setup.browser.ts)
-  utils/        - Utilities (letterMapping.ts only)
-```
 
-Layered architecture rules from `.docs/architecture.md`:
+## Tiebreaker Cascade Details
 
-- `engine/` must NOT import from react, react-dom, zustand, immer, components, stores, hooks, styles
-- `stores/` must NOT import from components, hooks
-- `hooks/` must NOT import from components
+### compareTowardsMode (5 levels, all minimize)
 
-### Timer Files (to consolidate)
+| Level          | Field    | Direction | Comparison                                                                              |
+| -------------- | -------- | --------- | --------------------------------------------------------------------------------------- |
+| 1 (primary)    | distance | minimize  | `candidate < best -> true`                                                              |
+| 2 (secondary)  | absDq    | minimize  | `candidate < best -> true`                                                              |
+| 3 (tertiary)   | absDr    | minimize  | `candidate < best -> true`                                                              |
+| 4 (quaternary) | r        | minimize  | `candidate < best -> true`                                                              |
+| 5 (quinary)    | q        | minimize  | `candidate < best -> true` (only checks `<`, no explicit `>` check before return false) |
+| fallback       | --       | --        | `return false`                                                                          |
 
-- `/home/bob/Projects/auto-battler/.deps-check-timestamp` - Contains `2026-02-08T09:54:37Z` (ISO 8601 UTC). Referenced by:
-  - `CLAUDE.md` (Session Start section: read and check if >14 days)
-  - `.claude/commands/deps-check.md` (writes `date -u +%Y-%m-%dT%H:%M:%SZ` to this file)
-  - `.gitignore` (listed under `# Dependency check`)
+Note on level 5: The q comparison only has `if (candidateScore.q < bestScore.q) return true;` followed directly by `return false;`. There is no explicit `candidateScore.q > bestScore.q` check. This means when q is greater, it falls through to return false (same as when equal).
 
-- `/home/bob/Projects/auto-battler/.docs/last-meta-review.txt` - Contains `2026-02-10` (YYYY-MM-DD, no time component). Referenced by:
-  - `.claude/commands/tdd.md` (Meta-Housekeeping Timer section: reads file, checks if >30 days, writes YYYY-MM-DD on completion)
-  - NOT in `.gitignore` (tracked in git)
+### compareAwayMode (6 levels, mixed directions)
 
-### Workflow Consumer Files
+| Level          | Field                                 | Direction | Comparison                                                  |
+| -------------- | ------------------------------------- | --------- | ----------------------------------------------------------- |
+| 1 (primary)    | composite (`distance * escapeRoutes`) | maximize  | `candidate > best -> true`                                  |
+| 2 (secondary)  | distance                              | maximize  | `candidate > best -> true`                                  |
+| 3 (tertiary)   | absDq                                 | maximize  | `candidate > best -> true`                                  |
+| 4 (quaternary) | absDr                                 | maximize  | `candidate > best -> true`                                  |
+| 5 (quinary)    | r                                     | minimize  | `candidate < best -> true`                                  |
+| 6 (senary)     | q                                     | minimize  | `candidate < best -> true` (same pattern as towards mode q) |
+| fallback       | --                                    | --        | `return false`                                              |
 
-- `/home/bob/Projects/auto-battler/CLAUDE.md` - Session Start section (lines 96-102):
+### Key Observation for Test Design
 
-  ```
-  Read `.deps-check-timestamp` (repo root, ISO 8601 UTC date). Calculate days since that date.
-  If >14 days or file missing, print:
-  > **Dependency check overdue** ({N} days since last check). Run `/project:deps-check` to update.
-  ```
+Each tiebreaker level needs 3 test cases:
 
-  Also Key Commands section (lines ~27-36) listing `build`, `test`, `test:watch`, `lint`, `type-check`, `format`, `security:check`.
+- **(a) candidate wins**: candidate beats best at this level (all prior levels tied)
+- **(b) candidate loses**: candidate is worse at this level (all prior levels tied)
+- **(c) tie falls through**: equal at this level (verified by next level resolving differently)
 
-- `/home/bob/Projects/auto-battler/.claude/commands/tdd.md` - Meta-Housekeeping Timer section (lines 22-27):
+For `compareTowardsMode`: 5 levels x 3 cases + 1 all-equal = 16 tests
+For `compareAwayMode`: 6 levels x 3 cases + 1 all-equal = 19 tests
+Other functions: ~10-15 tests
+Total estimate: ~45-50 test cases
 
-  ```
-  At session start, read `.docs/last-meta-review.txt`. If the file is missing or the date inside
-  is >30 days ago, output: "Monthly meta-review due..."
-  On either review completion or skip, write today's date (YYYY-MM-DD) to `.docs/last-meta-review.txt`
-  ```
+## Existing Test Coverage Summary
 
-- `/home/bob/Projects/auto-battler/.claude/commands/deps-check.md` - Post-Update section writes to `.deps-check-timestamp` (line 99).
+### What IS Tested (indirectly via game-movement tests)
 
-### .gitignore
+- `countEscapeRoutes`: interior (6), edge (<6), vertex (3) -- 3 tests
+- `calculateCandidateScore`: vertex escapeRoutes=3, no-obstacles default=6, edge with obstacles, center with obstacles -- 4 tests
+- `compareAwayMode`: composite tiebreaker with distance tiebreak when composites are equal -- 1 test
+- Integration through `computeMoveDestination` in towards/away modes -- many tests but do not isolate scoring functions
 
-- `/home/bob/Projects/auto-battler/.gitignore` - Current entries include: `node_modules`, `dist`, `coverage`, `__screenshots__/`, `.env*`, `.claude/settings.local.json`, `CLAUDE.local.md`, `.deps-check-timestamp`. Needs additions:
-  - `.stryker-tmp/` (Stryker working directory)
-  - `reports/` (Stryker HTML output)
-  - `.workflow-timestamps.json` (replaces `.deps-check-timestamp` entry)
+### What is NOT Tested (32 NoCoverage mutants per requirements)
 
-### Test File Patterns
-
-- **Unit tests**: `*.test.ts` and `*.test.tsx` (no `*.spec.*` files exist in the project)
-- **Browser tests**: `*.browser.test.tsx` (3 files)
-- **Test helper files** (not tests, should be excluded from mutation):
-  - `src/engine/combat-test-helpers.ts`
-  - `src/engine/game-test-helpers.ts`
-  - `src/engine/selectors-test-helpers.ts`
-  - `src/engine/triggers-test-helpers.ts`
-  - `src/stores/gameStore-test-helpers.ts`
-  - `src/components/RuleEvaluations/rule-evaluations-test-helpers.ts`
-- **Test setup files**: `src/test/setup.ts`, `src/test/setup.browser.ts`
-
-### Type-Only / Constants Files
-
-- **No `.d.ts` files** exist in `src/`
-- Type-heavy files that should likely be excluded from Stryker (mostly type exports, minimal runtime code):
-  - `src/engine/types.ts` (396 lines -- mostly interfaces/types, but has a few runtime functions: `isPluralTarget`, `positionsEqual`, `isValidPosition`, `hexDistance`)
-  - `src/stores/gameStore-types.ts` (86 lines)
-  - `src/stores/gameStore-constants.ts` (57 lines)
+- `compareTowardsMode`: ALL 5 tiebreaker levels (zero direct tests)
+- `compareAwayMode`: levels 3-6 (absDq, absDr, r, q) -- only composite and distance level tested
+- `selectBestCandidate`: no direct tests at all
+- `computePluralCandidateScore`: no direct tests (only indirect through `computePluralMoveDestination`)
+- `buildObstacleSet`: no direct tests
+- All "equal fallback" cases (return false when all fields match)
+- `selectBestCandidate` obstacle-building path (away mode with `allCharacters` + `moverId`)
 
 ## Existing Patterns
 
-- **CSS Modules pattern** - Components use `*.module.css` co-located files
-- **Co-located tests** - Tests live alongside source files (e.g., `hex.test.ts` next to `hex.ts`)
-- **Test helper convention** - Helper files named `*-test-helpers.ts` (6 files)
-- **Browser test convention** - `*.browser.test.tsx` for real DOM tests (ADR-022)
-- **Inline lint-staged** - Config embedded in `package.json`, not a separate file
-- **Root-level dotfiles** - Config files follow project convention (`.gitignore`, `.deps-check-timestamp`)
-- **No existing `*.config.json` for tools** - ESLint uses flat config (implicit), Prettier likely defaults
+- **Test file naming**: co-located `*.test.ts` files in same directory as source
+- **Import style**: `import { describe, it, expect } from "vitest"`
+- **Helper usage**: `createCharacter()` from `./game-test-helpers` for character creation
+- **Direct CandidateScore construction**: the existing `compareAwayMode` test in `game-movement-escape-routes.test.ts` (lines 188-209) constructs `CandidateScore` objects as plain objects -- this is the established pattern for tiebreaker tests
+- **No mocking**: engine tests use real functions, no mocks
+- **positionKey format**: `"q,r"` (e.g., `"2,3"`) -- used when constructing obstacle sets manually in tests
+- **Describe block structure**: top-level `describe` per function or feature, nested `it` blocks for individual cases
 
 ## Dependencies
 
-- **Stryker needs**: `@stryker-mutator/core`, `@stryker-mutator/vitest-runner` as devDependencies
-- **dependency-cruiser needs**: `dependency-cruiser` as devDependency
-- **knip needs**: `knip` as devDependency
-- **Stryker vitest-runner compatibility**: Must verify it supports Vitest 4.x and the `test.projects` dual-project config. The requirements note a fallback: if dual-project is not supported, use unit-project-only mutation testing.
-- **lint-staged additions**: dependency-cruiser and knip need to be wired into the existing `*.{ts,tsx}` lint-staged array
+- `hexDistance` from `./hex` -- used internally by `calculateCandidateScore` and `computePluralCandidateScore`
+- `getHexNeighbors` from `./hex` -- used internally by `countEscapeRoutes` (filters by `HEX_RADIUS=5`)
+- `positionKey` from `./pathfinding` -- used internally by `buildObstacleSet` and `countEscapeRoutes` (format `"q,r"`)
+- `Character`, `Position` from `./types` -- type dependencies for `selectBestCandidate` and `computePluralCandidateScore`
 
 ## Applicable Lessons
 
-- **Lesson 005** - "Tests masking bugs by manually aligning state" -- Directly relevant. The requirements note this: Stryker is specifically valuable because tests that manually construct state will show as surviving mutants even with 98.8% line coverage. This validates the tool's value proposition.
-- No other lessons from the index (001-004) are relevant to this tooling/configuration task.
+- **Lesson 005** (Tests masking bugs by manually aligning state) -- Directly relevant. The requirements explicitly reference this: "construct test inputs that exercise the actual comparison cascades rather than manually building 'already correct' scores." For tiebreaker tests, this means constructing CandidateScore objects where all prior levels are genuinely equal and only the target level differs. Do NOT construct scores that coincidentally produce the right result because an earlier comparison already returned. Each test must force control flow through all prior levels to reach the target comparison.
 
 ## Constraints Discovered
 
-1. **Stryker + dual Vitest projects**: The `vite.config.ts` uses `test.projects` with two project definitions. Stryker's vitest-runner may need special config or may only support a single project. The requirements anticipate this and provide a fallback (unit-only mutation testing).
-
-2. **lint-staged performance**: dependency-cruiser and knip added to lint-staged must not noticeably slow commits (>5s threshold per requirements). If they do, they should be npm-script-only.
-
-3. **Timer format mismatch**: `.deps-check-timestamp` uses ISO 8601 with time (`2026-02-08T09:54:37Z`) while `.docs/last-meta-review.txt` uses date-only (`2026-02-10`). The consolidated `.workflow-timestamps.json` should standardize on ISO 8601 with time for all entries.
-
-4. **Timer cadence change**: `.deps-check-timestamp` currently uses 14-day cadence in `CLAUDE.md`. `.docs/last-meta-review.txt` uses 30-day cadence in `tdd.md`. The requirements specify all three timers use 14-day cadence, so the meta-review cadence changes from 30 to 14 days.
-
-5. **`.workflow-timestamps.json` in .gitignore**: The existing `.deps-check-timestamp` is in `.gitignore`. The new consolidated file should also be in `.gitignore` (since timestamps are machine-specific). The old `.docs/last-meta-review.txt` is NOT in `.gitignore` (tracked). This is a semantic change worth noting.
-
-6. **deps-check.md also writes to `.deps-check-timestamp`**: The `deps-check` command (`.claude/commands/deps-check.md`, line 99) writes `date -u +%Y-%m-%dT%H:%M:%SZ > .deps-check-timestamp`. This must be updated to write to `.workflow-timestamps.json` instead.
-
-7. **No changes to source code**: The requirements explicitly state no changes to source code, tests, or game logic. Only config files, scripts, and documentation.
-
-8. **File line limit**: 400-line max per file is a project constraint, but config files should be well under this.
-
-9. **`stryker.config.json` naming**: The requirements specify `stryker.config.json` (not `stryker.config.mjs` or `.js`). Since the project is `"type": "module"`, a JSON config avoids ESM/CJS issues.
-
-10. **dependency-cruiser config naming**: Requirements specify `.dependency-cruiser.cjs`. The `.cjs` extension is needed because the project is `"type": "module"` and dependency-cruiser's config uses CommonJS `module.exports`.
+1. **Max 400 lines per file** -- With ~45-50 test cases, efficient structure is needed. May need to use helper functions for building CandidateScore objects with specific field overrides to reduce boilerplate.
+2. **Import directly from `./movement-scoring`** -- The new test file should import from the source module directly (not from `./game-movement` re-exports) since it is co-located.
+3. **Hex coordinate validity** -- Positions used in `selectBestCandidate`, `calculateCandidateScore`, `countEscapeRoutes`, and `buildObstacleSet` tests must satisfy `max(|q|, |r|, |q+r|) <= 5`. Direct `CandidateScore` construction for `compareTowardsMode`/`compareAwayMode` tests is unconstrained.
+4. **No source code changes** -- The task explicitly forbids modifying `movement-scoring.ts`.
+5. **Obstacle set key format** -- Must use `"q,r"` format (matching `positionKey`) when constructing test obstacle sets as `Set<string>`.
+6. **Level 5 in towards / level 6 in away (q comparison)** -- The q check only tests `<` before returning false. A mutation removing the `<` check would make the function always return false for that level. The test for "candidate wins on q" must ensure the candidate has a strictly smaller q than best, with all prior fields equal.
 
 ## Open Questions
 
-1. **Stryker vitest-runner dual-project support**: Does `@stryker-mutator/vitest-runner` work with Vitest's `test.projects` config? If not, can it be configured to target only the `unit` project? This should be verified during implementation.
+1. **Should Stryker be run before writing tests to get exact surviving mutant locations?** The requirements doc says 45% score and identifies 32 NoCoverage mutants in tiebreaker branches. Running `npm run mutate -- --mutate src/engine/movement-scoring.ts` would confirm exact mutant IDs but takes several minutes. The planning phase may benefit from exact data, or the general analysis above may be sufficient.
 
-2. **knip entry points**: knip needs to know the project's entry points. The main entry is `src/main.tsx`. The test setup files (`src/test/setup.ts`, `src/test/setup.browser.ts`) and vite config should be auto-detected. Are there other entry points?
+2. **Test file line budget management** -- With ~45-50 individual test cases, the file could reach 400+ lines with individual `it()` blocks. Options: (a) use a base CandidateScore helper function to reduce boilerplate (~5-8 lines per test vs. 10-15), (b) split into multiple test files (e.g., `movement-scoring-towards.test.ts`, `movement-scoring-away.test.ts`), or (c) accept approaching the limit. The existing codebase uses split test files extensively (e.g., `game-movement-basic.test.ts`, `game-movement-escape-routes.test.ts`).
 
-3. **dependency-cruiser on staged files only**: The `lint-staged` config runs commands on staged files only. `dependency-cruiser` typically validates the whole dependency graph. Running it on individual staged files may not catch all boundary violations (e.g., a new import in a staged file that pulls in a forbidden dependency). Need to verify if per-file invocation is sufficient or if the full `src/` scan is needed.
-
-4. **knip on staged files**: Similar to dependency-cruiser -- knip analyzes the whole project for dead exports/dependencies. Running on staged files alone may not be meaningful. May need to run on full project in lint-staged (or move to npm script only if too slow).
-
-5. **Stryker mutation scope**: The requirements say "mutate full `src/` tree (excluding test files, test helpers, type-only files)". Should `src/test/setup.ts` and `src/test/setup.browser.ts` also be excluded? They are test infrastructure. Should `src/main.tsx` be excluded (trivial React entry point)?
-
-6. **`.workflow-timestamps.json` initial creation**: When the file does not exist, all consumers need to handle graceful creation. The `CLAUDE.md` session start section already handles "file missing" case for `.deps-check-timestamp`.
-
-7. **Mutation testing in `/tdd` workflow**: The requirements say "Incremental run (`npm run mutate`) integrated into `/tdd` workflow as a post-test step." Where exactly in the TDD workflow does this go? After IMPLEMENT (post-green)? After REVIEW? The `tdd.md` state machine would need a new step or an addition to an existing phase.
+3. **Overlap with existing tests** -- The new test file will partially duplicate coverage already provided by `game-movement-escape-routes.test.ts` and `game-movement.test.ts`. This is acceptable since the goal is mutation score improvement for `movement-scoring.ts` specifically, and the new tests exercise different code paths (tiebreaker cascades).

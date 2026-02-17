@@ -1,597 +1,327 @@
-# Implementation Plan: Static Analysis Toolchain + Timer Consolidation
+# Plan: Mutation Score Improvement -- movement-scoring.ts
 
-## Overview
+## Goal
 
-Add Stryker Mutator, dependency-cruiser, and knip as dev tools. Consolidate workflow timers into `.workflow-timestamps.json`. No source code changes.
+Create `/home/bob/Projects/auto-battler/src/engine/movement-scoring.test.ts` with targeted unit tests to raise mutation score of `src/engine/movement-scoring.ts` from 45% to 80%+. Test-only task; no production code changes.
 
-## Tests Needed?
+## File Structure Decision
 
-**No tests needed.** This task is config/tooling only: config files, npm scripts, lint-staged wiring, and documentation. No runtime source code is created or modified. No behavioral logic to verify. The tools themselves are verified by running them (`npm run mutate`, `npm run validate:deps`, `npm run knip`) during implementation. The planner recommends skipping DESIGN_TESTS, TEST_DESIGN_REVIEW, and WRITE_TESTS phases.
+**Single file with helper function.** Estimated ~48 test cases at ~6-8 lines each (with helper) = ~320-380 lines. Stays within the 400-line budget. A `score()` helper that builds a `CandidateScore` from overrides will eliminate repetitive object construction (~2 lines per call instead of ~8).
+
+If the file exceeds 380 lines during implementation, split `compareAwayMode` tests into `src/engine/movement-scoring-away.test.ts` (the codebase uses this split pattern, e.g., `game-movement-escape-routes.test.ts`).
+
+## Helper Function
+
+```typescript
+function score(overrides: Partial<CandidateScore> = {}): CandidateScore {
+  return {
+    distance: 0,
+    absDq: 0,
+    absDr: 0,
+    r: 0,
+    q: 0,
+    escapeRoutes: 6,
+    ...overrides,
+  };
+}
+```
+
+All fields default to 0/6 (neutral values that produce ties at every level). Each test overrides only the fields relevant to the tiebreaker level under test. Per Lesson 005: all prior levels are genuinely equal because they use the same default value, and only the target level differs. This avoids accidentally passing through an earlier comparison.
+
+## Imports
+
+```typescript
+import { describe, it, expect } from "vitest";
+import {
+  CandidateScore,
+  compareTowardsMode,
+  compareAwayMode,
+  selectBestCandidate,
+  computePluralCandidateScore,
+  countEscapeRoutes,
+  buildObstacleSet,
+  calculateCandidateScore,
+} from "./movement-scoring";
+import { createCharacter } from "./game-test-helpers";
+```
+
+---
+
+## Block 1: `describe("compareTowardsMode")` -- 16 tests
+
+5 tiebreaker levels (all minimize). Each level needs 3 tests: (a) candidate wins, (b) candidate loses, (c) tie falls through. Plus 1 all-equal fallback.
+
+### Level 1 -- distance (primary, minimize)
+
+| Test      | Candidate                          | Best                               | Expected | Mutants killed                                         |
+| --------- | ---------------------------------- | ---------------------------------- | -------- | ------------------------------------------------------ |
+| (a) wins  | `score({ distance: 2 })`           | `score({ distance: 3 })`           | true     | `< to >`, `true to false`                              |
+| (b) loses | `score({ distance: 4 })`           | `score({ distance: 3 })`           | false    | `> to <`, `false to true`                              |
+| (c) tie   | `score({ distance: 3, absDq: 1 })` | `score({ distance: 3, absDq: 2 })` | true     | `< to <=` (would short-circuit), verifies fall-through |
+
+### Level 2 -- absDq (secondary, minimize)
+
+Prior fields: distance tied at default (0).
+
+| Test      | Candidate                       | Best                            | Expected |
+| --------- | ------------------------------- | ------------------------------- | -------- |
+| (a) wins  | `score({ absDq: 1 })`           | `score({ absDq: 2 })`           | true     |
+| (b) loses | `score({ absDq: 3 })`           | `score({ absDq: 2 })`           | false    |
+| (c) tie   | `score({ absDq: 2, absDr: 1 })` | `score({ absDq: 2, absDr: 2 })` | true     |
+
+### Level 3 -- absDr (tertiary, minimize)
+
+Prior fields: distance, absDq tied at default (0).
+
+| Test      | Candidate                   | Best                        | Expected |
+| --------- | --------------------------- | --------------------------- | -------- |
+| (a) wins  | `score({ absDr: 1 })`       | `score({ absDr: 2 })`       | true     |
+| (b) loses | `score({ absDr: 3 })`       | `score({ absDr: 2 })`       | false    |
+| (c) tie   | `score({ absDr: 2, r: 1 })` | `score({ absDr: 2, r: 2 })` | true     |
+
+### Level 4 -- r (quaternary, minimize)
+
+Prior fields: distance, absDq, absDr tied at default (0).
+
+| Test      | Candidate               | Best                    | Expected |
+| --------- | ----------------------- | ----------------------- | -------- |
+| (a) wins  | `score({ r: 1 })`       | `score({ r: 2 })`       | true     |
+| (b) loses | `score({ r: 3 })`       | `score({ r: 2 })`       | false    |
+| (c) tie   | `score({ r: 2, q: 1 })` | `score({ r: 2, q: 2 })` | true     |
+
+### Level 5 -- q (quinary, minimize, asymmetric: no explicit > guard)
+
+Prior fields: distance, absDq, absDr, r tied at default (0).
+
+| Test      | Candidate         | Best              | Expected |
+| --------- | ----------------- | ----------------- | -------- |
+| (a) wins  | `score({ q: 1 })` | `score({ q: 2 })` | true     |
+| (b) loses | `score({ q: 3 })` | `score({ q: 2 })` | false    |
+
+No (c) tie test -- when q is equal, the function hits `return false` which is the all-equal fallback.
+
+### All-equal fallback
+
+| Test     | Candidate | Best      | Expected |
+| -------- | --------- | --------- | -------- |
+| fallback | `score()` | `score()` | false    |
+
+**Total: 16 tests** (5 levels x 3 cases - 1 missing tie at level 5 + 1 all-equal)
+
+---
+
+## Block 2: `describe("compareAwayMode")` -- 19 tests
+
+6 tiebreaker levels. Levels 1-4 maximize, levels 5-6 minimize.
+
+### Level 1 -- composite = distance \* escapeRoutes (primary, maximize)
+
+| Test      | Candidate                                 | Best                                      | Expected | Notes                                  |
+| --------- | ----------------------------------------- | ----------------------------------------- | -------- | -------------------------------------- |
+| (a) wins  | `score({ distance: 5, escapeRoutes: 4 })` | `score({ distance: 4, escapeRoutes: 4 })` | true     | 20 > 16                                |
+| (b) loses | `score({ distance: 3, escapeRoutes: 4 })` | `score({ distance: 4, escapeRoutes: 4 })` | false    | 12 < 16                                |
+| (c) tie   | `score({ distance: 4, escapeRoutes: 5 })` | `score({ distance: 5, escapeRoutes: 4 })` | false    | Both 20; falls to distance where 4 < 5 |
+
+Note: The (c) case demonstrates composite tie AND distance tiebreak. The candidate has composite 20 but lower distance (4 < 5), so loses at level 2.
+
+### Level 2 -- distance (secondary, maximize)
+
+Equal composite achieved via inverse distance/escapeRoutes ratios.
+
+| Test      | Candidate                                           | Best                                                | Expected | Notes                                                    |
+| --------- | --------------------------------------------------- | --------------------------------------------------- | -------- | -------------------------------------------------------- |
+| (a) wins  | `score({ distance: 5, escapeRoutes: 4 })`           | `score({ distance: 4, escapeRoutes: 5 })`           | true     | Both 20, 5 > 4                                           |
+| (b) loses | `score({ distance: 4, escapeRoutes: 5 })`           | `score({ distance: 5, escapeRoutes: 4 })`           | false    | Both 20, 4 < 5                                           |
+| (c) tie   | `score({ distance: 3, escapeRoutes: 6, absDq: 4 })` | `score({ distance: 3, escapeRoutes: 6, absDq: 3 })` | true     | Same composite 18, same distance 3, falls to absDq 4 > 3 |
+
+### Level 3 -- absDq (tertiary, maximize)
+
+Prior: composite and distance equal. Use same distance and escapeRoutes.
+
+| Test      | Candidate                       | Best                            | Expected |
+| --------- | ------------------------------- | ------------------------------- | -------- |
+| (a) wins  | `score({ absDq: 4 })`           | `score({ absDq: 3 })`           | true     |
+| (b) loses | `score({ absDq: 2 })`           | `score({ absDq: 3 })`           | false    |
+| (c) tie   | `score({ absDq: 3, absDr: 4 })` | `score({ absDq: 3, absDr: 3 })` | true     |
+
+### Level 4 -- absDr (quaternary, maximize)
+
+Prior: composite, distance, absDq equal.
+
+| Test      | Candidate                   | Best                        | Expected |
+| --------- | --------------------------- | --------------------------- | -------- |
+| (a) wins  | `score({ absDr: 4 })`       | `score({ absDr: 3 })`       | true     |
+| (b) loses | `score({ absDr: 2 })`       | `score({ absDr: 3 })`       | false    |
+| (c) tie   | `score({ absDr: 3, r: 1 })` | `score({ absDr: 3, r: 2 })` | true     |
+
+### Level 5 -- r (quinary, minimize)
+
+Prior: composite, distance, absDq, absDr equal.
+
+| Test      | Candidate               | Best                    | Expected |
+| --------- | ----------------------- | ----------------------- | -------- |
+| (a) wins  | `score({ r: 1 })`       | `score({ r: 2 })`       | true     |
+| (b) loses | `score({ r: 3 })`       | `score({ r: 2 })`       | false    |
+| (c) tie   | `score({ r: 2, q: 1 })` | `score({ r: 2, q: 2 })` | true     |
+
+### Level 6 -- q (senary, minimize, asymmetric: no explicit > guard)
+
+Prior: composite, distance, absDq, absDr, r equal.
+
+| Test      | Candidate         | Best              | Expected |
+| --------- | ----------------- | ----------------- | -------- |
+| (a) wins  | `score({ q: 1 })` | `score({ q: 2 })` | true     |
+| (b) loses | `score({ q: 3 })` | `score({ q: 2 })` | false    |
+
+No (c) tie test -- q equal falls through to `return false`, same as all-equal.
+
+### All-equal fallback
+
+| Test     | Candidate | Best      | Expected |
+| -------- | --------- | --------- | -------- |
+| fallback | `score()` | `score()` | false    |
+
+**Total: 19 tests** (6 levels x 3 - 1 missing tie at level 6 + 1 all-equal)
+
+---
+
+## Block 3: `describe("buildObstacleSet")` -- 4 tests
+
+Characters use `createCharacter()` from `./game-test-helpers`.
+
+1. **Basic obstacle building**: 2 characters -> set contains 2 entries in `"q,r"` format
+2. **Exclude single ID**: 3 characters, exclude 1 -> set has 2 entries, excluded character's position absent
+3. **Exclude multiple IDs**: 3 characters, exclude 2 -> set has 1 entry
+4. **Empty characters array**: `[]` -> empty set
+
+---
+
+## Block 4: `describe("countEscapeRoutes")` -- 4 tests
+
+1. **Interior no obstacles**: `{q:0, r:0}` with empty set -> 6
+2. **Some obstacles**: `{q:0, r:0}` with 3 neighbor positions (`"1,0"`, `"-1,0"`, `"0,1"`) blocked -> 3
+3. **Fully surrounded**: `{q:0, r:0}` with all 6 neighbors in set -> 0
+4. **Edge position**: `{q:5, r:0}` with empty set -> 3 (only 3 valid neighbors within HEX_RADIUS=5)
+
+---
+
+## Block 5: `describe("calculateCandidateScore")` -- 4 tests
+
+1. **Basic score computation**: candidate `{q:1, r:1}`, target `{q:3, r:3}` -> verify distance (hexDistance), absDq=2, absDr=2, r=1, q=1, escapeRoutes=6 (no obstacles)
+2. **With obstacles**: candidate `{q:0, r:0}`, target `{q:2, r:2}` with obstacles at `"1,0"` and `"0,1"` -> escapeRoutes=4
+3. **Verify absolute values for dq/dr**: candidate `{q:3, r:0}`, target `{q:1, r:2}` -> absDq=|1-3|=2, absDr=|2-0|=2
+4. **Coordinates are candidate's**: candidate `{q:2, r:3}`, target `{q:0, r:0}` -> r=3, q=2
+
+---
+
+## Block 6: `describe("selectBestCandidate")` -- 5 tests
+
+Uses `createCharacter()` for target. Candidates are `Position[]`.
+
+1. **Towards mode -- picks closest**: candidates `[{q:1,r:0}, {q:3,r:0}]`, target at `{q:4,r:0}` -> picks `{q:3,r:0}`
+2. **Towards mode -- tiebreaker beyond distance**: candidates `[{q:1,r:1}, {q:2,r:0}]`, target at `{q:3,r:0}` -> same distance to target but different absDq; picks candidate with lower absDq
+3. **Away mode -- picks farthest**: candidates `[{q:1,r:0}, {q:-1,r:0}]`, target at `{q:3,r:0}` -> picks `{q:-1,r:0}`
+4. **Away mode with obstacles**: supply `allCharacters` + `moverId` -> tests that escape route scoring activates for away mode (obstacle reduces one candidate's routes making the other win)
+5. **Single candidate**: returns that candidate regardless of mode
+
+---
+
+## Block 7: `describe("computePluralCandidateScore")` -- 5 tests
+
+Uses `createCharacter()` for targets.
+
+1. **Towards mode -- average distance**: candidate `{q:0, r:0}`, two targets at `{q:2,r:0}` (dist 2) and `{q:4,r:0}` (dist 4) -> distance = 3.0
+2. **Away mode -- min distance**: same setup -> distance = 2
+3. **Nearest target for dq/dr**: candidate `{q:0,r:0}`, targets at `{q:1,r:0}` (dist 1) and `{q:3,r:0}` (dist 3) -> absDq=|1|=1 (from nearest target), absDr=0
+4. **With obstacles**: supply obstacle set -> escapeRoutes reflects blocked neighbors
+5. **Without obstacles**: no obstacle param -> escapeRoutes = 6
+
+---
+
+## Estimated Test Count
+
+| Block     | Function                    | Tests  |
+| --------- | --------------------------- | ------ |
+| 1         | compareTowardsMode          | 16     |
+| 2         | compareAwayMode             | 19     |
+| 3         | buildObstacleSet            | 4      |
+| 4         | countEscapeRoutes           | 4      |
+| 5         | calculateCandidateScore     | 4      |
+| 6         | selectBestCandidate         | 5      |
+| 7         | computePluralCandidateScore | 5      |
+| **Total** |                             | **57** |
+
+Revised upward from explorer's 45-50 estimate to 57 due to more thorough tiebreaker coverage. With the `score()` helper, most tiebreaker tests are 3-4 lines. Estimated file length: ~350-400 lines.
+
+---
+
+## Mutation Kill Strategy
+
+The 32 NoCoverage mutants are concentrated in compareTowardsMode (lines 89-125) and compareAwayMode (lines 140-185). Stryker generates these mutant types for comparison cascades:
+
+| Mutant Type                    | Example                                                     | Killed By                                                                       |
+| ------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `<` to `<=`                    | `candidateScore.distance < bestScore.distance` becomes `<=` | All-equal fallback test (would incorrectly return true when equal)              |
+| `<` to `>`                     | Same                                                        | (a) win test (would return false when candidate is better)                      |
+| `>` to `>=`                    | `candidateScore.distance > bestScore.distance` becomes `>=` | All-equal fallback test                                                         |
+| `>` to `<`                     | Same                                                        | (b) lose test (would return true when candidate is worse)                       |
+| `true` to `false`              | `return true` becomes `return false`                        | (a) win test                                                                    |
+| `false` to `true`              | `return false` becomes `return true`                        | (b) lose test or all-equal test                                                 |
+| Remove conditional             | `if (...) return true` removed                              | (a) win test or (b) lose test (control flow changes)                            |
+| Arithmetic: `*` to `+`/`-`/`/` | `distance * escapeRoutes`                                   | Composite tests with values where `*` differs from `+` (e.g., 5\*4=20 vs 5+4=9) |
+
+Each (a)/(b)/(c) test targets specific mutant types. The combination of all three cases per level plus the all-equal fallback should kill all NoCoverage mutants in the comparison cascades.
+
+---
 
 ## Implementation Order
 
-Execute in 4 phases. Each phase is independently committable but we commit once at the end.
-
----
-
-## Phase 1: Install Packages
-
-### Step 1.1: Install devDependencies
-
-```bash
-npm install --save-dev @stryker-mutator/core@^9.5.1 @stryker-mutator/vitest-runner@^9.5.1 dependency-cruiser@^17.3.8 knip@^5.83.1
-```
-
-Verify all four appear in `package.json` devDependencies after install.
-
-### Files modified
-
-- `/home/bob/Projects/auto-battler/package.json` (devDependencies added by npm)
-
----
-
-## Phase 2: Tool Configuration
-
-### Step 2.1: Create `stryker.config.json`
-
-Create `/home/bob/Projects/auto-battler/stryker.config.json`:
-
-```json
-{
-  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-js/master/packages/core/schema/stryker-core.schema.json",
-  "testRunner": "vitest",
-  "mutate": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "!src/**/*.test.ts",
-    "!src/**/*.test.tsx",
-    "!src/**/*.browser.test.tsx",
-    "!src/**/*-test-helpers.ts",
-    "!src/test/**",
-    "!src/main.tsx"
-  ],
-  "reporters": ["html", "clear-text", "progress"],
-  "htmlReporter": {
-    "fileName": "reports/mutation/mutation.html"
-  },
-  "incremental": false,
-  "incrementalFile": ".stryker-tmp/incremental.json",
-  "concurrency": 4,
-  "tempDirName": ".stryker-tmp"
-}
-```
-
-**Key decisions:**
-
-- **`testRunner: "vitest"`**: The vitest-runner 9.5.1 supports vitest >=2.0.0 (project uses 4.0.18). It reads `vite.config.ts` automatically.
-- **Dual Vitest projects**: The vitest-runner invokes vitest which reads the existing `vite.config.ts` with its `test.projects` array. Both unit and browser projects will run against mutants. If this causes issues (browser project slowness or failures), the fallback is to add `"vitest": { "configFile": "vite.config.ts", "project": "unit" }` to the Stryker config. Document this in a comment.
-- **Mutate exclusions**: Excludes all test files (`*.test.ts`, `*.test.tsx`, `*.browser.test.tsx`), test helpers (`*-test-helpers.ts`), test setup (`src/test/**`), and trivial entry (`src/main.tsx`). Does NOT exclude `src/engine/types.ts` because it contains runtime functions (`isPluralTarget`, `positionsEqual`, `isValidPosition`, `hexDistance`).
-- **No thresholds**: Reporting only (no `thresholds` key = no enforcement).
-- **`incremental: false`**: The base config does NOT enable incremental. The `npm run mutate` script passes `--incremental` as a CLI flag override, so the full run (`npm run mutate:full`) gets a clean baseline.
-- **`concurrency: 4`**: Conservative default; adjustable per machine.
-
-### Step 2.2: Create `.dependency-cruiser.cjs`
-
-Create `/home/bob/Projects/auto-battler/.dependency-cruiser.cjs`:
-
-```javascript
-/** @type {import('dependency-cruiser').IConfiguration} */
-module.exports = {
-  forbidden: [
-    // === Engine isolation ===
-    {
-      name: "engine-no-react",
-      comment: "Engine must not import React or React DOM",
-      severity: "error",
-      from: { path: "^src/engine/" },
-      to: { path: ["react", "react-dom"] },
-    },
-    {
-      name: "engine-no-state-mgmt",
-      comment: "Engine must not import Zustand or Immer",
-      severity: "error",
-      from: { path: "^src/engine/" },
-      to: { path: ["zustand", "immer"] },
-    },
-    {
-      name: "engine-no-components",
-      comment: "Engine must not import from components",
-      severity: "error",
-      from: { path: "^src/engine/" },
-      to: { path: "^src/components/" },
-    },
-    {
-      name: "engine-no-stores",
-      comment: "Engine must not import from stores",
-      severity: "error",
-      from: { path: "^src/engine/" },
-      to: { path: "^src/stores/" },
-    },
-    {
-      name: "engine-no-hooks",
-      comment: "Engine must not import from hooks",
-      severity: "error",
-      from: { path: "^src/engine/" },
-      to: { path: "^src/hooks/" },
-    },
-    {
-      name: "engine-no-styles",
-      comment: "Engine must not import from styles",
-      severity: "error",
-      from: { path: "^src/engine/" },
-      to: { path: "^src/styles/" },
-    },
-
-    // === Store isolation ===
-    {
-      name: "stores-no-components",
-      comment: "Stores must not import from components",
-      severity: "error",
-      from: { path: "^src/stores/" },
-      to: { path: "^src/components/" },
-    },
-    {
-      name: "stores-no-hooks",
-      comment: "Stores must not import from hooks",
-      severity: "error",
-      from: { path: "^src/stores/" },
-      to: { path: "^src/hooks/" },
-    },
-
-    // === Hooks isolation ===
-    {
-      name: "hooks-no-components",
-      comment: "Hooks must not import from components",
-      severity: "error",
-      from: { path: "^src/hooks/" },
-      to: { path: "^src/components/" },
-    },
-
-    // === Circular dependencies ===
-    {
-      name: "no-circular",
-      comment: "No circular dependencies anywhere in src",
-      severity: "error",
-      from: { path: "^src/" },
-      to: { circular: true },
-    },
-  ],
-  options: {
-    doNotFollow: {
-      path: "node_modules",
-    },
-    tsConfig: {
-      fileName: "tsconfig.json",
-    },
-    enhancedResolveOptions: {
-      exportsFields: ["exports"],
-      conditionNames: ["import", "require", "node", "default"],
-    },
-    exclude: {
-      path: ["\\.(test|browser\\.test)\\.(ts|tsx)$", "-test-helpers\\.ts$"],
-    },
-    reporterOptions: {
-      text: {
-        highlightFocused: true,
-      },
-    },
-  },
-};
-```
-
-**Key decisions:**
-
-- **`.cjs` extension**: Required because project is `"type": "module"` and dependency-cruiser config uses CommonJS `module.exports`.
-- **Boundary rules match architecture.md exactly**: engine must not import react/react-dom/zustand/immer/components/stores/hooks/styles; stores must not import components/hooks; hooks must not import components.
-- **Circular deps**: Applied to all of `src/`.
-- **Test exclusion**: Tests are excluded from validation since test files legitimately cross architectural boundaries.
-
-### Step 2.3: Create `knip.json`
-
-Create `/home/bob/Projects/auto-battler/knip.json`:
-
-```json
-{
-  "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/main.tsx"],
-  "project": ["src/**/*.{ts,tsx}"],
-  "ignore": [
-    "src/**/*.test.{ts,tsx}",
-    "src/**/*.browser.test.{ts,tsx}",
-    "src/**/*-test-helpers.ts",
-    "src/test/**"
-  ],
-  "ignoreDependencies": [
-    "babel-plugin-react-compiler",
-    "@vitest/browser",
-    "@vitest/browser-playwright",
-    "playwright"
-  ]
-}
-```
-
-**Key decisions:**
-
-- **Entry point**: `src/main.tsx` is the single application entry.
-- **Project scope**: All `.ts` and `.tsx` files in `src/`.
-- **Ignore patterns**: Test files, test helpers, and test setup (these have different dependency patterns).
-- **ignoreDependencies**: Packages referenced only in config files (vite.config.ts, etc.) that knip cannot trace from source entry points. `babel-plugin-react-compiler` is used in vite.config.ts plugin array. `@vitest/browser`, `@vitest/browser-playwright`, and `playwright` are used in vite.config.ts test.projects config. These are legitimate dependencies that knip would incorrectly flag as unused.
-
-### Files created
-
-- `/home/bob/Projects/auto-battler/stryker.config.json`
-- `/home/bob/Projects/auto-battler/.dependency-cruiser.cjs`
-- `/home/bob/Projects/auto-battler/knip.json`
-
----
-
-## Phase 3: npm Scripts, lint-staged, and .gitignore
-
-### Step 3.1: Add npm scripts to `package.json`
-
-Add to the `"scripts"` object:
-
-```json
-"mutate": "stryker run --incremental",
-"mutate:full": "stryker run",
-"validate:deps": "depcruise src --config .dependency-cruiser.cjs",
-"knip": "knip"
-```
-
-### Step 3.2: Update lint-staged in `package.json`
-
-Replace the current `lint-staged` config:
-
-**Before:**
-
-```json
-"lint-staged": {
-  "*.{ts,tsx}": [
-    "eslint --fix",
-    "prettier --write"
-  ],
-  "*.{json,md,css}": [
-    "prettier --write"
-  ]
-}
-```
-
-**After:**
-
-```json
-"lint-staged": {
-  "*.{ts,tsx}": [
-    "eslint --fix",
-    "prettier --write",
-    "depcruise --config .dependency-cruiser.cjs"
-  ],
-  "*.{json,md,css}": [
-    "prettier --write"
-  ]
-}
-```
-
-**lint-staged wiring rationale:**
-
-- **dependency-cruiser**: Added to `*.{ts,tsx}` glob. lint-staged passes staged files as arguments; depcruise validates each file's imports against the boundary rules. Per-file invocation is sufficient because depcruise checks each file's imports -- if a staged file adds a forbidden import, depcruise catches it regardless of whether the target file is staged. The 5s threshold should be met since depcruise processes individual files quickly.
-
-- **knip: NOT wired into lint-staged.** knip analyzes the entire project for unused exports/dependencies/files -- it cannot meaningfully run on individual staged files. Running full-project knip in lint-staged would either (a) always run against the whole project regardless of staged files (ignoring the lint-staged file list), or (b) produce incorrect results on partial file lists. It is better as an explicit npm script (`npm run knip`) run periodically or in CI. This is the correct design -- knip is a project-level analyzer, not a per-file linter.
-
-### Step 3.3: Update `.gitignore`
-
-Add to `/home/bob/Projects/auto-battler/.gitignore`:
-
-```
-# Stryker
-.stryker-tmp/
-reports/
-
-# Workflow timers (machine-specific)
-.workflow-timestamps.json
-```
-
-Also update the existing `# Dependency check` section: replace `.deps-check-timestamp` with the new `.workflow-timestamps.json` entry (remove the old line since the new entry covers it under a new heading).
-
-### Files modified
-
-- `/home/bob/Projects/auto-battler/package.json` (scripts + lint-staged)
-- `/home/bob/Projects/auto-battler/.gitignore` (add Stryker dirs + workflow file, remove old timestamp entry)
-
----
-
-## Phase 4: Timer Consolidation + Documentation Updates
-
-### Step 4.1: Create `.workflow-timestamps.json`
-
-Create `/home/bob/Projects/auto-battler/.workflow-timestamps.json` with migrated values:
-
-```json
-{
-  "deps-check": "2026-02-08T09:54:37Z",
-  "meta-review": "2026-02-10T00:00:00Z",
-  "mutation-test": null
-}
-```
-
-**Migration notes:**
-
-- `deps-check`: Exact value from current `.deps-check-timestamp` (`2026-02-08T09:54:37Z`)
-- `meta-review`: Value from `.docs/last-meta-review.txt` (`2026-02-10`) with `T00:00:00Z` appended to standardize on ISO 8601 with time
-- `mutation-test`: `null` (no prior run; first `npm run mutate` sets this)
-
-### Step 4.2: Delete old timer files
-
-After creating the consolidated file:
-
-- Delete `/home/bob/Projects/auto-battler/.deps-check-timestamp`
-- Delete `/home/bob/Projects/auto-battler/.docs/last-meta-review.txt`
-
-**Semantic change note:** `.docs/last-meta-review.txt` was tracked in git; `.workflow-timestamps.json` is gitignored (machine-specific). This is intentional -- timer values are per-developer and should not be shared.
-
-### Step 4.3: Update `CLAUDE.md` -- Session Start section
-
-Replace lines 96-102 of `/home/bob/Projects/auto-battler/CLAUDE.md`:
-
-**Before:**
-
-```markdown
-## Session Start
-
-Read `.deps-check-timestamp` (repo root, ISO 8601 UTC date). Calculate days since that date. If >14 days or file missing, print:
-
-> **Dependency check overdue** ({N} days since last check). Run `/project:deps-check` to update.
-
-Then continue normal session setup.
-```
-
-**After:**
-
-```markdown
-## Session Start
-
-Read `.workflow-timestamps.json` (repo root). For each key, calculate days since value (ISO 8601 UTC). If file missing, treat all as overdue. Report all overdue items (>14 days or null) at once:
-
-> **Overdue workflow checks:**
->
-> - **Dependency check** overdue ({N} days). Run `/project:deps-check`.
-> - **Meta-review** overdue ({N} days). Run `/tdd` to trigger.
-> - **Mutation testing** overdue ({N} days). Run `npm run mutate`.
-
-If none overdue, proceed without mention.
-```
-
-### Step 4.4: Update `CLAUDE.md` -- Key Commands section
-
-Add the new scripts to the Key Commands code block (after `security:check`):
-
-```bash
-npm run mutate        # Incremental mutation testing (Stryker)
-npm run mutate:full   # Full mutation testing (no cache)
-npm run validate:deps # Validate module boundaries (dependency-cruiser)
-npm run knip          # Detect unused code/exports/dependencies
-```
-
-### Step 4.5: Update `.claude/commands/tdd.md` -- Meta-Housekeeping Timer
-
-Replace lines 21-29 of `/home/bob/Projects/auto-battler/.claude/commands/tdd.md`:
-
-**Before:**
-
-```markdown
-## Meta-Housekeeping Timer
-
-At session start, read `.docs/last-meta-review.txt`. If the file is missing or the date inside is >30 days ago, output:
-
-> ⏰ Monthly meta-review due. Review or "skip" to proceed.
-
-On either review completion or skip, write today's date (YYYY-MM-DD) to `.docs/last-meta-review.txt` and log a one-line summary to `.docs/meta-review-log.md`.
-
-If ≤30 days, proceed without mention.
-```
-
-**After:**
-
-```markdown
-## Meta-Housekeeping Timer
-
-At session start, read `.workflow-timestamps.json` key `"meta-review"`. If the file is missing, the key is null, or the date is >14 days ago, output:
-
-> Meta-review due. Review or "skip" to proceed.
-
-On either review completion or skip, update `"meta-review"` in `.workflow-timestamps.json` to current ISO 8601 UTC timestamp and log a one-line summary to `.docs/meta-review-log.md`.
-
-If <=14 days, proceed without mention.
-```
-
-### Step 4.6: Update `.claude/commands/deps-check.md` -- Post-Update Timestamp
-
-Replace line 99 of `/home/bob/Projects/auto-battler/.claude/commands/deps-check.md`:
-
-**Before:**
-
-```bash
-date -u +%Y-%m-%dT%H:%M:%SZ > .deps-check-timestamp
-```
-
-**After:**
-
-Replace the entire "Update Timestamp" subsection (lines 96-100):
-
-**Before:**
-
-````markdown
-### Update Timestamp
-
-```bash
-date -u +%Y-%m-%dT%H:%M:%SZ > .deps-check-timestamp
-```
-````
-
-````
-
-**After:**
-```markdown
-### Update Timestamp
-
-Update `"deps-check"` in `.workflow-timestamps.json` to current ISO 8601 UTC timestamp. If the file does not exist, create it:
-
-```bash
-node -e "
-const fs = require('fs');
-const f = '.workflow-timestamps.json';
-const data = fs.existsSync(f) ? JSON.parse(fs.readFileSync(f, 'utf8')) : {};
-data['deps-check'] = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-fs.writeFileSync(f, JSON.stringify(data, null, 2) + '\n');
-"
-````
-
-```
-
-### Step 4.7: Update `.gitignore` -- Remove old entry
-
-In the `.gitignore`, remove:
-```
-
-# Dependency check
-
-.deps-check-timestamp
-
-````
-
-This is already covered by Step 3.3 which adds `.workflow-timestamps.json` under a new heading. The old `.deps-check-timestamp` line should be removed since the file no longer exists.
-
-### Step 4.8: Integrate mutation testing into `/tdd` workflow
-
-Add `npm run mutate` as a post-test step in the IMPLEMENT phase. In `.claude/commands/tdd.md`, update the IMPLEMENT phase:
-
-**Current (line ~406):**
-```yaml
-  IMPLEMENT:
-    agent: tdd-coder
-    budget: tdd-coder_implement
-    inputs: [".tdd/test-designs.md", ".tdd/plan.md"]
-    actions:
-      - Write code to pass tests
-      - Run quality gates (lint, type-check)
-      - UI changes: browser verification (MCP tools only)
-    gate_order: "tests pass (green) → lint → type-check → REVIEW"
-    next: REVIEW
-````
-
-**Updated:**
-
-```yaml
-IMPLEMENT:
-  agent: tdd-coder
-  budget: tdd-coder_implement
-  inputs: [".tdd/test-designs.md", ".tdd/plan.md"]
-  actions:
-    - Write code to pass tests
-    - Run quality gates (lint, type-check)
-    - Run incremental mutation testing (npm run mutate) — non-blocking, report-only
-    - UI changes: browser verification (MCP tools only)
-  gate_order: "tests pass (green) → lint → type-check → mutate (report-only) → REVIEW"
-  next: REVIEW
-```
-
-Also update the mutation-test timestamp after a successful mutate run. Add to the IMPLEMENT actions or COMMIT phase: update `"mutation-test"` in `.workflow-timestamps.json` to current ISO 8601 UTC timestamp.
-
-### Files modified
-
-- `/home/bob/Projects/auto-battler/.workflow-timestamps.json` (created)
-- `/home/bob/Projects/auto-battler/CLAUDE.md` (Session Start + Key Commands sections)
-- `/home/bob/Projects/auto-battler/.claude/commands/tdd.md` (Meta-Housekeeping Timer + IMPLEMENT phase)
-- `/home/bob/Projects/auto-battler/.claude/commands/deps-check.md` (Update Timestamp section)
-- `/home/bob/Projects/auto-battler/.gitignore` (remove old `.deps-check-timestamp` entry)
-
-### Files deleted
-
-- `/home/bob/Projects/auto-battler/.deps-check-timestamp`
-- `/home/bob/Projects/auto-battler/.docs/last-meta-review.txt`
-
----
-
-## Complete File Manifest
-
-### Files to CREATE (4)
-
-1. `/home/bob/Projects/auto-battler/stryker.config.json`
-2. `/home/bob/Projects/auto-battler/.dependency-cruiser.cjs`
-3. `/home/bob/Projects/auto-battler/knip.json`
-4. `/home/bob/Projects/auto-battler/.workflow-timestamps.json`
-
-### Files to MODIFY (4)
-
-1. `/home/bob/Projects/auto-battler/package.json` -- devDependencies, scripts, lint-staged
-2. `/home/bob/Projects/auto-battler/.gitignore` -- add Stryker/workflow entries, remove old timestamp entry
-3. `/home/bob/Projects/auto-battler/CLAUDE.md` -- Key Commands + Session Start sections
-4. `/home/bob/Projects/auto-battler/.claude/commands/tdd.md` -- Meta-Housekeeping Timer + IMPLEMENT phase
-5. `/home/bob/Projects/auto-battler/.claude/commands/deps-check.md` -- Update Timestamp section
-
-### Files to DELETE (2)
-
-1. `/home/bob/Projects/auto-battler/.deps-check-timestamp`
-2. `/home/bob/Projects/auto-battler/.docs/last-meta-review.txt`
-
-**Total: 4 created + 5 modified + 2 deleted = 11 file operations**
-
----
-
-## Open Questions Resolved
-
-### Stryker with dual Vitest projects
-
-The vitest-runner invokes Vitest which reads the existing `vite.config.ts` and its `test.projects` array. Both unit and browser projects should run. If the browser project causes issues (Playwright overhead, flaky failures), the fallback is to add `"vitest": { "project": "unit" }` to `stryker.config.json`. The coder should attempt the default (both projects) first and fall back if needed.
-
-### dependency-cruiser in lint-staged
-
-Per-file invocation is appropriate. When lint-staged passes staged `.ts`/`.tsx` files to depcruise, each file's imports are checked against boundary rules. This catches forbidden imports at commit time. Performance should be well under 5s for individual files.
-
-### knip in lint-staged
-
-**Not wired into lint-staged.** knip is a project-level analyzer that needs the full dependency graph. Per-file invocation would be meaningless. It remains as `npm run knip` for periodic use or CI.
-
-### Timer cadence
-
-All three timers use 14-day cadence (changed from 30 days for meta-review per requirements). The `CLAUDE.md` session start checks all three at once. The `tdd.md` meta-housekeeping timer checks only meta-review.
-
-### Stryker mutation scope
-
-`src/main.tsx` is excluded (trivial React entry point with no logic). `src/test/setup.ts` and `src/test/setup.browser.ts` are excluded via the `!src/test/**` glob. `src/engine/types.ts` is NOT excluded because it contains runtime functions.
-
----
-
-## New Architectural Decision
-
-**Decision**: knip is not wired into lint-staged; it remains an npm script for periodic/CI use only.
-
-**Context**: knip analyzes entire project dependency graphs for unused exports, files, and dependencies. This requires whole-project analysis, not per-file checking. lint-staged passes individual staged files, which is incompatible with knip's analysis model.
-
-**Consequences**: Unused exports/dependencies are caught by periodic `npm run knip` runs or CI, not at commit time. This is acceptable because unused code is a quality issue, not a correctness issue -- it does not need pre-commit enforcement.
-
-**Recommend adding to `.docs/decisions/index.md`** as ADR-025 during doc-sync phase.
-
----
+1. Write `score()` helper + imports at top of file
+2. Write `compareTowardsMode` tests (Block 1) -- highest mutation coverage impact
+3. Write `compareAwayMode` tests (Block 2) -- second highest impact
+4. Write `buildObstacleSet` tests (Block 3)
+5. Write `countEscapeRoutes` tests (Block 4)
+6. Write `calculateCandidateScore` tests (Block 5)
+7. Write `selectBestCandidate` tests (Block 6)
+8. Write `computePluralCandidateScore` tests (Block 7)
+
+## Verification Steps
+
+1. `npm run test -- --run src/engine/movement-scoring.test.ts` -- all new tests pass
+2. `npm run test -- --run` -- full suite passes (no regressions)
+3. `npm run mutate -- --mutate src/engine/movement-scoring.ts` -- verify >= 80% mutation score
+4. If < 80%, examine surviving mutants in `reports/mutation/mutation.html` and add targeted tests
+
+## Risks and Mitigations
+
+1. **400-line budget**: Mitigated by `score()` helper. If exceeded, split compareAwayMode block into `movement-scoring-away.test.ts`.
+2. **Composite arithmetic mutations**: Values chosen so `*` and `+`/`-` produce different orderings (e.g., 5\*4=20 vs 5+4=9).
+3. **Hex coordinate validity**: selectBestCandidate/calculateCandidateScore tests use positions within `max(|q|, |r|, |q+r|) <= 5`. Direct CandidateScore tests for comparators are unconstrained.
+4. **Overlap with existing tests**: Some coverage overlap with `game-movement-escape-routes.test.ts` is acceptable; the mutation score is measured per-file and the new tests target different branches (deep tiebreaker cascades).
 
 ## Spec Alignment Check
 
-- [x] Plan aligns with `.docs/spec.md` requirements (no source code changes, architecture boundaries match)
-- [x] Approach consistent with `.docs/architecture.md` (layered architecture rules exactly match dep-cruiser boundaries)
-- [x] Patterns follow `.docs/patterns/index.md` (root-level dotfiles, co-located config)
+- [x] Plan aligns with `.docs/spec.md` (movement tiebreaker hierarchy in "Movement System" section)
+- [x] Approach consistent with `.docs/architecture.md` (pure engine tests, no React)
+- [x] Patterns follow `.docs/patterns/index.md` (scoring module extraction ADR-024)
 - [x] No conflicts with `.docs/decisions/index.md`
-- [x] UI tasks: N/A (no UI changes)
+- [x] UI tasks: N/A (test-only task)
+- [x] Lesson 005 applied: `score()` helper defaults all fields to tied values; each test overrides only the target level
 
-**Note**: Requirements say knip should be "wired into lint-staged." This plan deviates because knip cannot meaningfully analyze individual staged files. The deviation is documented and justified above. The coder should confirm this with a test: run `knip` on a single file and verify it produces no useful output.
+## Files
 
----
+### To Create (1)
 
-## Verification Steps (for coder)
+1. `/home/bob/Projects/auto-battler/src/engine/movement-scoring.test.ts` (~350-400 lines)
 
-After implementation, verify each tool works:
+### To Read (by implementer, 5)
 
-1. `npm run validate:deps` -- should exit 0 (no boundary violations)
-2. `npm run knip` -- should run and report any dead code (may find issues; do not fix in this task)
-3. `npm run mutate` -- should start mutation testing (may take several minutes; verify it starts correctly)
-4. `git add -A && npx lint-staged --dry-run` -- verify lint-staged runs depcruise on staged files without error
-5. Verify `.workflow-timestamps.json` has correct structure and values
-6. Verify `.deps-check-timestamp` and `.docs/last-meta-review.txt` are deleted
+1. `/home/bob/Projects/auto-battler/src/engine/movement-scoring.ts` -- source under test (274 lines)
+2. `/home/bob/Projects/auto-battler/src/engine/game-movement-escape-routes.test.ts` -- CandidateScore construction pattern
+3. `/home/bob/Projects/auto-battler/src/engine/game-test-helpers.ts` -- createCharacter helper
+4. `/home/bob/Projects/auto-battler/src/engine/hex.ts` -- hexDistance, getHexNeighbors for test value design
+5. `/home/bob/Projects/auto-battler/src/engine/pathfinding.ts` -- positionKey format ("q,r")
+
+### No Modifications
+
+No production source code changes. No existing test file modifications.

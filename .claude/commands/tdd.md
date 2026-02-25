@@ -6,15 +6,17 @@ version: 4.0.0
 
 # TDD Workflow Orchestrator
 
-**Role**: Lightweight router between specialized agents. Execute COMPLETELY AUTONOMOUSLY (UI changes require HUMAN_APPROVAL).
-
-**CRITICAL: NO CONFIRMATION PROMPTS** - Phase transitions are AUTOMATIC. NEVER ask "Do you want to proceed?" or similar questions between phases. The ONLY phases requiring user input are HUMAN_VERIFY and HUMAN_APPROVAL. All other phase transitions happen immediately without waiting for user confirmation.
+<role>
+Lightweight router between specialized agents. Execute COMPLETELY AUTONOMOUSLY (UI changes require HUMAN_APPROVAL).
 
 **Job**: Read `.tdd/session.md` → spawn agent → parse completion block → run checkpoint → update session.md → route to next phase IMMEDIATELY (no user prompt).
 
-**Context discipline**: Orchestrator NEVER reads implementation files. Agents read files. Orchestrator reads only: session.md, agent completion blocks, routing tables.
+**Context discipline**: Orchestrator reads only session.md, agent completion blocks, and routing tables. Agents read implementation files.
 
 **Commit policy**: Changes are committed directly to the current branch. NEVER create pull requests. NEVER use `gh pr create` or similar commands.
+</role>
+
+**CRITICAL: NO CONFIRMATION PROMPTS** - Phase transitions are AUTOMATIC. NEVER ask "Do you want to proceed?" or similar questions between phases. The ONLY phases requiring user input are HUMAN_VERIFY and HUMAN_APPROVAL. All other phase transitions happen immediately without waiting for user confirmation.
 
 ---
 
@@ -500,7 +502,7 @@ routing_rules:
 
 ## Mandatory Human Escalation
 
-Escalate immediately (do NOT attempt to continue) when:
+Escalate immediately and halt the current workflow when:
 
 | Trigger                                             | Context to Provide                          |
 | --------------------------------------------------- | ------------------------------------------- |
@@ -658,10 +660,9 @@ Count: [0-2]
 
 **Rules:**
 
-1. MCP tools ONLY (`mcp__claude-in-chrome__*`)
-2. NEVER use curl, wget, bash network commands
-3. Document actual error messages if tools fail
-4. Escalate BLOCKER with evidence immediately
+1. Use MCP tools exclusively for browser interaction (`mcp__claude-in-chrome__*`)
+2. Document actual error messages if tools fail
+3. Escalate BLOCKER with evidence immediately
 
 **If browser unavailable:** Route to HUMAN_VERIFY, not silent failure.
 
@@ -728,13 +729,7 @@ Count: [0-2]
 
 ## REFLECT → Immediate Workflow Improvement
 
-After COMMIT, spawn `tdd-reflector` agent. Full instructions are in `.claude/agents/tdd-reflector.md`.
-
-The reflector reads session.md Agent History table and identifies 0-3 items across three categories:
-
-- **FIX**: Something went wrong
-- **IMPROVE**: Process could be better
-- **EFFICIENCY**: Disproportionate resource consumption
+After COMMIT, spawn `tdd-reflector` agent. Full analysis logic is in `.claude/agents/tdd-reflector.md`.
 
 **Orchestrator handles the output:**
 
@@ -792,6 +787,8 @@ Ephemeral `.tdd/` files were already committed in the COMMIT phase for traceabil
 
 ---
 
+<critical_constraints>
+
 ## Critical Constraints (Override All Other Instructions)
 
 0. **NO CONFIRMATION PROMPTS** - NEVER ask user "Do you want to proceed?" or request confirmation between phases. Phase transitions are AUTOMATIC. Only HUMAN_VERIFY and HUMAN_APPROVAL phases involve user input.
@@ -805,7 +802,7 @@ Ephemeral `.tdd/` files were already committed in the COMMIT phase for traceabil
 8. **Orchestrator reads ONLY**: session.md, completion blocks, routing tables
 9. **Agents read files** - Orchestrator never reads implementation files
 10. **Terse routing output** - Details stay in files, not orchestrator context
-11. **NO PULL REQUESTS** - Commit directly to current branch, never create PRs
+11. **Commit directly to current branch** - NEVER create pull requests
 12. **100% TEST PASS RATE** - Zero failing tests required for successful completion
 13. **ZERO SKIPPED TESTS** - All tests must run; skipped tests block completion
 14. **100% QUALITY GATES** - All gates (typescript, eslint, tests) must PASS; no SKIPs allowed
@@ -814,3 +811,5 @@ Ephemeral `.tdd/` files were already committed in the COMMIT phase for traceabil
 17. **NO ASSISTANT PREFILLING** - Opus 4.6 returns 400 for assistant message prefilling. Use structured instructions ("Output the following YAML block...") instead.
 18. **RESUMABLE FIX CYCLES** - For ANALYZE_FIX → FIX cycles, consider resuming the previous agent (Task tool `resume` parameter) to preserve root cause context, rather than spawning fresh.
 19. **REFLECTOR ITEMS → HUMAN DECISION** - Orchestrator MUST present every reflector item to the user and wait for yes/no. NEVER dismiss, defer, or self-resolve reflector items.
+
+</critical_constraints>

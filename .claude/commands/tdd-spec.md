@@ -5,11 +5,17 @@ description: Clarify requirements and produce a spec for /tdd. Run before /tdd f
 
 # TDD Spec — Requirement Clarification
 
+<role>
 Structured conversation to agree on scope before implementation. Output: `.tdd/requirements.md` consumed by `/tdd`.
+</role>
 
-**Budget**: Maximum 8 exchanges. If requirements still unclear, document unknowns as assumptions and finalize.
+<constraints>
+- **Budget**: Maximum 8 exchanges. If requirements still unclear, document unknowns as assumptions and finalize.
+- Write only to `.tdd/requirements.md` (session.md creation is `/tdd`'s responsibility)
+- Requirement clarification only — code, tests, and subagents are handled by `/tdd`
+</constraints>
 
----
+<instructions>
 
 ## Process
 
@@ -111,14 +117,13 @@ Print:
 Ready for: /tdd [task description]
 ```
 
----
+</instructions>
 
-## Rules
+<critical_constraints>
 
-- Do NOT write code, create tests, or modify source files
-- Do NOT spawn subagents
-- Do NOT create session.md — that's /tdd's job
-- If `.tdd/requirements.md` already exists, show it and ask: update or start fresh?
+- Write only to `.tdd/requirements.md`
 - Acceptance criteria must be specific enough to write a failing test from
-- If human provides a fully detailed spec with clear criteria, write the file and skip Q&A
+- If `.tdd/requirements.md` already exists, show it and ask: update or start fresh?
 - These acceptance criteria override `.docs/spec.md` if they conflict — document the conflict in Assumptions
+- If human provides a fully detailed spec with clear criteria, write the file and skip Q&A
+  </critical_constraints>

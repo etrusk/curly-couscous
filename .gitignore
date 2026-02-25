@@ -49,3 +49,6 @@ reports/
 # Workflow timers (machine-specific)
 .workflow-timestamps.json
 
+# Archived docs
+.docs/archive/
+

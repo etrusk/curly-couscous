@@ -49,7 +49,7 @@ Synchronize project documentation after successful implementation. Update `.docs
    - If tokens or global styles changed, update `.docs/ui-ux-guidelines.md`
    - Update "Last verified" date on each touched spec
 
-## Handoff Protocol
+## Handoff
 
 1. Update documentation files
 2. Update `.tdd/session.md` with phase completion
@@ -58,8 +58,6 @@ Synchronize project documentation after successful implementation. Update `.docs
 
 <output>
 ## Completion Block
-
-Output AGENT_COMPLETION YAML block on completion. This is MANDATORY.
 
 ```yaml
 # AGENT_COMPLETION

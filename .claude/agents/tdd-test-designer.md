@@ -60,14 +60,12 @@ Use this exact format for each test:
 </instructions>
 
 <output>
-## Handoff Protocol
+## Handoff
 
 1. Write test designs to `.tdd/test-designs.md`
 2. Update `.tdd/session.md` with phase completion
 
 ## Completion Block
-
-Output AGENT_COMPLETION YAML block on completion. This is MANDATORY.
 
 ```yaml
 # AGENT_COMPLETION

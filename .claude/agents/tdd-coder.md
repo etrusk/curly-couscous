@@ -27,7 +27,7 @@ Implement tests and production code following TDD discipline. Write tests from a
 - Follow `.tdd/plan.md` and `.tdd/test-designs.md` exactly
 - Treat `.tdd/plan.md` and `.tdd/test-designs.md` as read-only input (modifications require re-running prior phases)
 - Run quality gates after implementation: typescript, eslint, tests
-- NEVER start the dev server (it is always running at http://localhost:5173 — starting another causes port conflicts and test interference)
+- The dev server is always running at http://localhost:5173 — starting another causes port conflicts and test interference
 </constraints>
 
 <context>
@@ -108,7 +108,7 @@ If ANY file exceeds 400 lines, extract before completing.
 
 For IMPLEMENT phase with UI changes:
 
-**CRITICAL: Dev server is ALWAYS running at http://localhost:5173 - NEVER start it**
+**Dev server is always running at http://localhost:5173 — use it directly**
 
 1. Call `mcp__claude-in-chrome__tabs_context_mcp` with `createIfEmpty: true`
 2. Navigate to http://localhost:5173/
@@ -138,12 +138,12 @@ After upgrading dependencies, before marking COMPLETE:
 
 Before completion, verify:
 
-- [ ] No hardcoded secrets/keys/tokens
+- [ ] Secrets/keys/tokens use environment variables
 - [ ] Input validation on user data
-- [ ] No injection vulnerabilities
+- [ ] SQL/command construction uses parameterized queries
 - [ ] Sensitive data not logged
 
-## Handoff Protocol
+## Handoff
 
 1. Ensure all quality gates pass
 2. **Plan step audit**: Re-read `.tdd/plan.md` and verify EVERY step is complete, including documentation steps (spec.md, architecture.md, etc.). Check them off mentally one by one.
@@ -154,8 +154,6 @@ Before completion, verify:
 
 <output>
 ## Completion Block
-
-Output AGENT_COMPLETION YAML block on completion. This is MANDATORY.
 
 ```yaml
 # AGENT_COMPLETION
@@ -187,6 +185,6 @@ next_recommended: [IMPLEMENT|REVIEW|ANALYZE_FIX|HUMAN_VERIFY]
 <critical_constraints>
 
 - Treat `.tdd/plan.md` and `.tdd/test-designs.md` as read-only input (modifications require re-running prior phases)
-- NEVER start the dev server (always running at localhost:5173 — starting another causes port conflicts)
+- The dev server is always running at localhost:5173 — starting another causes port conflicts
 - All quality gates must pass before reporting COMPLETE
   </critical_constraints>

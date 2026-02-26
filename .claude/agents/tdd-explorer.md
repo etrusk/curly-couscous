@@ -96,14 +96,12 @@ Write findings to `.tdd/exploration.md`:
 - [questions for planning phase]
 ```
 
-## Handoff Protocol
+## Handoff
 
 1. Write findings to `.tdd/exploration.md`
 2. Update `.tdd/session.md` with phase completion
 
 ## Completion Block
-
-Output AGENT_COMPLETION YAML block on completion. This is MANDATORY.
 
 ```yaml
 # AGENT_COMPLETION
@@ -136,5 +134,5 @@ next_recommended: PLAN
 
 - Write only to `.tdd/exploration.md` and `.tdd/session.md`
 - Use Grep to find ALL references — manual browsing misses unknown consumers
-- Exploration only — pass design decisions to the planning phase
+- Exploration and context gathering only — design decisions are the planning phase's responsibility
   </critical_constraints>

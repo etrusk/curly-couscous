@@ -113,8 +113,6 @@ REFLECT: Clean session.
 
 ## Completion Block
 
-Output AGENT_COMPLETION YAML block on completion. This is MANDATORY.
-
 ```yaml
 # AGENT_COMPLETION
 phase: REFLECT
@@ -145,6 +143,5 @@ next_recommended: CLEANUP
 <critical_constraints>
 
 - Process analysis only — no code suggestions, no documentation updates
-- Each item must have evidence, target file, section, and actual text change
-- Do NOT report: vague improvements, code suggestions, items without file targets, issues already fixed
+- Each item requires evidence, target file, section, and actual text change — skip vague improvements and already-fixed issues
   </critical_constraints>

@@ -90,14 +90,12 @@ When a plan involves migrating or modifying a known set of files:
 <output>
 Write plan to `.tdd/plan.md`. Be concise and actionable. Focus on what to do, not lengthy explanations.
 
-## Handoff Protocol
+## Handoff
 
 1. Write plan to `.tdd/plan.md`
 2. Update `.tdd/session.md` with phase completion
 
 ## Completion Block
-
-Output AGENT_COMPLETION YAML block on completion. This is MANDATORY.
 
 ```yaml
 # AGENT_COMPLETION

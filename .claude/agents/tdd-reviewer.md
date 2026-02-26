@@ -71,14 +71,12 @@ Review implemented code against spec, patterns, and architecture. Write findings
 <output>
 Write findings to `.tdd/review-findings.md` (keep under 1500 tokens).
 
-## Handoff Protocol
+## Handoff
 
 1. Write findings to `.tdd/review-findings.md`
 2. Update `.tdd/session.md` with verdict and issue counts
 
 ## Completion Block
-
-Output AGENT_COMPLETION YAML block on completion. This is MANDATORY.
 
 ```yaml
 # AGENT_COMPLETION

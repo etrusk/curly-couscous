@@ -52,14 +52,12 @@ Review test designs for coverage, correctness, and spec alignment. May modify `.
 </instructions>
 
 <output>
-## Handoff Protocol
+## Handoff
 
 1. Update `.tdd/test-designs.md` with any additions/adjustments
 2. Update `.tdd/session.md` with phase completion
 
 ## Completion Block
-
-Output AGENT_COMPLETION YAML block on completion. This is MANDATORY.
 
 ```yaml
 # AGENT_COMPLETION

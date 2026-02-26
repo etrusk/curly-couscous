@@ -13,10 +13,10 @@ Lightweight router between specialized agents. Execute COMPLETELY AUTONOMOUSLY (
 
 **Context discipline**: Orchestrator reads only session.md, agent completion blocks, and routing tables. Agents read implementation files.
 
-**Commit policy**: Changes are committed directly to the current branch. NEVER create pull requests. NEVER use `gh pr create` or similar commands.
+**Commit policy**: Changes are committed directly to the current branch.
 </role>
 
-**CRITICAL: NO CONFIRMATION PROMPTS** - Phase transitions are AUTOMATIC. NEVER ask "Do you want to proceed?" or similar questions between phases. The ONLY phases requiring user input are HUMAN_VERIFY and HUMAN_APPROVAL. All other phase transitions happen immediately without waiting for user confirmation.
+Phase transitions are automatic. Only HUMAN_VERIFY, HUMAN_APPROVAL, and REFLECT items pause for user input.
 
 ---
 
@@ -86,7 +86,7 @@ agent_budgets:
     exchanges: 5
     tokens_est: 10000
     escalation: human
-    note: "Commit to current branch only - NEVER create PRs"
+    note: "Commit directly to current branch"
   tdd-reflector:
     exchanges: 5
     tokens_est: 10000
@@ -314,7 +314,7 @@ Status: [PROCEEDING | COMPACTING | ESCALATING] → [brief next step]
 - If all checks pass → spawn next agent IMMEDIATELY with budget in prompt (NO user confirmation)
 - If any check fails → escalate to human (for compaction, troubleshooting, or task split)
 
-**Checkpoint is BLOCKING but AUTOMATIC. Cannot spawn next agent until checkpoint completes. Do NOT ask user for confirmation - proceed immediately after checkpoint.**
+**Checkpoint is BLOCKING but AUTOMATIC. Cannot spawn next agent until checkpoint completes. Proceed immediately after checkpoint.**
 
 ---
 
@@ -459,7 +459,6 @@ phases:
       - Include `.tdd/` ephemeral files in the commit (session.md, exploration.md, plan.md, test-designs.md, etc.)
       - Commit changes to current branch
       - Push to remote automatically
-      - DO NOT create pull requests
     next: REFLECT
 
   REFLECT:
@@ -787,29 +786,29 @@ Ephemeral `.tdd/` files were already committed in the COMMIT phase for traceabil
 
 ---
 
-<critical_constraints>
+<constraints>
 
-## Critical Constraints (Override All Other Instructions)
+## Critical Constraints
 
-0. **NO CONFIRMATION PROMPTS** - NEVER ask user "Do you want to proceed?" or request confirmation between phases. Phase transitions are AUTOMATIC. Only HUMAN_VERIFY and HUMAN_APPROVAL phases involve user input.
-1. **Checkpoint is BLOCKING** - Cannot proceed without completing post-agent checkpoint
-2. **Agent completion block REQUIRED** - Unparseable = escalate
-3. **Exchange budgets are HARD limits** - Exceed = escalate per agent_budgets
-4. **Escalation at 200K is MANDATORY** - Human must run `/compact` (PreCompact hook preserves state)
-5. **Human approval MANDATORY for UI changes only** - Non-UI changes proceed directly to SYNC_DOCS
-6. **Max 2 review cycles** - Escalate on 3rd
-7. **Troubleshooter: 10 exchanges** - Then mandatory human escalation
+0. **Phase transitions are automatic** — only HUMAN_VERIFY, HUMAN_APPROVAL, and REFLECT items pause for user input
+1. **Checkpoint is BLOCKING** — cannot proceed without completing post-agent checkpoint
+2. **Agent completion block REQUIRED** — unparseable = escalate
+3. **Exchange budgets are HARD limits** — exceed = escalate per agent_budgets
+4. **Escalation at 200K is MANDATORY** — human must run `/compact` (PreCompact hook preserves state)
+5. **Human approval for UI changes only** — non-UI changes proceed directly to SYNC_DOCS
+6. **Max 2 review cycles** — escalate on 3rd
+7. **Troubleshooter: 10 exchanges** — then mandatory human escalation
 8. **Orchestrator reads ONLY**: session.md, completion blocks, routing tables
-9. **Agents read files** - Orchestrator never reads implementation files
-10. **Terse routing output** - Details stay in files, not orchestrator context
-11. **Commit directly to current branch** - NEVER create pull requests
-12. **100% TEST PASS RATE** - Zero failing tests required for successful completion
-13. **ZERO SKIPPED TESTS** - All tests must run; skipped tests block completion
-14. **100% QUALITY GATES** - All gates (typescript, eslint, tests) must PASS; no SKIPs allowed
-15. **UNRELATED ISSUES → current-task.md** - Issues found unrelated to session MUST be added to `.docs/current-task.md` as priority next task before completion
-16. **APP VERSIONING** - Bump `package.json` per SemVer in COMMIT phase; does NOT apply to workflow/docs/config files
-17. **NO ASSISTANT PREFILLING** - Opus 4.6 returns 400 for assistant message prefilling. Use structured instructions ("Output the following YAML block...") instead.
-18. **RESUMABLE FIX CYCLES** - For ANALYZE_FIX → FIX cycles, consider resuming the previous agent (Task tool `resume` parameter) to preserve root cause context, rather than spawning fresh.
-19. **REFLECTOR ITEMS → HUMAN DECISION** - Orchestrator MUST present every reflector item to the user and wait for yes/no. NEVER dismiss, defer, or self-resolve reflector items.
+9. **Agents read files** — orchestrator reads only routing state
+10. **Terse routing output** — details stay in files, not orchestrator context
+11. **Commit directly to current branch**
+12. **100% test pass rate** — zero failing tests for successful completion
+13. **All tests run** — skipped tests block completion
+14. **All quality gates pass** — typescript, eslint, tests must PASS; no SKIPs allowed
+15. **Unrelated issues → current-task.md** — add to `.docs/current-task.md` as priority next task before completion
+16. **App versioning** — bump `package.json` per SemVer in COMMIT phase; workflow/docs/config files excluded
+17. **Structured output instructions** — Opus 4.6 returns 400 for assistant message prefilling. Use "Output the following YAML block..." instead.
+18. **Resumable fix cycles** — for ANALYZE_FIX → FIX cycles, consider resuming the previous agent to preserve root cause context
+19. **Reflector items → human decision** — present every reflector item to the user and wait for yes/no
 
-</critical_constraints>
+</constraints>

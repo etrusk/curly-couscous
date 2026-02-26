@@ -76,14 +76,16 @@ Update `package.json` version when merging changes. Use conventional commits.
 
 ## Critical Constraints
 
-- NEVER hardcode secrets, API keys, or credentials
+<constraints>
+- Secrets, API keys, and credentials go in environment variables only
 - All new code requires tests (TDD workflow)
-- Max 400 lines per file—flag for extraction if exceeded
-- Verify packages exist before importing
+- Max 400 lines per file — extract if exceeded
+- Verify packages exist in package.json before importing
 - Follow patterns established in `.docs/patterns/index.md`
 - Maintain TypeScript strict mode compliance
 - Follow accessibility guidelines (shape redundancy, contrast ratios)
-- Prefer Claude CLI tools (Read, Write, Edit, Grep, Glob) over bash equivalents where appropriate
+- Prefer Claude CLI tools (Read, Write, Edit, Grep, Glob) over bash equivalents
+</constraints>
 
 ## TDD Workflow
 
